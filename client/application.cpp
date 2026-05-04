@@ -600,6 +600,52 @@ static std::vector<interaction_profile> interaction_profiles{
         },
 };
 
+// Needed for Play for Dream MR spec violation.
+// Explanation: Per OpenXR spec, API versions 1.1+ must support grip_surface/pose if they support
+// grip/pose. Play for Dream MR currently negotiates an API version above 1.1, but doesn't support
+// grip_surface/pose, so we need to probe for it explicitly. This will likely change when
+// Play for Dream updates its runtime to 1.1.
+static bool probe_grip_surface_support(xr::instance & inst)
+{
+	XrActionSetCreateInfo action_set_info{XR_TYPE_ACTION_SET_CREATE_INFO};
+	strncpy(action_set_info.actionSetName, "grip_surface_probe", XR_MAX_ACTION_SET_NAME_SIZE);
+	strncpy(action_set_info.localizedActionSetName, "grip_surface_probe", XR_MAX_LOCALIZED_ACTION_SET_NAME_SIZE);
+	action_set_info.priority = 0;
+
+	XrActionSet probe_action_set = XR_NULL_HANDLE;
+	if (XR_FAILED(xrCreateActionSet(inst, &action_set_info, &probe_action_set)))
+		return false;
+
+	XrActionCreateInfo action_info{XR_TYPE_ACTION_CREATE_INFO};
+	strncpy(action_info.actionName, "probe_pose", XR_MAX_ACTION_NAME_SIZE);
+	strncpy(action_info.localizedActionName, "probe_pose", XR_MAX_LOCALIZED_ACTION_NAME_SIZE);
+	action_info.actionType = XR_ACTION_TYPE_POSE_INPUT;
+
+	XrAction probe_action = XR_NULL_HANDLE;
+	if (XR_FAILED(xrCreateAction(probe_action_set, &action_info, &probe_action)))
+	{
+		xrDestroyActionSet(probe_action_set);
+		return false;
+	}
+
+	XrPath profile_path = XR_NULL_PATH;
+	XrPath binding_path = XR_NULL_PATH;
+	xrStringToPath(inst, "/interaction_profiles/khr/simple_controller", &profile_path);
+	xrStringToPath(inst, "/user/hand/left/input/grip_surface/pose", &binding_path);
+
+	const XrActionSuggestedBinding binding{probe_action, binding_path};
+	XrInteractionProfileSuggestedBinding suggestion{XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING};
+	suggestion.interactionProfile = profile_path;
+	suggestion.countSuggestedBindings = 1;
+	suggestion.suggestedBindings = &binding;
+
+	const XrResult result = xrSuggestInteractionProfileBindings(inst, &suggestion);
+	xrDestroyAction(probe_action);
+	xrDestroyActionSet(probe_action_set);
+
+	return XR_SUCCEEDED(result);
+}
+
 static const std::pair<std::string_view, XrActionType> action_suffixes[] =
         {
                 // clang-format off
@@ -1033,6 +1079,8 @@ void application::initialize_actions()
 	std::unordered_map<std::string, std::vector<XrActionSuggestedBinding>> suggested_bindings;
 
 	XrVersion api_version = xr_instance.get_api_version();
+	const bool can_probe_grip_surface = api_version >= XR_MAKE_VERSION(1, 1, 0) or xr_instance.has_extension(XR_KHR_MAINTENANCE1_EXTENSION_NAME);
+	const bool supports_grip_surface = can_probe_grip_surface and probe_grip_surface_support(xr_instance);
 	// Build the list of all possible input sources, without duplicates,
 	// checking which profiles are supported by the runtime
 	std::vector<std::string> sources;
@@ -1080,8 +1128,8 @@ void application::initialize_actions()
 		}
 		if (add_palms)
 		{
-			if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or xr_instance.has_extension(XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
-			    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose")                              //
+			if (supports_grip_surface                                                         //
+			    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose") //
 			    and not utils::contains(profile.input_sources, "/user/hand/left/input/grip_surface/pose"))
 			{
 				spdlog::info("Adding grip_surface/pose for interaction profile {}", profile.profile_name);
