@@ -83,7 +83,6 @@ void initialize_runtime_hmd_traits();
 // constructs itself and complains in logs.
 const hmd_traits & runtime_hmd_traits();
 const char * permission_name_for_hmd(const hmd_traits & traits, const feature f);
-
-XrViewConfigurationView override_view(XrViewConfigurationView, model = guess_model());
+XrViewConfigurationView override_view_for_hmd(const hmd_traits & traits, XrViewConfigurationView);
 
 std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::spaces space);

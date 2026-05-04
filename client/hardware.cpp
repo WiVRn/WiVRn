@@ -356,15 +356,14 @@ static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t
 	return view;
 }
 
-XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
+XrViewConfigurationView override_view_for_hmd(const hmd_traits & traits, XrViewConfigurationView view)
 {
 	// Standalone headsets tend to report a lower resolution
 	// as the GPU can't handle full res.
 	// Return the panel resolution instead.
 	spdlog::debug("Recommended image size: {}x{}", view.recommendedImageRectWidth, view.recommendedImageRectHeight);
-	const hmd_traits quirks = get_hmd_traits(m);
-	if (quirks.panel_width_override > 0)
-		return scale_view(view, quirks.panel_width_override);
+	if (traits.panel_width_override > 0)
+		return scale_view(view, traits.panel_width_override);
 	return view;
 }
 
