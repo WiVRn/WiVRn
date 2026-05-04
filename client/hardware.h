@@ -22,6 +22,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <openxr/openxr.h>
 
@@ -54,16 +55,35 @@ enum class feature
 	body_tracking,
 };
 
+struct hmd_permissions
+{
+	const char * hand_tracking = nullptr;
+	const char * eye_gaze = nullptr;
+	const char * face_tracking = nullptr;
+	const char * body_tracking = nullptr;
+};
+
+struct hmd_traits
+{
+	const char * controller_profile = "generic-trigger-squeeze";
+	const char * controller_ray_model = "assets://ray.glb";
+	XrVersion max_openxr_api_version = XR_API_VERSION_1_1;
+	uint32_t panel_width_override = 0;
+	bool needs_srgb_conversion = true;
+	const hmd_permissions * permissions = nullptr;
+};
+
 model guess_model();
 std::string model_name();
+void initialize_runtime_hmd_traits();
+// Initialized once at startup (initialize_runtime_hmd_traits()).
+// If the HMD is recognized, returns traits specific to that model; otherwise,returns
+// default behavior.
+// Fallback: if called before initialize_runtime_hmd_traits() (avoid this!), dynamically
+// constructs itself and complains in logs.
+const hmd_traits & runtime_hmd_traits();
+const char * permission_name_for_hmd(const hmd_traits & traits, const feature f);
 
 XrViewConfigurationView override_view(XrViewConfigurationView, model = guess_model());
 
-bool need_srgb_conversion(model);
-
-// Return nullptr if no permission is required
-const char * permission_name(feature f);
-
-std::string controller_name();
-std::string controller_ray_model_name();
 std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::spaces space);

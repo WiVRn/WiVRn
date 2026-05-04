@@ -1135,10 +1135,10 @@ void scenes::lobby::on_focused()
 		config.save();
 	}
 
-	std::string profile = controller_name();
+	const std::string_view profile = runtime_hmd_traits().controller_profile;
 	input.emplace(
 	        *this,
-	        "assets://controllers/" + profile + "/profile.json",
+	        "assets://controllers/" + std::string(profile) + "/profile.json",
 	        layer_controllers,
 	        layer_rays,
 	        get_action("left_trigger").first,
@@ -1148,7 +1148,7 @@ void scenes::lobby::on_focused()
 
 	for (auto i: {xr::spaces::aim_left, xr::spaces::aim_right, xr::spaces::grip_left, xr::spaces::grip_right})
 	{
-		auto [p, q] = input->offset[i] = controller_offset(controller_name(), i);
+		auto [p, q] = input->offset[i] = controller_offset(profile, i);
 
 		auto rot = glm::degrees(glm::eulerAngles(q));
 		spdlog::info("Initializing offset of space {} to ({}, {}, {}) mm, ({}, {}, {})°",
