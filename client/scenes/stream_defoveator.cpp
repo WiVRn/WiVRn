@@ -127,7 +127,7 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 	// Fragment shader
 	auto specialization = make_specialization_constants(
 	        int32_t(alpha),
-	        VkBool32(need_srgb_conversion(guess_model())));
+	        VkBool32(runtime_hmd_traits().needs_srgb_conversion));
 	auto fragment_shader = load_shader(device, "reprojection.frag");
 
 	vk::pipeline_builder pipeline_info{

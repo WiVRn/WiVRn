@@ -306,7 +306,7 @@ input_profile::input_profile(scene & scene, const std::filesystem::path & json_p
 		else
 			continue;
 
-		auto && [ray_entity, ray_node] = scene.add_gltf(controller_ray_model_name(), layer_mask_ray);
+		auto && [ray_entity, ray_node] = scene.add_gltf(runtime_hmd_traits().controller_ray_model, layer_mask_ray);
 
 		ray_node.name = (std::string)layout.key + "_ray";
 		spdlog::debug("Created entity {}", ray_node.name);

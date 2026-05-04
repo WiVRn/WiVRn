@@ -100,18 +100,13 @@ static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & i
 	             XR_API_VERSION_1_0,
 	     })
 	{
-		switch (guess_model())
+		const XrVersion max_openxr_api_version = runtime_hmd_traits().max_openxr_api_version;
+		if (version > max_openxr_api_version)
 		{
-			case model::htc_vive_focus_3:
-			case model::htc_vive_xr_elite:
-			case model::htc_vive_focus_vision:
-				if (version > XR_API_VERSION_1_0)
-				{
-					spdlog::info("skip OpenXR 1.1 for HTC");
-					continue;
-				}
-			default:
-				break;
+			spdlog::info("skip OpenXR {} due to headset quirk max version {}",
+			             xr::to_string(version),
+			             xr::to_string(max_openxr_api_version));
+			continue;
 		}
 		std::vector<const char *> extensions;
 		info.applicationInfo.apiVersion = version;

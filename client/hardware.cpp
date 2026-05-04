@@ -18,9 +18,12 @@
  */
 
 #include "hardware.h"
+#include "xr/to_string.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <glm/ext/quaternion_trigonometric.hpp>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -122,6 +125,216 @@ model guess_model()
 	return m;
 }
 
+const char * permission_name_for_hmd(const hmd_traits & traits, const feature f)
+{
+	switch (f)
+	{
+		case feature::microphone:
+			return "android.permission.RECORD_AUDIO";
+		case feature::hand_tracking:
+			return traits.permissions ? traits.permissions->hand_tracking : nullptr;
+		case feature::eye_gaze:
+			return traits.permissions ? traits.permissions->eye_gaze : nullptr;
+		case feature::face_tracking:
+			return traits.permissions ? traits.permissions->face_tracking : nullptr;
+		case feature::body_tracking:
+			return traits.permissions ? traits.permissions->body_tracking : nullptr;
+	}
+	__builtin_unreachable();
+}
+
+static uint32_t env_u32(const char * env_name, const char * android_sysprop_name)
+{
+#ifdef __ANDROID__
+	const std::string value = get_property(android_sysprop_name);
+#else
+	const char * env_value = std::getenv(env_name);
+	const std::string value = (env_value != nullptr && *env_value != '\0') ? std::string(env_value) : std::string();
+#endif
+	if (value.empty())
+		return 0;
+	return std::strtoul(value.c_str(), nullptr, 10);
+}
+
+static bool env_bool(const char * env_name, const char * android_sysprop_name, bool fallback)
+{
+#ifdef __ANDROID__
+	const std::string value = get_property(android_sysprop_name);
+#else
+	const char * env_value = std::getenv(env_name);
+	const std::string value = (env_value != nullptr && *env_value != '\0') ? std::string(env_value) : std::string();
+#endif
+	if (value.empty())
+		return fallback;
+	if (strcmp(value.c_str(), "1") == 0 || strcasecmp(value.c_str(), "true") == 0 || strcasecmp(value.c_str(), "yes") == 0 || strcasecmp(value.c_str(), "on") == 0)
+		return true;
+	if (strcmp(value.c_str(), "0") == 0 || strcasecmp(value.c_str(), "false") == 0 || strcasecmp(value.c_str(), "no") == 0 || strcasecmp(value.c_str(), "off") == 0)
+		return false;
+	return fallback;
+}
+
+static std::string env_string(const char * env_name, const char * android_sysprop_name, const char * fallback)
+{
+#ifdef __ANDROID__
+	const std::string value = get_property(android_sysprop_name);
+	if (!value.empty())
+		return value;
+	return std::string(fallback ? fallback : "");
+#else
+	const char * value = std::getenv(env_name);
+	if (value != nullptr && *value != '\0')
+		return std::string(value);
+	return std::string(fallback ? fallback : "");
+#endif
+}
+
+static const hmd_permissions permission_quest{
+        .eye_gaze = "com.oculus.permission.EYE_TRACKING",
+        .face_tracking = "com.oculus.permission.FACE_TRACKING",
+};
+static const hmd_permissions permission_pico{
+        .eye_gaze = "com.picovr.permission.EYE_TRACKING",
+        .face_tracking = "com.picovr.permission.FACE_TRACKING",
+};
+static const hmd_permissions permission_samsung{
+        .hand_tracking = "android.permission.HAND_TRACKING",
+        .eye_gaze = "android.permission.EYE_TRACKING_FINE",
+        .face_tracking = "android.permission.FACE_TRACKING",
+};
+static const hmd_permissions permission_quest_body{
+        .eye_gaze = "com.oculus.permission.EYE_TRACKING",
+        .face_tracking = "com.oculus.permission.FACE_TRACKING",
+        .body_tracking = "com.oculus.permission.BODY_TRACKING",
+};
+
+static hmd_traits get_hmd_traits(const model m)
+{
+	hmd_traits traits{};
+	switch (m)
+	{
+		case model::oculus_quest:
+			traits.panel_width_override = 1440;
+			traits.controller_profile = "oculus-touch-v2";
+			traits.permissions = &permission_quest;
+			break;
+		case model::oculus_quest_2:
+			traits.panel_width_override = 1832;
+			traits.controller_profile = "oculus-touch-v3";
+			traits.permissions = &permission_quest;
+			break;
+		case model::meta_quest_pro:
+			traits.panel_width_override = 1800;
+			traits.controller_profile = "meta-quest-touch-pro";
+			traits.permissions = &permission_quest;
+			break;
+		case model::meta_quest_3:
+			traits.controller_profile = "meta-quest-touch-plus";
+			traits.panel_width_override = 2064;
+			traits.permissions = &permission_quest_body;
+			break;
+		case model::meta_quest_3s:
+			traits.panel_width_override = 1832;
+			traits.controller_profile = "meta-quest-touch-plus";
+			traits.permissions = &permission_quest_body;
+			break;
+		case model::pico_neo_3:
+			traits.panel_width_override = 1832;
+			traits.controller_profile = "pico-neo3";
+			traits.permissions = &permission_pico;
+			break;
+		case model::pico_4:
+		case model::pico_4_pro:
+		case model::pico_4_enterprise:
+			traits.panel_width_override = 2160;
+			traits.controller_profile = "pico-4";
+			traits.permissions = &permission_pico;
+			break;
+		case model::pico_4s:
+			traits.panel_width_override = 2160;
+			traits.controller_profile = "pico-4u";
+			traits.permissions = &permission_pico;
+			break;
+		case model::htc_vive_focus_3:
+			traits.panel_width_override = 2448;
+			traits.max_openxr_api_version = XR_API_VERSION_1_0;
+			traits.controller_profile = "htc-vive-focus-3";
+			traits.controller_ray_model = "assets://ray-htc.glb";
+			break;
+		case model::htc_vive_xr_elite:
+			traits.panel_width_override = 1920;
+			traits.max_openxr_api_version = XR_API_VERSION_1_0;
+			traits.controller_profile = "htc-vive-focus-3";
+			traits.controller_ray_model = "assets://ray-htc.glb";
+			break;
+		case model::htc_vive_focus_vision:
+			traits.panel_width_override = 2448;
+			traits.max_openxr_api_version = XR_API_VERSION_1_0;
+			traits.controller_profile = "htc-vive-focus-3";
+			traits.controller_ray_model = "assets://ray-htc.glb";
+			break;
+		case model::lynx_r1:
+			traits.needs_srgb_conversion = false;
+			break;
+		case model::samsung_galaxy_xr:
+			traits.panel_width_override = 3552;
+			traits.controller_profile = "samsung-galaxyxr";
+			traits.permissions = &permission_samsung;
+			break;
+		case model::unknown:
+			break;
+	}
+
+	return traits;
+}
+
+namespace
+{
+std::optional<hmd_traits> g_hmd_traits;
+std::string g_controller_override_storage;
+} // namespace
+
+void initialize_runtime_hmd_traits()
+{
+	if (g_hmd_traits.has_value())
+		return;
+
+	hmd_traits q = get_hmd_traits(guess_model());
+	const uint32_t panel_width = env_u32("WIVRN_QUIRK_PANEL_WIDTH", "debug.wivrn.quirk_panel_width");
+	const bool had_panel_override = panel_width > 0;
+	if (had_panel_override)
+		q.panel_width_override = panel_width;
+	const bool disable_openxr_1_1 = env_bool("WIVRN_QUIRK_DISABLE_OPENXR_1_1", "debug.wivrn.quirk_disable_openxr_1_1", q.max_openxr_api_version < XR_API_VERSION_1_1);
+	q.max_openxr_api_version = disable_openxr_1_1 ? XR_API_VERSION_1_0 : XR_API_VERSION_1_1;
+	const bool srgb = env_bool("WIVRN_QUIRK_SRGB_CONVERSION", "debug.wivrn.quirk_srgb_conversion", q.needs_srgb_conversion);
+	const bool had_srgb_override = srgb != q.needs_srgb_conversion;
+	q.needs_srgb_conversion = srgb;
+	g_controller_override_storage = env_string("WIVRN_CONTROLLER", "debug.wivrn.controller", q.controller_profile);
+	const bool had_controller_override = g_controller_override_storage != q.controller_profile;
+	q.controller_profile = g_controller_override_storage.c_str();
+	spdlog::info("Initialized HMD traits: profile={}, ray_model={}, panel_width_override={}, max_openxr_api={}, needs_srgb_conversion={}",
+	             q.controller_profile,
+	             q.controller_ray_model,
+	             q.panel_width_override,
+	             xr::to_string(q.max_openxr_api_version),
+	             q.needs_srgb_conversion);
+	spdlog::info("HMD trait overrides: panel_width={}, disable_openxr_1_1={}, srgb_conversion={}, controller_profile={}",
+	             had_panel_override,
+	             !env_string("WIVRN_QUIRK_DISABLE_OPENXR_1_1", "debug.wivrn.quirk_disable_openxr_1_1", "").empty(),
+	             had_srgb_override,
+	             had_controller_override);
+	g_hmd_traits = q;
+}
+
+const hmd_traits & runtime_hmd_traits()
+{
+	if (!g_hmd_traits.has_value())
+	{
+		spdlog::critical("runtime_hmd_traits() accessed before initialize_runtime_hmd_traits(); falling back to lazy initialization. This is a bug!");
+		initialize_runtime_hmd_traits();
+	}
+	return *g_hmd_traits;
+}
+
 std::string model_name()
 {
 #ifdef __ANDROID__
@@ -149,195 +362,10 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 	// as the GPU can't handle full res.
 	// Return the panel resolution instead.
 	spdlog::debug("Recommended image size: {}x{}", view.recommendedImageRectWidth, view.recommendedImageRectHeight);
-	switch (m)
-	{
-		case model::oculus_quest:
-			return scale_view(view, 1440);
-		case model::oculus_quest_2:
-		case model::meta_quest_3s:
-			return scale_view(view, 1832);
-		case model::meta_quest_pro:
-			return scale_view(view, 1800);
-		case model::meta_quest_3:
-			return scale_view(view, 2064);
-		case model::pico_neo_3:
-			return scale_view(view, 1832);
-		case model::pico_4:
-		case model::pico_4s:
-		case model::pico_4_pro:
-		case model::pico_4_enterprise:
-			return scale_view(view, 2160);
-		case model::htc_vive_focus_3:
-		case model::htc_vive_focus_vision:
-			return scale_view(view, 2448);
-		case model::htc_vive_xr_elite:
-			return scale_view(view, 1920);
-		case model::samsung_galaxy_xr:
-			return scale_view(view, 3552);
-		case model::lynx_r1:
-		case model::unknown:
-			return view;
-	}
-	throw std::range_error("invalid model " + std::to_string((int)m));
-}
-
-bool need_srgb_conversion(model m)
-{
-	switch (m)
-	{
-		case model::lynx_r1:
-			return false;
-		case model::oculus_quest:
-		case model::oculus_quest_2:
-		case model::meta_quest_pro:
-		case model::meta_quest_3:
-		case model::meta_quest_3s:
-		case model::pico_neo_3:
-		case model::pico_4:
-		case model::pico_4s:
-		case model::pico_4_pro:
-		case model::pico_4_enterprise:
-		case model::htc_vive_focus_3:
-		case model::htc_vive_focus_vision:
-		case model::htc_vive_xr_elite:
-		case model::samsung_galaxy_xr:
-		case model::unknown:
-			return true;
-	}
-	throw std::range_error("invalid model " + std::to_string((int)m));
-}
-
-const char * permission_name(feature f)
-{
-	switch (f)
-	{
-		case feature::microphone:
-			return "android.permission.RECORD_AUDIO";
-		case feature::hand_tracking:
-			switch (guess_model())
-			{
-				case model::samsung_galaxy_xr:
-					return "android.permission.HAND_TRACKING";
-				case model::oculus_quest:
-				case model::oculus_quest_2:
-				case model::meta_quest_pro:
-				case model::meta_quest_3:
-				case model::meta_quest_3s:
-				case model::pico_neo_3:
-				case model::pico_4:
-				case model::pico_4s:
-				case model::pico_4_pro:
-				case model::pico_4_enterprise:
-				case model::htc_vive_focus_3:
-				case model::htc_vive_focus_vision:
-				case model::htc_vive_xr_elite:
-				case model::lynx_r1:
-				case model::unknown:
-					break;
-			}
-			return nullptr;
-		case feature::eye_gaze:
-			switch (guess_model())
-			{
-				case model::oculus_quest:
-				case model::oculus_quest_2:
-				case model::meta_quest_pro:
-				case model::meta_quest_3:
-				case model::meta_quest_3s:
-					return "com.oculus.permission.EYE_TRACKING";
-				case model::pico_neo_3:
-				case model::pico_4:
-				case model::pico_4s:
-				case model::pico_4_pro:
-				case model::pico_4_enterprise:
-					return "com.picovr.permission.EYE_TRACKING";
-				case model::samsung_galaxy_xr:
-					return "android.permission.EYE_TRACKING_FINE";
-				case model::htc_vive_focus_3:
-				case model::htc_vive_focus_vision:
-				case model::htc_vive_xr_elite:
-				case model::lynx_r1:
-				case model::unknown:
-					return nullptr;
-			}
-			__builtin_unreachable();
-		case feature::face_tracking:
-			switch (guess_model())
-			{
-				case model::oculus_quest:
-				case model::oculus_quest_2:
-				case model::meta_quest_pro:
-				case model::meta_quest_3:
-				case model::meta_quest_3s:
-					return "com.oculus.permission.FACE_TRACKING";
-				case model::pico_neo_3:
-				case model::pico_4:
-				case model::pico_4s:
-				case model::pico_4_pro:
-				case model::pico_4_enterprise:
-					return "com.picovr.permission.FACE_TRACKING";
-				case model::samsung_galaxy_xr:
-					return "android.permission.FACE_TRACKING";
-				case model::htc_vive_focus_3:
-				case model::htc_vive_focus_vision:
-				case model::htc_vive_xr_elite:
-				case model::lynx_r1:
-				case model::unknown:
-					return nullptr;
-			}
-			__builtin_unreachable();
-		case feature::body_tracking:
-			switch (guess_model())
-			{
-				case model::meta_quest_3:
-				case model::meta_quest_3s:
-					return "com.oculus.permission.BODY_TRACKING";
-				default:
-					return nullptr;
-			}
-	}
-	__builtin_unreachable();
-}
-
-std::string controller_name()
-{
-#ifndef __ANDROID__
-	const char * controller = std::getenv("WIVRN_CONTROLLER");
-	if (controller && strcmp(controller, ""))
-		return controller;
-#endif
-
-	switch (guess_model())
-	{
-		case model::oculus_quest:
-			return "oculus-touch-v2";
-		case model::oculus_quest_2:
-			return "oculus-touch-v3";
-		case model::meta_quest_pro:
-			return "meta-quest-touch-pro";
-		case model::meta_quest_3:
-		case model::meta_quest_3s:
-			return "meta-quest-touch-plus";
-		case model::pico_neo_3:
-			return "pico-neo3";
-		case model::pico_4:
-		case model::pico_4_pro:
-		case model::pico_4_enterprise:
-			return "pico-4";
-		case model::pico_4s:
-			return "pico-4u";
-		case model::htc_vive_focus_3:
-		case model::htc_vive_focus_vision:
-		case model::htc_vive_xr_elite:
-			return "htc-vive-focus-3";
-		case model::samsung_galaxy_xr:
-			return "samsung-galaxyxr";
-		case model::lynx_r1:
-		case model::unknown:
-			return "generic-trigger-squeeze";
-	}
-
-	__builtin_unreachable();
+	const hmd_traits quirks = get_hmd_traits(m);
+	if (quirks.panel_width_override > 0)
+		return scale_view(view, quirks.panel_width_override);
+	return view;
 }
 
 std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::spaces space)
@@ -450,20 +478,4 @@ std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::
 		}
 
 	return {{0, 0, 0}, {1, 0, 0, 0}};
-}
-
-std::string controller_ray_model_name()
-{
-	switch (guess_model())
-	{
-		case model::htc_vive_focus_3:
-		case model::htc_vive_focus_vision:
-		case model::htc_vive_xr_elite:
-			// XR Elite's runtime always assume alpha is unpremultiplied in the composition layers
-			// Assume it's the same for all HTC headsets
-			return "assets://ray-htc.glb";
-
-		default:
-			return "assets://ray.glb";
-	}
 }

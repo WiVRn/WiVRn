@@ -1465,6 +1465,7 @@ application::application(application_info info) :
         app_info(std::move(info))
 
 {
+	initialize_runtime_hmd_traits();
 #ifdef __ANDROID__
 	// https://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html
 

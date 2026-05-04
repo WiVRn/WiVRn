@@ -70,7 +70,7 @@ bool configuration::check_feature(feature f) const
 		}
 	}
 #ifdef __ANDROID__
-	return check_permission(permission_name(f));
+	return check_permission(permission_name_for_hmd(runtime_hmd_traits(), f));
 #else
 	return true;
 #endif
@@ -81,7 +81,7 @@ void configuration::set_feature(feature f, bool state)
 #ifdef __ANDROID__
 	if (state)
 	{
-		request_permission(permission_name(f), [this, f](bool granted) {
+		request_permission(permission_name_for_hmd(runtime_hmd_traits(), f), [this, f](bool granted) {
 			{
 				std::lock_guard lock(mutex);
 				features[f] = granted;
