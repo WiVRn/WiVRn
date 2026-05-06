@@ -20,11 +20,11 @@
 #include "hardware.h"
 #include "xr/to_string.h"
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <limits>
-#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -297,15 +297,12 @@ static hmd_traits get_hmd_traits(const model m)
 
 namespace
 {
-std::optional<hmd_traits> g_hmd_traits;
+hmd_traits g_hmd_traits;
 std::string g_controller_override_storage;
 } // namespace
 
 void initialize_runtime_hmd_traits()
 {
-	if (g_hmd_traits.has_value())
-		return;
-
 	hmd_traits q = get_hmd_traits(guess_model());
 	const std::optional<uint32_t> panel_width = env_u32("WIVRN_QUIRK_PANEL_WIDTH", "debug.wivrn.quirk_panel_width");
 	const bool had_panel_override = panel_width.has_value();
@@ -331,17 +328,15 @@ void initialize_runtime_hmd_traits()
 	             disable_openxr_1_1_override.has_value(),
 	             had_srgb_override,
 	             had_controller_override);
+	q.is_initialized = true;
 	g_hmd_traits = q;
 }
 
 const hmd_traits & runtime_hmd_traits()
 {
-	if (!g_hmd_traits.has_value())
-	{
-		spdlog::critical("runtime_hmd_traits() accessed before initialize_runtime_hmd_traits(); falling back to lazy initialization. This is a bug!");
-		initialize_runtime_hmd_traits();
-	}
-	return *g_hmd_traits;
+	// runtime_hmd_traits() must only be accessed after initialization has completed.
+	assert(g_hmd_traits.is_initialized && "runtime_hmd_traits() accessed before initialize_runtime_hmd_traits() completed");
+	return g_hmd_traits;
 }
 
 std::string model_name()
