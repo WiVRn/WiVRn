@@ -100,12 +100,11 @@ static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & i
 	             XR_API_VERSION_1_0,
 	     })
 	{
-		const XrVersion max_openxr_api_version = runtime_hmd_traits().max_openxr_api_version;
-		if (version > max_openxr_api_version)
+		if (version > hmd_traits.max_openxr_api_version)
 		{
 			spdlog::info("skip OpenXR {} due to headset quirk max version {}",
 			             xr::to_string(version),
-			             xr::to_string(max_openxr_api_version));
+			             xr::to_string(hmd_traits.max_openxr_api_version));
 			continue;
 		}
 		std::vector<const char *> extensions;

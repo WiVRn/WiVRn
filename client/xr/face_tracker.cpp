@@ -45,18 +45,13 @@ xr::face_tracker_type xr::face_tracker_supported(xr::instance & instance, xr::sy
 			return xr::face_tracker_type::htc;
 	}
 
-	switch (guess_model())
+	if (hmd_traits.pico_face_tracker)
 	{
-		case model::pico_4_pro:
-		case model::pico_4_enterprise:
-			// The extension used by Pico is not published
-			// it doesn't even need to be requested...
-			if (instance.has_extension(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME) and
-			    system.eye_gaze_interaction_properties().supportsEyeGazeInteraction)
-				return xr::face_tracker_type::pico;
-			break;
-		default:
-			break;
+		// The extension used by Pico is not published
+		// it doesn't even need to be requested...
+		if (instance.has_extension(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME) and
+		    system.eye_gaze_interaction_properties().supportsEyeGazeInteraction)
+			return xr::face_tracker_type::pico;
 	}
 
 	return xr::face_tracker_type::none;
@@ -90,18 +85,13 @@ xr::face_tracker xr::make_face_tracker(xr::instance & instance, xr::system & sys
 			        properties.supportLipFacialTracking);
 	}
 
-	switch (guess_model())
+	if (hmd_traits.pico_face_tracker)
 	{
-		case model::pico_4_pro:
-		case model::pico_4_enterprise:
-			// The extension used by Pico is not published
-			// it doesn't even need to be requested...
-			if (instance.has_extension(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME) and
-			    system.eye_gaze_interaction_properties().supportsEyeGazeInteraction)
-				return xr::face_tracker(std::in_place_type_t<xr::pico_face_tracker>(), instance, session);
-			break;
-		default:
-			break;
+		// The extension used by Pico is not published
+		// it doesn't even need to be requested...
+		if (instance.has_extension(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME) and
+		    system.eye_gaze_interaction_properties().supportsEyeGazeInteraction)
+			return xr::face_tracker(std::in_place_type_t<xr::pico_face_tracker>(), instance, session);
 	}
 
 	return std::monostate();

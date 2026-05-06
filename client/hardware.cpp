@@ -25,7 +25,6 @@
 #include <cstring>
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <limits>
-#include <stdexcept>
 #include <string>
 
 #include <spdlog/spdlog.h>
@@ -35,12 +34,13 @@
 
 #include <sys/system_properties.h>
 
-static std::string get_property(const char * property)
+static std::optional<std::string> get_property(const char * property)
 {
 	auto info = __system_property_find(property);
-	std::string result;
 	if (not info)
-		return result;
+		return std::nullopt;
+
+	std::string result;
 	wrap_lambda cb = [&result](const char * name, const char * value, uint32_t serial) {
 		result = value;
 	};
@@ -50,300 +50,215 @@ static std::string get_property(const char * property)
 }
 #endif
 
-static model guess_model_()
+static std::optional<std::string> env_string(const char * env_name, const char * android_sysprop_name)
 {
+#ifdef __ANDROID__
+	return get_property(android_sysprop_name);
+#else
+	const char * value = std::getenv(env_name);
+	if (value)
+		return value;
+	return std::nullopt;
+#endif
+}
+
+static std::optional<uint32_t> env_u32(const char * env_name, const char * android_sysprop_name)
+{
+	const auto value = env_string(env_name, android_sysprop_name);
+	if (not value)
+		return std::nullopt;
+	try
+	{
+		const unsigned long parsed = std::stoul(*value);
+		if (parsed > std::numeric_limits<uint32_t>::max())
+			return std::nullopt;
+		return static_cast<uint32_t>(parsed);
+	}
+	catch (std::runtime_error & e)
+	{
+		spdlog::warn("failed to parse {} (value: {}: {}",
+#ifdef __ANDROID__
+		             android_sysprop_name,
+#else
+		             env_name,
+#endif
+		             *value,
+		             e.what()
+
+		);
+		return std::nullopt;
+	}
+}
+
+static std::optional<bool> env_bool(const char * env_name, const char * android_sysprop_name)
+{
+	const auto value = env_string(env_name, android_sysprop_name);
+	if (not value)
+		return std::nullopt;
+	if (strcmp(value->c_str(), "1") == 0 || strcasecmp(value->c_str(), "true") == 0 || strcasecmp(value->c_str(), "yes") == 0 || strcasecmp(value->c_str(), "on") == 0)
+		return true;
+	if (strcmp(value->c_str(), "0") == 0 || strcasecmp(value->c_str(), "false") == 0 || strcasecmp(value->c_str(), "no") == 0 || strcasecmp(value->c_str(), "off") == 0)
+		return false;
+	return std::nullopt;
+}
+
+const hmd_traits_t hmd_traits = [] {
+	hmd_traits_t traits{};
+
 #ifdef __ANDROID__
 	const auto device = get_property("ro.product.device");
 	const auto manufacturer = get_property("ro.product.manufacturer");
 	const auto model = get_property("ro.product.model");
 
 	spdlog::info("Guessing HMD model from:");
-	spdlog::info("    ro.product.device = \"{}\":", device);
-	spdlog::info("    ro.product.manufacturer = \"{}\":", manufacturer);
-	spdlog::info("    ro.product.model = \"{}\":", model);
+	spdlog::info("    ro.product.device = \"{}\":", device.value_or("<unset>"));
+	spdlog::info("    ro.product.manufacturer = \"{}\":", manufacturer.value_or("<unset>"));
+	spdlog::info("    ro.product.model = \"{}\":", model.value_or("<unset>"));
 
-	if (device == "monterey")
-		return model::oculus_quest;
-	if (device == "hollywood")
-		return model::oculus_quest_2;
-	if (device == "seacliff")
-		return model::meta_quest_pro;
-	if (device == "eureka")
-		return model::meta_quest_3;
-	if (device == "panther")
-		return model::meta_quest_3s;
-	if (model == "Lynx-R1")
-		return model::lynx_r1;
+	traits.permissions[feature::microphone] = "android.permission.RECORD_AUDIO";
 
-	if (manufacturer == "Pico")
+	if (manufacturer == "Oculus")
 	{
+		traits.permissions[feature::eye_gaze] = "com.oculus.permission.EYE_TRACKING";
+		traits.permissions[feature::face_tracking] = "com.oculus.permission.FACE_TRACKING";
+
+		// Quest hand tracking creates a fake khr/simple_controller when hand tracking
+		// is enabled, this messes with native hand tracking
+		traits.bind_simple_controller = false;
+
+		// Quest breaks spec and does not support grip_surface for ext/hand_interaction_ext
+		traits.hand_interaction_grip_surface = false;
+
+		if (device == "monterey") // Quest 1
+		{
+			traits.panel_width_override = 1440;
+			traits.controller_profile = "oculus-touch-v2";
+			traits.vk_debug_ext_allowed = false; // Quest 1 lies, the extension won't load
+		}
+		else if (device == "hollywood") // Quest 2
+		{
+			traits.panel_width_override = 1832;
+			traits.controller_profile = "oculus-touch-v3";
+		}
+		else if (device == "seacliff")
+		{
+			traits.panel_width_override = 1800; // Quest pro
+			traits.controller_profile = "meta-quest-touch-pro";
+		}
+		else if (device == "eureka")
+		{
+			traits.panel_width_override = 2064; // Quest 3
+			traits.controller_profile = "meta-quest-touch-plus";
+		}
+		else if (device == "panther") // Quest 3S
+		{
+			traits.panel_width_override = 1832;
+			traits.controller_profile = "meta-quest-touch-plus";
+		}
+	}
+
+	else if (model == "Lynx-R1")
+	{
+		traits.needs_srgb_conversion = false;
+	}
+
+	else if (manufacturer == "Pico")
+	{
+		traits.permissions[feature::eye_gaze] = "com.picovr.permission.EYE_TRACKING";
+		traits.permissions[feature::face_tracking] = "com.picovr.permission.FACE_TRACKING";
+		traits.view_locate = false;
 		const auto pico_model = get_property("pxr.vendorhw.product.model");
-		spdlog::info("    pxr.vendorhw.product.model = \"{}\":", pico_model);
+		spdlog::info("    pxr.vendorhw.product.model = \"{}\":", pico_model.value_or("<unset>"));
 
 		if (pico_model == "Pico Neo 3")
-			return model::pico_neo_3;
+		{
+			traits.panel_width_override = 1832;
+			traits.controller_profile = "pico-neo3";
+		}
 
-		if (pico_model == "PICO 4")
-			return model::pico_4;
+		else if (pico_model and pico_model->starts_with("PICO 4"))
+		{
+			traits.panel_width_override = 2160;
+			if (pico_model == "PICO 4 Ultra")
+				traits.controller_profile = "pico-4u";
+			else
+				traits.controller_profile = "pico-4";
 
-		if (pico_model == "PICO 4 Ultra")
-			return model::pico_4s;
-
-		if (pico_model == "PICO 4 Pro")
-			return model::pico_4_pro;
-
-		if (pico_model == "PICO 4 Enterprise")
-			return model::pico_4_enterprise;
-
-		spdlog::info("manufacturer={}, model={}, device={}, pico_model={} assuming Pico 4", manufacturer, model, device, pico_model);
-		return model::pico_4;
+			if (pico_model == "PICO 4 Pro" or pico_model == "PICO 4 Enterprise")
+				traits.pico_face_tracker = true;
+		}
 	}
 	if (manufacturer == "HTC")
 	{
+		// Accepts OpenXR 1.1 but doesn't actually implement it
+		traits.max_openxr_api_version = XR_API_VERSION_1_0;
+		// Doesn't handle additive blend, so needs specific ray model
+		traits.controller_ray_model = "assets://ray-htc.glb";
+
+		traits.controller_profile = "htc-vive-focus-3";
+
 		if (model == "VIVE Focus 3")
-			return model::htc_vive_focus_3;
+			traits.panel_width_override = 2448;
 
 		if (model == "VIVE Focus Vision")
-			return model::htc_vive_focus_vision;
+			traits.panel_width_override = 2448;
 
 		if (model == "VIVE XR Series")
-			return model::htc_vive_xr_elite;
+			traits.panel_width_override = 1920;
 	}
 	if (manufacturer == "samsung")
 	{
-		if (model == "SM-I610")
-			return model::samsung_galaxy_xr;
-	}
-
-	spdlog::info("Unknown model, manufacturer={}, model={}, device={}", manufacturer, model, device);
-#endif
-	return model::unknown;
-}
-
-model guess_model()
-{
-	static model m = guess_model_();
-	return m;
-}
-
-const char * permission_name_for_hmd(const hmd_traits & traits, const feature f)
-{
-	if (f == feature::microphone)
-		return "android.permission.RECORD_AUDIO";
-
-	if (!traits.permissions)
-		return nullptr;
-
-	return (*traits.permissions)[f];
-}
-
-static std::optional<uint32_t> env_u32(const char * env_name, const char * android_sysprop_name)
-{
-#ifdef __ANDROID__
-	const std::string value = get_property(android_sysprop_name);
-#else
-	const char * env_value = std::getenv(env_name);
-	const std::string value = (env_value != nullptr) ? std::string(env_value) : std::string();
-#endif
-	if (value.empty())
-		return std::nullopt;
-	char * end = nullptr;
-	const unsigned long parsed = std::strtoul(value.c_str(), &end, 10);
-	if (end == value.c_str() || *end != '\0')
-		return std::nullopt;
-	if (parsed > std::numeric_limits<uint32_t>::max())
-		return std::nullopt;
-	return static_cast<uint32_t>(parsed);
-}
-
-static std::optional<bool> env_bool(const char * env_name, const char * android_sysprop_name)
-{
-#ifdef __ANDROID__
-	const std::string value = get_property(android_sysprop_name);
-#else
-	const char * env_value = std::getenv(env_name);
-	const std::string value = (env_value != nullptr) ? std::string(env_value) : std::string();
-#endif
-	if (value.empty())
-		return std::nullopt;
-	if (strcmp(value.c_str(), "1") == 0 || strcasecmp(value.c_str(), "true") == 0 || strcasecmp(value.c_str(), "yes") == 0 || strcasecmp(value.c_str(), "on") == 0)
-		return true;
-	if (strcmp(value.c_str(), "0") == 0 || strcasecmp(value.c_str(), "false") == 0 || strcasecmp(value.c_str(), "no") == 0 || strcasecmp(value.c_str(), "off") == 0)
-		return false;
-	return std::nullopt;
-}
-
-static std::optional<std::string> env_string(const char * env_name, const char * android_sysprop_name)
-{
-#ifdef __ANDROID__
-	const std::string value = get_property(android_sysprop_name);
-	if (!value.empty())
-		return value;
-	return std::nullopt;
-#else
-	const char * value = std::getenv(env_name);
-	if (value != nullptr)
-		return std::string(value);
-	return std::nullopt;
-#endif
-}
-
-static const hmd_permissions permission_quest = [] {
-	hmd_permissions permissions{};
-	permissions[feature::eye_gaze] = "com.oculus.permission.EYE_TRACKING";
-	permissions[feature::face_tracking] = "com.oculus.permission.FACE_TRACKING";
-	return permissions;
-}();
-static const hmd_permissions permission_pico = [] {
-	hmd_permissions permissions{};
-	permissions[feature::eye_gaze] = "com.picovr.permission.EYE_TRACKING";
-	permissions[feature::face_tracking] = "com.picovr.permission.FACE_TRACKING";
-	return permissions;
-}();
-static const hmd_permissions permission_samsung = [] {
-	hmd_permissions permissions{};
-	permissions[feature::hand_tracking] = "android.permission.HAND_TRACKING";
-	permissions[feature::eye_gaze] = "android.permission.EYE_TRACKING_FINE";
-	permissions[feature::face_tracking] = "android.permission.FACE_TRACKING";
-	return permissions;
-}();
-static const hmd_permissions permission_quest_body = [] {
-	hmd_permissions permissions{};
-	permissions[feature::eye_gaze] = "com.oculus.permission.EYE_TRACKING";
-	permissions[feature::face_tracking] = "com.oculus.permission.FACE_TRACKING";
-	permissions[feature::body_tracking] = "com.oculus.permission.BODY_TRACKING";
-	return permissions;
-}();
-
-static hmd_traits get_hmd_traits(const model m)
-{
-	hmd_traits traits{};
-	switch (m)
-	{
-		case model::oculus_quest:
-			traits.panel_width_override = 1440;
-			traits.controller_profile = "oculus-touch-v2";
-			traits.permissions = &permission_quest;
-			break;
-		case model::oculus_quest_2:
-			traits.panel_width_override = 1832;
-			traits.controller_profile = "oculus-touch-v3";
-			traits.permissions = &permission_quest;
-			break;
-		case model::meta_quest_pro:
-			traits.panel_width_override = 1800;
-			traits.controller_profile = "meta-quest-touch-pro";
-			traits.permissions = &permission_quest;
-			break;
-		case model::meta_quest_3:
-			traits.controller_profile = "meta-quest-touch-plus";
-			traits.panel_width_override = 2064;
-			traits.permissions = &permission_quest_body;
-			break;
-		case model::meta_quest_3s:
-			traits.panel_width_override = 1832;
-			traits.controller_profile = "meta-quest-touch-plus";
-			traits.permissions = &permission_quest_body;
-			break;
-		case model::pico_neo_3:
-			traits.panel_width_override = 1832;
-			traits.controller_profile = "pico-neo3";
-			traits.permissions = &permission_pico;
-			break;
-		case model::pico_4:
-		case model::pico_4_pro:
-		case model::pico_4_enterprise:
-			traits.panel_width_override = 2160;
-			traits.controller_profile = "pico-4";
-			traits.permissions = &permission_pico;
-			break;
-		case model::pico_4s:
-			traits.panel_width_override = 2160;
-			traits.controller_profile = "pico-4u";
-			traits.permissions = &permission_pico;
-			break;
-		case model::htc_vive_focus_3:
-			traits.panel_width_override = 2448;
-			traits.max_openxr_api_version = XR_API_VERSION_1_0;
-			traits.controller_profile = "htc-vive-focus-3";
-			traits.controller_ray_model = "assets://ray-htc.glb";
-			break;
-		case model::htc_vive_xr_elite:
-			traits.panel_width_override = 1920;
-			traits.max_openxr_api_version = XR_API_VERSION_1_0;
-			traits.controller_profile = "htc-vive-focus-3";
-			traits.controller_ray_model = "assets://ray-htc.glb";
-			break;
-		case model::htc_vive_focus_vision:
-			traits.panel_width_override = 2448;
-			traits.max_openxr_api_version = XR_API_VERSION_1_0;
-			traits.controller_profile = "htc-vive-focus-3";
-			traits.controller_ray_model = "assets://ray-htc.glb";
-			break;
-		case model::lynx_r1:
-			traits.needs_srgb_conversion = false;
-			break;
-		case model::samsung_galaxy_xr:
+		if (model == "SM-I610") // Galaxy XR
+		{
 			traits.panel_width_override = 3552;
 			traits.controller_profile = "samsung-galaxyxr";
-			traits.permissions = &permission_samsung;
-			break;
-		case model::unknown:
-			break;
+			traits.permissions[feature::hand_tracking] = "android.permission.HAND_TRACKING";
+			traits.permissions[feature::eye_gaze] = "android.permission.EYE_TRACKING_FINE";
+			traits.permissions[feature::face_tracking] = "android.permission.FACE_TRACKING";
+		}
+	}
+#endif
+
+	if (auto panel_width = env_u32("WIVRN_QUIRK_PANEL_WIDTH", "debug.wivrn.quirk_panel_width"))
+	{
+		spdlog::info("panel width override: {} -> {}", traits.panel_width_override, *panel_width);
+		traits.panel_width_override = *panel_width;
 	}
 
-	return traits;
-}
+	if (auto disable_openxr_1_1 = env_bool("WIVRN_QUIRK_DISABLE_OPENXR_1_1", "debug.wivrn.quirk_disable_openxr_1_1"))
+	{
+		auto old = traits.max_openxr_api_version;
+		traits.max_openxr_api_version = *disable_openxr_1_1 ? XR_API_VERSION_1_0 : XR_API_VERSION_1_1;
+		spdlog::info("max OpenXR version override: {} -> {}", xr::to_string(old), xr::to_string(traits.max_openxr_api_version));
+	}
 
-namespace
-{
-hmd_traits g_hmd_traits;
-std::string g_controller_override_storage;
-} // namespace
+	if (auto srgb = env_bool("WIVRN_QUIRK_SRGB_CONVERSION", "debug.wivrn.quirk_srgb_conversion"))
+	{
+		spdlog::info("srgb conversion override: {} -> {}", traits.needs_srgb_conversion, *srgb);
+		traits.needs_srgb_conversion = *srgb;
+	}
 
-void initialize_runtime_hmd_traits()
-{
-	hmd_traits q = get_hmd_traits(guess_model());
-	const std::optional<uint32_t> panel_width = env_u32("WIVRN_QUIRK_PANEL_WIDTH", "debug.wivrn.quirk_panel_width");
-	const bool had_panel_override = panel_width.has_value();
-	q.panel_width_override = panel_width.value_or(q.panel_width_override);
-	const std::optional<bool> disable_openxr_1_1_override = env_bool("WIVRN_QUIRK_DISABLE_OPENXR_1_1", "debug.wivrn.quirk_disable_openxr_1_1");
-	const bool disable_openxr_1_1 = disable_openxr_1_1_override.value_or(q.max_openxr_api_version < XR_API_VERSION_1_1);
-	q.max_openxr_api_version = disable_openxr_1_1 ? XR_API_VERSION_1_0 : XR_API_VERSION_1_1;
-	const std::optional<bool> srgb_override = env_bool("WIVRN_QUIRK_SRGB_CONVERSION", "debug.wivrn.quirk_srgb_conversion");
-	const bool srgb = srgb_override.value_or(q.needs_srgb_conversion);
-	const bool had_srgb_override = srgb_override.has_value();
-	q.needs_srgb_conversion = srgb;
-	g_controller_override_storage = env_string("WIVRN_CONTROLLER", "debug.wivrn.controller").value_or(std::string(q.controller_profile));
-	const bool had_controller_override = g_controller_override_storage != q.controller_profile;
-	q.controller_profile = g_controller_override_storage.c_str();
+	if (auto controller = env_string("WIVRN_CONTROLLER", "debug.wivrn.controller"))
+	{
+		spdlog::info("controller override: {} -> {}", traits.controller_profile, *controller);
+		traits.controller_profile = *controller;
+	}
+
 	spdlog::info("Initialized HMD traits: profile={}, ray_model={}, panel_width_override={}, max_openxr_api={}, needs_srgb_conversion={}",
-	             q.controller_profile,
-	             q.controller_ray_model,
-	             q.panel_width_override,
-	             xr::to_string(q.max_openxr_api_version),
-	             q.needs_srgb_conversion);
-	spdlog::info("HMD trait overrides: panel_width={}, disable_openxr_1_1={}, srgb_conversion={}, controller_profile={}",
-	             had_panel_override,
-	             disable_openxr_1_1_override.has_value(),
-	             had_srgb_override,
-	             had_controller_override);
-	q.is_initialized = true;
-	g_hmd_traits = q;
-}
+	             traits.controller_profile,
+	             traits.controller_ray_model,
+	             traits.panel_width_override,
+	             xr::to_string(traits.max_openxr_api_version),
+	             traits.needs_srgb_conversion);
 
-const hmd_traits & runtime_hmd_traits()
-{
-	// runtime_hmd_traits() must only be accessed after initialization has completed.
-	assert(g_hmd_traits.is_initialized && "runtime_hmd_traits() accessed before initialize_runtime_hmd_traits() completed");
-	return g_hmd_traits;
-}
+	return traits;
+}();
 
 std::string model_name()
 {
 #ifdef __ANDROID__
-	const auto manufacturer = get_property("ro.product.manufacturer");
-	const auto model = get_property("ro.product.model");
+	const auto manufacturer = get_property("ro.product.manufacturer").value_or("");
+	const auto model = get_property("ro.product.model").value_or("");
 
 	return manufacturer + " " + model;
 #else
@@ -360,14 +275,14 @@ static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t
 	return view;
 }
 
-XrViewConfigurationView override_view_for_hmd(const hmd_traits & traits, XrViewConfigurationView view)
+XrViewConfigurationView hmd_traits_t::override_view_for_hmd(XrViewConfigurationView view) const
 {
 	// Standalone headsets tend to report a lower resolution
 	// as the GPU can't handle full res.
 	// Return the panel resolution instead.
 	spdlog::debug("Recommended image size: {}x{}", view.recommendedImageRectWidth, view.recommendedImageRectHeight);
-	if (traits.panel_width_override > 0)
-		return scale_view(view, traits.panel_width_override);
+	if (panel_width_override > 0)
+		return scale_view(view, panel_width_override);
 	return view;
 }
 
