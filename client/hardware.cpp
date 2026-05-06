@@ -127,20 +127,13 @@ model guess_model()
 
 const char * permission_name_for_hmd(const hmd_traits & traits, const feature f)
 {
-	switch (f)
-	{
-		case feature::microphone:
-			return "android.permission.RECORD_AUDIO";
-		case feature::hand_tracking:
-			return traits.permissions ? traits.permissions->hand_tracking : nullptr;
-		case feature::eye_gaze:
-			return traits.permissions ? traits.permissions->eye_gaze : nullptr;
-		case feature::face_tracking:
-			return traits.permissions ? traits.permissions->face_tracking : nullptr;
-		case feature::body_tracking:
-			return traits.permissions ? traits.permissions->body_tracking : nullptr;
-	}
-	__builtin_unreachable();
+	if (f == feature::microphone)
+		return "android.permission.RECORD_AUDIO";
+
+	if (!traits.permissions)
+		return nullptr;
+
+	return (*traits.permissions)[f];
 }
 
 static uint32_t env_u32(const char * env_name, const char * android_sysprop_name)
@@ -188,24 +181,32 @@ static std::string env_string(const char * env_name, const char * android_syspro
 #endif
 }
 
-static const hmd_permissions permission_quest{
-        .eye_gaze = "com.oculus.permission.EYE_TRACKING",
-        .face_tracking = "com.oculus.permission.FACE_TRACKING",
-};
-static const hmd_permissions permission_pico{
-        .eye_gaze = "com.picovr.permission.EYE_TRACKING",
-        .face_tracking = "com.picovr.permission.FACE_TRACKING",
-};
-static const hmd_permissions permission_samsung{
-        .hand_tracking = "android.permission.HAND_TRACKING",
-        .eye_gaze = "android.permission.EYE_TRACKING_FINE",
-        .face_tracking = "android.permission.FACE_TRACKING",
-};
-static const hmd_permissions permission_quest_body{
-        .eye_gaze = "com.oculus.permission.EYE_TRACKING",
-        .face_tracking = "com.oculus.permission.FACE_TRACKING",
-        .body_tracking = "com.oculus.permission.BODY_TRACKING",
-};
+static const hmd_permissions permission_quest = [] {
+	hmd_permissions permissions{};
+	permissions[feature::eye_gaze] = "com.oculus.permission.EYE_TRACKING";
+	permissions[feature::face_tracking] = "com.oculus.permission.FACE_TRACKING";
+	return permissions;
+}();
+static const hmd_permissions permission_pico = [] {
+	hmd_permissions permissions{};
+	permissions[feature::eye_gaze] = "com.picovr.permission.EYE_TRACKING";
+	permissions[feature::face_tracking] = "com.picovr.permission.FACE_TRACKING";
+	return permissions;
+}();
+static const hmd_permissions permission_samsung = [] {
+	hmd_permissions permissions{};
+	permissions[feature::hand_tracking] = "android.permission.HAND_TRACKING";
+	permissions[feature::eye_gaze] = "android.permission.EYE_TRACKING_FINE";
+	permissions[feature::face_tracking] = "android.permission.FACE_TRACKING";
+	return permissions;
+}();
+static const hmd_permissions permission_quest_body = [] {
+	hmd_permissions permissions{};
+	permissions[feature::eye_gaze] = "com.oculus.permission.EYE_TRACKING";
+	permissions[feature::face_tracking] = "com.oculus.permission.FACE_TRACKING";
+	permissions[feature::body_tracking] = "com.oculus.permission.BODY_TRACKING";
+	return permissions;
+}();
 
 static hmd_traits get_hmd_traits(const model m)
 {

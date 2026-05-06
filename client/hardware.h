@@ -21,6 +21,7 @@
 #include "xr/space.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <magic_enum_containers.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -55,13 +56,7 @@ enum class feature
 	body_tracking,
 };
 
-struct hmd_permissions
-{
-	const char * hand_tracking = nullptr;
-	const char * eye_gaze = nullptr;
-	const char * face_tracking = nullptr;
-	const char * body_tracking = nullptr;
-};
+using hmd_permissions = magic_enum::containers::array<feature, const char *>;
 
 struct hmd_traits
 {
