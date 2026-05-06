@@ -51,6 +51,7 @@ extern const struct hmd_traits_t
 	bool bind_simple_controller = true;
 	bool hand_interaction_grip_surface = true;
 	bool pico_face_tracker = false;
+	bool discard_frame = true; // can do xrBeginFrame twice to discard the first one
 
 	XrViewConfigurationView override_view(XrViewConfigurationView) const;
 } hmd_traits;

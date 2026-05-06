@@ -934,7 +934,8 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	}
 
 	// Allow the headset to time warp if we are redisplaying a frame
-	if (std::ranges::any_of(current_blit_handles, [](const auto & h) { return h and h->feedback.times_displayed < 2; }) or
+	if ((not hmd_traits.discard_frame) or
+	    std::ranges::any_of(current_blit_handles, [](const auto & h) { return h and h->feedback.times_displayed < 2; }) or
 	    is_gui_interactable())
 	{
 		XrExtent2Di extents[view_count];
