@@ -62,20 +62,20 @@ struct hmd_traits
 {
 	const char * controller_profile = "generic-trigger-squeeze";
 	const char * controller_ray_model = "assets://ray.glb";
+	const hmd_permissions * permissions = nullptr;
 	XrVersion max_openxr_api_version = XR_API_VERSION_1_1;
 	uint32_t panel_width_override = 0;
 	bool needs_srgb_conversion = true;
-	const hmd_permissions * permissions = nullptr;
+	bool is_initialized = false;
 };
 
 model guess_model();
 std::string model_name();
 void initialize_runtime_hmd_traits();
 // Initialized once at startup (initialize_runtime_hmd_traits()).
-// If the HMD is recognized, returns traits specific to that model; otherwise,returns
+// If the HMD is recognized, returns traits specific to that model; otherwise returns
 // default behavior.
-// Fallback: if called before initialize_runtime_hmd_traits() (avoid this!), dynamically
-// constructs itself and complains in logs.
+// Must only be called after initialize_runtime_hmd_traits().
 const hmd_traits & runtime_hmd_traits();
 const char * permission_name_for_hmd(const hmd_traits & traits, const feature f);
 XrViewConfigurationView override_view_for_hmd(const hmd_traits & traits, XrViewConfigurationView);
