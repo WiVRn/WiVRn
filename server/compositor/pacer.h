@@ -23,10 +23,12 @@
 
 #include <condition_variable>
 #include <cstdint>
-#include <main/comp_target.h>
 #include <mutex>
 #include <thread>
 #include <vector>
+
+#include "main/comp_target.h"
+#include "util/u_var.h"
 
 namespace wivrn
 {
@@ -54,6 +56,8 @@ private:
 	int64_t mean_render_to_display_ns = 0;
 
 	int64_t last_wake_up_ns = 0;
+
+	u_var_draggable_f32 client_margin_ms;
 
 	struct frame_time
 	{

@@ -18,10 +18,17 @@
  */
 
 #include "pacer.h"
+
 #include "driver/clock_offset.h"
-#include "os/os_time.h"
+
+#include "util/u_var.h"
 #include <algorithm>
 #include <cmath>
+
+#include "os/os_time.h"
+#include "util/u_debug.h"
+
+DEBUG_GET_ONCE_FLOAT_OPTION(client_margin_ms, "WIVRN_CLIENT_MARGIN_MS", 1.f)
 
 namespace wivrn
 {
@@ -31,6 +38,12 @@ static const int64_t slop_ns = 500'000;
 
 pacer::pacer(uint64_t frame_duration) :
         frame_duration_ns(frame_duration),
+        client_margin_ms{
+                .val = debug_get_float_option_client_margin_ms(),
+                .step = 0.1,
+                .min = 0,
+                .max = 20,
+        },
         frame_times(5000),
         frame_times_compute(frame_times),
         worker([this](std::stop_token t) {
@@ -53,13 +66,17 @@ pacer::pacer(uint64_t frame_duration) :
 		        std::ranges::nth_element(samples, it);
 
 		        std::unique_lock lock(mutex);
-		        safe_present_to_decoded_ns = *it + 1'000'000;
+		        safe_present_to_decoded_ns = *it + client_margin_ms.val * U_TIME_1MS_IN_NS;
 	        }
         })
-{}
+{
+	u_var_add_root(this, "Pacer", false);
+	u_var_add_draggable_f32(this, &client_margin_ms, "headset margin (ms)");
+}
 
 pacer::~pacer()
 {
+	u_var_remove_root(this);
 	worker.request_stop();
 	compute_cv.notify_all();
 }
