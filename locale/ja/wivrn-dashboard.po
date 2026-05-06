@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-20 13:21+0900\n"
+"POT-Creation-Date: 2026-05-06 12:47+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -465,7 +465,7 @@ msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "カスタム"
 
-#: dashboard/qml/SelectGame.qml:70
+#: dashboard/qml/SelectGame.qml:61
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
@@ -517,27 +517,27 @@ msgstr "x264 (ソフトエンコード)"
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "「自動」で当システムにとって最も安定した設定を使用します。"
 
-#: dashboard/qml/SettingsPage.qml:88
+#: dashboard/qml/SettingsPage.qml:89
 #, kde-format
 msgid "Autostart application:"
 msgstr "自動起動するアプリケーション："
 
-#: dashboard/qml/SettingsPage.qml:96
+#: dashboard/qml/SettingsPage.qml:97
 #, kde-format
 msgid "Advanced options"
 msgstr "詳細設定"
 
-#: dashboard/qml/SettingsPage.qml:102
+#: dashboard/qml/SettingsPage.qml:103
 #, kde-format
 msgid "Check system configuration on start"
 msgstr "起動時にパソコン設定を確認する"
 
-#: dashboard/qml/SettingsPage.qml:108
+#: dashboard/qml/SettingsPage.qml:109
 #, kde-format
 msgid "Forward keyboard & mouse from headset"
 msgstr "キーボードとマウスの転送"
 
-#: dashboard/qml/SettingsPage.qml:111
+#: dashboard/qml/SettingsPage.qml:112
 #, kde-format
 msgid ""
 "Keyboard and mouse connected to the client will act as if connected to the "
@@ -548,17 +548,17 @@ msgstr ""
 "ます。HMDのOSのグローバルショートカットとして使われているキーコンビネーション"
 "は転送できません。"
 
-#: dashboard/qml/SettingsPage.qml:116
+#: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid "Enable debug window"
 msgstr "デバッグ・ウィンドウを表示する"
 
-#: dashboard/qml/SettingsPage.qml:123
+#: dashboard/qml/SettingsPage.qml:124
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "SteamVR・ライトハウス・トラッキング"
 
-#: dashboard/qml/SettingsPage.qml:126
+#: dashboard/qml/SettingsPage.qml:127
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -571,49 +571,49 @@ msgstr ""
 "すべてのデバイスの電源が入ってからHMDを接続しましょう。\n"
 "キャリブレーションはmotocなどのソフトウェアで行います。"
 
-#: dashboard/qml/SettingsPage.qml:134
+#: dashboard/qml/SettingsPage.qml:135
 #, kde-format
 msgid "Custom adb location"
 msgstr "特定なADBの場所"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:146
 #, kde-format
 msgid "Adb location:"
 msgstr "ADBの場所："
 
-#: dashboard/qml/SettingsPage.qml:154
+#: dashboard/qml/SettingsPage.qml:155
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "検索する"
 
-#: dashboard/qml/SettingsPage.qml:164
+#: dashboard/qml/SettingsPage.qml:165
 #, kde-format
 msgid "Default"
 msgstr "デフォルト"
 
-#: dashboard/qml/SettingsPage.qml:178
+#: dashboard/qml/SettingsPage.qml:179
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "カスタム"
 
-#: dashboard/qml/SettingsPage.qml:183
+#: dashboard/qml/SettingsPage.qml:184
 #, kde-format
 msgid "Disabled"
 msgstr "無し"
 
-#: dashboard/qml/SettingsPage.qml:199
+#: dashboard/qml/SettingsPage.qml:200
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR実装ライブラリー"
 
-#: dashboard/qml/SettingsPage.qml:229
+#: dashboard/qml/SettingsPage.qml:230
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "ライブラリーの場所（bin/linux64/vrclient.so 無し）"
 
-#: dashboard/qml/SettingsPage.qml:234
+#: dashboard/qml/SettingsPage.qml:235
 #, kde-format
 msgctxt "browse to choose the OpenVR compatility to use"
 msgid "Browse"
