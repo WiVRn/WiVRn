@@ -167,6 +167,7 @@ const hmd_traits_t hmd_traits = [] {
 		traits.permissions[feature::eye_gaze] = "com.picovr.permission.EYE_TRACKING";
 		traits.permissions[feature::face_tracking] = "com.picovr.permission.FACE_TRACKING";
 		traits.view_locate = false;
+		traits.discard_frame = false;
 		const auto pico_model = get_property("pxr.vendorhw.product.model");
 		spdlog::info("    pxr.vendorhw.product.model = \"{}\":", pico_model.value_or("<unset>"));
 
