@@ -90,6 +90,11 @@ public:
 		u_var_add_draggable_f32(this, &min_margin_ms, "Minimum margin(ms)");
 	}
 
+	~app_pacer()
+	{
+		u_var_remove_root(this);
+	}
+
 	void predict(int64_t now_ns,
 	             int64_t * out_frame_id,
 	             int64_t * out_wake_up_time,
