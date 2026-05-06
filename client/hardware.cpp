@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <glm/ext/quaternion_trigonometric.hpp>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -136,48 +137,54 @@ const char * permission_name_for_hmd(const hmd_traits & traits, const feature f)
 	return (*traits.permissions)[f];
 }
 
-static uint32_t env_u32(const char * env_name, const char * android_sysprop_name)
+static std::optional<uint32_t> env_u32(const char * env_name, const char * android_sysprop_name)
 {
 #ifdef __ANDROID__
 	const std::string value = get_property(android_sysprop_name);
 #else
 	const char * env_value = std::getenv(env_name);
-	const std::string value = (env_value != nullptr && *env_value != '\0') ? std::string(env_value) : std::string();
+	const std::string value = (env_value != nullptr) ? std::string(env_value) : std::string();
 #endif
 	if (value.empty())
-		return 0;
-	return std::strtoul(value.c_str(), nullptr, 10);
+		return std::nullopt;
+	char * end = nullptr;
+	const unsigned long parsed = std::strtoul(value.c_str(), &end, 10);
+	if (end == value.c_str() || *end != '\0')
+		return std::nullopt;
+	if (parsed > std::numeric_limits<uint32_t>::max())
+		return std::nullopt;
+	return static_cast<uint32_t>(parsed);
 }
 
-static bool env_bool(const char * env_name, const char * android_sysprop_name, bool fallback)
+static std::optional<bool> env_bool(const char * env_name, const char * android_sysprop_name)
 {
 #ifdef __ANDROID__
 	const std::string value = get_property(android_sysprop_name);
 #else
 	const char * env_value = std::getenv(env_name);
-	const std::string value = (env_value != nullptr && *env_value != '\0') ? std::string(env_value) : std::string();
+	const std::string value = (env_value != nullptr) ? std::string(env_value) : std::string();
 #endif
 	if (value.empty())
-		return fallback;
+		return std::nullopt;
 	if (strcmp(value.c_str(), "1") == 0 || strcasecmp(value.c_str(), "true") == 0 || strcasecmp(value.c_str(), "yes") == 0 || strcasecmp(value.c_str(), "on") == 0)
 		return true;
 	if (strcmp(value.c_str(), "0") == 0 || strcasecmp(value.c_str(), "false") == 0 || strcasecmp(value.c_str(), "no") == 0 || strcasecmp(value.c_str(), "off") == 0)
 		return false;
-	return fallback;
+	return std::nullopt;
 }
 
-static std::string env_string(const char * env_name, const char * android_sysprop_name, const char * fallback)
+static std::optional<std::string> env_string(const char * env_name, const char * android_sysprop_name)
 {
 #ifdef __ANDROID__
 	const std::string value = get_property(android_sysprop_name);
 	if (!value.empty())
 		return value;
-	return std::string(fallback ? fallback : "");
+	return std::nullopt;
 #else
 	const char * value = std::getenv(env_name);
-	if (value != nullptr && *value != '\0')
+	if (value != nullptr)
 		return std::string(value);
-	return std::string(fallback ? fallback : "");
+	return std::nullopt;
 #endif
 }
 
@@ -300,16 +307,17 @@ void initialize_runtime_hmd_traits()
 		return;
 
 	hmd_traits q = get_hmd_traits(guess_model());
-	const uint32_t panel_width = env_u32("WIVRN_QUIRK_PANEL_WIDTH", "debug.wivrn.quirk_panel_width");
-	const bool had_panel_override = panel_width > 0;
-	if (had_panel_override)
-		q.panel_width_override = panel_width;
-	const bool disable_openxr_1_1 = env_bool("WIVRN_QUIRK_DISABLE_OPENXR_1_1", "debug.wivrn.quirk_disable_openxr_1_1", q.max_openxr_api_version < XR_API_VERSION_1_1);
+	const std::optional<uint32_t> panel_width = env_u32("WIVRN_QUIRK_PANEL_WIDTH", "debug.wivrn.quirk_panel_width");
+	const bool had_panel_override = panel_width.has_value();
+	q.panel_width_override = panel_width.value_or(q.panel_width_override);
+	const std::optional<bool> disable_openxr_1_1_override = env_bool("WIVRN_QUIRK_DISABLE_OPENXR_1_1", "debug.wivrn.quirk_disable_openxr_1_1");
+	const bool disable_openxr_1_1 = disable_openxr_1_1_override.value_or(q.max_openxr_api_version < XR_API_VERSION_1_1);
 	q.max_openxr_api_version = disable_openxr_1_1 ? XR_API_VERSION_1_0 : XR_API_VERSION_1_1;
-	const bool srgb = env_bool("WIVRN_QUIRK_SRGB_CONVERSION", "debug.wivrn.quirk_srgb_conversion", q.needs_srgb_conversion);
-	const bool had_srgb_override = srgb != q.needs_srgb_conversion;
+	const std::optional<bool> srgb_override = env_bool("WIVRN_QUIRK_SRGB_CONVERSION", "debug.wivrn.quirk_srgb_conversion");
+	const bool srgb = srgb_override.value_or(q.needs_srgb_conversion);
+	const bool had_srgb_override = srgb_override.has_value();
 	q.needs_srgb_conversion = srgb;
-	g_controller_override_storage = env_string("WIVRN_CONTROLLER", "debug.wivrn.controller", q.controller_profile);
+	g_controller_override_storage = env_string("WIVRN_CONTROLLER", "debug.wivrn.controller").value_or(std::string(q.controller_profile));
 	const bool had_controller_override = g_controller_override_storage != q.controller_profile;
 	q.controller_profile = g_controller_override_storage.c_str();
 	spdlog::info("Initialized HMD traits: profile={}, ray_model={}, panel_width_override={}, max_openxr_api={}, needs_srgb_conversion={}",
@@ -320,7 +328,7 @@ void initialize_runtime_hmd_traits()
 	             q.needs_srgb_conversion);
 	spdlog::info("HMD trait overrides: panel_width={}, disable_openxr_1_1={}, srgb_conversion={}, controller_profile={}",
 	             had_panel_override,
-	             !env_string("WIVRN_QUIRK_DISABLE_OPENXR_1_1", "debug.wivrn.quirk_disable_openxr_1_1", "").empty(),
+	             disable_openxr_1_1_override.has_value(),
 	             had_srgb_override,
 	             had_controller_override);
 	g_hmd_traits = q;
