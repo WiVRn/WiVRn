@@ -1114,7 +1114,7 @@ void scenes::lobby::on_focused()
 
 	auto views = system.view_configuration_views(viewconfig);
 	assert(views.size() == 2); // FIXME
-	stream_view = hmd_traits.override_view_for_hmd(views[0]);
+	stream_view = hmd_traits.override_view(views[0]);
 	width = views[0].recommendedImageRectWidth;
 	height = views[0].recommendedImageRectHeight;
 

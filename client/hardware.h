@@ -52,7 +52,7 @@ extern const struct hmd_traits_t
 	bool hand_interaction_grip_surface = true;
 	bool pico_face_tracker = false;
 
-	XrViewConfigurationView override_view_for_hmd(XrViewConfigurationView) const;
+	XrViewConfigurationView override_view(XrViewConfigurationView) const;
 } hmd_traits;
 
 std::string model_name();
