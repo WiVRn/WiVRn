@@ -275,7 +275,7 @@ static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t
 	return view;
 }
 
-XrViewConfigurationView hmd_traits_t::override_view_for_hmd(XrViewConfigurationView view) const
+XrViewConfigurationView hmd_traits_t::override_view(XrViewConfigurationView view) const
 {
 	// Standalone headsets tend to report a lower resolution
 	// as the GPU can't handle full res.

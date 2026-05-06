@@ -217,7 +217,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		{
 			auto view = self->system.view_configuration_views(self->viewconfig)[0];
-			view = hmd_traits.override_view_for_hmd(view);
+			view = hmd_traits.override_view(view);
 
 			info.render_eye_width = view.recommendedImageRectWidth * config.resolution_scale;
 			info.render_eye_height = view.recommendedImageRectHeight * config.resolution_scale;
