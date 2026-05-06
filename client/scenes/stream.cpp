@@ -217,7 +217,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		{
 			auto view = self->system.view_configuration_views(self->viewconfig)[0];
-			view = override_view_for_hmd(runtime_hmd_traits(), view);
+			view = hmd_traits.override_view_for_hmd(view);
 
 			info.render_eye_width = view.recommendedImageRectWidth * config.resolution_scale;
 			info.render_eye_height = view.recommendedImageRectHeight * config.resolution_scale;
@@ -421,10 +421,10 @@ void scenes::stream::on_focused()
 {
 	gui_status_last_change = instance.now();
 
-	const std::string_view profile = runtime_hmd_traits().controller_profile;
+	const auto & profile = hmd_traits.controller_profile;
 	input.emplace(
 	        *this,
-	        "assets://controllers/" + std::string(profile) + "/profile.json",
+	        "assets://controllers/" + profile + "/profile.json",
 	        layer_controllers,
 	        layer_rays,
 	        get_action("left_trigger").first,
@@ -684,41 +684,34 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 {
 	std::optional<std::pair<glm::vec3, glm::quat>> aim;
 
-	switch (guess_model())
+	if (hmd_traits.view_locate)
 	{
-		case model::pico_4:
-		case model::pico_4s:
-		case model::pico_4_pro:
-		case model::pico_4_enterprise: {
-			// Pico fails to find its controllers within view space, so use the head position in
-			// world space as a reference
-			aim = application::locate_controller(
-			        application::space(controller),
-			        application::space(xr::spaces::world),
-			        predicted_display_time);
-
-			auto head_position = application::locate_controller(application::space(xr::spaces::view),
-			                                                    application::space(xr::spaces::world),
-			                                                    predicted_display_time);
-			if (not aim || not head_position)
-				return;
-
-			aim->first = glm::conjugate(head_position->second) * (aim->first - head_position->first);
-			aim->second = glm::conjugate(head_position->second) * aim->second;
-
-			break;
-		}
-		default:
-			aim = application::locate_controller(
-			        application::space(controller),
-			        application::space(xr::spaces::view),
-			        predicted_display_time);
-
-			if (not aim)
-				return;
-
-			break;
+		aim = application::locate_controller(
+		        application::space(controller),
+		        application::space(xr::spaces::view),
+		        predicted_display_time);
 	}
+	else
+	{
+		// Pico fails to find its controllers within view space, so use the head position in
+		// world space as a reference
+		aim = application::locate_controller(
+		        application::space(controller),
+		        application::space(xr::spaces::world),
+		        predicted_display_time);
+
+		auto head_position = application::locate_controller(application::space(xr::spaces::view),
+		                                                    application::space(xr::spaces::world),
+		                                                    predicted_display_time);
+		if (not(aim and head_position))
+			return;
+
+		aim->first = glm::conjugate(head_position->second) * (aim->first - head_position->first);
+		aim->second = glm::conjugate(head_position->second) * aim->second;
+	}
+
+	if (not aim)
+		return;
 
 	auto [offset_position, offset_orientation] = input->offset[controller];
 

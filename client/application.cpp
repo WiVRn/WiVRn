@@ -749,8 +749,7 @@ void application::initialize_vulkan()
 			instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 		}
 
-		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and
-		    guess_model() != model::oculus_quest) // Quest 1 lies, the extension won't load
+		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and hmd_traits.vk_debug_ext_allowed)
 		{
 			debug_utils_found = true;
 			instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -1006,21 +1005,8 @@ void application::initialize_actions()
 		profile.available = std::ranges::all_of(profile.required_extensions, [&](auto & ext) { return xr_instance.has_extension(ext); }) and
 		                    profile.min_version <= api_version;
 
-		if (profile.profile_name.ends_with("khr/simple_controller"))
-		{
-			switch (guess_model())
-			{
-				// Quest hand tracking creates a fake khr/simple_controller when hand tracking
-				// is enabled, this messes with native hand tracking
-				case model::meta_quest_3:
-				case model::meta_quest_pro:
-				case model::meta_quest_3s:
-				case model::oculus_quest_2:
-					profile.available = false;
-				default:
-					break;
-			}
-		}
+		if (profile.profile_name.ends_with("khr/simple_controller") and not hmd_traits.bind_simple_controller)
+			profile.available = false;
 
 		if (!profile.available)
 			continue;
@@ -1028,21 +1014,8 @@ void application::initialize_actions()
 		// Patch profile to add grip_surface or palm_ext
 		bool add_palms = true;
 		if (profile.profile_name.ends_with("ext/hand_interaction_ext"))
-		{
-			switch (guess_model())
-			{
-				// Quest breaks spec and does not support grip_surface for ext/hand_interaction_ext
-				case model::meta_quest_3:
-				case model::meta_quest_pro:
-				case model::meta_quest_3s:
-				case model::oculus_quest_2:
-				case model::oculus_quest:
-					add_palms = false;
-					break;
-				default:
-					break;
-			}
-		}
+			add_palms = hmd_traits.hand_interaction_grip_surface;
+
 		if (add_palms)
 		{
 			if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or xr_instance.has_extension(XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
@@ -1465,7 +1438,6 @@ application::application(application_info info) :
         app_info(std::move(info))
 
 {
-	initialize_runtime_hmd_traits();
 #ifdef __ANDROID__
 	// https://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html
 

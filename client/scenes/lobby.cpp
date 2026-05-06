@@ -1114,7 +1114,7 @@ void scenes::lobby::on_focused()
 
 	auto views = system.view_configuration_views(viewconfig);
 	assert(views.size() == 2); // FIXME
-	stream_view = override_view_for_hmd(runtime_hmd_traits(), views[0]);
+	stream_view = hmd_traits.override_view_for_hmd(views[0]);
 	width = views[0].recommendedImageRectWidth;
 	height = views[0].recommendedImageRectHeight;
 
@@ -1135,10 +1135,10 @@ void scenes::lobby::on_focused()
 		config.save();
 	}
 
-	const std::string_view profile = runtime_hmd_traits().controller_profile;
+	const auto & profile = hmd_traits.controller_profile;
 	input.emplace(
 	        *this,
-	        "assets://controllers/" + std::string(profile) + "/profile.json",
+	        "assets://controllers/" + profile + "/profile.json",
 	        layer_controllers,
 	        layer_rays,
 	        get_action("left_trigger").first,

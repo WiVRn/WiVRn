@@ -27,26 +27,6 @@
 #include <utility>
 #include <openxr/openxr.h>
 
-enum class model
-{
-	oculus_quest,
-	oculus_quest_2,
-	meta_quest_pro,
-	meta_quest_3,
-	meta_quest_3s,
-	pico_neo_3,
-	pico_4,
-	pico_4s,
-	pico_4_pro,
-	pico_4_enterprise,
-	htc_vive_focus_3,
-	htc_vive_xr_elite,
-	htc_vive_focus_vision,
-	lynx_r1,
-	samsung_galaxy_xr,
-	unknown
-};
-
 enum class feature
 {
 	microphone,
@@ -58,26 +38,23 @@ enum class feature
 
 using hmd_permissions = magic_enum::containers::array<feature, const char *>;
 
-struct hmd_traits
+extern const struct hmd_traits_t
 {
-	const char * controller_profile = "generic-trigger-squeeze";
+	std::string controller_profile = "generic-trigger-squeeze";
 	const char * controller_ray_model = "assets://ray.glb";
-	const hmd_permissions * permissions = nullptr;
+	hmd_permissions permissions{};
 	XrVersion max_openxr_api_version = XR_API_VERSION_1_1;
 	uint32_t panel_width_override = 0;
 	bool needs_srgb_conversion = true;
-	bool is_initialized = false;
-};
+	bool view_locate = true; // can locate relative to view
+	bool vk_debug_ext_allowed = true;
+	bool bind_simple_controller = true;
+	bool hand_interaction_grip_surface = true;
+	bool pico_face_tracker = false;
 
-model guess_model();
+	XrViewConfigurationView override_view_for_hmd(XrViewConfigurationView) const;
+} hmd_traits;
+
 std::string model_name();
-void initialize_runtime_hmd_traits();
-// Initialized once at startup (initialize_runtime_hmd_traits()).
-// If the HMD is recognized, returns traits specific to that model; otherwise returns
-// default behavior.
-// Must only be called after initialize_runtime_hmd_traits().
-const hmd_traits & runtime_hmd_traits();
-const char * permission_name_for_hmd(const hmd_traits & traits, const feature f);
-XrViewConfigurationView override_view_for_hmd(const hmd_traits & traits, XrViewConfigurationView);
 
 std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::spaces space);

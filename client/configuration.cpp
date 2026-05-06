@@ -70,7 +70,7 @@ bool configuration::check_feature(feature f) const
 		}
 	}
 #ifdef __ANDROID__
-	return check_permission(permission_name_for_hmd(runtime_hmd_traits(), f));
+	return check_permission(hmd_traits.permissions[f]);
 #else
 	return true;
 #endif
@@ -81,7 +81,7 @@ void configuration::set_feature(feature f, bool state)
 #ifdef __ANDROID__
 	if (state)
 	{
-		request_permission(permission_name_for_hmd(runtime_hmd_traits(), f), [this, f](bool granted) {
+		request_permission(hmd_traits.permissions[f], [this, f](bool granted) {
 			{
 				std::lock_guard lock(mutex);
 				features[f] = granted;
@@ -103,29 +103,6 @@ configuration::configuration(xr::system & system, xr::session & session)
 {
 	passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	features[feature::hand_tracking] = system.hand_tracking_supported();
-	switch (guess_model())
-	{
-		case model::oculus_quest:
-		case model::oculus_quest_2:
-		case model::meta_quest_pro:
-		case model::meta_quest_3:
-		case model::meta_quest_3s:
-			high_power_mode = false;
-			break;
-		case model::pico_neo_3:
-		case model::pico_4:
-		case model::pico_4s:
-		case model::pico_4_pro:
-		case model::pico_4_enterprise:
-		case model::htc_vive_focus_3:
-		case model::htc_vive_xr_elite:
-		case model::htc_vive_focus_vision:
-		case model::lynx_r1:
-		case model::samsung_galaxy_xr:
-		case model::unknown:
-			high_power_mode = true;
-			break;
-	}
 
 	const auto & rates = session.get_refresh_rates();
 	for (auto rate: rates)
