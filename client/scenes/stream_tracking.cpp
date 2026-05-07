@@ -493,7 +493,7 @@ void scenes::stream::tracking()
 							break;
 						case wivrn::device_id::EYE_GAZE:
 							// Eye gaze uses view pose as the origin
-							if (hmd_traits.view_locate)
+							if (hmd_traits().view_locate)
 								tracking.device_poses.push_back(locate_space(item.device, spaces[item.device], spaces[wivrn::device_id::HEAD], tracking.timestamp));
 							else
 							{
@@ -754,7 +754,7 @@ void scenes::stream::send_derived_pose()
 		{
 			// This may happen if the runtime does not support palm ext
 			// check if we have a device specific offset
-			if (not hmd_traits.hand_interaction_grip_surface)
+			if (not hmd_traits().hand_interaction_grip_surface)
 			{
 				switch (target)
 				{

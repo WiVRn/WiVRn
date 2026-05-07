@@ -749,7 +749,7 @@ void application::initialize_vulkan()
 			instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 		}
 
-		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and hmd_traits.vk_debug_ext_allowed)
+		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and hmd_traits().vk_debug_ext_allowed)
 		{
 			debug_utils_found = true;
 			instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -1005,7 +1005,7 @@ void application::initialize_actions()
 		profile.available = std::ranges::all_of(profile.required_extensions, [&](auto & ext) { return xr_instance.has_extension(ext); }) and
 		                    profile.min_version <= api_version;
 
-		if (profile.profile_name.ends_with("khr/simple_controller") and not hmd_traits.bind_simple_controller)
+		if (profile.profile_name.ends_with("khr/simple_controller") and not hmd_traits().bind_simple_controller)
 			profile.available = false;
 
 		if (!profile.available)
@@ -1014,7 +1014,7 @@ void application::initialize_actions()
 		// Patch profile to add grip_surface or palm_ext
 		bool add_palms = true;
 		if (profile.profile_name.ends_with("ext/hand_interaction_ext"))
-			add_palms = hmd_traits.hand_interaction_grip_surface;
+			add_palms = hmd_traits().hand_interaction_grip_surface;
 
 		if (add_palms)
 		{
@@ -1185,6 +1185,7 @@ void application::initialize_actions()
 
 void application::initialize()
 {
+	hmd_traits_init();
 	// LogLayersAndExtensions
 	assert(!xr_instance);
 	std::vector<const char *> xr_extensions{

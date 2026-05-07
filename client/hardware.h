@@ -38,7 +38,7 @@ enum class feature
 
 using hmd_permissions = magic_enum::containers::array<feature, const char *>;
 
-extern const struct hmd_traits_t
+struct hmd_traits_t
 {
 	std::string controller_profile = "generic-trigger-squeeze";
 	const char * controller_ray_model = "assets://ray.glb";
@@ -54,7 +54,11 @@ extern const struct hmd_traits_t
 	bool discard_frame = true; // can do xrBeginFrame twice to discard the first one
 
 	XrViewConfigurationView override_view(XrViewConfigurationView) const;
-} hmd_traits;
+};
+
+const hmd_traits_t & hmd_traits();
+// must be called exactly once
+void hmd_traits_init();
 
 std::string model_name();
 

@@ -45,7 +45,7 @@ xr::face_tracker_type xr::face_tracker_supported(xr::instance & instance, xr::sy
 			return xr::face_tracker_type::htc;
 	}
 
-	if (hmd_traits.pico_face_tracker)
+	if (hmd_traits().pico_face_tracker)
 	{
 		// The extension used by Pico is not published
 		// it doesn't even need to be requested...
@@ -85,7 +85,7 @@ xr::face_tracker xr::make_face_tracker(xr::instance & instance, xr::system & sys
 			        properties.supportLipFacialTracking);
 	}
 
-	if (hmd_traits.pico_face_tracker)
+	if (hmd_traits().pico_face_tracker)
 	{
 		// The extension used by Pico is not published
 		// it doesn't even need to be requested...

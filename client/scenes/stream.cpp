@@ -217,7 +217,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		{
 			auto view = self->system.view_configuration_views(self->viewconfig)[0];
-			view = hmd_traits.override_view(view);
+			view = hmd_traits().override_view(view);
 
 			info.render_eye_width = view.recommendedImageRectWidth * config.resolution_scale;
 			info.render_eye_height = view.recommendedImageRectHeight * config.resolution_scale;
@@ -421,7 +421,7 @@ void scenes::stream::on_focused()
 {
 	gui_status_last_change = instance.now();
 
-	const auto & profile = hmd_traits.controller_profile;
+	const auto & profile = hmd_traits().controller_profile;
 	input.emplace(
 	        *this,
 	        "assets://controllers/" + profile + "/profile.json",
@@ -684,7 +684,7 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 {
 	std::optional<std::pair<glm::vec3, glm::quat>> aim;
 
-	if (hmd_traits.view_locate)
+	if (hmd_traits().view_locate)
 	{
 		aim = application::locate_controller(
 		        application::space(controller),
@@ -934,7 +934,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	}
 
 	// Allow the headset to time warp if we are redisplaying a frame
-	if ((not hmd_traits.discard_frame) or
+	if ((not hmd_traits().discard_frame) or
 	    std::ranges::any_of(current_blit_handles, [](const auto & h) { return h and h->feedback.times_displayed < 2; }) or
 	    is_gui_interactable())
 	{
