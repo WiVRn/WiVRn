@@ -18,8 +18,11 @@
  */
 
 #include "hardware.h"
+
+#include "utils/overloaded.h"
 #include "xr/to_string.h"
 
+#include <boost/pfr.hpp>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -50,21 +53,26 @@ static std::optional<std::string> get_property(const char * property)
 }
 #endif
 
-static std::optional<std::string> env_string(const char * env_name, const char * android_sysprop_name)
+static std::optional<std::string> env_string(std::string_view name)
 {
 #ifdef __ANDROID__
-	return get_property(android_sysprop_name);
+	auto android_sysprop_name = std::format("wivrn.debug.{}", name);
+	return get_property(android_sysprop_name.c_str());
 #else
-	const char * value = std::getenv(env_name);
+	std::string env_name = "WIVRN_";
+	env_name.reserve(env_name.size() + name.size());
+	for (const auto & c: name)
+		env_name += std::toupper(c);
+	const char * value = std::getenv(env_name.c_str());
 	if (value)
 		return value;
 	return std::nullopt;
 #endif
 }
 
-static std::optional<uint32_t> env_u32(const char * env_name, const char * android_sysprop_name)
+static std::optional<uint32_t> env_u32(std::string_view name)
 {
-	const auto value = env_string(env_name, android_sysprop_name);
+	const auto value = env_string(name);
 	if (not value)
 		return std::nullopt;
 	try
@@ -76,23 +84,14 @@ static std::optional<uint32_t> env_u32(const char * env_name, const char * andro
 	}
 	catch (std::runtime_error & e)
 	{
-		spdlog::warn("failed to parse {} (value: {}: {}",
-#ifdef __ANDROID__
-		             android_sysprop_name,
-#else
-		             env_name,
-#endif
-		             *value,
-		             e.what()
-
-		);
+		spdlog::warn("failed to parse {} (value: {}: {}", name, *value, e.what());
 		return std::nullopt;
 	}
 }
 
-static std::optional<bool> env_bool(const char * env_name, const char * android_sysprop_name)
+static std::optional<bool> env_bool(std::string_view name)
 {
-	const auto value = env_string(env_name, android_sysprop_name);
+	const auto value = env_string(name);
 	if (not value)
 		return std::nullopt;
 	if (strcmp(value->c_str(), "1") == 0 || strcasecmp(value->c_str(), "true") == 0 || strcasecmp(value->c_str(), "yes") == 0 || strcasecmp(value->c_str(), "on") == 0)
@@ -236,37 +235,66 @@ void hmd_traits_init()
 	}
 #endif
 
-	if (auto panel_width = env_u32("WIVRN_QUIRK_PANEL_WIDTH", "debug.wivrn.quirk_panel_width"))
-	{
-		spdlog::info("panel width override: {} -> {}", traits.panel_width_override, *panel_width);
-		traits.panel_width_override = *panel_width;
-	}
-
-	if (auto disable_openxr_1_1 = env_bool("WIVRN_QUIRK_DISABLE_OPENXR_1_1", "debug.wivrn.quirk_disable_openxr_1_1"))
-	{
-		auto old = traits.max_openxr_api_version;
-		traits.max_openxr_api_version = *disable_openxr_1_1 ? XR_API_VERSION_1_0 : XR_API_VERSION_1_1;
-		spdlog::info("max OpenXR version override: {} -> {}", xr::to_string(old), xr::to_string(traits.max_openxr_api_version));
-	}
-
-	if (auto srgb = env_bool("WIVRN_QUIRK_SRGB_CONVERSION", "debug.wivrn.quirk_srgb_conversion"))
-	{
-		spdlog::info("srgb conversion override: {} -> {}", traits.needs_srgb_conversion, *srgb);
-		traits.needs_srgb_conversion = *srgb;
-	}
-
-	if (auto controller = env_string("WIVRN_CONTROLLER", "debug.wivrn.controller"))
-	{
-		spdlog::info("controller override: {} -> {}", traits.controller_profile, *controller);
-		traits.controller_profile = *controller;
-	}
-
-	spdlog::info("Initialized HMD traits: profile={}, ray_model={}, panel_width_override={}, max_openxr_api={}, needs_srgb_conversion={}",
-	             traits.controller_profile,
-	             traits.controller_ray_model,
-	             traits.panel_width_override,
-	             xr::to_string(traits.max_openxr_api_version),
-	             traits.needs_srgb_conversion);
+	spdlog::info("HMD traits initialized");
+	boost::pfr::for_each_field_with_name(
+	        traits,
+	        utils::overloaded{
+	                [](std::string_view name, std::string & field) {
+		                if (auto val = env_string(name))
+		                {
+			                spdlog::info("\t{} override: {} -> {}", name, field, *val);
+			                field = *val;
+		                }
+		                else
+		                {
+			                spdlog::info("\t{}: {}", name, field);
+		                }
+	                },
+	                [](std::string_view name, uint32_t & field) {
+		                if (auto val = env_u32(name))
+		                {
+			                spdlog::info("\t{} override: {} -> {}", name, field, *val);
+			                field = *val;
+		                }
+		                else
+		                {
+			                spdlog::info("\t{}: {}", name, field);
+		                }
+	                },
+	                [](std::string_view name, bool & field) {
+		                if (auto val = env_bool(name))
+		                {
+			                spdlog::info("\t{} override: {} -> {}", name, field, *val);
+			                field = *val;
+		                }
+		                else
+		                {
+			                spdlog::info("\t{}: {}", name, field);
+		                }
+	                },
+	                [](std::string_view name, XrVersion & field) {
+		                if (auto val = env_string(name))
+		                {
+			                XrVersion v;
+			                if (val == "1.1")
+				                v = XR_API_VERSION_1_1;
+			                else if (val == "1.0")
+				                v = XR_API_VERSION_1_0;
+			                else
+			                {
+				                spdlog::warn("XrVersion {} not recognized", *val);
+				                return;
+			                }
+			                spdlog::info("\t{} override: {} -> {}", name, xr::to_string(field), xr::to_string(v));
+			                field = v;
+		                }
+		                else
+		                {
+			                spdlog::info("\t{}: {}", name, xr::to_string(field));
+		                }
+	                },
+	                [](std::string_view name, hmd_permissions &) {
+	                }});
 };
 
 std::string model_name()

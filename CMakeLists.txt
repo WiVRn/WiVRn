@@ -101,7 +101,7 @@ endif()
 include(VulkanVersion)
 
 if (WIVRN_USE_SYSTEM_BOOST AND NEED_COMMON)
-    if (WIVRN_BUILD_DISSECTOR)
+    if (WIVRN_BUILD_DISSECTOR OR WIVRN_BUILD_CLIENT)
         find_package(Boost 1.84.0 REQUIRED COMPONENTS locale url iostreams)
     else()
         find_package(Boost 1.75.0 REQUIRED COMPONENTS locale url iostreams)

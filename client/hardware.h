@@ -41,7 +41,7 @@ using hmd_permissions = magic_enum::containers::array<feature, const char *>;
 struct hmd_traits_t
 {
 	std::string controller_profile = "generic-trigger-squeeze";
-	const char * controller_ray_model = "assets://ray.glb";
+	std::string controller_ray_model = "assets://ray.glb";
 	hmd_permissions permissions{};
 	XrVersion max_openxr_api_version = XR_API_VERSION_1_1;
 	uint32_t panel_width_override = 0;
