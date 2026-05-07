@@ -114,6 +114,15 @@
 			}
 		},
 		{
+			"name": "client-no-system-boost",
+			"displayName": "Client only (no system Boost)",
+			"inherits": "client",
+			"binaryDir": "${sourceDir}/build-client-no-system-boost",
+			"cacheVariables": {
+				"WIVRN_USE_SYSTEM_BOOST": "OFF"
+			}
+		},
+		{
 			"name": "server-no-system-boost",
 			"displayName": "Server only (no system Boost)",
 			"inherits": "server",
