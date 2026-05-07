@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - preset: 'client'
-            packages: libboost-all-dev libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
+          - preset: 'client-no-system-boost'
+            packages: libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
         # dashboard requires a more recent Ubuntu, have it out of this job
           - preset: 'dissector-no-system-boost'
             packages: libboost-all-dev wireshark-dev
@@ -57,7 +57,7 @@ jobs:
         restore-keys: cmake-linux-
 
     - name: Install dependencies
-      if: ${{ matrix.config.preset == 'client' }}
+      if: ${{ startswith(matrix.config.preset, 'client') }}
       run: |
         wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
