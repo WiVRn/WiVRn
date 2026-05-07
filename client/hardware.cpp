@@ -102,9 +102,25 @@ static std::optional<bool> env_bool(const char * env_name, const char * android_
 	return std::nullopt;
 }
 
-const hmd_traits_t hmd_traits = [] {
-	hmd_traits_t traits{};
+static hmd_traits_t traits;
+#ifndef NDEBUG
+static bool initialized = false;
+#endif
 
+const hmd_traits_t & hmd_traits()
+{
+#ifndef NDEBUG
+	assert(initialized);
+#endif
+	return traits;
+}
+
+void hmd_traits_init()
+{
+#ifndef NDEBUG
+	assert(not initialized);
+	initialized = true;
+#endif
 #ifdef __ANDROID__
 	const auto device = get_property("ro.product.device");
 	const auto manufacturer = get_property("ro.product.manufacturer");
@@ -251,9 +267,7 @@ const hmd_traits_t hmd_traits = [] {
 	             traits.panel_width_override,
 	             xr::to_string(traits.max_openxr_api_version),
 	             traits.needs_srgb_conversion);
-
-	return traits;
-}();
+};
 
 std::string model_name()
 {

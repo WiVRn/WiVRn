@@ -1114,7 +1114,7 @@ void scenes::lobby::on_focused()
 
 	auto views = system.view_configuration_views(viewconfig);
 	assert(views.size() == 2); // FIXME
-	stream_view = hmd_traits.override_view(views[0]);
+	stream_view = hmd_traits().override_view(views[0]);
 	width = views[0].recommendedImageRectWidth;
 	height = views[0].recommendedImageRectHeight;
 
@@ -1135,7 +1135,7 @@ void scenes::lobby::on_focused()
 		config.save();
 	}
 
-	const auto & profile = hmd_traits.controller_profile;
+	const auto & profile = hmd_traits().controller_profile;
 	input.emplace(
 	        *this,
 	        "assets://controllers/" + profile + "/profile.json",
