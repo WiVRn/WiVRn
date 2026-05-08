@@ -110,6 +110,11 @@ static model guess_model_()
 		if (model == "SM-I610")
 			return model::samsung_galaxy_xr;
 	}
+	if (manufacturer == "Play For Dream")
+	{
+		if (model == "PFDM MR")
+			return model::play_for_dream_mr;
+	}
 
 	spdlog::info("Unknown model, manufacturer={}, model={}, device={}", manufacturer, model, device);
 #endif
@@ -173,6 +178,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 		case model::htc_vive_xr_elite:
 			return scale_view(view, 1920);
 		case model::samsung_galaxy_xr:
+		case model::play_for_dream_mr:
 			return scale_view(view, 3552);
 		case model::lynx_r1:
 		case model::unknown:
@@ -201,8 +207,38 @@ bool need_srgb_conversion(model m)
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
 		case model::samsung_galaxy_xr:
+		case model::play_for_dream_mr:
 		case model::unknown:
 			return true;
+	}
+	throw std::range_error("invalid model " + std::to_string((int)m));
+}
+
+bool need_bottom_left_subimage_origin_for_quad_layers(model m)
+{
+	switch (m)
+	{
+		// YVR compositor interprets imageRect.offset.y from bottom-left, even for Vulkan
+		// (spec violation)
+		case model::play_for_dream_mr:
+			return true;
+		case model::lynx_r1:
+		case model::oculus_quest:
+		case model::oculus_quest_2:
+		case model::meta_quest_pro:
+		case model::meta_quest_3:
+		case model::meta_quest_3s:
+		case model::pico_neo_3:
+		case model::pico_4:
+		case model::pico_4s:
+		case model::pico_4_pro:
+		case model::pico_4_enterprise:
+		case model::htc_vive_focus_3:
+		case model::htc_vive_focus_vision:
+		case model::htc_vive_xr_elite:
+		case model::samsung_galaxy_xr:
+		case model::unknown:
+			return false;
 	}
 	throw std::range_error("invalid model " + std::to_string((int)m));
 }
@@ -217,6 +253,7 @@ const char * permission_name(feature f)
 			switch (guess_model())
 			{
 				case model::samsung_galaxy_xr:
+				case model::play_for_dream_mr:
 					return "android.permission.HAND_TRACKING";
 				case model::oculus_quest:
 				case model::oculus_quest_2:
@@ -252,6 +289,7 @@ const char * permission_name(feature f)
 				case model::pico_4_enterprise:
 					return "com.picovr.permission.EYE_TRACKING";
 				case model::samsung_galaxy_xr:
+				case model::play_for_dream_mr:
 					return "android.permission.EYE_TRACKING_FINE";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
@@ -277,6 +315,7 @@ const char * permission_name(feature f)
 				case model::pico_4_enterprise:
 					return "com.picovr.permission.FACE_TRACKING";
 				case model::samsung_galaxy_xr:
+				case model::play_for_dream_mr:
 					return "android.permission.FACE_TRACKING";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
@@ -331,6 +370,7 @@ std::string controller_name()
 		case model::htc_vive_xr_elite:
 			return "htc-vive-focus-3";
 		case model::samsung_galaxy_xr:
+		case model::play_for_dream_mr:
 			return "samsung-galaxyxr";
 		case model::lynx_r1:
 		case model::unknown:

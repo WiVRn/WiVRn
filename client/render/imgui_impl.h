@@ -187,6 +187,8 @@ private:
 
 	std::vector<std::pair<controller, controller_state>> controllers;
 	XrSpace world;
+	// True when quad-layer subImage.imageRect offsets must be interpreted with a bottom-left origin.
+	const bool use_bottom_left_subimage_origin;
 	size_t focused_controller = (size_t)-1;
 	XrTime last_display_time = 0;
 	bool controllers_enabled = true;

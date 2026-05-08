@@ -60,7 +60,7 @@ xr::passthrough_fb::passthrough_fb(instance & inst, session & s) :
 
 	composition_layer = XrCompositionLayerPassthroughFB{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB,
-	        .flags = 0,
+	        .flags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
 	        .space = XR_NULL_HANDLE,
 	        .layerHandle = passthrough_layer,
 	};

@@ -42,6 +42,7 @@ enum class model
 	htc_vive_focus_vision,
 	lynx_r1,
 	samsung_galaxy_xr,
+	play_for_dream_mr,
 	unknown
 };
 
@@ -60,6 +61,8 @@ std::string model_name();
 XrViewConfigurationView override_view(XrViewConfigurationView, model = guess_model());
 
 bool need_srgb_conversion(model);
+// Some runtimes expect XrCompositionLayerQuad subImage.imageRect offsets to use bottom-left origin.
+bool need_bottom_left_subimage_origin_for_quad_layers(model = guess_model());
 
 // Return nullptr if no permission is required
 const char * permission_name(feature f);

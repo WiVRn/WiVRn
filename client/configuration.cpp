@@ -122,6 +122,7 @@ configuration::configuration(xr::system & system, xr::session & session)
 		case model::htc_vive_focus_vision:
 		case model::lynx_r1:
 		case model::samsung_galaxy_xr:
+		case model::play_for_dream_mr:
 		case model::unknown:
 			high_power_mode = true;
 			break;

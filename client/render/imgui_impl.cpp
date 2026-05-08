@@ -22,6 +22,7 @@
 
 #include "application.h"
 #include "constants.h"
+#include "hardware.h"
 #include "image_loader.h"
 #include "openxr/openxr.h"
 #include "utils/mapped_file.h"
@@ -350,7 +351,8 @@ imgui_context::imgui_context(
         context(ImGui::CreateContext()),
         plot_context(ImPlot::CreateContext()),
         io((ImGui::SetCurrentContext(context), ImGui::GetIO())),
-        world(application::space(xr::spaces::world))
+        world(application::space(xr::spaces::world)),
+        use_bottom_left_subimage_origin(need_bottom_left_subimage_origin_for_quad_layers())
 {
 	controllers.reserve(controllers_.size());
 	for (const auto & i: controllers_)
@@ -1027,6 +1029,12 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 		if (not visible)
 			continue;
 
+		const int image_offset_x = int(all_windows_rect.Min.x);
+		const int image_offset_y =
+		        use_bottom_left_subimage_origin ? int(size.height - int(all_windows_rect.Max.y)) : int(all_windows_rect.Min.y);
+		const int image_extent_width = int(all_windows_rect.Max.x - all_windows_rect.Min.x);
+		const int image_extent_height = int(all_windows_rect.Max.y - all_windows_rect.Min.y);
+
 		quads.emplace_back(
 		        i.z_index,
 		        XrCompositionLayerQuad{
@@ -1038,12 +1046,12 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 		                        .swapchain = swapchain,
 		                        .imageRect = {
 		                                .offset = {
-		                                        .x = int(all_windows_rect.Min.x),
-		                                        .y = int(all_windows_rect.Min.y),
+		                                        .x = image_offset_x,
+		                                        .y = image_offset_y,
 		                                },
 		                                .extent = {
-		                                        .width = int(all_windows_rect.Max.x - all_windows_rect.Min.x),
-		                                        .height = int(all_windows_rect.Max.y - all_windows_rect.Min.y),
+		                                        .width = image_extent_width,
+		                                        .height = image_extent_height,
 		                                }},
 		                },
 		                .pose = {
