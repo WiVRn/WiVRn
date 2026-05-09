@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2023  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2023  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2026  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2026  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,30 +16,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #pragma once
 
+#include "configuration.h"
 #include "xr/space.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <magic_enum_containers.hpp>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <openxr/openxr.h>
 
-enum class feature
-{
-	microphone,
-	hand_tracking,
-	eye_gaze,
-	face_tracking,
-	body_tracking,
-};
-
 using hmd_permissions = magic_enum::containers::array<feature, const char *>;
 
-struct hmd_traits_t
+class hmd_traits
 {
+public:
 	std::string controller_profile = "generic-trigger-squeeze";
 	std::string controller_ray_model = "assets://ray.glb";
 	hmd_permissions permissions{};
@@ -52,14 +45,31 @@ struct hmd_traits_t
 	bool hand_interaction_grip_surface = true;
 	bool pico_face_tracker = false;
 	bool discard_frame = true; // can do xrBeginFrame twice to discard the first one
+#ifndef NDEBUG
+private:
+	bool initialized_ = false;
+#endif
 
+public:
+	hmd_traits();
+
+	void init();
+
+	const char * permission_name(feature f) const
+	{
+		return permissions[f];
+	}
+
+	std::string model_name() const;
+	std::pair<glm::vec3, glm::quat> controller_offset(xr::spaces space) const;
 	XrViewConfigurationView override_view(XrViewConfigurationView) const;
+
+	bool is_initialized() const
+	{
+#ifndef NDEBUG
+		return initialized_;
+#else
+		return true;
+#endif
+	}
 };
-
-const hmd_traits_t & hmd_traits();
-// must be called exactly once
-void hmd_traits_init();
-
-std::string model_name();
-
-std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::spaces space);

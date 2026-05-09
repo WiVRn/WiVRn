@@ -23,7 +23,6 @@
 #include "constants.h"
 #include "glm/geometric.hpp"
 #include "hand_model.h"
-#include "hardware.h"
 #include "imgui.h"
 #include "openxr/openxr.h"
 #include "protocol_version.h"
@@ -1114,7 +1113,7 @@ void scenes::lobby::on_focused()
 
 	auto views = system.view_configuration_views(viewconfig);
 	assert(views.size() == 2); // FIXME
-	stream_view = hmd_traits().override_view(views[0]);
+	stream_view = application::get_hmd_traits().override_view(views[0]);
 	width = views[0].recommendedImageRectWidth;
 	height = views[0].recommendedImageRectHeight;
 
@@ -1135,7 +1134,7 @@ void scenes::lobby::on_focused()
 		config.save();
 	}
 
-	const auto & profile = hmd_traits().controller_profile;
+	const auto & profile = application::get_hmd_traits().controller_profile;
 	input.emplace(
 	        *this,
 	        "assets://controllers/" + profile + "/profile.json",
@@ -1148,7 +1147,7 @@ void scenes::lobby::on_focused()
 
 	for (auto i: {xr::spaces::aim_left, xr::spaces::aim_right, xr::spaces::grip_left, xr::spaces::grip_right})
 	{
-		auto [p, q] = input->offset[i] = controller_offset(profile, i);
+		auto [p, q] = input->offset[i] = application::get_hmd_traits().controller_offset(i);
 
 		auto rot = glm::degrees(glm::eulerAngles(q));
 		spdlog::info("Initializing offset of space {} to ({}, {}, {}) mm, ({}, {}, {})°",
