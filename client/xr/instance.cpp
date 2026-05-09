@@ -19,7 +19,7 @@
 
 #include "instance.h"
 
-#include "hardware.h"
+#include "application.h"
 #include "xr/details/enumerate.h"
 #include "xr/htc_exts.h"
 #include "xr/to_string.h"
@@ -100,11 +100,11 @@ static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & i
 	             XR_API_VERSION_1_0,
 	     })
 	{
-		if (version > hmd_traits().max_openxr_api_version)
+		if (version > application::get_hmd_traits().max_openxr_api_version)
 		{
 			spdlog::info("skip OpenXR {} due to headset quirk max version {}",
 			             xr::to_string(version),
-			             xr::to_string(hmd_traits().max_openxr_api_version));
+			             xr::to_string(application::get_hmd_traits().max_openxr_api_version));
 			continue;
 		}
 		std::vector<const char *> extensions;

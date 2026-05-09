@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "hardware.h"
 #include "wivrn_discover.h"
 #include "wivrn_packets.h"
 
@@ -28,12 +27,22 @@
 #include <optional>
 #include <simdjson.h>
 #include <string>
+#include <openxr/openxr.h>
 
 namespace xr
 {
 class session;
 class system;
 } // namespace xr
+
+enum class feature
+{
+	microphone,
+	hand_tracking,
+	eye_gaze,
+	face_tracking,
+	body_tracking,
+};
 
 class configuration
 {

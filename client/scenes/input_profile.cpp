@@ -19,7 +19,6 @@
 #include "input_profile.h"
 
 #include "application.h"
-#include "hardware.h"
 #include "render/scene_components.h"
 #include "utils/mapped_file.h"
 #include "xr/space.h"
@@ -306,7 +305,7 @@ input_profile::input_profile(scene & scene, const std::filesystem::path & json_p
 		else
 			continue;
 
-		auto && [ray_entity, ray_node] = scene.add_gltf(hmd_traits().controller_ray_model, layer_mask_ray);
+		auto && [ray_entity, ray_node] = scene.add_gltf(application::get_hmd_traits().controller_ray_model, layer_mask_ray);
 
 		ray_node.name = (std::string)layout.key + "_ray";
 		spdlog::debug("Created entity {}", ray_node.name);
