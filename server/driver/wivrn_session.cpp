@@ -24,6 +24,7 @@
 #include "application.h"
 #include "configuration.h"
 #include "driver/app_pacer.h"
+#include "driver/xrt_cast.h"
 #include "server/ipc_server.h"
 #include "utils/load_icon.h"
 #include "utils/method.h"
@@ -31,6 +32,7 @@
 
 #include "audio/audio_setup.h"
 #include "wivrn_android_face_tracker.h"
+#include "wivrn_body_tracker.h"
 #include "wivrn_config.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
@@ -186,27 +188,40 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	else if (face == wivrn::from_headset::face_type::htc || is_forced_extension("HTC_facial_tracking"))
 		static_xdevs[static_xdev_count++] = static_roles.face = &htc_face_tracker.emplace(&hmd, *this);
 
-	auto num_generic_trackers = get_info().num_generic_trackers;
-	if (num_generic_trackers > 0)
+	auto body = get_info().body_tracking;
+	if (body != from_headset::body_type::none && body != from_headset::body_type::htc)
 	{
-		if (num_generic_trackers > from_headset::body_tracking::max_tracked_poses)
+		static_xdevs[static_xdev_count++] = static_roles.body = &body_tracker.emplace(&hmd, *this, [this](xrt_device & xdev) {
+			static_xdevs[static_xdev_count++] = &xdev;
+		});
+	}
+	if (body == from_headset::body_type::htc)
+	{
+		auto num_generic_trackers = get_info().num_generic_trackers;
+		generic_trackers.reserve(num_generic_trackers);
+		if (num_generic_trackers > 0)
 		{
-			U_LOG_W("reported generic trackers %d larger than maximum %lu",
-			        num_generic_trackers,
-			        from_headset::body_tracking::max_tracked_poses);
-			num_generic_trackers = from_headset::body_tracking::max_tracked_poses;
-		}
-		if (num_generic_trackers + static_xdev_count > std::size(static_xdevs))
-		{
-			U_LOG_W("Too many generic trackers: %d, only %lu will be active",
-			        num_generic_trackers,
-			        std::size(static_xdevs) - static_xdev_count);
-			num_generic_trackers = std::size(static_xdevs) - static_xdev_count;
-		}
-		U_LOG_I("Creating %d generic trackers", num_generic_trackers);
+			if (num_generic_trackers > from_headset::htc_body::max_tracked_poses)
+			{
+				U_LOG_W("reported generic trackers %d larger than maximum %lu",
+				        num_generic_trackers,
+				        from_headset::htc_body::max_tracked_poses);
+				num_generic_trackers = from_headset::htc_body::max_tracked_poses;
+			}
+			if (num_generic_trackers + static_xdev_count > std::size(static_xdevs))
+			{
+				U_LOG_W("Too many generic trackers: %d, only %lu will be active",
+				        num_generic_trackers,
+				        std::size(static_xdevs) - static_xdev_count);
+				num_generic_trackers = std::size(static_xdevs) - static_xdev_count;
+			}
+			U_LOG_I("Creating %d generic trackers", num_generic_trackers);
 
-		for (int i = 0; i < num_generic_trackers; ++i)
-			static_xdevs[static_xdev_count++] = &generic_trackers.emplace_back(i, &hmd, *this);
+			for (int i = 0; i < num_generic_trackers; ++i)
+			{
+				static_xdevs[static_xdev_count++] = &generic_trackers.emplace_back(std::to_string(i), &hmd, *this);
+			}
+		}
 	}
 
 #if WIVRN_FEATURE_SOLARXR
@@ -642,12 +657,42 @@ void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 	left_controller.update_hand_tracking(hand_tracking, offset);
 	right_controller.update_hand_tracking(hand_tracking, offset);
 }
-void wivrn_session::operator()(from_headset::body_tracking && body_tracking)
+
+void wivrn_session::operator()(from_headset::meta_body && body_tracking)
+{
+	assert(body_tracker);
+
+	auto offset = offset_est.get_offset();
+	body_tracker->update_tracking(body_tracking, offset);
+}
+void wivrn_session::operator()(from_headset::meta_body_skeleton && body_skeleton)
+{
+	assert(body_tracker);
+
+	body_tracker->update_skeleton(body_skeleton);
+}
+void wivrn_session::operator()(from_headset::bd_body && body_tracking)
+{
+	assert(body_tracker);
+
+	auto offset = offset_est.get_offset();
+	body_tracker->update_tracking(body_tracking, offset);
+}
+void wivrn_session::operator()(from_headset::htc_body && body_tracking)
 {
 	auto offset = offset_est.get_offset();
 
-	for (auto [tracker, pose]: std::ranges::zip_view(generic_trackers, *body_tracking.poses))
-		tracker.update_tracking(body_tracking, pose, offset);
+	for (auto [tracker, pose]: std::ranges::zip_view(generic_trackers, body_tracking.poses))
+		tracker.update_tracking(
+		        body_tracking.production_timestamp,
+		        body_tracking.timestamp,
+		        xrt_space_relation{
+		                .relation_flags = from_pose_flags(pose.flags),
+		                .pose = xrt_cast(pose.pose),
+		                .linear_velocity = xrt_cast(pose.linear_velocity),
+		                .angular_velocity = xrt_cast(pose.angular_velocity),
+		        },
+		        offset);
 }
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
@@ -1154,6 +1199,7 @@ std::pair<bool, std::optional<std::string>> wivrn_session::validate_headset_info
 		refuse |= prev_info.palm_pose != info.palm_pose;
 		refuse |= prev_info.user_presence != info.user_presence;
 		refuse |= prev_info.passthrough != info.passthrough;
+		refuse |= prev_info.body_tracking != info.body_tracking;
 
 		refuse |= prev_info.available_refresh_rates != info.available_refresh_rates;
 

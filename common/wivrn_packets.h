@@ -226,11 +226,20 @@ struct visibility_mask_changed
 	uint8_t view_index;
 };
 
-enum face_type : uint8_t
+enum class face_type : uint8_t
 {
 	none,
 	android,
 	fb2,
+	htc,
+};
+
+enum class body_type : uint8_t
+{
+	none,
+	fb,
+	meta,
+	bd,
 	htc,
 };
 
@@ -269,6 +278,8 @@ struct headset_info_packet
 	bool user_presence;
 	bool passthrough;
 	face_type face_tracking;
+	body_type body_tracking;
+	// htc body only
 	uint32_t num_generic_trackers;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 	std::optional<uint8_t> bit_depth;
@@ -285,18 +296,37 @@ struct handshake
 	// Sending this on TCP means connection will be TCP only
 };
 
+enum pose_flags : uint8_t
+{
+	orientation_valid = 1 << 0,
+	position_valid = 1 << 1,
+	linear_velocity_valid = 1 << 2,
+	angular_velocity_valid = 1 << 3,
+	orientation_tracked = 1 << 4,
+	position_tracked = 1 << 5
+};
+
+inline uint8_t to_pose_flags(XrSpaceLocationFlags location_flags, XrSpaceVelocityFlags velocity_flags = 0)
+{
+	uint8_t flags{};
+	if (location_flags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+		flags |= pose_flags::orientation_valid;
+	if (location_flags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+		flags |= pose_flags::position_valid;
+	if (location_flags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+		flags |= pose_flags::orientation_tracked;
+	if (location_flags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+		flags |= pose_flags::position_tracked;
+
+	if (velocity_flags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
+		flags |= pose_flags::linear_velocity_valid;
+	if (velocity_flags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
+		flags |= pose_flags::angular_velocity_valid;
+	return flags;
+}
+
 struct tracking
 {
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		linear_velocity_valid = 1 << 2,
-		angular_velocity_valid = 1 << 3,
-		orientation_tracked = 1 << 4,
-		position_tracked = 1 << 5
-	};
-
 	enum state_flags : uint8_t
 	{
 		recentered = 1 << 0,
@@ -371,15 +401,6 @@ struct derived_pose
 
 struct hand_tracking
 {
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		linear_velocity_valid = 1 << 2,
-		angular_velocity_valid = 1 << 3,
-		orientation_tracked = 1 << 4,
-		position_tracked = 1 << 5
-	};
 	enum hand_id : uint8_t
 	{
 		left,
@@ -403,26 +424,85 @@ struct hand_tracking
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
 };
 
-struct body_tracking
+struct meta_body
 {
-	inline static const size_t max_tracked_poses = 16;
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		orientation_tracked = 1 << 2,
-		position_tracked = 1 << 3,
-	};
 	struct pose
 	{
-		XrPosef pose{};
-		// maybe add velocity?
-		uint8_t flags{0};
+		XrVector3f position;
+		packed_quaternion orientation;
+		uint8_t flags;
+	};
+	struct packed_pose
+	{
+		struct
+		{
+			int16_t x, y, z; // 10th of mm relative to root
+		} position;
+		packed_quaternion orientation;
+		uint8_t flags;
 	};
 
 	XrTime production_timestamp;
 	XrTime timestamp;
-	std::optional<std::array<pose, max_tracked_poses>> poses;
+	float confidence;
+
+	struct fb_joints
+	{
+		pose root;
+		// excluding root
+		std::array<packed_pose, XR_BODY_JOINT_COUNT_FB - 1> joints;
+	};
+	struct meta_joints
+	{
+		pose root;
+		// excluding root
+		std::array<packed_pose, XR_FULL_BODY_JOINT_COUNT_META - 1> joints;
+	};
+	std::variant<std::monostate, fb_joints, meta_joints> joints;
+};
+
+struct meta_body_skeleton
+{
+	struct fb_skeleton
+	{
+		std::array<XrBodySkeletonJointFB, XR_BODY_JOINT_COUNT_FB> joints;
+	};
+	struct meta_skeleton
+	{
+		std::array<XrBodySkeletonJointFB, XR_FULL_BODY_JOINT_COUNT_META> joints;
+	};
+	std::variant<fb_skeleton, meta_skeleton> skeleton;
+};
+
+struct bd_body
+{
+	struct pose
+	{
+		XrVector3f position;
+		packed_quaternion orientation;
+		uint8_t flags;
+	};
+
+	bool all_tracked;
+	XrTime production_timestamp;
+	XrTime timestamp;
+	std::array<pose, XR_BODY_JOINT_COUNT_BD> joints;
+};
+
+struct htc_body
+{
+	static constexpr size_t max_tracked_poses = 16;
+	struct pose
+	{
+		XrPosef pose;
+		XrVector3f linear_velocity;
+		XrVector3f angular_velocity;
+		uint8_t flags;
+	};
+
+	XrTime production_timestamp;
+	XrTime timestamp;
+	std::array<pose, max_tracked_poses> poses;
 };
 
 struct inputs
@@ -576,7 +656,10 @@ using packets = std::variant<
         tracking,
         derived_pose,
         hand_tracking,
-        body_tracking,
+        meta_body,
+        meta_body_skeleton,
+        bd_body,
+        htc_body,
         inputs,
         timesync_response,
         battery,
