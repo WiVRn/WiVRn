@@ -36,19 +36,22 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 		                   {
 			                   if (f.sent_to_decoder)
 			                   {
-				                   U_LOG_D("IDR frame received");
+				                   U_LOG_D("IDR frame received, stream %d", f.stream_index);
 				                   state = idr_received{};
 			                   }
 			                   else
 			                   {
-				                   U_LOG_W("IDR frame dropped");
+				                   U_LOG_W("IDR frame dropped, stream %d", f.stream_index);
 				                   state = need_idr{};
 			                   }
 		                   }
 	                   },
 	                   [this, &f](running r) {
 		                   if (not f.sent_to_decoder and f.frame_index >= r.first_p and not is_non_ref_frame(f.frame_index))
+		                   {
+			                   U_LOG_I("IDR frame needed on stream %d", f.stream_index);
 			                   state = need_idr{};
+		                   }
 	                   },
 	           },
 	           state);
