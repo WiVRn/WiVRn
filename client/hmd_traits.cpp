@@ -447,7 +447,7 @@ std::pair<glm::vec3, glm::quat> hmd_traits::controller_offset(xr::spaces space) 
 		{
 			case xr::spaces::grip_left:
 			case xr::spaces::grip_right:
-				return {{0, -0.01, -0.04}, glm::angleAxis(glm::radians(-20.f), glm::vec3{1, 0, 0})};
+				return {{0, -0.02, -0.05}, glm::angleAxis(glm::radians(-50.f), glm::vec3{1, 0, 0})};
 
 			case xr::spaces::aim_left:
 				return {{-0.005, 0, 0.02}, {1, 0, 0, 0}};
