@@ -283,8 +283,13 @@ static float angles_to_center(float e, float l, float r)
 
 static float convergence_angle(float distance, float eye_x, float gaze_yaw)
 {
-	auto b = distance * std::sin(gaze_yaw) - eye_x;
-	return std::asin(b / distance);
+	float target_x = distance * std::sin(gaze_yaw);
+	float target_z = distance * std::cos(gaze_yaw);
+
+	float dx = target_x - eye_x;
+	float dz = target_z;
+
+	return std::atan2(dx, dz);
 }
 
 static void fill_param_2d(
