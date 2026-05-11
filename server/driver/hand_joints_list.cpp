@@ -37,7 +37,10 @@ static xrt_hand_joint_value interpolate(const xrt_hand_joint_value & a, const xr
 
 xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t)
 {
-	xrt_hand_joint_set j = a;
+	xrt_hand_joint_set j = {
+	        .hand_pose = pose_list::interpolate(a.hand_pose, b.hand_pose, t),
+	        .is_active = a.is_active,
+	};
 	for (int i = 0; i < XRT_HAND_JOINT_COUNT; i++)
 	{
 		j.values.hand_joint_set_default[i] = ::wivrn::interpolate(a.values.hand_joint_set_default[i], b.values.hand_joint_set_default[i], t);
@@ -47,10 +50,7 @@ xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, c
 
 xrt_hand_joint_set hand_joints_list::extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, int64_t ta, int64_t tb, int64_t t)
 {
-	xrt_hand_joint_set j = t <= ta ? a : b;
-	// Only extrapolate the hand pose, individual joints are too noisy
-	j.hand_pose = pose_list::extrapolate(a.hand_pose, b.hand_pose, ta, tb, t);
-	return j;
+	return t <= ta ? a : b;
 }
 
 static xrt_space_relation_flags cast_flags(uint8_t in_flags)
@@ -80,7 +80,10 @@ static xrt_space_relation to_relation(const from_headset::hand_tracking::pose & 
 {
 	return {
 	        .relation_flags = cast_flags(pose.flags),
-	        .pose = xrt_cast(pose.pose),
+	        .pose = xrt_cast(XrPosef{
+	                .orientation = pose.orientation,
+	                .position = pose.position,
+	        }),
 	        .linear_velocity = xrt_cast(pose.linear_velocity),
 	        .angular_velocity = xrt_cast(pose.angular_velocity),
 	};
@@ -117,14 +120,13 @@ static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_hea
 	return output_joints;
 }
 
-bool hand_joints_list::update_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
+void hand_joints_list::update_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
 	if (tracking.hand == hand_id)
-		return add_sample(
+		add_sample(
 		        tracking.production_timestamp,
 		        tracking.timestamp,
 		        convert_joints(tracking.joints),
 		        offset);
-	return true;
 }
 } // namespace wivrn

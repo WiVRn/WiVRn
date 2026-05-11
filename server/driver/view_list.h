@@ -35,12 +35,16 @@ struct tracked_views
 	std::array<xrt_fov, 2> fovs;
 };
 
-class view_list : public history<view_list, tracked_views>
+class view_list
 {
-public:
-	static tracked_views interpolate(const tracked_views & a, const tracked_views & b, float t);
-	static tracked_views extrapolate(const tracked_views & a, const tracked_views & b, int64_t ta, int64_t tb, int64_t t);
+	pose_list head_poses{device_id::HEAD};
+	std::mutex mutex;
+	XrViewStateFlags flags;
+	std::array<xrt_pose, 2> poses;
+	std::array<xrt_fov, 2> fovs;
 
-	bool update_tracking(const from_headset::tracking & tracking, const clock_offset & offset);
+public:
+	void update_tracking(const from_headset::tracking & tracking, const clock_offset & offset);
+	std::pair<XrTime, tracked_views> get_at(XrTime at_timestamp_ns);
 };
 } // namespace wivrn

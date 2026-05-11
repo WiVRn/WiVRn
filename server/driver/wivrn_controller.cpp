@@ -23,12 +23,13 @@
 #include "driver/xrt_cast.h"
 #include "math/m_api.h"
 #include "utils/method.h"
+#include "wivrn_config.h"
 #include "wivrn_session.h"
 
+#include "os/os_time.h"
 #include "util/u_logging.h"
 #include <array>
 #include <format>
-#include <fstream>
 #include <magic_enum.hpp>
 #include <numbers>
 #include <optional>
@@ -570,26 +571,6 @@ make_binding_profiles()
 constexpr auto controller_per_hand_binding_profiles = std::to_array({make_binding_profiles<0>(),
                                                                      make_binding_profiles<1>()});
 
-struct xrt_space_relation_csv_header
-{};
-
-std::ostream & operator<<(std::ostream & out, const xrt_space_relation_csv_header &)
-{
-	for (auto [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
-	{
-		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
-		{
-			name = name.substr(strlen("XRT_SPACE_RELATION_"));
-			name = name.substr(0, name.size() - strlen("_BIT"));
-			out << name << ",";
-		}
-	}
-	out << "x,y,z,";
-	out << "qw,qx,qy,qz,";
-	out << "vx,vy,vz,";
-	out << "avx,avy,avz";
-	return out;
-}
 } // namespace
 
 wivrn_controller::wivrn_controller(xrt_device_name name,
@@ -643,12 +624,10 @@ wivrn_controller::wivrn_controller(xrt_device_name name,
 		math_quat_from_euler_angles(&rotation_angles, &offset.orientation);
 
 		palm.set_derived(&grip, offset, true);
-		cnx->set_enabled(palm.device, false);
 	}
 	else if (not cnx->get_info().palm_pose)
 	{
 		palm.set_derived(&grip, XRT_POSE_IDENTITY, false);
-		cnx->set_enabled(palm.device, false);
 	}
 
 	if (name != XRT_DEVICE_EXT_HAND_INTERACTION)
@@ -793,55 +772,34 @@ void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clo
 
 xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * res)
 {
-	std::chrono::nanoseconds extrapolation_time;
+	XrTime production_timestamp;
 	device_id device;
+	XrTime now = os_monotonic_get_ns();
+	auto target_ns = std::min(at_timestamp_ns, now + max_extrapolation_ns);
 	switch (name)
 	{
 		case XRT_INPUT_TOUCH_AIM_POSE:
 		case XRT_INPUT_HAND_AIM_POSE:
-			std::tie(extrapolation_time, *res, device) = aim.get_pose_at(at_timestamp_ns);
+			std::tie(production_timestamp, *res, device) = aim.get_pose_at(target_ns);
 			break;
 		case XRT_INPUT_TOUCH_GRIP_POSE:
 		case XRT_INPUT_HAND_GRIP_POSE:
-			std::tie(extrapolation_time, *res, device) = grip.get_pose_at(at_timestamp_ns);
+			std::tie(production_timestamp, *res, device) = grip.get_pose_at(target_ns);
 			break;
 		case XRT_INPUT_GENERIC_PALM_POSE:
-			std::tie(extrapolation_time, *res, device) = palm.get_pose_at(at_timestamp_ns);
+			std::tie(production_timestamp, *res, device) = palm.get_pose_at(target_ns);
 			break;
 		case XRT_INPUT_HAND_PINCH_POSE:
-			std::tie(extrapolation_time, *res, device) = pinch_ext.get_pose_at(at_timestamp_ns);
+			std::tie(production_timestamp, *res, device) = pinch_ext.get_pose_at(target_ns);
 			break;
 		case XRT_INPUT_HAND_POKE_POSE:
-			std::tie(extrapolation_time, *res, device) = poke_ext.get_pose_at(at_timestamp_ns);
+			std::tie(production_timestamp, *res, device) = poke_ext.get_pose_at(target_ns);
 			break;
 		default:
 			U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
 			return XRT_ERROR_INPUT_UNSUPPORTED;
 	}
-	cnx->set_enabled(device, true);
-	cnx->add_predict_offset(extrapolation_time);
-	if (auto out = tracking_dump())
-	{
-		auto device = [&] {
-		switch (name)
-		{
-			case XRT_INPUT_TOUCH_AIM_POSE: return aim.device;
-			case XRT_INPUT_TOUCH_GRIP_POSE: return grip.device;
-			case XRT_INPUT_GENERIC_PALM_POSE: return palm.device;
-			case XRT_INPUT_HAND_PINCH_POSE: return pinch_ext.device;
-			case XRT_INPUT_HAND_POKE_POSE: return poke_ext.device;
-			default:
-				assert(false);
-				__builtin_unreachable();
-		} }();
-		*out->lock() << magic_enum::enum_name(device) << ','
-		             << os_monotonic_get_ns() << ','
-		             << at_timestamp_ns << ','
-		             << extrapolation_time.count() << ','
-		             << "g,"
-		             << *res << std::endl;
-		;
-	}
+	cnx->add_tracking_request(device, at_timestamp_ns, production_timestamp, now);
 	return XRT_SUCCESS;
 }
 
@@ -852,10 +810,9 @@ xrt_result_t wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t de
 		case XRT_INPUT_HT_UNOBSTRUCTED_LEFT:
 		case XRT_INPUT_HT_UNOBSTRUCTED_RIGHT: {
 			*out_timestamp_ns = desired_timestamp_ns;
-			std::chrono::nanoseconds extrapolation_time;
-			std::tie(extrapolation_time, *out_value) = joints.get_at(desired_timestamp_ns);
-			cnx->add_predict_offset(extrapolation_time);
-			cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, true);
+			XrTime production_timestamp;
+			std::tie(production_timestamp, *out_value) = joints.get_at(desired_timestamp_ns);
+			cnx->add_tracking_request(joints.hand_id == 0 ? device_id::LEFT_HAND : device_id::RIGHT_HAND, desired_timestamp_ns, production_timestamp);
 			return XRT_SUCCESS;
 		}
 
@@ -878,46 +835,21 @@ void wivrn_controller::set_derived_pose(const from_headset::derived_pose & deriv
 	auto source = list(derived.source);
 	auto target = list(derived.target);
 	if (source and target)
-	{
 		target->set_derived(source, xrt_cast(derived.relation));
-		if (source != target)
-			cnx->set_enabled(derived.target, false);
-	}
 }
 
 void wivrn_controller::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	if (not aim.update_tracking(tracking, offset))
-		cnx->set_enabled(aim.device, false);
-	if (not grip.update_tracking(tracking, offset))
-		cnx->set_enabled(grip.device, false);
-	if (not palm.update_tracking(tracking, offset))
-		cnx->set_enabled(palm.device, false);
-	if (not pinch_ext.update_tracking(tracking, offset))
-		cnx->set_enabled(pinch_ext.device, false);
-	if (not poke_ext.update_tracking(tracking, offset))
-		cnx->set_enabled(poke_ext.device, false);
-	if (auto out = tracking_dump(); out and offset)
-	{
-		auto locked = out->lock();
-		auto now = os_monotonic_get_ns();
-		for (const auto & pose: tracking.device_poses)
-		{
-			if (pose.device == aim.device or pose.device == grip.device or pose.device == palm.device or pose.device == pinch_ext.device or pose.device == poke_ext.device)
-				*locked << magic_enum::enum_name(pose.device) << ','
-				        << now << ','
-				        << offset.from_headset(tracking.timestamp) << ','
-				        << tracking.timestamp - tracking.production_timestamp << ','
-				        << "r,"
-				        << pose_list::convert_pose(pose) << std::endl;
-		}
-	}
+	aim.update_tracking(tracking, offset);
+	grip.update_tracking(tracking, offset);
+	palm.update_tracking(tracking, offset);
+	pinch_ext.update_tracking(tracking, offset);
+	poke_ext.update_tracking(tracking, offset);
 }
 
 void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
-	if (not joints.update_tracking(tracking, offset))
-		cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, false);
+	joints.update_tracking(tracking, offset);
 }
 
 xrt_result_t wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)
@@ -963,43 +895,4 @@ void wivrn_controller::reset_history()
 	poke_ext.reset();
 }
 
-thread_safe<std::ofstream> * wivrn_controller::tracking_dump()
-{
-	static std::unique_ptr<thread_safe<std::ofstream>> res = [] {
-		if (auto wivrn_dump = std::getenv("WIVRN_DUMP_TRACKING"))
-		{
-			U_LOG_I("Controller tracking dump enabled: %s", wivrn_dump);
-			std::ofstream res;
-			res.open(wivrn_dump);
-			res << "device_id,"
-			       "now_ns,"
-			       "timestamp_ns,"
-			       "extrapolation_ns,"
-			       "receive/get,"
-			    << xrt_space_relation_csv_header{} << std::endl;
-
-			return std::make_unique<thread_safe<std::ofstream>>(std::move(res));
-		}
-		return std::unique_ptr<thread_safe<std::ofstream>>();
-	}();
-	return res.get();
-}
 } // namespace wivrn
-
-std::ostream & operator<<(std::ostream & out, const xrt_space_relation & rel)
-{
-	const auto & pos = rel.pose.position;
-	const auto & o = rel.pose.orientation;
-	const auto & v = rel.linear_velocity;
-	const auto & av = rel.angular_velocity;
-	for (const auto & [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
-	{
-		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
-			out << bool(rel.relation_flags & value) << ',';
-	}
-	out << pos.x << ',' << pos.y << ',' << pos.z << ',';
-	out << o.w << ',' << o.x << ',' << o.y << ',' << o.z << ',';
-	out << v.x << ',' << v.y << ',' << v.z << ',';
-	out << av.x << ',' << av.y << ',' << av.z;
-	return out;
-}

@@ -22,6 +22,7 @@
 #include "utils/flatpak.h"
 
 #include <cassert>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <stdlib.h>
@@ -95,15 +96,15 @@ static std::vector<std::string> unescape_string(const std::string & app_string)
 	return app;
 }
 
-void children_manager::start_application(const std::string & exec)
+void children_manager::start_application(const std::string & exec, const std::optional<std::string> & path)
 {
-	start_application(unescape_string(exec));
+	start_application(unescape_string(exec), path);
 }
 
 forked_children::forked_children(std::function<void()> state_changed_cb) :
         state_changed_cb(state_changed_cb) {}
 
-void forked_children::start_application(const std::vector<std::string> & args)
+void forked_children::start_application(const std::vector<std::string> & args, const std::optional<std::string> & path)
 {
 	if (args.empty())
 		return;
@@ -151,6 +152,19 @@ void forked_children::start_application(const std::vector<std::string> & args)
 	{
 		tmp.push_back("flatpak-spawn");
 		tmp.push_back("--host");
+		if (path)
+			tmp.push_back("--directory=" + *path);
+	}
+	else
+	{
+		try
+		{
+			std::filesystem::current_path(*path);
+		}
+		catch (std::exception & e)
+		{
+			std::cerr << "Failed to set path to " << *path << ": " << e.what() << std::endl;
+		}
 	}
 
 	tmp.insert(tmp.end(), args.begin(), args.end());

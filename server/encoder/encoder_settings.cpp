@@ -328,7 +328,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 	if (std::ranges::contains(res, video_codec::h264, &encoder_settings::codec) or
 	    std::ranges::contains(res, video_codec::raw, &encoder_settings::codec))
 		bit_depth = 8;
-	else
+	else if (not bit_depth)
 		bit_depth = 10;
 
 	auto check_format = [&](vk::Format format) {
@@ -350,7 +350,36 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 		}
 	};
 
-	if (bit_depth == 10 and not check_format(vk::Format::eR10X6UnormPack16))
+	auto check_vaapi = [&](int bit_depth) {
+		for (const auto & encoder: res)
+		{
+			if (encoder.encoder_name == encoder_vaapi)
+			{
+				try
+				{
+					video_encoder_va{
+					        bundle,
+					        encoder_settings{
+					                .width = 800,
+					                .height = 800,
+					                .codec = encoder.codec,
+					                .fps = 60,
+					                .bitrate = 50'000'000,
+					                .bit_depth = bit_depth,
+					        },
+					        0};
+				}
+				catch (std::exception & e)
+				{
+					U_LOG_I("vaapi not supported for %s %d bits", std::string(magic_enum::enum_name(encoder.codec)).c_str(), bit_depth);
+					return false;
+				}
+			}
+		}
+		return true;
+	};
+
+	if (bit_depth == 10 and not(check_format(vk::Format::eR10X6UnormPack16) and check_vaapi(*bit_depth)))
 	{
 		U_LOG_W("GPU does not have sufficient support for 10-bit images, reverting to 8");
 		bit_depth = 8;

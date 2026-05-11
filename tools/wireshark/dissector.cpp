@@ -35,6 +35,10 @@
 #include "wivrn_packets.h"
 
 #if WIRESHARK_VERSION_MAJOR > 4 || (WIRESHARK_VERSION_MAJOR == 4 && WIRESHARK_VERSION_MINOR >= 4)
+static inline uint32_t get_uint32(tvbuff_t * tvb, const int offset, const unsigned encoding)
+{
+	return tvb_get_uint32(tvb, offset, encoding);
+}
 static inline uint16_t get_uint16(tvbuff_t * tvb, const int offset, const unsigned encoding)
 {
 	return tvb_get_uint16(tvb, offset, encoding);
@@ -45,6 +49,10 @@ static inline uint16_t get_uint8(tvbuff_t * tvb, const int offset)
 	return tvb_get_uint8(tvb, offset);
 }
 #else
+static inline uint32_t get_uint32(tvbuff_t * tvb, const int offset, const unsigned encoding)
+{
+	return tvb_get_guint32(tvb, offset, encoding);
+}
 static inline uint16_t get_uint16(tvbuff_t * tvb, const int offset, const unsigned encoding)
 {
 	return tvb_get_guint16(tvb, offset, encoding);
@@ -439,6 +447,11 @@ struct tree_traits<abbrev, std::vector<T>>
 
 		size_t count = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
+		if (count & 0x8000)
+		{
+			count = (count & 0x7fff) | (get_uint16(tvb, start, ENC_LITTLE_ENDIAN) << 15);
+			start += sizeof(uint16_t);
+		}
 
 		for (size_t i = 0; i < count; i++)
 		{
@@ -451,6 +464,13 @@ struct tree_traits<abbrev, std::vector<T>>
 		size_t count = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 		size_t size = sizeof(uint16_t);
+
+		if (count & 0x8000)
+		{
+			count = (count & 0x7fff) | (get_uint16(tvb, start, ENC_LITTLE_ENDIAN) << 15);
+			start += sizeof(uint16_t);
+			size += sizeof(uint16_t);
+		}
 
 		for (size_t i = 0; i < count; i++)
 		{
@@ -794,19 +814,38 @@ int dissect_wivrn(tvbuff_t * tvb, packet_info * pinfo, proto_tree * tree _U_, vo
 	/* Clear out stuff in the info column */
 	col_clear(pinfo->cinfo, COL_INFO);
 
-	proto_item * ti = proto_tree_add_item(tree, proto, tvb, 0, -1, ENC_NA);
-	proto_tree * subtree = proto_item_add_subtree(ti, subtree_handles.at(""));
-	int start = 0;
+	int offset = 0;
 
-	if (tcp)
-		start += sizeof(uint16_t);
+	while (true)
+	{
+		proto_item * ti = proto_tree_add_item(tree, proto, tvb, 0, -1, ENC_NA);
+		proto_tree * subtree = proto_item_add_subtree(ti, subtree_handles.at(""));
 
-	if (pinfo->destport == wivrn::default_port)
-		tree_traits<"wivrn.from_headset", from_headset::packets>::dissect(subtree, tvb, start);
-	else
-		tree_traits<"wivrn.to_headset", to_headset::packets>::dissect(subtree, tvb, start);
+		int remaining = tvb_reported_length_remaining(tvb, offset);
 
-	return tvb_captured_length(tvb);
+		if (tcp)
+		{
+			if (remaining < sizeof(uint32_t))
+				return remaining - sizeof(uint32_t);
+			remaining -= sizeof(uint32_t);
+
+			uint32_t size = get_uint32(tvb, offset, ENC_LITTLE_ENDIAN);
+			if (remaining < size)
+				return remaining - size;
+			offset += sizeof(uint32_t);
+		}
+
+		if (pinfo->destport == wivrn::default_port)
+			tree_traits<"wivrn.from_headset", from_headset::packets>::dissect(subtree, tvb, offset);
+		else
+			tree_traits<"wivrn.to_headset", to_headset::packets>::dissect(subtree, tvb, offset);
+
+		if (not tcp)
+			return offset;
+
+		if (tvb_reported_length(tvb) <= offset)
+			return offset;
+	}
 }
 
 int dissect_wivrn_udp(tvbuff_t * tvb, packet_info * pinfo, proto_tree * tree _U_, void * data _U_)

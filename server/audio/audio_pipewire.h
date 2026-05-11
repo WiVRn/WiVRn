@@ -23,7 +23,7 @@
 namespace wivrn
 {
 
-std::shared_ptr<audio_device> create_pipewire_handle(
+std::unique_ptr<audio_device> create_pipewire_handle(
         const std::string & source_name,
         const std::string & source_description,
         const std::string & sink_name,

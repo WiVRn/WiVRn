@@ -196,10 +196,15 @@ struct variant_builder
 
 }; // namespace
 
-void systemd_units_manager::start_application(const std::vector<std::string> & args)
+void systemd_units_manager::start_application(const std::vector<std::string> & args, const std::optional<std::string> & path)
 {
 	if (args.empty())
 		return;
+
+	std::cerr << "Launching";
+	for (const auto & i: args)
+		std::cerr << " " << std::quoted(i);
+	std::cerr << std::endl;
 
 	std::string service_name = std::format("wivrn-application-{}.service", std::chrono::steady_clock::now().time_since_epoch().count());
 
@@ -223,6 +228,12 @@ void systemd_units_manager::start_application(const std::vector<std::string> & a
 	                              nullptr,
 	                              &exec_start,
 	                              1));
+
+	if (path)
+		g_variant_builder_add(&b,
+		                      "(sv)",
+		                      "WorkingDirectory",
+		                      g_variant_new("s", path->c_str()));
 
 	if (auto path = std::getenv("PATH"))
 	{

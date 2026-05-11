@@ -54,7 +54,7 @@ public:
 	systemd_units_manager(GDBusConnection * connection, std::function<void()> state_changed_cb);
 
 	// create and start the transient unit
-	void start_application(const std::vector<std::string> &) override;
+	void start_application(const std::vector<std::string> &, const std::optional<std::string> & path) override;
 
 	// true if any unit started by this object is still running
 	bool running() const override;

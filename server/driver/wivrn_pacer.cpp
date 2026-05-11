@@ -76,6 +76,12 @@ wivrn_pacer::~wivrn_pacer()
 	compute_cv.notify_all();
 }
 
+uint64_t wivrn_pacer::get_frame_duration()
+{
+	std::lock_guard lock(mutex);
+	return frame_duration_ns;
+}
+
 void wivrn_pacer::set_frame_duration(uint64_t frame_duration_ns)
 {
 	std::lock_guard lock(mutex);

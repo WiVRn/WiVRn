@@ -18,46 +18,41 @@
  */
 
 #include "view_list.h"
-#include "pose_list.h"
 #include "xrt_cast.h"
 
 namespace wivrn
 {
 
-tracked_views view_list::interpolate(const tracked_views & a, const tracked_views & b, float t)
+void view_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	tracked_views result = a;
-	result.relation = pose_list::interpolate(a.relation, b.relation, t);
-	return result;
-}
+	if (not std::ranges::contains(tracking.device_poses, device_id::HEAD, &from_headset::tracking::pose::device))
+		return;
 
-tracked_views view_list::extrapolate(const tracked_views & a, const tracked_views & b, int64_t ta, int64_t tb, int64_t t)
-{
-	tracked_views result = t < ta ? a : b;
-	result.relation = pose_list::extrapolate(a.relation, b.relation, ta, tb, t);
-	return result;
-}
+	std::lock_guard lock(mutex);
+	flags = tracking.view_flags;
 
-bool view_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
-{
-	for (const auto & pose: tracking.device_poses)
+	for (size_t eye = 0; eye < 2; ++eye)
 	{
-		if (pose.device != device_id::HEAD)
-			continue;
-
-		tracked_views view{};
-
-		view.relation = pose_list::convert_pose(pose);
-		view.flags = tracking.view_flags;
-
-		for (size_t eye = 0; eye < 2; ++eye)
-		{
-			view.poses[eye] = xrt_cast(tracking.views[eye].pose);
-			view.fovs[eye] = xrt_cast(tracking.views[eye].fov);
-		}
-
-		return add_sample(tracking.production_timestamp, tracking.timestamp, view, offset);
+		poses[eye] = xrt_cast(tracking.views[eye].pose);
+		fovs[eye] = xrt_cast(tracking.views[eye].fov);
 	}
-	return true;
+
+	head_poses.update_tracking(tracking, offset);
+}
+
+std::pair<XrTime, tracked_views> view_list::get_at(XrTime at_timestamp_ns)
+{
+	std::lock_guard lock(mutex);
+	auto [t, pose] = head_poses.get_at(at_timestamp_ns);
+	return {
+	        t,
+	        tracked_views{
+	                .flags = flags,
+	                .relation = pose,
+	                .poses = poses,
+	                .fovs = fovs,
+	        },
+
+	};
 }
 } // namespace wivrn

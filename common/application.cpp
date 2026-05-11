@@ -75,11 +75,11 @@ std::string read_vr_manifest(const std::filesystem::path & root)
 	return read_file(root / "config/steamapps.vrmanifest");
 }
 
-steam_app_info read_steam_app_info(const std::filesystem::path & root)
+std::unordered_map<uint32_t, wivrn::steam_icon> safe_read_steam_icons(const std::filesystem::path & root)
 {
 	try
 	{
-		return steam_app_info{root / "appcache/appinfo.vdf"};
+		return read_steam_icons(root / "appcache/appinfo.vdf");
 	}
 	catch (...)
 	{}
@@ -87,14 +87,15 @@ steam_app_info read_steam_app_info(const std::filesystem::path & root)
 	return {};
 }
 
-std::optional<std::filesystem::path> find_steam_icon(const std::filesystem::path & root, int app_id, const steam_app_info & info)
+std::optional<std::filesystem::path> find_steam_icon(const std::filesystem::path & root, int app_id, const std::unordered_map<uint32_t, wivrn::steam_icon> & info)
 {
-	const auto & app_info = info.get(app_id);
+	auto icon = info.find(app_id);
+	if (icon == info.end())
+		return std::nullopt;
 
 	try
 	{
-		std::string icon{std::get<std::string_view>(app_info.at("common.clienticon"))};
-		auto icon_path = root / "steam/games" / (icon + ".ico");
+		auto icon_path = root / "steam/games" / (icon->second.clienticon + ".ico");
 
 		if (std::filesystem::exists(icon_path))
 			return icon_path;
@@ -105,10 +106,7 @@ std::optional<std::filesystem::path> find_steam_icon(const std::filesystem::path
 
 	try
 	{
-		std::string icon{std::get<std::string_view>(app_info.at("common.linuxclienticon"))};
-
-		auto icon_path = root / "steam/games" / (icon + ".zip");
-
+		auto icon_path = root / "steam/games" / (icon->second.linuxclienticon + ".zip");
 		if (std::filesystem::exists(icon_path))
 			return icon_path;
 	}
@@ -126,7 +124,7 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 		return;
 
 	auto manifest = read_vr_manifest(*root);
-	auto info = read_steam_app_info(*root);
+	auto info = safe_read_steam_icons(*root);
 
 	if (manifest.empty())
 		return;
@@ -137,6 +135,11 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 		try
 		{
 			application app;
+
+			if (i["launch_type"] == "url")
+				app.exec = command + " " + (std::string)i["url"];
+			else
+				continue;
 
 			std::string app_key = i["app_key"];
 			for (auto [locale, items]: i["strings"].items())
@@ -152,21 +155,6 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 					it = app.name.begin();
 				if (it != app.name.end())
 					app.name[""] = it->second;
-			}
-
-			if (i["launch_type"] == "url")
-			{
-				app.exec = command + " " + (std::string)i["url"];
-			}
-			else if (i["launch_type"] == "binary")
-			{
-				const char prefix[] = "steam.app.";
-				if (app_key.starts_with(prefix))
-				{
-					// ¯\_(ツ)_/¯
-					uint64_t appkey = stoll(app_key.substr(strlen(prefix)));
-					app.exec = command + " steam://rungameid/" + std::to_string((appkey << 32) + 0x2000000);
-				}
 			}
 
 			try
@@ -188,6 +176,30 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 		catch (std::exception & e)
 		{
 			std::cerr << "Failed to parse Steam VR manifest: " << e.what() << std::endl;
+		}
+	}
+
+	for (auto const & entry: std::filesystem::directory_iterator{*root / "userdata"})
+	{
+		auto shortcuts_vdf = entry.path() / "config/shortcuts.vdf";
+		if (std::filesystem::exists(shortcuts_vdf))
+		{
+			try
+			{
+				for (auto && item: read_steam_shortcuts(shortcuts_vdf))
+				{
+					res[std::to_string(item.appid)] = {
+					        .name = {{"", std::move(item.name)}},
+					        // ¯\_(ツ)_/¯
+					        .exec = command + " steam://rungameid/" + std::to_string((uint64_t(item.appid) << 32) + 0x2000000),
+					        .icon_path = std::move(item.icon),
+					};
+				}
+			}
+			catch (std::exception & e)
+			{
+				std::cerr << "Failed to parse Steam shortcuts file " << shortcuts_vdf << ": " << e.what() << std::endl;
+			}
 		}
 	}
 }

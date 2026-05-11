@@ -426,7 +426,7 @@ struct pulse_device : public audio_device
 			if (not mic_pipe)
 				throw std::system_error(errno, std::system_category(), "failed to open mic pipe " + microphone->socket.string());
 			mic_thread = std::thread([this]() { run_mic(); });
-			session.set_enabled(to_headset::tracking_control::id::microphone, true);
+			session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, true});
 		}
 
 		if (info.speaker)
@@ -445,7 +445,7 @@ struct pulse_device : public audio_device
 	}
 };
 
-std::shared_ptr<audio_device> create_pulse_handle(
+std::unique_ptr<audio_device> create_pulse_handle(
         const std::string & source_name,
         const std::string & source_description,
         const std::string & sink_name,
@@ -455,7 +455,7 @@ std::shared_ptr<audio_device> create_pulse_handle(
 {
 	try
 	{
-		return std::make_shared<pulse_device>(
+		return std::make_unique<pulse_device>(
 		        source_name, source_description, sink_name, sink_description, info, session);
 	}
 	catch (std::exception & e)

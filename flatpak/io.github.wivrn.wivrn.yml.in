@@ -72,11 +72,19 @@ modules:
     sources:
     - type: git
       url: https://github.com/crosstool-ng/crosstool-ng.git
-      tag: 70c2b00ad79a0a21a48e5a0eedc9f91c374af21d
+      tag: 620b909cd0713f68084378b63cf61b5232757b90
     - type: shell
       commands:
+       # Make the build lighter:
+       # don't generate debug symbols at all
        - sed -i 's/-O2 -g/-O2/' scripts/crosstool-NG.sh
        - sed -i 's/-g -O2/-O2/' scripts/build/cc/gcc.sh
+       # Delete extracted sources when no longer needed
+       - sed -i '/# Cleanup/a rm -r "$(readlink "${kernel_path}")"' scripts/build/kernel/linux.sh
+       # Delete tarballs once extracted
+       - sed -i '2228i CT_DoExecLog FILE rm "$(readlink -f "${file}")"' scripts/functions
+       # Delete big test files
+       - sed -i '/CT_ExtractPatch GCC/a CT_Pushd "${CT_SRC_DIR}/gcc/gcc/testsuite/";CT_DoExecLog ALL rm -rf $(ls -1 | grep -v selftests);CT_Popd' scripts/build/cc/gcc.sh
     cleanup:
       - '*'
 
@@ -221,7 +229,7 @@ modules:
     sources:
     - type: git
       url: https://gitlab.com/libeigen/eigen.git
-      tag: 3.4.0
+      tag: 5.0.1
     cleanup:
       - '*'
 
@@ -247,23 +255,6 @@ modules:
       tag: v2.4.2
     cleanup:
       - '*'
-
-  - name: libnotify
-    buildsystem: meson
-    config-opts:
-      - -Dtests=false
-      - -Dintrospection=disabled
-      - -Dman=false
-      - -Dgtk_doc=false
-      - -Ddocbook_docs=disabled
-    sources:
-      - type: archive
-        url: https://download.gnome.org/sources/libnotify/0.8/libnotify-0.8.8.tar.xz
-        sha256: 23420ef619dc2cb5aebad613f4823a2fa41c07e5a1d05628d40f6ec4b35bfddd
-        x-checker-data:
-          type: gnome
-          name: libnotify
-          stable-only: true
 
   - name: qcoro
     buildsystem: cmake-ninja
@@ -405,9 +396,9 @@ modules:
         WIVRN_SRC2
         WIVRN_SRC3
       - type: archive
-        url: BOOSTPFR_URL
-        dest: deps/boostpfr-src
-        sha256: BOOSTPFR_SHA256
+        url: BOOST_URL
+        dest: deps/boost-src
+        sha256: BOOST_SHA256
       - type: git
         url: https://gitlab.freedesktop.org/monado/monado
         tag: MONADO_COMMIT
@@ -415,4 +406,3 @@ modules:
       - type: shell
         commands:
          - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado/*
-         - cd deps/boostpfr-src && ../../patches/apply.sh ../../flatpak/boostpfr-gcc-12-internal-compiler-error.patch

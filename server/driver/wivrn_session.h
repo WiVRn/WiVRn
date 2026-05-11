@@ -21,6 +21,7 @@
 
 #include "clock_offset.h"
 #include "driver/app_pacer.h"
+#include "tracking_control.h"
 #include "utils/thread_safe.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
@@ -30,7 +31,6 @@
 #include "wivrn_uinput.h"
 #include "xrt/xrt_results.h"
 #include "xrt/xrt_system.h"
-#include <atomic>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -55,43 +55,6 @@ struct audio_device;
 struct wivrn_comp_target;
 struct wivrn_comp_target_factory;
 
-class tracking_control_t
-{
-	using T = std::chrono::nanoseconds::rep;
-	std::atomic<T> min;
-	std::atomic<T> max;
-	std::chrono::steady_clock::time_point next_sample;
-	std::mutex mutex;
-	decltype(to_headset::tracking_control::enabled) enabled;
-
-public:
-	tracking_control_t() :
-	        next_sample(std::chrono::steady_clock::now())
-	{
-		enabled.fill(true);
-	}
-	void add(std::chrono::nanoseconds s)
-	{
-		auto sample = s.count();
-		T prev = max;
-		while (prev < sample and max.compare_exchange_weak(prev, sample))
-		{
-		}
-		if (sample > 0)
-		{
-			prev = min;
-			while (prev > sample and min.compare_exchange_weak(prev, sample))
-			{
-			}
-		}
-	}
-	void send(wivrn_connection & connection, bool now = false);
-
-	bool get_enabled(to_headset::tracking_control::id id);
-	// Return true if value changed
-	bool set_enabled(to_headset::tracking_control::id id, bool enabled);
-};
-
 class wivrn_session : public xrt_system_devices
 {
 	friend wivrn_comp_target_factory;
@@ -111,7 +74,7 @@ class wivrn_session : public xrt_system_devices
 	        .gamepad = -1,
 	};
 
-	tracking_control_t tracking_control;
+	tracking_control control;
 
 	wivrn_hmd hmd;
 	wivrn_controller left_controller;
@@ -133,11 +96,12 @@ class wivrn_session : public xrt_system_devices
 	wivrn_comp_target * comp_target;
 
 	clock_offset_estimator offset_est;
+	std::atomic<XrDuration> tracking_latency; // production to reception time
 
 	std::mutex csv_mutex;
 	std::ofstream feedback_csv;
 
-	std::shared_ptr<audio_device> audio_handle;
+	std::unique_ptr<audio_device> audio_handle;
 
 	// run-time editable settings
 	thread_safe<from_headset::settings_changed> settings;
@@ -145,7 +109,8 @@ class wivrn_session : public xrt_system_devices
 	// when sessions shall be destroyed, key is client id, value is timestamp
 	thread_safe<std::map<uint32_t, int64_t>> session_loss;
 
-	std::jthread thread;
+	std::jthread net_thread;
+	std::jthread worker_thread;
 
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
 
@@ -183,14 +148,8 @@ public:
 		return hmd;
 	}
 
-	void add_predict_offset(std::chrono::nanoseconds off)
-	{
-		tracking_control.add(off);
-	}
-
-	void set_enabled(to_headset::tracking_control::id id, bool enabled);
-	void set_enabled(device_id id, bool enabled);
-	void update_tracker_enabled();
+	void add_tracking_request(device_id, int64_t at_ns, int64_t produced_ns, int64_t now);
+	void add_tracking_request(device_id, int64_t at_ns, int64_t produced_ns);
 
 	void operator()(from_headset::crypto_handshake &&) {}
 	void operator()(from_headset::pin_check_1 &&) {}
@@ -198,7 +157,6 @@ public:
 	void operator()(from_headset::headset_info_packet &&);
 	void operator()(const from_headset::settings_changed &);
 	void operator()(from_headset::handshake &&) {}
-	void operator()(from_headset::trackings &&);
 	void operator()(const from_headset::tracking &);
 	void operator()(from_headset::derived_pose &&);
 	void operator()(from_headset::hand_tracking &&);
@@ -247,7 +205,8 @@ public:
 	void dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream = -1, const char * extra = "");
 
 private:
-	void run(std::stop_token stop);
+	void run_net(std::stop_token stop);
+	void run_worker(std::stop_token stop);
 	void reconnect(std::stop_token stop);
 
 	void poll_session_loss();

@@ -18,169 +18,257 @@
 
 #include "steam_app_info.h"
 #include <bit>
-#include <cctype>
 #include <cstring>
 #include <fstream>
-#include <span>
-#include <string_view>
+#include <iostream>
 
 namespace
 {
-template <typename T>
-T read(std::span<char> & buffer);
 
-template <typename T>
-        requires std::is_integral_v<T>
-T read(std::span<char> & buffer)
+class binary_reader
 {
-	if (sizeof(T) > buffer.size())
-		throw std::runtime_error{"File truncated"};
+	std::ifstream in;
 
-	T value;
-	memcpy(&value, buffer.data(), sizeof(T));
-	buffer = buffer.subspan(sizeof(T));
+public:
+	binary_reader(std::ifstream && in) : in{std::move(in)} {}
 
-	static_assert(std::endian::native == std::endian::big or std::endian::native == std::endian::little);
+	void discard(size_t bytes)
+	{
+		in.seekg(bytes, std::ios_base::cur);
+	}
 
-	if constexpr (std::endian::native == std::endian::big)
-		return std::byteswap(value);
-	else
-		return value;
-}
+	template <typename T>
+	T read();
+
+	template <typename T>
+	        requires std::is_integral_v<T>
+	T read()
+	{
+		T res;
+		in.read((char *)&res, sizeof(T));
+		if (not in)
+			throw std::runtime_error{"File truncated"};
+
+		static_assert(std::endian::native == std::endian::big or std::endian::native == std::endian::little);
+
+		if constexpr (std::endian::native == std::endian::big)
+			return std::byteswap(res);
+		else
+			return res;
+	}
+
+	std::vector<std::string> string_table();
+
+	auto tellg()
+	{
+		return in.tellg();
+	}
+	void seekg(size_t pos)
+	{
+		in.seekg(pos);
+	}
+};
 
 template <>
-std::string_view read<std::string_view>(std::span<char> & buffer)
+std::string binary_reader::read()
 {
-	size_t size = strnlen((char *)buffer.data(), buffer.size());
-	if (size == buffer.size())
+	std::string res;
+	std::getline(in, res, '\0');
+	if (not in)
 		throw std::runtime_error{"File truncated"};
-
-	char * str = buffer.data();
-	buffer = buffer.subspan(size + 1);
-	return {str, size};
+	return res;
 }
 
-std::span<char> read(std::span<char> & buffer, size_t size)
+std::vector<std::string> binary_reader::string_table()
 {
-	if (size > buffer.size())
-		throw std::runtime_error{"File truncated"};
+	std::vector<std::string> res;
+	size_t string_offset = read<uint64_t>();
+	auto pos = in.tellg();
 
-	std::span<char> value{buffer.data(), size};
-	buffer = buffer.subspan(size);
-	return value;
+	in.seekg(string_offset);
+	auto count = read<uint32_t>();
+	res.reserve(count);
+	for (size_t i = 0; i < count; ++i)
+		res.emplace_back(read<std::string>());
+	in.seekg(pos);
+	return res;
 }
 
-std::vector<std::string_view> read_string_table(std::span<char> buffer)
+template <typename T>
+void read_dict(binary_reader & in, T & visitor, const std::vector<std::string> * string_table = nullptr)
 {
-	std::vector<std::string_view> string_table;
-
-	uint32_t count = read<uint32_t>(buffer);
-	string_table.reserve(count);
-
-	for (size_t i = 0; i < count; i++)
-		string_table.emplace_back(read<std::string_view>(buffer));
-
-	return string_table;
-}
-
-void read_vdf(wivrn::steam_app_info::info & info, const std::string & prefix, std::span<char> & bindata, const std::vector<std::string_view> & string_table)
-{
-	int type = read<uint8_t>(bindata);
-
-	while (type != 8)
+	while (true)
 	{
-		std::string name{string_table.at(read<uint32_t>(bindata))};
-		for (char & c: name)
-			c = std::tolower(c);
+		auto type = in.read<uint8_t>();
+		if (type == 8)
+		{
+			visitor.end_dict();
+			return;
+		}
 
-		// https://github.com/ValveResourceFormat/ValveKeyValue/blob/master/ValveKeyValue/ValveKeyValue/KeyValues1/KV1BinaryNodeType.cs
+		// Key
+		const std::string & key = string_table ? string_table->at(in.read<uint32_t>()) : in.read<std::string>();
+
+		// Value
 		switch (type)
 		{
 			case 0: // Dictionary
-				read_vdf(info, prefix + name + ".", bindata, string_table);
+				visitor.begin_dict(key);
+				read_dict(in, visitor, string_table);
 				break;
-
 			case 1: // UTF-8 string
-				info.emplace(prefix + name, read<std::string_view>(bindata));
+				visitor.on_string(key, in.read<std::string>());
 				break;
-
 			case 2: // uint32_t
-				info.emplace(prefix + name, read<uint32_t>(bindata));
+				visitor.on_uint32_t(key, in.read<uint32_t>());
 				break;
-
 				// case 3: // float
-				// break;
-
 			default:
 				throw std::runtime_error{"Unknown object type " + std::to_string(type)};
 		}
-
-		type = read<uint8_t>(bindata);
 	}
 }
 } // namespace
 
-wivrn::steam_app_info::steam_app_info(std::filesystem::path path)
+std::unordered_map<uint32_t, wivrn::steam_icon> wivrn::read_steam_icons(std::filesystem::path path)
 {
-	std::vector<std::string_view> string_table;
+	binary_reader in{std::ifstream{path}};
 
-	{
-		std::ifstream f{path};
-		data = std::vector<char>{std::istreambuf_iterator{f}, {}};
-	}
-	std::span<char> buffer = data;
-
-	// See https://github.com/SteamDatabase/SteamAppInfo/blob/master/README.md#file-header
-	uint32_t magic = read<uint32_t>(buffer);
+	uint32_t magic = in.read<uint32_t>();
 	if ((magic & 0xff'ff'ff'00) != 0x07'56'44'00)
 		throw std::runtime_error{"Wrong magic number"};
+
+	auto universe = in.read<uint32_t>();
+
 	int version = magic & 0xff;
 
-	if (version < 41)
-		throw std::runtime_error{"Unsupported version"};
-
-	int universe = read<uint32_t>(buffer);
+	std::vector<std::string> string_table;
+	std::vector<std::string> * string_table_ptr = nullptr;
 	if (version >= 41)
 	{
-		size_t string_offset = read<uint64_t>(buffer);
-		string_table = read_string_table(std::span<char>{data}.subspan(string_offset));
+		string_table = in.string_table();
+		string_table_ptr = &string_table;
 	}
-	else
-		throw std::runtime_error{"Unsupported version"};
+
+	std::unordered_map<uint32_t, wivrn::steam_icon> res;
+
+	struct V
+	{
+		wivrn::steam_icon current{};
+
+		void begin_dict(const std::string & key)
+		{
+		}
+		void end_dict()
+		{
+		}
+		void on_string(const std::string & key, std::string && val)
+		{
+			if (strcasecmp(key.c_str(), "clienticon") == 0)
+				current.clienticon = std::move(val);
+			else if (strcasecmp(key.c_str(), "linuxclienticon") == 0)
+				current.linuxclienticon = std::move(val);
+		}
+		void on_uint32_t(const std::string & key, uint32_t val)
+		{
+		}
+	};
 
 	while (true)
 	{
 		// See https://github.com/SteamDatabase/SteamAppInfo/blob/master/README.md#app-entry-repeated
-
-		auto app_id = read<uint32_t>(buffer);
+		auto app_id = in.read<uint32_t>();
 		if (app_id == 0)
 			break;
 
-		auto size_data = read<uint32_t>(buffer);
-		char * current_offset = buffer.data();
-
-		read<uint32_t>(buffer); // info_state
-		read<uint32_t>(buffer); // last_updated
-		read<uint64_t>(buffer); // pics_token
-		read(buffer, 20);       // SHA1 of the app info
-		read<uint32_t>(buffer); // change number
-		// if (version < 38)
-		// read<uint8_t>(buffer); // section type
-		read(buffer, 20); // SHA1 of the bin data
-		auto bindata = read(buffer, size_data - (buffer.data() - current_offset));
-
+		size_t size_data = in.read<uint32_t>();
+		size_t pos = in.tellg();
+		in.discard(
+		        4    // info_state
+		        + 4  // last_updated
+		        + 8  // pics_token
+		        + 20 // SHA1 of the app info
+		        + 4  // change number
+		        + 20 // SHA1 of the bin data
+		        + 4  // checksum
+		        + 1  // type
+		);
 		try
 		{
-			bindata = bindata.subspan(4 + 1); // Skip the checksum + type (must be 0)
-
-			info app_info;
-			read_vdf(app_info, "", bindata, string_table);
-
-			app_data.emplace(app_id, app_info);
+			V v;
+			read_dict(in, v, string_table_ptr);
+			if (not(v.current.clienticon.empty() and v.current.linuxclienticon.empty()))
+				res.emplace(app_id, std::move(v.current));
 		}
 		catch (...)
 		{
 			// Ignore errors
 		}
+		in.seekg(pos + size_data);
 	}
+
+	return res;
+}
+
+std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::path path)
+{
+	binary_reader in{std::ifstream{path}};
+	auto type = in.read<uint8_t>();
+	auto name = in.read<std::string>();
+
+	if (type != 0 or name != "shortcuts")
+		throw std::runtime_error{"Invalid type for shortcuts file"};
+
+	std::vector<wivrn::steam_shortcut> res;
+	struct V
+	{
+		std::vector<wivrn::steam_shortcut> & items;
+
+		int depth = 0;
+		wivrn::steam_shortcut current{};
+		bool VR = false;
+
+		void begin_dict(const std::string & key)
+		{
+			++depth;
+			if (depth == 1)
+			{
+				current = decltype(current){};
+				VR = false;
+			}
+		}
+		void end_dict()
+		{
+			--depth;
+			if (depth == 0)
+			{
+				if (VR)
+					items.push_back(std::move(current));
+			}
+		}
+		void on_string(const std::string & key, std::string && val)
+		{
+			if (depth == 1)
+			{
+				if (strcasecmp(key.c_str(), "AppName") == 0)
+					current.name = std::move(val);
+				else if (strcasecmp(key.c_str(), "icon") == 0 and not val.empty())
+					current.icon = std::move(val);
+			}
+		}
+		void on_uint32_t(const std::string & key, uint32_t val)
+		{
+			if (depth == 1)
+			{
+				if (strcasecmp(key.c_str(), "appid") == 0)
+					current.appid = val;
+				else if (strcasecmp(key.c_str(), "OpenVR") == 0)
+					VR = val;
+			}
+		}
+	} v{res};
+
+	read_dict(in, v);
+
+	return res;
 }

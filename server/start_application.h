@@ -19,6 +19,7 @@
 
 #include <functional>
 #include <glib.h>
+#include <optional>
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
@@ -32,8 +33,8 @@ class children_manager
 public:
 	virtual ~children_manager();
 
-	virtual void start_application(const std::vector<std::string> &) = 0;
-	void start_application(const std::string &);
+	virtual void start_application(const std::vector<std::string> &, const std::optional<std::string> & path = {}) = 0;
+	void start_application(const std::string &, const std::optional<std::string> & path = {});
 
 	virtual bool running() const = 0;
 
@@ -55,7 +56,7 @@ public:
 	forked_children(std::function<void()> state_changed_cb);
 	virtual ~forked_children();
 
-	void start_application(const std::vector<std::string> &) override;
+	void start_application(const std::vector<std::string> &, const std::optional<std::string> & path) override;
 
 	// true if any unit started by this object is still running
 	bool running() const override;

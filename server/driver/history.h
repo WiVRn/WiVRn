@@ -20,7 +20,7 @@
 #pragma once
 
 #include "clock_offset.h"
-#include "os/os_time.h"
+#include "util/u_time.h"
 #include <algorithm>
 #include <cstddef>
 #include <mutex>
@@ -40,20 +40,14 @@ class history
 	std::array<TimedData, MaxSamples> data{};
 
 	std::mutex mutex;
-	XrTime last_request;
 
 protected:
-	history() :
-	        last_request(os_monotonic_get_ns()) {}
-
 	// return true if object is active (last request is not too old)
-	bool add_sample(XrTime produced_timestamp, XrTime timestamp, const Data & sample, const clock_offset & offset)
+	void add_sample(XrTime produced_timestamp, XrTime timestamp, const Data & sample, const clock_offset & offset)
 	{
 		XrTime produced = offset.from_headset(produced_timestamp);
 		XrTime t = offset.from_headset(timestamp);
 		std::lock_guard lock(mutex);
-
-		bool active = produced - last_request < 1'000'000'000;
 
 		TimedData * target = data.data();
 		if (offset)
@@ -62,7 +56,7 @@ protected:
 			{
 				// Discard reordered packets
 				if (item.produced_timestamp > produced)
-					return active;
+					return;
 
 				if (std::abs(item.at_timestamp_ns - t) < 2'000'000)
 				{
@@ -75,15 +69,12 @@ protected:
 			}
 		}
 		*target = TimedData(sample, produced, t);
-		return active;
 	}
 
 public:
-	std::pair<std::chrono::nanoseconds, Data> get_at(XrTime at_timestamp_ns)
+	std::pair<XrTime, Data> get_at(XrTime at_timestamp_ns)
 	{
 		std::lock_guard lock(mutex);
-
-		last_request = os_monotonic_get_ns();
 
 		TimedData * before = nullptr;
 		TimedData * after = nullptr;
@@ -110,24 +101,22 @@ public:
 		if (before)
 			produced = std::max(produced, before->produced_timestamp);
 
-		std::chrono::nanoseconds ex(std::max<XrDuration>(0, at_timestamp_ns - produced));
-
 		if (before and after)
 		{
 			float t = float(after->at_timestamp_ns - at_timestamp_ns) /
 			          (after->at_timestamp_ns - before->at_timestamp_ns);
-			return {ex, Derived::interpolate(*before, *after, t)};
+			return {produced, Derived::interpolate(*before, *after, t)};
 		}
 
 		if (before)
 		{
 			if (at_timestamp_ns > before->at_timestamp_ns + U_TIME_1S_IN_NS)
 				return {};
-			return {ex, *before};
+			return {produced, *before};
 		}
 
 		if (after)
-			return {ex, *after};
+			return {produced, *after};
 
 		return {};
 	}
@@ -135,7 +124,6 @@ public:
 	{
 		std::lock_guard lock(mutex);
 		data.fill({});
-		last_request = os_monotonic_get_ns();
 	}
 };
 } // namespace wivrn

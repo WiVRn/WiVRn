@@ -19,33 +19,27 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 
 namespace wivrn
 {
-class steam_app_info
+
+struct steam_icon
 {
-public:
-	using info = std::unordered_map<std::string, std::variant<uint32_t, std::string_view>>;
-
-private:
-	std::vector<char> data;
-
-	std::unordered_map<int, info> app_data;
-
-public:
-	steam_app_info(std::filesystem::path path);
-	steam_app_info() = default;
-	steam_app_info(const steam_app_info &) = delete;
-	steam_app_info(steam_app_info &&) = default;
-	steam_app_info & operator=(const steam_app_info &) = delete;
-	steam_app_info & operator=(steam_app_info &&) = default;
-
-	const auto & get(int appid) const
-	{
-		return app_data.at(appid);
-	}
+	std::string clienticon;
+	std::string linuxclienticon;
 };
+
+struct steam_shortcut
+{
+	uint32_t appid;
+	std::string name;
+	std::optional<std::filesystem::path> icon;
+};
+
+std::unordered_map<uint32_t, steam_icon> read_steam_icons(std::filesystem::path path);
+std::vector<steam_shortcut> read_steam_shortcuts(std::filesystem::path path);
+
 } // namespace wivrn

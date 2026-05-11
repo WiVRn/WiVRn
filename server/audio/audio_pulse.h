@@ -23,7 +23,7 @@
 namespace wivrn
 {
 
-std::shared_ptr<audio_device> create_pulse_handle(
+std::unique_ptr<audio_device> create_pulse_handle(
         const std::string & source_name,
         const std::string & source_description,
         const std::string & sink_name,
