@@ -39,7 +39,12 @@ option(WIVRN_BUILD_WIVRNCTL "Build wivrnctl" ON)
 option(WIVRN_BUILD_DISSECTOR "Build Wireshark dissector" OFF)
 option(WIVRN_BUILD_TEST "Build test binaries" OFF)
 option(WIVRN_WERROR "Treat warnings as errors" OFF)
-option(WIVRN_OPTIMIZE_SHADERS "Run siprv-opt on compiled shaders" ON)
+option(WIVRN_OPTIMIZE_SHADERS "Run spirv-opt on compiled shaders" ON)
+option(WIVRN_DEBUG_SHADERS "Compile shaders with debug information" OFF)
+
+if(WIVRN_OPTIMIZE_SHADERS AND WIVRN_DEBUG_SHADERS)
+    message(FATAL_ERROR "WIVRN_OPTIMIZE_SHADERS and WIVRN_DEBUG_SHADERS are incompatible")
+endif()
 
 option(WIVRN_USE_NVENC "Enable nvenc (Nvidia) hardware encoder" ON)
 option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" ON)
@@ -96,10 +101,10 @@ endif()
 include(VulkanVersion)
 
 if (WIVRN_USE_SYSTEM_BOOST AND NEED_COMMON)
-    if (WIVRN_BUILD_DISSECTOR)
-        find_package(Boost 1.84.0 REQUIRED COMPONENTS locale url)
+    if (WIVRN_BUILD_DISSECTOR OR WIVRN_BUILD_CLIENT)
+        find_package(Boost 1.84.0 REQUIRED COMPONENTS locale url iostreams)
     else()
-        find_package(Boost 1.75.0 REQUIRED COMPONENTS locale url)
+        find_package(Boost 1.75.0 REQUIRED COMPONENTS locale url iostreams)
     endif()
 endif()
 
@@ -172,10 +177,6 @@ if (WIVRN_BUILD_DASHBOARD)
     find_package(nlohmann_json REQUIRED)
     find_package(QCoro6 REQUIRED COMPONENTS Core Network Qml)
     qcoro_enable_coroutines()
-
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTORCC ON)
-    set(CMAKE_AUTOUIC ON)
 endif()
 
 if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_DASHBOARD)
@@ -277,6 +278,20 @@ FetchContent_Declare(monado
     EXCLUDE_FROM_ALL
 )
 
+add_custom_target(wivrn-version ALL
+    COMMAND ${CMAKE_COMMAND}
+        -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
+        -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/common/version.cpp.in
+        -D OUTPUT_FILE=${CMAKE_BINARY_DIR}/version.cpp
+        -D INPUT_FILE_1=${CMAKE_CURRENT_SOURCE_DIR}/server/u_git_tag.cpp.in
+        -D OUTPUT_FILE_1=${CMAKE_BINARY_DIR}/u_git_tag.cpp
+        -D GIT_DESC="${GIT_DESC}"
+        -D GIT_COMMIT="${GIT_COMMIT}"
+        -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
+        BYPRODUCTS ${CMAKE_BINARY_DIR}/version.cpp ${CMAKE_BINARY_DIR}/u_git_tag.cpp
+        SOURCES common/version.cpp.in server/u_git_tag.cpp.in
+    )
+
 add_subdirectory(external)
 if (NEED_COMMON)
     add_subdirectory(common)
@@ -316,6 +331,7 @@ foreach(TARGET_NAME wivrn wivrn-server wivrn-dashboard wivrn-common wivrn-dissec
     if(TARGET ${TARGET_NAME})
         target_compile_options(${TARGET_NAME} PRIVATE
             -fdiagnostics-color -Wall -Wextra -pedantic
+            -ffast-math
             -Wundef
             -Wno-missing-field-initializers
             -Wno-unused-parameter

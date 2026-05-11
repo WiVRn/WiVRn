@@ -172,6 +172,7 @@ public:
 
 	// Server information
 	Q_PROPERTY(Status serverStatus READ serverStatus NOTIFY serverStatusChanged)
+	Q_PROPERTY(bool ownServer READ ownServer NOTIFY ownServerChanged)
 	Q_PROPERTY(bool headsetConnected READ isHeadsetConnected NOTIFY headsetConnectedChanged)
 	Q_PROPERTY(bool sessionRunning READ isSessionRunning NOTIFY sessionRunningChanged)
 	Q_PROPERTY(QString jsonConfiguration READ jsonConfiguration WRITE setJsonConfiguration NOTIFY jsonConfigurationChanged)
@@ -219,6 +220,11 @@ public:
 	Status serverStatus() const
 	{
 		return m_serverStatus;
+	}
+
+	bool ownServer() const
+	{
+		return server_process;
 	}
 
 	bool isHeadsetConnected() const
@@ -379,6 +385,7 @@ private:
 
 Q_SIGNALS:
 	void serverStatusChanged(Status);
+	void ownServerChanged();
 	void headsetConnectedChanged(bool);
 	void sessionRunningChanged(bool);
 	void jsonConfigurationChanged(QString);

@@ -103,21 +103,12 @@ app_launcher::app_launcher(
 	default_icon = textures.load_texture("assets://default_icon.ktx2");
 }
 
-app_launcher::~app_launcher()
-{
-	stream.device.waitIdle();
-	for (const auto & [app_id, app_icon]: app_icons)
-		textures.free_texture(app_icon);
-	textures.free_texture(default_icon);
-}
-
 app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const std::string & cancel)
 {
 	auto res = clicked::None;
 	auto t0 = std::chrono::steady_clock::now();
 	bool app_starting = start_time != std::chrono::steady_clock::time_point{} and
-	                    t0 - start_time < 10s and
-	                    stream.current_state() != scenes::stream::state::streaming;
+	                    t0 - start_time < 10s;
 
 	auto cancel_size = ImGui::CalcTextSize(cancel.c_str());
 

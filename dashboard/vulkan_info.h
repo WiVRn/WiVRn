@@ -33,14 +33,27 @@ class vulkan_info : public QObject
 	Q_OBJECT
 	QML_NAMED_ELEMENT(VulkanInfo)
 	QML_SINGLETON
+public:
+	enum gpu_type
+	{
+		DGPU,
+		IGPU,
+		SoftGPU,
+		VirtGPU,
+		OtherGPU,
+		NoGPU,
+	};
+	Q_ENUM(gpu_type)
 
 	Q_PROPERTY(QString driverId READ driverId CONSTANT)
 	Q_PROPERTY(QString driverVersion READ driverVersion CONSTANT)
 	Q_PROPERTY(uint32_t driverVersionCode READ driverVersionCode CONSTANT)
+	Q_PROPERTY(gpu_type type READ type CONSTANT)
 
 	QString m_driverId;
 	QString m_driverVersion;
-	uint32_t m_driverVersionCode;
+	uint32_t m_driverVersionCode{};
+	gpu_type m_type = NoGPU;
 
 	vk::raii::PhysicalDevice & choose_device(std::vector<vk::raii::PhysicalDevice> & devices);
 	void set_info(vk::raii::PhysicalDevice & device);
@@ -61,5 +74,10 @@ public:
 	uint32_t driverVersionCode() const
 	{
 		return m_driverVersionCode;
+	}
+
+	gpu_type type() const
+	{
+		return m_type;
 	}
 };

@@ -24,14 +24,40 @@
 
 vulkan_info::vulkan_info()
 {
-	vk::raii::Context context;
+	try
+	{
+		vk::raii::Context context;
 
-	vk::ApplicationInfo app_info{"WiVRn dashboard", 1, "No engine", 1, VK_API_VERSION_1_1};
-	vk::InstanceCreateInfo instance_info{vk::InstanceCreateFlags{0}, &app_info};
-	vk::raii::Instance vulkan{context, instance_info};
+		vk::ApplicationInfo app_info{"WiVRn dashboard", 1, "No engine", 1, VK_API_VERSION_1_1};
+		vk::InstanceCreateInfo instance_info{vk::InstanceCreateFlags{0}, &app_info};
+		vk::raii::Instance vulkan{context, instance_info};
 
-	auto devices = vulkan.enumeratePhysicalDevices();
-	set_info(choose_device(devices));
+		auto devices = vulkan.enumeratePhysicalDevices();
+		set_info(choose_device(devices));
+	}
+	catch (std::runtime_error & e)
+	{
+		qCritical() << "Failed to get vulkan info: " << e.what();
+	}
+}
+
+static vulkan_info::gpu_type cast_type(vk::PhysicalDeviceType type)
+{
+	switch (type)
+	{
+		case vk::PhysicalDeviceType::eOther:
+			return vulkan_info::OtherGPU;
+		case vk::PhysicalDeviceType::eIntegratedGpu:
+			return vulkan_info::IGPU;
+		case vk::PhysicalDeviceType::eDiscreteGpu:
+			return vulkan_info::DGPU;
+		case vk::PhysicalDeviceType::eVirtualGpu:
+			return vulkan_info::VirtGPU;
+		case vk::PhysicalDeviceType::eCpu:
+			return vulkan_info::SoftGPU;
+	}
+	qCritical() << "invalid GPU type enum " << int(type);
+	return vulkan_info::OtherGPU;
 }
 
 vk::raii::PhysicalDevice & vulkan_info::choose_device(std::vector<vk::raii::PhysicalDevice> & devices)
@@ -69,6 +95,8 @@ void vulkan_info::set_info(vk::raii::PhysicalDevice & device)
 			                          .arg(VK_VERSION_PATCH(prop.properties.driverVersion));
 			break;
 	}
+
+	m_type = cast_type(prop.properties.deviceType);
 
 	qDebug() << "Driver" << m_driverId << m_driverVersion;
 }

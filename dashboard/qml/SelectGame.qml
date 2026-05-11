@@ -7,8 +7,6 @@ import io.github.wivrn.wivrn
 ColumnLayout {
     id: select_game
 
-    property bool json_loaded: false
-
     Component.onCompleted: {
         apps.append({
             "name": i18nc("don't start an application automatically", "None"),
@@ -30,19 +28,10 @@ ColumnLayout {
                 "is_custom": false
             });
         }
-
-        select_game.load();
     }
 
     ListModel {
         id: apps
-    }
-
-    Connections {
-        target: WivrnServer
-        function onJsonConfigurationChanged() {
-            select_game.load();
-        }
     }
 
     Dialogs.FileDialog {
@@ -75,17 +64,7 @@ ColumnLayout {
         }
     }
 
-    function reload() {
-        select_game.json_loaded = false;
-        load();
-    }
-
     function load() {
-        if (select_game.json_loaded || WivrnServer.serverStatus != WivrnServer.Started || WivrnServer.jsonConfiguration == "")
-            return;
-
-        Settings.load(WivrnServer);
-
         var found = false;
         var custom_idx = -1;
         for (var i = 0; i < apps.count; i++) {
@@ -103,22 +82,12 @@ ColumnLayout {
             app_text.text = Settings.application;
             app_combobox.currentIndex = custom_idx;
         }
-
-        select_game.json_loaded = true;
     }
 
     function save() {
-        var new_application;
-
         if (apps.get(app_combobox.currentIndex).is_custom)
-            new_application = app_text.text;
+            Settings.application = app_text.text;
         else
-            new_application = apps.get(app_combobox.currentIndex).command;
-
-        Settings.load(WivrnServer);
-        if (Settings.application != new_application) {
-            Settings.application = new_application;
-            Settings.save(WivrnServer);
-        }
+            Settings.application = apps.get(app_combobox.currentIndex).command;
     }
 }

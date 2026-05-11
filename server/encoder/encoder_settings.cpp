@@ -19,14 +19,15 @@
 #include "encoder_settings.h"
 
 #include "driver/configuration.h"
+#include "driver/wivrn_session.h"
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "video_encoder.h"
-
 #include "wivrn_packets.h"
+
 #include <magic_enum.hpp>
 #include <string>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include "wivrn_config.h"
 
@@ -45,6 +46,7 @@ static const double passthrough_bitrate_factor = 0.05;
 
 static void split_bitrate(std::array<wivrn::encoder_settings, 3> & encoders, uint64_t bitrate)
 {
+	assert(bitrate > 0);
 	double total_weight = 0;
 	for (auto [i, encoder]: std::ranges::enumerate_view(encoders))
 	{
@@ -74,22 +76,13 @@ static void split_bitrate(std::array<wivrn::encoder_settings, 3> & encoders, uin
 
 void print_encoders(const std::array<wivrn::encoder_settings, 3> & encoders)
 {
-	int group = -1;
 	std::stringstream str;
 	str << "Encoder configuration:";
 	for (auto & encoder: encoders)
 	{
-		if (encoder.group != group)
-		{
-			group = encoder.group;
-			str << "\n\t* Group " << group << ":";
-		}
-		else
-			str << "\n";
-
-		str << "\n\t\t" << encoder.encoder_name << " (" << magic_enum::enum_name(encoder.codec) << " " << encoder.bit_depth << "-bit)"
-		    << "\n\t\tsize: " << encoder.width << "x" << encoder.height
-		    << "\n\t\tbitrate: " << int(encoder.bitrate / 100'000) / 10. << "Mbit/s";
+		str << "\n\t* " << encoder.encoder_name << " (" << magic_enum::enum_name(encoder.codec) << " " << encoder.bit_depth << "-bit)"
+		    << "\n\t  size: " << encoder.width << "x" << encoder.height
+		    << "\n\t  bitrate: " << int(encoder.bitrate / 100'000) / 10. << "Mbit/s";
 	}
 	U_LOG_I("%s", str.str().c_str());
 }
@@ -110,7 +103,7 @@ namespace
 {
 class prober
 {
-	wivrn_vk_bundle & vk;
+	wivrn::vk_bundle & vk;
 	const from_headset::headset_info_packet & info;
 	const bool nvidia;
 
@@ -178,40 +171,53 @@ class prober
 	}
 #endif
 
-	static bool is_nvidia(vk::PhysicalDevice physical_device)
+	static bool is_nvidia(vk::raii::PhysicalDevice & physical_device)
 	{
 		auto props = physical_device.getProperties();
 		return props.vendorID == 0x10DE;
 	}
 
 #if WIVRN_USE_VULKAN_ENCODE
-	bool has_vk_h264()
+
+	bool has_vk(video_codec codec)
 	{
 		if (*vk.encode_queue == VK_NULL_HANDLE)
 			return false;
-		if (not std::ranges::contains(vk.device_extensions, std::string_view(VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME)))
+		if (not std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(vk.feat).videoMaintenance1)
+		{
+			U_LOG_I("Cannot use vulkan video encode without VideoMaintenance1 feature");
 			return false;
-
+		}
 		auto prop = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyVideoPropertiesKHR>>();
 		assert(vk.encode_queue_family_index < prop.size());
-		return bool(prop.at(vk.encode_queue_family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations & vk::VideoCodecOperationFlagBitsKHR::eEncodeH264);
-	}
-	bool has_vk_h265()
-	{
-		if (*vk.encode_queue == VK_NULL_HANDLE)
-			return false;
-		if (not std::ranges::contains(vk.device_extensions, std::string_view(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME)))
-			return false;
-
-		auto prop = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyVideoPropertiesKHR>>();
-		assert(vk.encode_queue_family_index < prop.size());
-		return bool(prop.at(vk.encode_queue_family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations & vk::VideoCodecOperationFlagBitsKHR::eEncodeH265);
+		const auto flags = prop.at(vk.encode_queue_family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations;
+		switch (codec)
+		{
+			case h264: {
+				auto res = vk.has_device_ext(VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME) and flags & vk::VideoCodecOperationFlagBitsKHR::eEncodeH264;
+				if (not res)
+					U_LOG_I("GPU does not support H.264 Vulkan video encode");
+				return res;
+			}
+			case h265: {
+				auto res = vk.has_device_ext(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME) and flags & vk::VideoCodecOperationFlagBitsKHR::eEncodeH265;
+				if (not res)
+					U_LOG_I("GPU does not support H.265 Vulkan video encode");
+				return res;
+			}
+			case av1:
+				U_LOG_D("Vulkan video encode for AV1 is not implemented in WiVRn");
+			case raw:
+				return false;
+		}
+		U_LOG_E("Invalid codec %d", int(codec));
+		return false;
 	}
 #endif
 
 public:
-	prober(wivrn_vk_bundle & vk, const from_headset::headset_info_packet & info) :
-	        vk(vk), info(info), nvidia(is_nvidia(*vk.physical_device)) {}
+	prober(wivrn::vk_bundle & vk, const from_headset::headset_info_packet & info) :
+	        vk(vk), info(info), nvidia(is_nvidia(vk.physical_device)) {}
 
 	std::pair<std::string, video_codec> select_encoder(const configuration::encoder & config)
 	{
@@ -234,24 +240,8 @@ public:
 		{
 			for (auto codec: config.codec ? std::vector{*config.codec} : info.supported_codecs)
 			{
-				switch (codec)
-				{
-					case h264:
-						if (has_vk_h264())
-							return {encoder_vulkan, video_codec::h264};
-						U_LOG_I("GPU does not support H.264 Vulkan video encode");
-						break;
-
-					case h265:
-						if (has_vk_h265())
-							return {encoder_vulkan, video_codec::h265};
-						U_LOG_I("GPU does not support H.265 Vulkan video encode");
-						break;
-					case av1:
-						U_LOG_D("Vulkan video encode for AV1 is not implemented in WiVRn");
-					case raw:
-						break;
-				}
+				if (has_vk(codec))
+					return {encoder_vulkan, codec};
 			}
 		}
 #endif
@@ -282,28 +272,23 @@ static uint16_t align(uint16_t value, uint16_t alignment)
 	return ((value + alignment - 1) / alignment) * alignment;
 }
 
-std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, const from_headset::headset_info_packet & info, const from_headset::settings_changed & settings)
+std::array<encoder_settings, 3> get_encoder_settings(wivrn::vk_bundle & bundle, wivrn_session & session)
 {
 	configuration config;
 
 	std::array<wivrn::encoder_settings, 3> res;
+	const auto & info = session.get_info();
+	const auto settings = *session.get_settings();
 
 	prober prober{bundle, info};
-	std::unordered_map<std::string, int> groups;
-	int next_group = 0;
 
 	for (auto [src, dst]: std::ranges::zip_view(config.encoders, res))
 	{
-		dst.fps = settings.preferred_refresh_rate;
+		dst.fps = session.default_fps();
 		dst.options = src.options;
 		dst.device = src.device;
 
 		std::tie(dst.encoder_name, dst.codec) = prober.select_encoder(src);
-
-		auto [it, inserted] = groups.emplace(dst.encoder_name, next_group);
-		dst.group = it->second;
-		if (inserted)
-			++next_group;
 	}
 
 	auto width = align(info.stream_eye_width, 64);
@@ -350,6 +335,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 		}
 	};
 
+#if WIVRN_USE_VAAPI
 	auto check_vaapi = [&](int bit_depth) {
 		for (const auto & encoder: res)
 		{
@@ -378,8 +364,13 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 		}
 		return true;
 	};
+#else
+	auto check_vaapi = [&](int) {
+		return true;
+	};
+#endif
 
-	if (bit_depth == 10 and not(check_format(vk::Format::eR10X6UnormPack16) and check_vaapi(*bit_depth)))
+	if (bit_depth == 10 and not(check_format(vk::Format::eR16Unorm) and check_vaapi(*bit_depth)))
 	{
 		U_LOG_W("GPU does not have sufficient support for 10-bit images, reverting to 8");
 		bit_depth = 8;

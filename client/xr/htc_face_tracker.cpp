@@ -62,8 +62,6 @@ void xr::htc_face_tracker::get_weights(XrTime time, packet_type & out_expression
 	        .sampleTime = time,
 	};
 
-	out_expressions.timestamp = time;
-
 	if (eye)
 	{
 		expressions.expressionCount = out_expressions.eye.size();

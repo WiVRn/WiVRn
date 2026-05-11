@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - preset: 'client'
-            packages: libboost-all-dev libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
+          - preset: 'client-no-system-boost'
+            packages: libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
         # dashboard requires a more recent Ubuntu, have it out of this job
           - preset: 'dissector-no-system-boost'
             packages: libboost-all-dev wireshark-dev
@@ -44,7 +44,6 @@ jobs:
         key: linux-${{matrix.config.preset}}
         job-summary: ""
         restore-keys: linux-
-        append-timestamp: false
 
     - uses: actions/cache@v4
       with:
@@ -58,7 +57,7 @@ jobs:
         restore-keys: cmake-linux-
 
     - name: Install dependencies
-      if: ${{ matrix.config.preset == 'client' }}
+      if: ${{ startswith(matrix.config.preset, 'client') }}
       run: |
         wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
@@ -142,6 +141,8 @@ jobs:
         -DFETCHCONTENT_BASE_DIR=${{github.workspace}}/cmake-fetch
         --preset dashboard
         -DWIVRN_USE_SYSTEM_OPENXR=OFF
+        -DGIT_DESC=${{github.sha}}
+        -DGIT_COMMIT=${{github.sha}}
 
     - name: Build
       # Build your program with the given configuration
@@ -340,12 +341,10 @@ jobs:
         retention-days: 30
 
     - name: Archive debug symbols
-      if: ${{ matrix.buildtype != 'Release' && matrix.buildtype != 'Oculus' }}
       uses: actions/upload-artifact@v4
       with:
         name: symbols-${{ matrix.buildtype }}
         path: debug/**/*.so
-        retention-days: 30
 
     - name: Push to Oculus store
       if: ${{ matrix.buildtype == 'Oculus' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master') && steps.secret-check.outputs.oculus-token == 'true' }}
@@ -472,9 +471,8 @@ jobs:
     - name: Download artifacts (APK)
       uses: actions/download-artifact@v4
       with:
+        name: apk-Release
         path: apk
-        pattern: '*-Release'
-        merge-multiple: true
 
     - name: Download artifacts (flatpak)
       uses: actions/download-artifact@v4
@@ -517,13 +515,6 @@ jobs:
         git push --set-upstream origin $WIVRN_TAG
 
         git show
-
-    - name: Update release branch
-      run: |
-        cd wivrn
-        if git fetch origin release; then
-          git push origin HEAD:release
-        fi
 
   sync_fork_downstream:
     name: Sync fork downstream

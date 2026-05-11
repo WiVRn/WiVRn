@@ -50,7 +50,6 @@ class app_launcher
 
 public:
 	app_launcher(scenes::stream &, std::string server_name);
-	~app_launcher();
 	enum clicked
 	{
 		None,
@@ -59,6 +58,11 @@ public:
 	};
 	// cancel: text to display on the quit/disconnect/cancel button
 	clicked draw_gui(imgui_context &, const std::string & cancel);
+
+	void reset()
+	{
+		start_time = {};
+	}
 
 	void operator()(wivrn::to_headset::application_list && apps);
 	void operator()(wivrn::to_headset::application_icon && icon);

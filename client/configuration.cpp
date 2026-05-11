@@ -19,6 +19,7 @@
 
 #include "configuration.h"
 #include "application.h"
+#include "utils/contains.h"
 #include "utils/json_string.h"
 #include "wivrn_packets.h"
 
@@ -28,6 +29,9 @@
 #ifdef __ANDROID__
 #include "android/permissions.h"
 #endif
+
+// If no refresh rate is configured, don't select a too high one
+static const float max_default_rate = 100;
 
 bool configuration::check_feature(feature f) const
 {
@@ -66,7 +70,7 @@ bool configuration::check_feature(feature f) const
 		}
 	}
 #ifdef __ANDROID__
-	return check_permission(permission_name(f));
+	return check_permission(application::get_hmd_traits().permission_name(f));
 #else
 	return true;
 #endif
@@ -77,7 +81,7 @@ void configuration::set_feature(feature f, bool state)
 #ifdef __ANDROID__
 	if (state)
 	{
-		request_permission(permission_name(f), [this, f](bool granted) {
+		request_permission(application::get_hmd_traits().permission_name(f), [this, f](bool granted) {
 			{
 				std::lock_guard lock(mutex);
 				features[f] = granted;
@@ -95,33 +99,19 @@ void configuration::set_feature(feature f, bool state)
 	save();
 }
 
-configuration::configuration(xr::system & system)
+configuration::configuration(xr::system & system, xr::session & session)
 {
 	passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	features[feature::hand_tracking] = system.hand_tracking_supported();
-	switch (guess_model())
+
+	const auto & rates = session.get_refresh_rates();
+	for (auto rate: rates)
 	{
-		case model::oculus_quest:
-		case model::oculus_quest_2:
-		case model::meta_quest_pro:
-		case model::meta_quest_3:
-		case model::meta_quest_3s:
-			high_power_mode = false;
+		if (rate >= max_default_rate)
 			break;
-		case model::pico_neo_3:
-		case model::pico_4:
-		case model::pico_4s:
-		case model::pico_4_pro:
-		case model::pico_4_enterprise:
-		case model::htc_vive_focus_3:
-		case model::htc_vive_xr_elite:
-		case model::htc_vive_focus_vision:
-		case model::lynx_r1:
-		case model::samsung_galaxy_xr:
-		case model::unknown:
-			high_power_mode = true;
-			break;
+		preferred_refresh_rate = rate;
 	}
+
 	try
 	{
 		simdjson::dom::parser parser;
@@ -145,7 +135,11 @@ configuration::configuration(xr::system & system)
 		}
 
 		if (auto val = root["preferred_refresh_rate"]; val.is_double())
-			preferred_refresh_rate = val.get_double();
+		{
+			float f = val.get_double();
+			if (f == 0 or utils::contains(rates, f))
+				preferred_refresh_rate = f;
+		}
 
 		if (auto val = root["minimum_refresh_rate"]; val.is_double())
 			minimum_refresh_rate = val.get_double();
@@ -230,6 +224,9 @@ configuration::configuration(xr::system & system)
 		if (auto val = root["high_power_mode"]; val.is_bool())
 			high_power_mode = val.get_bool();
 
+		if (auto val = root["fps_divider"]; val.is_uint64())
+			fps_divider = (uint32_t)val.get_uint64();
+
 		if (auto val = root["extended_config"]; val.is_bool())
 			extended_config = val.get_bool();
 	}
@@ -291,8 +288,7 @@ void configuration::save()
 	std::ofstream json(application::get_config_path() / "client.json");
 
 	json << "{\"servers\":[" << servers_str << "]";
-	if (preferred_refresh_rate)
-		json << ",\"preferred_refresh_rate\":" << *preferred_refresh_rate;
+	json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate;
 	if (minimum_refresh_rate)
 		json << ",\"minimum_refresh_rate\":" << *minimum_refresh_rate;
 	json << ",\"resolution_scale\":" << resolution_scale;
@@ -321,6 +317,7 @@ void configuration::save()
 	json << ",\"locale\":" << json_string(locale);
 	json << ",\"environment_model\":" << json_string(environment_model);
 	json << ",\"high_power_mode\":" << std::boolalpha << high_power_mode;
+	json << ",\"fps_divider\":" << fps_divider;
 	json << ",\"extended_config\":" << std::boolalpha << extended_config;
 	json << "}";
 }

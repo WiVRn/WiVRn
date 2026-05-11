@@ -29,31 +29,37 @@ namespace wivrn
 {
 class video_encoder_vulkan : public video_encoder
 {
-	wivrn_vk_bundle & vk;
+	wivrn::vk_bundle & vk;
 	const vk::VideoEncodeCapabilitiesKHR encode_caps;
+#ifdef VK_KHR_video_encode_intra_refresh
+	vk::VideoEncodeIntraRefreshInfoKHR intra_info{};
+#endif
 
 	vk::raii::VideoSessionKHR video_session = nullptr;
 	vk::raii::VideoSessionParametersKHR video_session_parameters = nullptr;
+
+	vk::raii::Semaphore sem = nullptr;
+	uint64_t sem_value = 0;
 
 	vk::raii::QueryPool query_pool = nullptr;
 	vk::raii::CommandPool transfer_command_pool = nullptr;
 	vk::raii::CommandPool video_command_pool = nullptr;
 
+	image_allocation tmp_image;
 	vk::ImageViewUsageCreateInfo image_view_template_next;
 	vk::ImageViewCreateInfo image_view_template;
 	std::unordered_map<VkImage, vk::raii::ImageView> image_views; // for input images
 	struct slot_item
 	{
-		image_allocation tmp_image; // Used if we have an offset in the image to encode
+		vk::raii::Fence fence = nullptr;
 		vk::raii::CommandBuffer video_cmd_buf = nullptr;
 		vk::raii::CommandBuffer transfer_cmd_buf = nullptr;
-		vk::raii::Semaphore wait_sem = nullptr;
-		vk::raii::Semaphore sem = nullptr;
-		vk::raii::Fence fence = nullptr;
 		vk::raii::ImageView view = nullptr;
 		buffer_allocation output_buffer;
 		buffer_allocation host_buffer;
+		vk::DeviceSize copy_size;
 		bool idr = false;
+		std::atomic<bool> busy = false;
 	};
 	std::array<slot_item, num_slots> slot_data;
 
@@ -73,13 +79,16 @@ protected:
 	vk::VideoEncodeRateControlLayerInfoKHR rate_control_layer;
 	std::optional<vk::VideoEncodeRateControlInfoKHR> rate_control;
 
-	video_encoder_vulkan(wivrn_vk_bundle & vk,
+	video_encoder_vulkan(wivrn::vk_bundle & vk,
 	                     const vk::VideoCapabilitiesKHR & video_caps,
 	                     const vk::VideoEncodeCapabilitiesKHR & encode_caps,
 	                     uint8_t stream_idx,
 	                     const encoder_settings & settings);
 
 	void init(const vk::VideoCapabilitiesKHR & video_caps,
+#ifdef VK_KHR_video_encode_intra_refresh
+	          vk::VideoEncodeIntraRefreshCapabilitiesKHR intra_caps,
+#endif
 	          const vk::VideoProfileInfoKHR & video_profile,
 	          void * video_session_create_next,
 	          void * session_params_next);
@@ -95,8 +104,7 @@ protected:
 	virtual vk::ExtensionProperties std_header_version() = 0;
 
 public:
+	void present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, uint8_t slot, uint64_t frame_index) override;
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
-	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
-	void post_submit(uint8_t slot) override;
 };
 } // namespace wivrn

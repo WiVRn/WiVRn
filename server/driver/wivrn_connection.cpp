@@ -34,20 +34,11 @@
 
 using namespace std::chrono_literals;
 
-static void handle_event_from_main_loop(to_monado::stop)
-{
-	// Ignore stop request when no headset is connected
-}
-
-static void handle_event_from_main_loop(to_monado::disconnect)
-{
-	// Ignore disconnect request when no headset is connected
-}
-
-static void handle_event_from_main_loop(to_monado::set_bitrate)
-{
-	// Ignore bitrate request when no headset is connected
-}
+// Ignored until connection is established
+static void handle_event_from_main_loop(to_monado::stop) {}
+static void handle_event_from_main_loop(to_monado::disconnect) {}
+static void handle_event_from_main_loop(to_monado::set_bitrate) {}
+static void handle_event_from_main_loop(wivrn::to_headset::stream_tab_change) {}
 
 static std::string clean_key(std::string key)
 {

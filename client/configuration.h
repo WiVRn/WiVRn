@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "hardware.h"
 #include "wivrn_discover.h"
 #include "wivrn_packets.h"
 
@@ -28,11 +27,22 @@
 #include <optional>
 #include <simdjson.h>
 #include <string>
+#include <openxr/openxr.h>
 
 namespace xr
 {
+class session;
 class system;
-}
+} // namespace xr
+
+enum class feature
+{
+	microphone,
+	hand_tracking,
+	eye_gaze,
+	face_tracking,
+	body_tracking,
+};
 
 class configuration
 {
@@ -48,7 +58,7 @@ public:
 	};
 
 	std::map<std::string, server_data> servers;
-	std::optional<float> preferred_refresh_rate;
+	float preferred_refresh_rate = 0;
 	std::optional<float> minimum_refresh_rate;
 	float resolution_scale = 1.0;
 	std::optional<wivrn::video_codec> codec;
@@ -76,13 +86,14 @@ public:
 	std::string environment_model = "assets://ground.glb";
 
 	bool override_foveation_enable = false;
-	float override_foveation_pitch = 10 * M_PI / 180;
+	float override_foveation_pitch = -10 * M_PI / 180;
 	float override_foveation_distance = 3;
 
 	bool lying_down_mode = false;
 	float lying_down_height = 1.7;
 
-	bool high_power_mode;
+	bool high_power_mode = true;
+	uint32_t fps_divider = 1;
 
 	// Allow unsafe config values
 	bool extended_config = false;
@@ -102,7 +113,7 @@ private:
 	void parse_openxr_post_processing_options(simdjson::simdjson_result<simdjson::dom::object> root);
 
 public:
-	configuration(xr::system &);
+	configuration(xr::system &, xr::session &);
 	configuration() = default;
 
 	void save();
@@ -110,8 +121,13 @@ public:
 	void set_stream_scale(float);
 	float get_stream_scale() const;
 
+	uint32_t max_bitrate(bool extended) const
+	{
+		return extended ? 800'000'000u : 200'000'000u;
+	}
+
 	uint32_t max_bitrate() const
 	{
-		return extended_config ? 800'000'000u : 200'000'000u;
+		return max_bitrate(extended_config);
 	}
 };

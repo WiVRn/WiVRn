@@ -43,8 +43,15 @@ void wivrn::tracking_control::add_request(device_id device, XrTime now, XrTime a
 
 	if (not std::ranges::contains(last_control.pattern, device, &to_headset::tracking_control::sample::device))
 	{
-		last_control.pattern.push_back({.device = device, .prediction_ns = prediction});
-		cnx.send_control(to_headset::tracking_control(last_control));
+		try
+		{
+			cnx.send_control(to_headset::tracking_control(last_control));
+			last_control.pattern.push_back({.device = device, .prediction_ns = prediction});
+		}
+		catch (...)
+		{
+			// ignore network errors
+		}
 	}
 }
 
@@ -67,6 +74,13 @@ void wivrn::tracking_control::resolve(XrDuration frame_time, XrDuration latency)
 		XrDuration step = frame_time;
 		switch (device_id(device))
 		{
+			// High frequency, but not extrapolation
+			case device_id::EYE_GAZE:
+				req.min_prediction = latency;
+				req.max_prediction = frame_time + latency;
+				step = 3'000'000;
+				break;
+
 			// High frequency polling for those
 			case device_id::HEAD:
 			case device_id::LEFT_GRIP:
@@ -77,8 +91,16 @@ void wivrn::tracking_control::resolve(XrDuration frame_time, XrDuration latency)
 			case device_id::RIGHT_PALM:
 			case device_id::LEFT_PINCH_POSE:
 			case device_id::RIGHT_PINCH_POSE:
-			case device_id::EYE_GAZE:
 				step = 3'000'000;
+				break;
+
+			// Face tracking can't extrapolate
+			case device_id::FACE:
+				res.pattern.push_back({
+				        .device = device_id(device),
+				        .prediction_ns = 0,
+				});
+				break;
 			default:
 				break;
 		}

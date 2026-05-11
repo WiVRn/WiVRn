@@ -18,7 +18,6 @@
  */
 
 // must be included before vulkan_raii
-#include "vk/vk_helpers.h"
 
 #include "video_encoder_va.h"
 
@@ -31,6 +30,7 @@
 #include <filesystem>
 #include <libavutil/pixfmt.h>
 #include <optional>
+#include <unistd.h>
 #include <unordered_map>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -154,14 +154,36 @@ vk::Format drm_to_vulkan_fmt(uint32_t drm_fourcc, int bit_depth)
 		return vulkan_drm_format_map.at(drm_fourcc);
 }
 
+vk::raii::CommandPool make_cmd_pool(wivrn::vk_bundle & vk, uint8_t stream_idx)
+{
+	auto res = vk.device.createCommandPool(vk::CommandPoolCreateInfo{
+
+	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
+	        .queueFamilyIndex = vk.queue_family_index,
+	});
+	vk.name(res, std::format("vaapi encoder {} command pool", stream_idx));
+	return res;
+}
+
 } // namespace
 
-video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
+video_encoder_va::video_encoder_va(wivrn::vk_bundle & vk,
                                    const wivrn::encoder_settings & settings,
                                    uint8_t stream_idx) :
-        video_encoder_ffmpeg(stream_idx, settings),
-        synchronization2(vk.vk.features.synchronization_2)
+        video_encoder_ffmpeg(vk, stream_idx, settings),
+        vk{vk},
+        cmd_pool{make_cmd_pool(vk, stream_idx)}
 {
+	auto command_buffers = vk.device.allocateCommandBuffers(
+	        {.commandPool = *cmd_pool,
+	         .commandBufferCount = num_slots});
+	for (size_t i = 0; i < num_slots; ++i)
+	{
+		in[i].cmd = std::move(command_buffers[i]);
+		in[i].fence = vk::raii::Fence(vk.device,
+		                              vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+	}
+
 	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device, settings.device);
 	AVBufferRef * tmp;
 	int err = av_hwdevice_ctx_create_derived(&tmp,
@@ -410,8 +432,14 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 	}
 }
 
-std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index)
+void video_encoder_va::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, uint8_t slot, uint64_t)
 {
+	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	{
+		U_LOG_E("Timeout on stream %d", stream_idx);
+		return;
+	}
+
 	std::array im_barriers = {
 	        vk::ImageMemoryBarrier{
 	                .srcAccessMask = vk::AccessFlagBits::eNone,
@@ -436,7 +464,11 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 	                                     .layerCount = 1},
 	        },
 	};
-	cmd_buf.pipelineBarrier(
+
+	auto & cmd = in[slot].cmd;
+	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+	cmd.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eAllCommands,
 	        vk::PipelineStageFlagBits::eTransfer,
 	        {},
@@ -444,9 +476,9 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 	        nullptr,
 	        im_barriers);
 
-	cmd_buf.copyImage(
+	cmd.copyImage(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        *in[slot].luma,
 	        vk::ImageLayout::eTransferDstOptimal,
 	        vk::ImageCopy{
@@ -465,9 +497,9 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 	                        .depth = 1,
 	                }});
 
-	cmd_buf.copyImage(
+	cmd.copyImage(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        *in[slot].chroma,
 	        vk::ImageLayout::eTransferDstOptimal,
 	        vk::ImageCopy{
@@ -494,18 +526,33 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 		b.newLayout = vk::ImageLayout::eGeneral;
 	}
 
-	cmd_buf.pipelineBarrier(
+	cmd.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eTransfer,
-	        synchronization2 ? vk::PipelineStageFlagBits::eNone : vk::PipelineStageFlagBits::eAllCommands,
+	        vk::PipelineStageFlagBits::eNone,
 	        {},
 	        nullptr,
 	        nullptr,
 	        im_barriers);
-	return {false, nullptr};
+
+	cmd.end();
+
+	std::unique_lock lock(vk.queue_mutex);
+	vk::CommandBufferSubmitInfo cmd_info{
+	        .commandBuffer = *cmd,
+	};
+
+	vk.device.resetFences(*in[slot].fence);
+	vk.queue.submit2(vk::SubmitInfo2{
+	                         .commandBufferInfoCount = 1,
+	                         .pCommandBufferInfos = &cmd_info,
+	                 },
+	                 *in[slot].fence);
 }
 
 void video_encoder_va::push_frame(bool idr, uint8_t slot)
 {
+	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+		throw std::runtime_error("timeout");
 	auto & va_frame = in[slot].va_frame;
 	va_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
 	int err = avcodec_send_frame(encoder_ctx.get(), va_frame.get());

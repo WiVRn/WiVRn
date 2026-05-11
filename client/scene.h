@@ -24,11 +24,11 @@
 #include "render/scene_renderer.h"
 #include "utils/cache.h"
 #include "xr/actionset.h"
-#include "xr/foveation_profile.h"
 #include "xr/instance.h"
 #include "xr/session.h"
 #include "xr/swapchain.h"
 #include "xr/system.h"
+#include <inplace_vector.hpp>
 
 #include <cstdint>
 #include <entt/entity/registry.hpp>
@@ -132,11 +132,12 @@ protected:
 
 	struct layer
 	{
+		static const int max_views = 2;
+
 		std::variant<XrCompositionLayerProjection, XrCompositionLayerQuad, XrCompositionLayerBaseHeader *> composition_layer;
 
-		// TODO in place vectors
-		std::vector<XrCompositionLayerProjectionView> color_views; // Used by XrCompositionLayerProjection
-		std::vector<XrCompositionLayerDepthInfoKHR> depth_views;   // Used by XrCompositionLayerProjection
+		beman::inplace_vector::inplace_vector<XrCompositionLayerProjectionView, max_views> color_views; // Used by XrCompositionLayerProjection
+		beman::inplace_vector::inplace_vector<XrCompositionLayerDepthInfoKHR, max_views> depth_views;   // Used by XrCompositionLayerProjection
 
 		std::optional<XrCompositionLayerColorScaleBiasKHR> color_scale_bias;
 		std::optional<XrCompositionLayerDepthTestFB> depth_test;
@@ -154,17 +155,13 @@ protected:
 		int sample_count;
 		uint32_t array_size;
 
-		XrFoveationLevelFB foveation_level;
-		float foveation_vertical_offset_degrees;
-		bool foveation_dynamic;
-
 		bool used;
 		xr::swapchain swapchain;
 	};
 	std::vector<swapchain_entry> swapchains;
 
 	// The returned reference is valid until the next call to get_swapchain
-	xr::swapchain & get_swapchain(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size, const std::optional<xr::foveation_profile> & foveation = std::nullopt);
+	xr::swapchain & get_swapchain(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size);
 	void clear_swapchains();
 
 	void render_start(bool passthrough, XrTime predicted_display_time);
@@ -172,8 +169,8 @@ protected:
 	void add_projection_layer(
 	        XrCompositionLayerFlags flags,
 	        XrSpace space,
-	        std::vector<XrCompositionLayerProjectionView> && color_views,
-	        std::vector<XrCompositionLayerDepthInfoKHR> && depth_views = {});
+	        std::span<XrCompositionLayerProjectionView> color_views,
+	        std::span<XrCompositionLayerDepthInfoKHR> depth_views = {});
 
 	void add_quad_layer(
 	        XrCompositionLayerFlags flags,
@@ -192,7 +189,6 @@ protected:
 	        bool keep_depth_buffer,
 	        uint32_t layer_mask,
 	        XrColor4f clear_color,
-	        const std::optional<xr::foveation_profile> & foveation = std::nullopt,
 	        bool render_debug_draws = false);
 
 	void set_color_scale_bias(XrColor4f scale, XrColor4f bias);

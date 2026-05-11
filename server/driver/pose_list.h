@@ -25,6 +25,7 @@
 #include "xrt/xrt_defines.h"
 
 #include <atomic>
+#include <mutex>
 #include <optional>
 
 namespace wivrn
@@ -62,6 +63,8 @@ public:
 	static xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, int64_t ta, int64_t tb, int64_t t);
 
 	pose_list(wivrn::device_id id);
+
+	std::pair<XrTime, XrTime> get_bounds() const;
 
 	void update_tracking(const wivrn::from_headset::tracking &, const clock_offset & offset);
 	void set_derived(pose_list * source, xrt_pose offset, bool force = false);

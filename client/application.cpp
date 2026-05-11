@@ -19,7 +19,6 @@
 
 #include "application.h"
 
-#include "hardware.h"
 #include "openxr/openxr.h"
 #include "scene.h"
 #include "spdlog/common.h"
@@ -722,11 +721,13 @@ void application::initialize_vulkan()
 		}
 	}
 #ifndef NDEBUG
+#ifdef __ANDROID__
 	if (validation_layer_found)
 	{
 		spdlog::info("Using Vulkan validation layer");
 		layers.push_back("VK_LAYER_KHRONOS_validation");
 	}
+#endif
 	bool debug_report_found = false;
 	bool debug_utils_found = false;
 #endif
@@ -747,8 +748,7 @@ void application::initialize_vulkan()
 			instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 		}
 
-		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and
-		    guess_model() != model::oculus_quest) // Quest 1 lies, the extension won't load
+		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and get_hmd_traits().vk_debug_ext_allowed)
 		{
 			debug_utils_found = true;
 			instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -1004,21 +1004,8 @@ void application::initialize_actions()
 		profile.available = std::ranges::all_of(profile.required_extensions, [&](auto & ext) { return xr_instance.has_extension(ext); }) and
 		                    profile.min_version <= api_version;
 
-		if (profile.profile_name.ends_with("khr/simple_controller"))
-		{
-			switch (guess_model())
-			{
-				// Quest hand tracking creates a fake khr/simple_controller when hand tracking
-				// is enabled, this messes with native hand tracking
-				case model::meta_quest_3:
-				case model::meta_quest_pro:
-				case model::meta_quest_3s:
-				case model::oculus_quest_2:
-					profile.available = false;
-				default:
-					break;
-			}
-		}
+		if (profile.profile_name.ends_with("khr/simple_controller") and not get_hmd_traits().bind_simple_controller)
+			profile.available = false;
 
 		if (!profile.available)
 			continue;
@@ -1026,21 +1013,8 @@ void application::initialize_actions()
 		// Patch profile to add grip_surface or palm_ext
 		bool add_palms = true;
 		if (profile.profile_name.ends_with("ext/hand_interaction_ext"))
-		{
-			switch (guess_model())
-			{
-				// Quest breaks spec and does not support grip_surface for ext/hand_interaction_ext
-				case model::meta_quest_3:
-				case model::meta_quest_pro:
-				case model::meta_quest_3s:
-				case model::oculus_quest_2:
-				case model::oculus_quest:
-					add_palms = false;
-					break;
-				default:
-					break;
-			}
-		}
+			add_palms = get_hmd_traits().hand_interaction_grip_surface;
+
 		if (add_palms)
 		{
 			if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or xr_instance.has_extension(XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
@@ -1210,6 +1184,7 @@ void application::initialize_actions()
 
 void application::initialize()
 {
+	runtime_hmd_traits.init();
 	// LogLayersAndExtensions
 	assert(!xr_instance);
 	std::vector<const char *> xr_extensions{
@@ -1241,10 +1216,6 @@ void application::initialize()
 	        XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME,
 	        XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME,
 	        XR_FB_FACE_TRACKING2_EXTENSION_NAME,
-	        // Disable foveation, doesn't seem useful
-	        // XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME,
-	        // XR_FB_FOVEATION_EXTENSION_NAME,
-	        // XR_FB_FOVEATION_VULKAN_EXTENSION_NAME,
 	        XR_FB_PASSTHROUGH_EXTENSION_NAME,
 	        XR_FB_SWAPCHAIN_UPDATE_STATE_EXTENSION_NAME,
 
@@ -1338,7 +1309,7 @@ void application::initialize()
 	spaces[size_t(xr::spaces::view)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
 	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
-	config.emplace(xr_system_id);
+	config.emplace(xr_system_id, xr_session);
 
 	// HTC face tracker fails if created later
 	// we can destroy it right away, it actually stores static handles

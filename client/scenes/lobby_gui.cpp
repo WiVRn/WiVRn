@@ -25,6 +25,7 @@
 #include "application.h"
 #include "configuration.h"
 #include "constants.h"
+#include "gui_common.h"
 #include "imgui.h"
 #include "lobby.h"
 #include "scenes/stream.h" // IWYU pragma: keep
@@ -90,21 +91,6 @@ static void display_recentering_tip(imgui_context & ctx, const std::string & tip
 	ImGui::End();
 	ImGui::PopStyleVar(2);
 	ImGui::PopFont();
-}
-
-std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag)
-{
-	switch (flag)
-	{
-		case XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB:
-		case XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB:
-			return _cS("openxr_post_processing", "Normal");
-		case XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB:
-		case XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB:
-			return _cS("openxr_post_processing", "Quality");
-		default:
-			return _cS("openxr_post_processing", "Disabled");
-	}
 }
 
 void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_request)
@@ -249,17 +235,49 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 
 void scenes::lobby::gui_connected(XrTime predicted_display_time)
 {
-	if (not next_scene)
-	{
-		current_tab = tab::server_list;
-		return;
-	}
+	assert(next_scene);
 
 	if (next_scene->apps.draw_gui(*imgui_ctx, _("Disconnect")) == app_launcher::Cancel)
 	{
-		next_scene.reset();
+		next_scene->exit();
 		current_tab = tab::server_list;
 	}
+}
+
+void scenes::lobby::gui_disconnected()
+{
+	using constants::style::button_size;
+	std::string close_button_label = _("Close");
+
+	if (!async_error)
+	{
+		async_error = next_scene->pop_stream_error();
+
+		if (!async_error)
+		{
+			next_scene.reset();
+			ImGui::CloseCurrentPopup();
+			return;
+		}
+	}
+
+	ImGui::Dummy({1000, 1});
+
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
+	if (server_name == "")
+		CenterTextH(fmt::format(_F("Disconnected")));
+	else
+		CenterTextH(fmt::format(_F("Disconnected from {}"), server_name));
+	ImGui::PopFont();
+
+	ImGui::Text("%s", async_error->c_str());
+	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
+
+	if (ImGui::Button(close_button_label.c_str(), button_size))
+	{
+		async_error.reset();
+	}
+	imgui_ctx->vibrate_on_hover();
 }
 
 void scenes::lobby::gui_new_server()
@@ -496,8 +514,12 @@ void scenes::lobby::gui_server_list()
 		config.save();
 	}
 
+	// Check if we need to report errors after a disconnect
+	if (next_scene and next_scene->current_state() == scenes::stream::state::shutdown and not ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
+		ImGui::OpenPopup("disconnected");
+
 	// Check if an automatic connection has started
-	if ((async_session.valid() || next_scene) and not ImGui::IsPopupOpen("connecting"))
+	if ((async_session.valid() || next_scene) and not ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 		ImGui::OpenPopup("connecting");
 
 	const auto & popup_layer = imgui_ctx->layers()[1];
@@ -513,6 +535,13 @@ void scenes::lobby::gui_server_list()
 			gui_enter_pin(pin_request);
 		else
 			gui_connecting(pin_request);
+		ImGui::EndPopup();
+	}
+
+	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	if (ImGui::BeginPopupModal("disconnected", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		gui_disconnected();
 		ImGui::EndPopup();
 	}
 
@@ -571,79 +600,7 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 	}
 
-	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
-	{
-		const auto & refresh_rates = session.get_refresh_rates();
-		if (not refresh_rates.empty())
-		{
-			float active_rate = config.preferred_refresh_rate.value_or(refresh_rates.back());
-			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? fmt::format("{}", active_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
-			{
-				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
-				{
-					session.set_refresh_rate(0);
-					config.preferred_refresh_rate = 0;
-					config.save();
-				}
-				if (ImGui::IsItemHovered())
-					imgui_ctx->tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
-				for (float rate: refresh_rates)
-				{
-					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.preferred_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						session.set_refresh_rate(rate);
-						config.preferred_refresh_rate = rate;
-						config.save();
-					}
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-
-			if (config.preferred_refresh_rate == 0 and refresh_rates.size() > 2)
-			{
-				float min_rate = config.minimum_refresh_rate.value_or(refresh_rates.front());
-				if (ImGui::BeginCombo(_S("Minimum refresh rate"), fmt::format("{}", min_rate).c_str()))
-				{
-					for (float rate: refresh_rates | std::views::take(refresh_rates.size() - 1))
-					{
-						if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.minimum_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
-						{
-							config.minimum_refresh_rate = rate;
-							config.save();
-						}
-					}
-					ImGui::EndCombo();
-				}
-				imgui_ctx->vibrate_on_hover();
-			}
-		}
-	}
-
-	if (foveation)
-	{
-		std::array<const char *, 4> foveation_levels = {
-		        gettext_noop_context("Foveation level", "None"),
-		        gettext_noop_context("Foveation level", "Low"),
-		        gettext_noop_context("Foveation level", "Medium"),
-		        gettext_noop_context("Foveation level", "High"),
-		};
-
-		if (ImGui::BeginCombo(_S("Foveation level"), _cS("Foveation level", foveation_levels[(int)foveation->level()])))
-		{
-			for (int level = 0; level < foveation_levels.size(); level++)
-			{
-				if (ImGui::Selectable(_cS("Foveation level", foveation_levels[level]), (int)foveation->level() == level))
-				{
-					foveation = xr::foveation_profile{instance, session, (XrFoveationLevelFB)level, -10, false};
-					// TODO save in configuration
-				}
-			}
-
-			ImGui::EndCombo();
-		}
-		imgui_ctx->vibrate_on_hover();
-	}
+	gui::refresh_rate(instance, session, *imgui_ctx, config);
 
 	// Render resolution
 	{
@@ -665,15 +622,21 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 		if (width * config.resolution_scale > stream_view.maxImageRectWidth or height * config.resolution_scale > stream_view.maxImageRectHeight)
 		{
-			ImGui::TextColored(ImColor(0xf9, 0x73, 0x06) /*orange*/, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
 			ImGui::SameLine();
 			ImGui::Text("%s", fmt::format(_F("Resolution larger than {}x{} may not be supported by the headset"), stream_view.maxImageRectWidth, stream_view.maxImageRectHeight).c_str());
+		}
+		if (intScale > 15)
+		{
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::SameLine();
+			ImGui::Text("%s", fmt::format(_cF("resolution is higher than recommended", "Recommended maximum is {}%"), 150).c_str());
 		}
 	}
 
 	// foveation
 	{
-		const int step = 10;
+		const int step = 5;
 		const auto current = config.get_stream_scale();
 		int intval = round((1 - current) * 100 / step);
 		const auto slider = ImGui::SliderInt(
@@ -701,6 +664,12 @@ void scenes::lobby::gui_settings()
 				                     "improving latency, power efficiency and quality."));
 		}
 		imgui_ctx->vibrate_on_hover();
+		if (intval < 30 / step)
+		{
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::SameLine();
+			ImGui::Text("%s", fmt::format(_cF("foveation is lower than recommended", "Recommended minimum is {}%"), 30).c_str());
+		}
 	}
 
 	{
@@ -729,7 +698,7 @@ void scenes::lobby::gui_settings()
 				config.codec = std::nullopt;
 				config.save();
 			}
-			for (auto codec: supported_codecs)
+			for (auto codec: decoder::supported_codecs())
 			{
 				// don't show raw in GUI
 				if (codec == wivrn::raw)
@@ -761,21 +730,28 @@ void scenes::lobby::gui_settings()
 
 	// Bitrate
 	{
+		const int step = 5;
 		const int mb = 1'000'000;
 		const auto current = config.bitrate_bps;
-		auto val = int(current / mb);
+		auto val = int(current / mb / step);
 		const auto slider = ImGui::SliderInt(
 		        _("Bitrate").append("##bitrate").c_str(),
 		        &val,
 		        1,
-		        config.max_bitrate() / mb,
-		        fmt::format(_F("{}Mbit/s"), val).c_str());
+		        config.max_bitrate() / mb / step,
+		        fmt::format(_F("{}Mbit/s"), val * step).c_str());
 		if (slider)
 		{
-			config.bitrate_bps = val * mb;
+			config.bitrate_bps = val * mb * step;
 			config.save();
 		}
 		imgui_ctx->vibrate_on_hover();
+		if (config.bitrate_bps > config.max_bitrate(false))
+		{
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::SameLine();
+			ImGui::Text("%s", fmt::format(_cF("bitrate value is higher than recommended", "Recommended maximum is {}Mbit/s"), config.max_bitrate(false) / mb).c_str());
+		}
 	}
 
 	{
@@ -927,67 +903,8 @@ void scenes::lobby::gui_settings()
 
 void scenes::lobby::gui_post_processing()
 {
-	auto & config = application::get_config();
-
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
-
-	if (application::get_openxr_post_processing_supported())
-	{
-		ImGui::Text("%s", _S("OpenXR post-processing"));
-		ImGui::Indent();
-		{
-			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.super_sampling;
-			if (ImGui::BeginCombo(_S("Supersampling"), openxr_post_processing_flag_name(current).c_str()))
-			{
-				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
-				        0,
-				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB,
-				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB};
-				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
-				{
-					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						config.openxr_post_processing.super_sampling = option;
-						config.save();
-					}
-					imgui_ctx->vibrate_on_hover();
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				imgui_ctx->tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
-			}
-		}
-		{
-			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.sharpening;
-			if (ImGui::BeginCombo(_S("Sharpening"), openxr_post_processing_flag_name(current).c_str()))
-			{
-				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
-				        0,
-				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB,
-				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB};
-				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
-				{
-					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						config.openxr_post_processing.sharpening = option;
-						config.save();
-					}
-					imgui_ctx->vibrate_on_hover();
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				imgui_ctx->tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
-			}
-		}
-		ImGui::Unindent();
-	}
-
+	gui::post_processing(*imgui_ctx, application::get_config());
 	ImGui::PopStyleVar();
 }
 
@@ -1050,7 +967,7 @@ void scenes::lobby::gui_debug_node_hierarchy(entt::entity root)
 							        primitive.vertex_count,
 							        primitive.material_->name,
 							        primitive.vertex_shader,
-							        primitive.material_->fragment_shader_name);
+							        primitive.material_->fragment_shader);
 
 							imgui_ctx->tooltip(tooltip);
 						}

@@ -256,16 +256,6 @@ modules:
     cleanup:
       - '*'
 
-  - name: qcoro
-    buildsystem: cmake-ninja
-    config-opts:
-      - -DQCORO_BUILD_EXAMPLES=OFF
-      - -DQCORO_BUILD_TESTING=OFF
-    sources:
-    - type: git
-      url: https://github.com/qcoro/qcoro.git
-      tag: v0.11.0
-
   - name: opencomposite
     buildsystem: cmake-ninja
     build-options:
@@ -319,7 +309,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/Supreeeme/xrizer.git
-        tag: 01ab72809f2bd5c6494fa77fb08e4229c886da7a
+        tag: be664bb93eebdd82336d00230154bacc6f8b9765
       - xrizer-gen-src.json
 
   - name: wivrn-library
@@ -376,6 +366,7 @@ modules:
       - -DWIVRN_BUILD_SERVER=ON
       - -DWIVRN_BUILD_SERVER_LIBRARY=OFF
       - -DWIVRN_BUILD_DASHBOARD=ON
+      - -DWIVRN_OPTIMIZE_SHADERS=OFF
       - -DWIVRN_USE_VAAPI=ON
       - -DWIVRN_USE_X264=ON
       - -DWIVRN_USE_NVENC=ON

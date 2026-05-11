@@ -64,8 +64,6 @@ void xr::fb_face_tracker2::get_weights(XrTime time, wivrn::from_headset::trackin
 	        .confidences = out_expressions.confidences.data(),
 	};
 
-	out_expressions.timestamp = time;
-
 	if (XR_SUCCEEDED(xrGetFaceExpressionWeights2FB(id, &info, &expression_weights)))
 	{
 		out_expressions.is_valid = expression_weights.isValid;

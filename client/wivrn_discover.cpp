@@ -1,4 +1,6 @@
 #include "wivrn_discover.h"
+
+#include "application.h"
 #include "mdns.h"
 #include "utils/named_thread.h"
 #include <arpa/inet.h>
@@ -117,6 +119,7 @@ private:
 
 		for (ifaddrs * i = addresses; i; i = i->ifa_next)
 		{
+			spdlog::debug("address {} flags 0x{:x} required 0x{:x} forbidden 0x{:x}", uintptr_t(i->ifa_addr), i->ifa_flags, required_flags, forbidden_flags);
 			if (i->ifa_addr == nullptr)
 				continue;
 
@@ -135,7 +138,7 @@ private:
 				// Ignore link-local addresses
 				if (saddr->sin6_scope_id)
 				{
-					spdlog::trace("Ignoring link-local address {}", ip_address_to_string(i->ifa_addr));
+					spdlog::debug("Ignoring link-local address {}", ip_address_to_string(i->ifa_addr));
 					continue;
 				}
 				static const unsigned char localhost[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
@@ -154,9 +157,11 @@ private:
 					}
 					else
 					{
-						spdlog::info("Cannot open socket bound to {}: {}", ip_address_to_string(i->ifa_addr), strerror(errno));
+						spdlog::warn("Cannot open socket bound to {}: {}", ip_address_to_string(i->ifa_addr), strerror(errno));
 					}
 				}
+				else
+					spdlog::debug("ignore localhost (IPv6)");
 			}
 			else if (i->ifa_addr->sa_family == AF_INET)
 			{
@@ -177,9 +182,15 @@ private:
 					}
 					else
 					{
-						spdlog::info("Cannot open socket bound to {}: {}", ip_address_to_string(i->ifa_addr), strerror(errno));
+						spdlog::warn("Cannot open socket bound to {}: {}", ip_address_to_string(i->ifa_addr), strerror(errno));
 					}
 				}
+				else
+					spdlog::debug("ignore localhost (IPv4)");
+			}
+			else
+			{
+				spdlog::warn("unknown family {}", i->ifa_addr->sa_family);
 			}
 		}
 
@@ -391,6 +402,9 @@ public:
 			}
 		}
 
+		if (pollfds.size() < 2)
+			open_client_sockets(5353);
+
 		log_query(record, service_name);
 		std::array<uint8_t, 2048> buffer;
 		for (size_t i = 1; i < pollfds.size(); i++)
@@ -567,7 +581,9 @@ void wivrn_discover::discover(std::string service_name)
 }
 
 wivrn_discover::wivrn_discover(std::string service_name) :
-        cache(std::make_unique<dnssd_cache>()), dnssd_thread(utils::named_thread("dnssd_thread", &wivrn_discover::discover, this, service_name))
+        multicast{application::get_wifi_lock().get_multicast_lock()},
+        cache(std::make_unique<dnssd_cache>()),
+        dnssd_thread(utils::named_thread("dnssd_thread", &wivrn_discover::discover, this, service_name))
 {
 }
 

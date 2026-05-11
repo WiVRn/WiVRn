@@ -52,6 +52,7 @@ using packets = std::variant<
         wivrn::from_headset::headset_info_packet,
         wivrn::from_headset::settings_changed,
         wivrn::from_headset::start_app,
+        wivrn::from_headset::stream_tab_changed,
         headset_connected,
         headset_disconnected,
         server_error>;
@@ -70,7 +71,7 @@ struct set_bitrate
 	uint32_t bitrate_bps;
 };
 
-using packets = std::variant<stop, disconnect, set_bitrate>;
+using packets = std::variant<stop, disconnect, set_bitrate, wivrn::to_headset::stream_tab_change>;
 } // namespace to_monado
 
 extern std::optional<wivrn::typed_socket<wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;

@@ -281,7 +281,7 @@ void raw_decoder::frame_completed(
 	        input[0],
 	        item->image,
 	        item->current_layout,
-	        stream_index ? 2 : 1,
+	        stream_index < 2 ? 2 : 1,
 	        regions.data());
 
 	vk::ImageMemoryBarrier barrier{

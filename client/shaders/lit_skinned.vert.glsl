@@ -36,7 +36,6 @@ layout(location = 7) in vec4 in_weights;
 out gl_PerVertex
 {
     vec4 gl_Position;
-    float gl_ClipDistance[nb_clipping];
 };
 
 void main()
@@ -53,8 +52,8 @@ void main()
             in_weights.z * joints.joint_matrices[int(in_joints.z)] +
             in_weights.w * joints.joint_matrices[int(in_joints.w)];
 
-    // TODO on CPU?
-    mat3 mv = inverse(transpose(mat3(mesh.modelview[gl_ViewIndex])));
+
+    mat3 mv = inverse(transpose(mat3(mesh.modelview[gl_ViewIndex] * skinMatrix)));
 
     tangent = vec4(normalize(mv * in_tangent.xyz), in_tangent.w);
     if (any(isnan(tangent))) // avoid NaNs if no tangent data is provided
@@ -62,15 +61,9 @@ void main()
 
     normal = normalize(mv * in_normal);
 
-    normal = vec3(mesh.modelview[gl_ViewIndex] * skinMatrix * vec4(in_normal, 0.0));
     gl_Position = mesh.modelviewproj[gl_ViewIndex] * skinMatrix * vec4(in_position, 1.0);
 
-    frag_pos = mesh.modelview[gl_ViewIndex] * vec4(in_position, 1.0);
+    frag_pos = mesh.modelview[gl_ViewIndex] * skinMatrix * vec4(in_position, 1.0);
     light_pos = scene.view[gl_ViewIndex] * scene.light_position;
     vertex_color = in_color;
-
-    for(int i = 0; i < nb_clipping; i++)
-    {
-            gl_ClipDistance[i] = dot(mesh.clipping_plane[i], mesh.model * vec4(in_position, 1.0));
-    }
 }

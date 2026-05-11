@@ -33,9 +33,8 @@
 #include "audio/audio.h"
 #include "boost/pfr/core.hpp"
 #include "decoder/shard_accumulator.h"
-#include "hardware.h"
+#include "inplace_vector.hpp"
 #include "spdlog/spdlog.h"
-#include "utils/contains.h"
 #include "utils/named_thread.h"
 #include "utils/ranges.h"
 #include "wivrn_packets.h"
@@ -51,6 +50,7 @@
 #endif
 
 using namespace wivrn;
+using namespace beman::inplace_vector;
 
 // clang-format off
 static const std::unordered_map<std::string, device_id> device_ids = {
@@ -216,7 +216,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		{
 			auto view = self->system.view_configuration_views(self->viewconfig)[0];
-			view = override_view(view, guess_model());
+			view = application::get_hmd_traits().override_view(view);
 
 			info.render_eye_width = view.recommendedImageRectWidth * config.resolution_scale;
 			info.render_eye_height = view.recommendedImageRectHeight * config.resolution_scale;
@@ -231,21 +231,10 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 		{
 			info.available_refresh_rates = self->session.get_refresh_rates();
-			// I can't find anything in specification the ensures it won't be empty
-			if (not info.available_refresh_rates.empty())
-			{
-				if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(info.available_refresh_rates, *config.preferred_refresh_rate)))
-				{
-					info.settings.preferred_refresh_rate = *config.preferred_refresh_rate;
-					info.settings.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
-				}
-				else
-				{
-					// Default to highest refresh rate
-					info.settings.preferred_refresh_rate = info.available_refresh_rates.back();
-				}
-			}
+			info.settings.preferred_refresh_rate = config.preferred_refresh_rate;
+			info.settings.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
 		}
+		info.settings.fps_divider = config.fps_divider;
 
 		if (info.available_refresh_rates.empty())
 		{
@@ -258,6 +247,11 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
+
+		if (self->instance.has_extension(XR_EXT_USER_PRESENCE_EXTENSION_NAME))
+		{
+			info.user_presence = self->system.user_presence_properties().supportsUserPresence;
+		}
 
 		if (config.check_feature(feature::face_tracking))
 		{
@@ -327,6 +321,9 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	self->network_session->send_control(from_headset::session_state_changed{
 	        .state = application::get_session_state(),
+	});
+	self->network_session->send_control(from_headset::stream_tab_changed{
+	        .tab = self->gui_status,
 	});
 
 	if (self->instance.has_extension(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME))
@@ -423,18 +420,20 @@ void scenes::stream::on_focused()
 {
 	gui_status_last_change = instance.now();
 
-	std::string profile = controller_name();
+	const auto & profile = application::get_hmd_traits().controller_profile;
 	input.emplace(
 	        *this,
 	        "assets://controllers/" + profile + "/profile.json",
 	        layer_controllers,
-	        layer_rays);
+	        layer_rays,
+	        get_action("left_trigger").first,
+	        get_action("right_trigger").first);
 
 	spdlog::info("Loaded input profile {}", input->id);
 
 	for (auto i: {xr::spaces::aim_left, xr::spaces::aim_right, xr::spaces::grip_left, xr::spaces::grip_right})
 	{
-		auto [p, q] = input->offset[i] = controller_offset(controller_name(), i);
+		auto [p, q] = input->offset[i] = application::get_hmd_traits().controller_offset(i);
 
 		auto rot = glm::degrees(glm::eulerAngles(q));
 		spdlog::info("Initializing offset of space {} to ({}, {}, {}) mm, ({}, {}, {})°",
@@ -472,14 +471,23 @@ void scenes::stream::on_focused()
 	        device,
 	        swapchain_format,
 	        1800,
-	        1000);
+	        1200);
 
-	imgui_context::viewport vp{
-	        .space = xr::spaces::world,
-	        // Position and orientation are set at each frame
-	        .size = {1.2, 0.6666},
-	        .vp_origin = {0, 0},
-	        .vp_size = {1800, 1000},
+	std::vector<imgui_context::viewport> vps{
+	        {
+	                .space = xr::spaces::world,
+	                // Position and orientation are set at each frame
+	                .size = {1.2, 0.6666},
+	                .vp_origin = {0, 0},
+	                .vp_size = {1800, 1000},
+	        },
+	        {
+	                .space = xr::spaces::world,
+	                .size = {1.2, 0.1333},
+	                .vp_origin = {0, 1000},
+	                .vp_size = {1800, 200},
+	                .tooltip_viewport = true,
+	        },
 	};
 
 	imgui_ctx.emplace(physical_device,
@@ -488,7 +496,7 @@ void scenes::stream::on_focused()
 	                  queue,
 	                  imgui_inputs,
 	                  std::move(swapchain_imgui),
-	                  std::vector{vp},
+	                  std::move(vps),
 	                  image_cache);
 
 	if (application::get_config().enable_stream_gui)
@@ -502,9 +510,6 @@ void scenes::stream::on_focused()
 	foveation_distance = get_action("foveation_distance").first;
 	foveation_ok = get_action("foveation_ok").first;
 	foveation_cancel = get_action("foveation_cancel").first;
-
-	assert(video_stream_description);
-	std::unique_lock lock(decoder_mutex);
 
 	if (application::get_config().high_power_mode)
 	{
@@ -523,9 +528,9 @@ void scenes::stream::on_unfocused()
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets;
 	world.clear();
 	input.reset();
-	clear_swapchains();
 	left_hand.reset();
 	right_hand.reset();
+	apps.reset();
 
 	imgui_ctx.reset();
 }
@@ -561,7 +566,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 
 		if (state_ != state::streaming and not(decoders[0].empty() and decoders[1].empty()))
 		{
-			state_ = state::streaming;
+			set_state(state::streaming);
 			spdlog::info("Stream scene ready at t={}", instance.now());
 		}
 	}
@@ -587,8 +592,7 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 	if (decoders.empty())
 		return {};
 	std::unique_lock lock(frames_mutex);
-	thread_local std::vector<shard_accumulator::blit_handle *> common_frames;
-	common_frames.clear();
+	inplace_vector<shard_accumulator::blit_handle *, decoder_count> common_frames;
 	const bool alpha = decoders[0].latest_frames[0] and decoders[0].latest_frames[0]->view_info.alpha;
 	for (size_t i = 0; i < view_count + alpha; ++i)
 	{
@@ -601,7 +605,7 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 		else
 		{
 			// clang-format off
-			std::erase_if(common_frames,
+			erase_if(common_frames,
 				[this, i](auto & left)
 				{
 					return std::ranges::none_of(
@@ -614,7 +618,7 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 			// clang-format on
 		}
 	}
-	std::array<std::shared_ptr<shard_accumulator::blit_handle>, view_count + 1> result;
+	std::array<std::shared_ptr<shard_accumulator::blit_handle>, decoder_count> result;
 	if (not common_frames.empty())
 	{
 		auto min = std::ranges::min_element(common_frames,
@@ -669,25 +673,41 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 
 std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_images::frame(uint64_t id) const
 {
-	for (auto it = latest_frames.rbegin(); it != latest_frames.rend(); ++it)
-	{
-		if (not *it)
-			continue;
-
-		if ((*it)->feedback.frame_index != id)
-			continue;
-
-		return *it;
-	}
-	return nullptr;
+	auto & frame = latest_frames[id % latest_frames.size()];
+	if (frame and frame->feedback.frame_index != id)
+		return nullptr;
+	return frame;
 }
 
 void scenes::stream::update_gui_position(xr::spaces controller)
 {
-	auto aim = application::locate_controller(
-	        application::space(controller),
-	        application::space(xr::spaces::view),
-	        predicted_display_time);
+	std::optional<std::pair<glm::vec3, glm::quat>> aim;
+
+	if (application::get_hmd_traits().view_locate)
+	{
+		aim = application::locate_controller(
+		        application::space(controller),
+		        application::space(xr::spaces::view),
+		        predicted_display_time);
+	}
+	else
+	{
+		// Pico fails to find its controllers within view space, so use the head position in
+		// world space as a reference
+		aim = application::locate_controller(
+		        application::space(controller),
+		        application::space(xr::spaces::world),
+		        predicted_display_time);
+
+		auto head_position = application::locate_controller(application::space(xr::spaces::view),
+		                                                    application::space(xr::spaces::world),
+		                                                    predicted_display_time);
+		if (not(aim and head_position))
+			return;
+
+		aim->first = glm::conjugate(head_position->second) * (aim->first - head_position->first);
+		aim->second = glm::conjugate(head_position->second) * aim->second;
+	}
 
 	if (not aim)
 		return;
@@ -735,40 +755,44 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 	}
 }
 
-bool scenes::stream::is_gui_interactable() const
+bool scenes::stream::is_interactable(stream_tab tab)
 {
-	switch (gui_status)
+	switch (tab)
 	{
-		case gui_status::stats:
-		case gui_status::settings:
-		case gui_status::bitrate_settings:
-		case gui_status::foveation_settings:
-		case gui_status::applications:
-		case gui_status::application_launcher:
+		case stream_tab::stats:
+		case stream_tab::settings:
+		case stream_tab::bitrate_settings:
+		case stream_tab::foveation_settings:
+		case stream_tab::applications:
+		case stream_tab::application_launcher:
 			return true;
 
-		case gui_status::hidden:
-		case gui_status::overlay_only:
-		case gui_status::compact:
+		case stream_tab::hidden:
+		case stream_tab::overlay_only:
+		case stream_tab::compact:
 			return false;
 	}
+	spdlog::warn("Invalid tab value {}", int(tab));
+	return false;
+}
 
-	assert(false);
-	__builtin_unreachable();
+bool scenes::stream::is_gui_interactable() const
+{
+	return is_interactable(gui_status);
 }
 
 void scenes::stream::render(const XrFrameState & frame_state)
 {
-	if (exiting)
+	if (state_ == state::shutdown)
 		application::pop_scene();
 
-	display_time_phase = frame_state.predictedDisplayTime % frame_state.predictedDisplayPeriod;
+	display_time_phase = frame_state.predictedDisplayPeriod ? frame_state.predictedDisplayTime % frame_state.predictedDisplayPeriod : 0;
 	display_time_period = frame_state.predictedDisplayPeriod;
 	real_display_period = last_display_time ? frame_state.predictedDisplayTime - last_display_time : frame_state.predictedDisplayPeriod;
 	last_display_time = frame_state.predictedDisplayTime;
 
 	std::shared_lock lock(decoder_mutex);
-	if (not frame_state.shouldRender or (decoders[0].empty() and decoders[1].empty()))
+	if (not frame_state.shouldRender or (decoders[0].empty() and decoders[1].empty()) or state_ == state::shutdown)
 	{
 		// TODO: stop/restart video stream
 		session.begin_frame();
@@ -784,14 +808,12 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		        .variant = application::get_messages_info().variant,
 		});
 
-		gui_status = stream::gui_status::hidden;
+		next_gui_status = stream_tab::hidden;
 		application::pop_scene();
 	}
 
 	if (device.waitForFences(*fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
 		throw std::runtime_error("Vulkan fence timeout");
-
-	device.resetFences(*fence);
 
 	// We don't need those after vkWaitForFences
 	current_blit_handles.fill(nullptr);
@@ -848,7 +870,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		blit_handle->feedback.blitted = instance.now();
 		if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
-			state_ = stream::state::stalled;
+			set_state(state::stalled);
 		++blit_handle->feedback.times_displayed;
 		blit_handle->feedback.displayed = frame_state.predictedDisplayTime;
 
@@ -926,128 +948,64 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		}
 	}
 
-	XrExtent2Di extents[view_count];
+	// Allow the headset to time warp if we are redisplaying a frame
+	if ((not application::get_hmd_traits().discard_frame) or
+	    std::ranges::any_of(current_blit_handles, [](const auto & h) { return h and h->feedback.times_displayed < 2; }) or
+	    is_gui_interactable())
 	{
-		int32_t max_width = 0;
-		int32_t max_height = 0;
-		for (size_t i = 0; i < view_count; ++i)
+		XrExtent2Di extents[view_count];
 		{
-			extents[i] = stream_defoveator::defoveated_size(foveation[i]);
-			max_width = std::max(max_width, extents[i].width);
-			max_height = std::max(max_height, extents[i].height);
-		}
-		if (not swapchain)
-			setup_reprojection_swapchain(max_width, max_height);
-		else if (swapchain.width() < max_width or swapchain.height() < max_height)
-		{
-			// If the defoveated image is larger than the swapchain, try to reallocate one
-			try
+			int32_t max_width = 0;
+			int32_t max_height = 0;
+			for (size_t i = 0; i < view_count; ++i)
 			{
-				spdlog::info("Recreating swapchain, from {}x{} to {}x{}",
-				             swapchain.width(),
-				             swapchain.height(),
-				             max_width,
-				             max_height);
-				setup_reprojection_swapchain(max_width, max_height);
+				extents[i] = stream_defoveator::defoveated_size(foveation[i]);
+				max_width = std::max(max_width, extents[i].width);
+				max_height = std::max(max_height, extents[i].height);
 			}
-			catch (std::exception & e)
+			if (not swapchain)
+				setup_reprojection_swapchain(max_width, max_height);
+			else if (swapchain.width() < max_width or swapchain.height() < max_height)
 			{
-				spdlog::warn("failed to increase swapchain size");
-				for (size_t i = 0; i < view_count; ++i)
+				// If the defoveated image is larger than the swapchain, try to reallocate one
+				try
 				{
-					extents[i].width = std::min(extents[i].width, swapchain.width());
-					extents[i].height = std::min(extents[i].height, swapchain.height());
+					spdlog::info("Recreating swapchain, from {}x{} to {}x{}",
+					             swapchain.width(),
+					             swapchain.height(),
+					             max_width,
+					             max_height);
+					setup_reprojection_swapchain(max_width, max_height);
+				}
+				catch (std::exception & e)
+				{
+					spdlog::warn("failed to increase swapchain size");
+					for (size_t i = 0; i < view_count; ++i)
+					{
+						extents[i].width = std::min(extents[i].width, swapchain.width());
+						extents[i].height = std::min(extents[i].height, swapchain.height());
+					}
 				}
 			}
 		}
-	}
-	assert(swapchain);
-	// defoveate the image
-	int image_index = swapchain.acquire();
-	swapchain.wait();
-	defoveator->defoveate(command_buffer, foveation, images, image_index);
+		assert(swapchain);
+		// defoveate the image, apply scale/bias
+		int image_index = swapchain.acquire();
+		swapchain.wait();
 
-	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
-
-	command_buffer.end();
-	vk::SubmitInfo submit_info;
-	submit_info.setCommandBuffers(*command_buffer);
-
-	std::vector<vk::Semaphore> semaphores;
-	std::vector<uint64_t> semaphore_vals;
-	std::vector<vk::PipelineStageFlags> wait_stages;
-	for (auto b: current_blit_handles)
-	{
-		if (b and b->semaphore)
-		{
-			assert(b->semaphore_val);
-			semaphores.push_back(b->semaphore);
-			semaphore_vals.push_back(*b->semaphore_val);
-			wait_stages.push_back(vk::PipelineStageFlagBits::eFragmentShader);
-		}
-	}
-	submit_info.setWaitDstStageMask(wait_stages);
-	submit_info.setWaitSemaphores(semaphores);
-	vk::TimelineSemaphoreSubmitInfo sem_info{
-	        .waitSemaphoreValueCount = uint32_t(semaphore_vals.size()),
-	        .pWaitSemaphoreValues = semaphore_vals.data(),
-	};
-	submit_info.pNext = &sem_info;
-
-	queue.lock()->submit(submit_info, *fence);
-#if WIVRN_FEATURE_RENDERDOC
-	renderdoc_end(*vk_instance);
-#endif
-	swapchain.release();
-
-	std::vector<XrCompositionLayerProjectionView> layer_view(view_count);
-
-	if (use_alpha)
-		session.enable_passthrough(system);
-	else
-		session.disable_passthrough();
-
-	render_start(use_alpha, frame_state.predictedDisplayTime);
-
-	// Add the layer with the streamed content
-	for (uint32_t view = 0; view < view_count; view++)
-	{
-		layer_view[view] =
-		        {
-		                .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-		                .pose = pose[view],
-		                .fov = fov[view],
-
-		                .subImage = {
-		                        .swapchain = swapchain,
-		                        .imageRect = {
-		                                .offset = {0, 0},
-		                                .extent = extents[view],
-		                        },
-		                        .imageArrayIndex = view,
-		                },
-		        };
-	}
-	add_projection_layer(
-	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-	        application::space(xr::spaces::world),
-	        std::move(layer_view));
-
-	if (composition_layer_color_scale_bias_supported)
-	{
 		switch (gui_status)
 		{
-			case gui_status::hidden:
-			case gui_status::bitrate_settings:
-			case gui_status::foveation_settings:
-			case gui_status::compact:
-			case gui_status::overlay_only:
+			case stream_tab::hidden:
+			case stream_tab::bitrate_settings:
+			case stream_tab::foveation_settings:
+			case stream_tab::compact:
+			case stream_tab::overlay_only:
 				dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
 				break;
-			case gui_status::stats:
-			case gui_status::settings:
-			case gui_status::applications:
-			case gui_status::application_launcher:
+			case stream_tab::stats:
+			case stream_tab::settings:
+			case stream_tab::applications:
+			case stream_tab::application_launcher:
 				dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
 				break;
 		}
@@ -1055,37 +1013,108 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		dimming = std::clamp<float>(dimming, 0, 1);
 		float x = dimming * dimming * (3 - 2 * dimming); // Easing function
 
-		float scale = std::lerp(1, constants::stream::dimming_scale, x);
-		float bias = std::lerp(0, constants::stream::dimming_bias, x);
+		const float scale = std::lerp(1, constants::stream::dimming_scale, x);
+		const float bias = std::lerp(0, constants::stream::dimming_bias, x);
 
-		set_color_scale_bias({scale, scale, scale, 1}, {bias, bias, bias, 0});
-	}
+		defoveator->defoveate(command_buffer,
+		                      foveation,
+		                      images,
+		                      {scale, scale, scale, 1.},
+		                      {bias, bias, bias, 0.},
+		                      image_index);
 
-	if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
-	    (openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
-		set_layer_settings(openxr_post_processing.sharpening | openxr_post_processing.super_sampling);
+		command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
-	accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
+		command_buffer.end();
+		vk::SubmitInfo submit_info;
+		submit_info.setCommandBuffers(*command_buffer);
 
-	draw_gui(frame_state.predictedDisplayTime, frame_state.predictedDisplayPeriod);
+		inplace_vector<vk::Semaphore, decoder_count> semaphores;
+		inplace_vector<uint64_t, decoder_count> semaphore_vals;
+		inplace_vector<vk::PipelineStageFlags, decoder_count> wait_stages;
+		for (auto b: current_blit_handles)
+		{
+			if (b and b->semaphore)
+			{
+				assert(b->semaphore_val);
+				semaphores.push_back(b->semaphore);
+				semaphore_vals.push_back(*b->semaphore_val);
+				wait_stages.push_back(vk::PipelineStageFlagBits::eFragmentShader);
+			}
+		}
+		submit_info.setWaitDstStageMask(wait_stages);
+		submit_info.setWaitSemaphores(semaphores);
+		vk::TimelineSemaphoreSubmitInfo sem_info{
+		        .waitSemaphoreValueCount = uint32_t(semaphore_vals.size()),
+		        .pWaitSemaphoreValues = semaphore_vals.data(),
+		};
+		submit_info.pNext = &sem_info;
 
-	try
-	{
-		render_end();
-	}
-	catch (std::system_error & e)
-	{
-		if (e.code().category() == xr::error_category() and e.code().value() == XR_ERROR_POSE_INVALID)
-			spdlog::info("Invalid pose submitted");
+		device.resetFences(*fence);
+		queue.lock()->submit(submit_info, *fence);
+#if WIVRN_FEATURE_RENDERDOC
+		renderdoc_end(*vk_instance);
+#endif
+		swapchain.release();
+
+		if (use_alpha)
+			session.enable_passthrough(system);
 		else
-			throw;
+			session.disable_passthrough();
+
+		render_start(use_alpha, frame_state.predictedDisplayTime);
+
+		// Add the layer with the streamed content
+		std::array<XrCompositionLayerProjectionView, view_count> layer_view;
+		for (uint32_t view = 0; view < view_count; view++)
+		{
+			layer_view[view] =
+			        {
+			                .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
+			                .pose = pose[view],
+			                .fov = fov[view],
+
+			                .subImage = {
+			                        .swapchain = swapchain,
+			                        .imageRect = {
+			                                .offset = {0, 0},
+			                                .extent = extents[view],
+			                        },
+			                        .imageArrayIndex = view,
+			                },
+			        };
+		}
+		add_projection_layer(
+		        use_alpha ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT : 0,
+		        application::space(xr::spaces::world),
+		        layer_view);
+
+		if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
+		    (openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
+			set_layer_settings(openxr_post_processing.sharpening | openxr_post_processing.super_sampling);
+
+		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
+
+		draw_gui(frame_state.predictedDisplayTime, frame_state.predictedDisplayPeriod);
+
+		try
+		{
+			render_end();
+		}
+		catch (std::system_error & e)
+		{
+			if (e.code().category() == xr::error_category() and e.code().value() == XR_ERROR_POSE_INVALID)
+				spdlog::info("Invalid pose submitted");
+			else
+				throw;
+		}
 	}
 
 	// Network operations may be blocking, do them once everything was submitted
 	{
 		// Keep a copy of the feedback packets as they can be modified if they're encrypted
-		std::vector<from_headset::feedback> feedbacks;
-		std::vector<serialization_packet> packets;
+		inplace_vector<from_headset::feedback, decoder_count> feedbacks;
+		inplace_vector<serialization_packet, decoder_count> packets;
 
 		feedbacks.reserve(current_blit_handles.size());
 		packets.reserve(current_blit_handles.size());
@@ -1128,23 +1157,14 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
 		{
-			switch (gui_status)
-			{
-				case gui_status::hidden:
-				case gui_status::compact:
-				case gui_status::overlay_only:
-					gui_status = next_gui_status;
-					break;
-
-				case gui_status::stats:
-				case gui_status::settings:
-				case gui_status::bitrate_settings:
-				case gui_status::foveation_settings:
-				case gui_status::applications:
-				case gui_status::application_launcher:
-					gui_status = gui_status::hidden;
-					break;
-			}
+			// Arbitraty transitions can happen from network commands
+			// Ensure we can't have a set of 2 non interactable states
+			if (is_gui_interactable())
+				next_gui_status = stream_tab::hidden;
+			else if (is_interactable(stored_gui_status))
+				next_gui_status = stored_gui_status;
+			else
+				next_gui_status = stream_tab::applications;
 		}
 	}
 
@@ -1153,15 +1173,17 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 void scenes::stream::exit()
 {
-	exiting = true;
+	state_ = state::shutdown;
 }
 
 void scenes::stream::setup(const to_headset::video_stream_description & description)
 {
-	session.set_refresh_rate(description.fps);
+	session.set_refresh_rate(description.refresh_rate);
 
-	spdlog::info("Creating decoders, size {}x{}", description.width, description.height);
 	std::unique_lock lock(decoder_mutex);
+	if (video_stream_description == description)
+		return;
+	spdlog::info("Creating decoders, size {}x{}", description.width, description.height);
 	video_stream_description = description;
 
 	for (const auto & [stream_index, item]: utils::enumerate(decoders))
@@ -1170,6 +1192,9 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, description, shared_from_this(), stream_index),
 		};
 	}
+
+	if (defoveator)
+		defoveator->reset_pipelines();
 }
 
 void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint32_t swapchain_height)
@@ -1177,7 +1202,7 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 	assert(swapchain_width);
 	assert(swapchain_height);
 	device.waitIdle();
-	session.set_refresh_rate(video_stream_description->fps);
+	session.set_refresh_rate(video_stream_description->refresh_rate);
 
 	auto views = system.view_configuration_views(viewconfig);
 
@@ -1191,14 +1216,11 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 
 	spdlog::info("Initializing reprojector");
 	vk::Extent2D extent = {(uint32_t)swapchain.width(), (uint32_t)swapchain.height()};
-	std::vector<vk::Image> swapchain_images;
-	for (auto & image: swapchain.images())
-		swapchain_images.push_back(image.image);
 
 	defoveator.emplace(
 	        device,
 	        physical_device,
-	        swapchain_images,
+	        swapchain.images(),
 	        extent,
 	        swapchain.format());
 }
@@ -1276,6 +1298,18 @@ scene::meta & scenes::stream::get_meta_scene()
 	};
 
 	return m;
+}
+
+std::optional<std::string> scenes::stream::pop_stream_error()
+{
+	auto queue = stream_error_queue.lock();
+	if (queue->empty())
+		return std::nullopt;
+
+	auto err = std::make_optional(queue->front());
+	queue->pop();
+
+	return err;
 }
 
 void scenes::stream::on_xr_event(const xr::event & event)

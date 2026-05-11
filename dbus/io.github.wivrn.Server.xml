@@ -73,6 +73,11 @@
 		<property name="PairingEnabled"        type="b" access="read"/>
 		<property name="EncryptionEnabled"     type="b" access="read"/>
 
+		<property name="ClientTab"             type="s" access="read"/>
+		<method name="SetClientTab">
+			<arg type="s" name="Tab"/>
+		</method>
+
 		<signal name="ServerError">
 			<arg type="s" name="where"/>
 			<arg type="s" name="message"/>

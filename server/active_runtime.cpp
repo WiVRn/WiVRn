@@ -176,6 +176,16 @@ active_runtime::active_runtime() :
 		auto ovr_compat = openvr_compat_path();
 		if (not ovr_compat.empty())
 		{
+			if (not wivrn::is_flatpak())
+			{
+				auto vrclient = ovr_compat / "bin"
+#ifdef __x86_64__
+				                / "linux64"
+#endif
+				                / "vrclient.so";
+				if (not std::filesystem::exists(vrclient))
+					std::cerr << "Unable to read " << vrclient << " ensure your OpenVR compatibility library is set correctly" << std::endl;
+			}
 			std::filesystem::path openvr_manifest = xdg_config_home() / "openvr/openvrpaths.vrpath";
 			std::filesystem::create_directories(openvr_manifest.parent_path());
 			move_file(openvr_manifest, backup_name(openvr_manifest));

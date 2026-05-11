@@ -34,13 +34,13 @@
 namespace wivrn
 {
 
-wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd, wivrn_session & cnx) :
+wivrn_eye_tracker::wivrn_eye_tracker(wivrn_session & cnx) :
         xrt_device{
                 .name = XRT_DEVICE_EYE_GAZE_INTERACTION,
                 .device_type = XRT_DEVICE_TYPE_EYE_TRACKER,
                 .str = "WiVRn Eye Tracker",
                 .serial = "WiVRn Eye Tracker",
-                .tracking_origin = hmd->tracking_origin,
+                .tracking_origin = &origin,
                 .input_count = 1,
                 .inputs = &gaze_input,
                 .supported = {
@@ -49,6 +49,10 @@ wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd, wivrn_session & cnx) :
                 .update_inputs = method_pointer<&wivrn_eye_tracker::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_eye_tracker::get_tracked_pose>,
                 .destroy = [](xrt_device *) {},
+        },
+        origin{
+                .type = XRT_TRACKING_TYPE_ATTACHABLE,
+                .initial_offset = XRT_POSE_IDENTITY,
         },
         gaze_input{
                 .active = true,
@@ -68,6 +72,8 @@ xrt_result_t wivrn_eye_tracker::get_tracked_pose(xrt_input_name name, int64_t at
 {
 	if (name == XRT_INPUT_GENERIC_EYE_GAZE_POSE)
 	{
+		if (auto [min, max] = gaze.get_bounds(); min <= max)
+			at_timestamp_ns = std::clamp(at_timestamp_ns, min, max);
 		auto [production_timestamp, relation] = gaze.get_at(at_timestamp_ns);
 		*out_relation = relation;
 		cnx.add_tracking_request(device_id::EYE_GAZE, at_timestamp_ns, production_timestamp);

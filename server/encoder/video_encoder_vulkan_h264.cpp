@@ -70,7 +70,7 @@ static StdVideoH264LevelIdc compute_level(const StdVideoH264SequenceParameterSet
 }
 
 wivrn::video_encoder_vulkan_h264::video_encoder_vulkan_h264(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const vk::VideoCapabilitiesKHR & video_caps,
         const vk::VideoEncodeCapabilitiesKHR & encode_caps,
         uint8_t stream_idx,
@@ -210,7 +210,7 @@ auto get_video_caps(vk::raii::PhysicalDevice & phys_dev)
 }
 
 std::unique_ptr<wivrn::video_encoder_vulkan_h264> wivrn::video_encoder_vulkan_h264::create(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx)
 {
@@ -253,7 +253,19 @@ std::unique_ptr<wivrn::video_encoder_vulkan_h264> wivrn::video_encoder_vulkan_h2
 
 	self->rate_control_layer.pNext = &self->rate_control_layer_h264;
 
-	self->init(video_caps, video_profile_info.get(), &session_create_info, &h264_session_params);
+#ifdef VK_KHR_video_encode_intra_refresh
+	vk::VideoEncodeIntraRefreshCapabilitiesKHR intra_caps{};
+	if (std::get<vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>(vk.feat).videoEncodeIntraRefresh)
+		intra_caps = std::get<vk::VideoEncodeIntraRefreshCapabilitiesKHR>(
+		        vk.physical_device.getVideoCapabilitiesKHR<vk::VideoCapabilitiesKHR, vk::VideoEncodeCapabilitiesKHR, vk::VideoEncodeH264CapabilitiesKHR, vk::VideoEncodeIntraRefreshCapabilitiesKHR>(video_profile_info.get()));
+#endif
+	self->init(video_caps,
+#ifdef VK_KHR_video_encode_intra_refresh
+	           intra_caps,
+#endif
+	           video_profile_info.get(),
+	           &session_create_info,
+	           &h264_session_params);
 
 	return self;
 }

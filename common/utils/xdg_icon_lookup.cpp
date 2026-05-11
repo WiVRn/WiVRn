@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <limits>
 #include <optional>
@@ -107,51 +108,75 @@ void find_icon_theme_dirs_helper(const std::vector<std::filesystem::path> & base
 		const auto theme_dir = base_dir / "icons" / theme;
 		const auto index_theme = theme_dir / "index.theme";
 
-		if (not std::filesystem::exists(index_theme))
-			continue;
-
-		try
+		if (std::filesystem::exists(index_theme))
 		{
-			std::ifstream file{index_theme};
-			wivrn::ini index{file};
-
-			for (const auto & inherited_theme: utils::split(index.get<std::string>("Icon Theme", "Inherits", ""), ","))
+			try
 			{
-				if (inherited_theme != "" and not std::ranges::contains(themes, inherited_theme))
-					themes.push_back(inherited_theme);
+				std::ifstream file{index_theme};
+				wivrn::ini index{file};
+
+				for (const auto & inherited_theme: utils::split(index.get<std::string>("Icon Theme", "Inherits", ""), ","))
+				{
+					if (inherited_theme != "" and not std::ranges::contains(themes, inherited_theme))
+						themes.push_back(inherited_theme);
+				}
+
+				for (auto directory: utils::split(index.get<std::string>("Icon Theme", "Directories", ""), ","))
+				{
+					int size = index.get<int>(directory, "Size");
+					int scale = index.get<int>(directory, "Scale", 1);
+					int min_size = index.get<int>(directory, "MinSize", size);
+					int max_size = index.get<int>(directory, "MaxSize", size);
+					int threshold = index.get<int>(directory, "Threshold", 2);
+
+					std::string type_str = index.get<std::string>(directory, "Type", "Threshold");
+
+					icon_theme_type type = icon_theme_type::threshold;
+					if (type_str == "Fixed")
+						type = icon_theme_type::fixed;
+					else if (type_str == "Scalable")
+						type = icon_theme_type::scalable;
+					else if (type_str == "Threshold")
+						type = icon_theme_type::threshold;
+
+					dirs.push_back(icon_theme_dir{
+					        .path = theme_dir / directory,
+					        .size = size,
+					        .scale = scale,
+					        .type = type,
+					        .min_size = min_size,
+					        .max_size = max_size,
+					        .threshold = threshold,
+					});
+				}
 			}
-
-			for (auto directory: utils::split(index.get<std::string>("Icon Theme", "Directories", ""), ","))
+			catch (std::exception & e)
 			{
-				int size = index.get<int>(directory, "Size");
-				int scale = index.get<int>(directory, "Scale", 1);
-				int min_size = index.get<int>(directory, "MinSize", size);
-				int max_size = index.get<int>(directory, "MaxSize", size);
-				int threshold = index.get<int>(directory, "Threshold", 2);
-
-				std::string type_str = index.get<std::string>(directory, "Type", "Threshold");
-
-				icon_theme_type type = icon_theme_type::threshold;
-				if (type_str == "Fixed")
-					type = icon_theme_type::fixed;
-				else if (type_str == "Scalable")
-					type = icon_theme_type::scalable;
-				else if (type_str == "Threshold")
-					type = icon_theme_type::threshold;
-
-				dirs.push_back(icon_theme_dir{
-				        .path = theme_dir / directory,
-				        .size = size,
-				        .scale = scale,
-				        .type = type,
-				        .min_size = min_size,
-				        .max_size = max_size,
-				        .threshold = threshold,
-				});
 			}
 		}
-		catch (std::exception & e)
+		else if (theme == "hicolor")
 		{
+			// FIXME: full theme support
+			for (int size: {256})
+				dirs.push_back(icon_theme_dir{
+				        .path = theme_dir / std::format("{}x{}/apps", size, size),
+				        .size = size,
+				        .scale = 1,
+				        .type = icon_theme_type::threshold,
+				        .min_size = size,
+				        .max_size = size,
+				        .threshold = 2,
+				});
+
+			dirs.push_back(icon_theme_dir{
+			        .path = theme_dir / "scalable/apps",
+			        .size = 128,
+			        .scale = 1,
+			        .type = icon_theme_type::scalable,
+			        .min_size = 1,
+			        .max_size = 256,
+			        .threshold = 2,
+			});
 		}
 	}
 }

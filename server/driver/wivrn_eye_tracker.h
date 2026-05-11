@@ -24,6 +24,7 @@
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
+#include "xrt/xrt_tracking.h"
 
 #include <cstdint>
 #include <mutex>
@@ -34,14 +35,15 @@ class wivrn_session;
 
 class wivrn_eye_tracker : public xrt_device
 {
+	xrt_tracking_origin origin;
 	std::mutex mutex;
 	xrt_input gaze_input;
 	pose_list gaze;
 	wivrn_session & cnx;
 
 public:
-	using base = xrt_device;
-	wivrn_eye_tracker(xrt_device * hmd, wivrn_session &);
+	using base_t = xrt_device;
+	wivrn_eye_tracker(wivrn_session &);
 
 	xrt_result_t update_inputs();
 	void update_tracking(const from_headset::tracking &, const clock_offset &);

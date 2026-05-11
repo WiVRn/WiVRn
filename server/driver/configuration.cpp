@@ -204,6 +204,12 @@ configuration::configuration()
 		if (auto it = json.find("tcp-only"); it != json.end())
 			tcp_only = *it;
 
+		if (auto it = json.find("port"); it != json.end())
+			port = *it;
+
+		if (auto it = json.find("hostname"); it != json.end())
+			hostname = *it;
+
 		if (auto it = json.find("publish-service"); it != json.end())
 		{
 			publication = *it;

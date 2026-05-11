@@ -74,8 +74,8 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	if (!locations.isActive)
 		return std::nullopt;
 
-	// bail if none of the joints are valid/tracked
-	if (!std::ranges::any_of(joints_pos, [](const auto & loc) { return loc.locationFlags != 0; }))
+	// bail if any of the joint is invalid
+	if (std::ranges::any_of(joints_pos, [](const auto & loc) { return loc.locationFlags == 0; }))
 		return std::nullopt;
 
 	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints;

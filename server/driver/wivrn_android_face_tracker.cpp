@@ -82,7 +82,7 @@ void wivrn_android_face_tracker::update_tracking(const from_headset::tracking & 
 	        .is_valid = face->is_valid,
 	};
 
-	face_list.update_tracking(face->sample_time, tracking.timestamp, data, offset);
+	face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset);
 }
 
 xrt_result_t wivrn_android_face_tracker::get_face_tracking(enum xrt_input_name facial_expression_type, int64_t at_timestamp_ns, struct xrt_facial_expression_set * inout_value)

@@ -23,6 +23,9 @@
 #ifdef Success
 #undef Success
 #endif
+#ifdef Complex
+#undef Complex
+#endif
 
 #include <Eigen/Cholesky>
 #include <Eigen/Core>
@@ -33,6 +36,7 @@
 #include <ranges>
 
 #include "openxr/openxr.h"
+#include "wivrn_config.h"
 
 template <int N, bool quaternion = false, int polynomial_order = 2, int stored_samples = 30>
 class polynomial_interpolator
@@ -43,7 +47,7 @@ public:
 	struct sample
 	{
 		XrTime production_timestamp = std::numeric_limits<XrTime>::lowest();
-		XrTime timestamp;
+		XrTime timestamp = std::numeric_limits<XrTime>::lowest();
 		std::optional<value_type> y;
 		std::optional<value_type> dy;
 	};
@@ -99,24 +103,48 @@ public:
 		}
 	}
 
-	sample get_at(XrTime timestamp)
+	std::pair<XrTime, XrTime> get_bounds() const
+	{
+		std::pair<XrTime, XrTime> result{
+		        std::numeric_limits<XrTime>::max(),
+		        std::numeric_limits<XrTime>::lowest(),
+		};
+		for (const auto & sample: data)
+		{
+			if (sample.y)
+			{
+				result.first = std::min(result.first, sample.timestamp);
+				result.second = std::max(result.second, sample.timestamp);
+			}
+		}
+		return result;
+	}
+
+	sample get_at(XrTime timestamp) const
 	{
 		Eigen::Matrix<float, 2 * stored_samples, polynomial_order + 1> A;
 		Eigen::Matrix<float, 2 * stored_samples, N> b;
 
-		XrTime production_timestamp = std::numeric_limits<XrTime>::lowest();
+		const XrTime production_timestamp = std::ranges::max(data | std::ranges::views::transform(&sample::production_timestamp));
+		// Maximum is the minimum of now + max_extrapolation_ns (outside of this function)
+		// and production_ts + 1.1 * max_extrapolation_ns
+		// This allows a small buffer so that polynomial extrapolation fills the gap of networking hiccups
+		timestamp = std::min(timestamp, production_timestamp + (wivrn::max_extrapolation_ns * 11) / 10);
+
+		const sample * closest = data.data();
 
 		int row = 0;
 		for (const auto && [i, sample]: std::ranges::enumerate_view(data))
 		{
+			if (std::abs(closest->timestamp - timestamp) > std::abs(sample.timestamp - timestamp))
+				closest = &sample;
+
 			if (not sample.y)
 				continue;
 
 			int abs_Δt = std::abs(sample.timestamp - timestamp);
 
 			float weight = 1. / (1. + std::pow(abs_Δt / float(window), 3.));
-
-			production_timestamp = std::max(production_timestamp, sample.production_timestamp);
 
 			float Δt = (sample.timestamp - timestamp) * 1.e-9;
 			float Δtⁱ = 1;
@@ -143,14 +171,17 @@ public:
 			}
 		}
 
+		// Data turned invalid, return it
+		if (not closest->y)
+			return *closest;
+
+		// Avoid returning obviously wrong data
+		if (std::abs(closest->timestamp - timestamp) > 1'000'000'000)
+			return {};
+
 		// Not enough data to extrapolate
 		if (row < 2)
 		{
-			auto closest = std::ranges::min_element(data, std::less{}, [&](const auto & sample) {
-				if (not sample.y)
-					return std::numeric_limits<XrDuration>::max();
-				return std::abs(sample.timestamp - timestamp);
-			});
 			if (closest->y and std::abs(closest->production_timestamp - timestamp) < 1'000'000'000)
 				return *closest;
 			return {};

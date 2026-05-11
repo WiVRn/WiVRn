@@ -43,6 +43,8 @@ struct vert_pc
 {
 	glm::ivec4 rgb_rect;
 	glm::ivec4 a_rect;
+	std::array<float, 4> scale;
+	std::array<float, 4> bias;
 };
 
 void stream_defoveator::ensure_vertices(size_t num_vertices)
@@ -104,7 +106,7 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 
 	// pipeline layout
 	vk::PushConstantRange pc_range{
-	        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+	        .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 	        .size = sizeof(vert_pc),
 	};
 
@@ -125,7 +127,7 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 	// Fragment shader
 	auto specialization = make_specialization_constants(
 	        int32_t(alpha),
-	        VkBool32(need_srgb_conversion(guess_model())));
+	        VkBool32(application::get_hmd_traits().needs_srgb_conversion));
 	auto fragment_shader = load_shader(device, "reprojection.frag");
 
 	vk::pipeline_builder pipeline_info{
@@ -283,6 +285,14 @@ stream_defoveator::stream_defoveator(
 	}
 }
 
+void stream_defoveator::reset_pipelines()
+{
+	for (auto & p: pipeline_rgb)
+		p = {};
+	for (auto & p: pipeline_a)
+		p = {};
+}
+
 static size_t required_vertices(const wivrn::to_headset::foveation_parameter & p)
 {
 	// strips are constructed like this:
@@ -296,6 +306,8 @@ static size_t required_vertices(const wivrn::to_headset::foveation_parameter & p
 void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
                                   const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
                                   const std::array<input, 2> & inputs,
+                                  std::array<float, 4> scale,
+                                  std::array<float, 4> bias,
                                   int destination)
 {
 	if (destination < 0 || destination >= (int)output_images.size())
@@ -416,6 +428,8 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 		                             input.rect_a.offset.y,
 		                             input.rect_a.extent.width,
 		                             input.rect_a.extent.height),
+		        .scale = scale,
+		        .bias = bias,
 		};
 
 		device.updateDescriptorSets(descriptor_writes, {});
@@ -423,7 +437,7 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 		command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.pipeline);
 		command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline.layout, 0, pipeline.ds, {});
-		command_buffer.pushConstants<vert_pc>(*pipeline.layout, vk::ShaderStageFlagBits::eVertex, 0, pc);
+		command_buffer.pushConstants<vert_pc>(*pipeline.layout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, pc);
 		command_buffer.bindVertexBuffers(0, vk::Buffer(buffer), vertices_size * view);
 		command_buffer.draw(required_vertices(foveation[view]), 1, 0, 0);
 		command_buffer.endRenderPass();

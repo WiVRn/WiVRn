@@ -27,7 +27,6 @@ layout (constant_id = 2) const bool alpha_cutout = false;
 layout (constant_id = 3) const bool skinning = false;
 
 const int nb_views = 2;
-const int nb_clipping = 4;
 
 layout(set = 0, binding = 0) uniform scene_ubo
 {
@@ -42,7 +41,6 @@ layout(set = 0, binding = 1) uniform mesh_ubo
         mat4 model;
         mat4 modelview[nb_views];
         mat4 modelviewproj[nb_views];
-        vec4 clipping_plane[nb_clipping];
 } mesh;
 
 layout(set = 0, binding = 2) uniform joints_ubo

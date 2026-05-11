@@ -28,7 +28,6 @@
 
 #include <array>
 #include <cstdint>
-#include <mutex>
 
 namespace wivrn
 {
@@ -36,8 +35,6 @@ class wivrn_session;
 
 class wivrn_hmd : public xrt_device
 {
-	std::mutex mutex;
-
 	xrt_input pose_input{
 	        .active = true,
 	        .name = XRT_INPUT_GENERIC_HEAD_POSE,
@@ -52,7 +49,7 @@ class wivrn_hmd : public xrt_device
 	};
 
 	view_list views;
-	from_headset::battery battery{};
+	thread_safe<from_headset::battery> battery{};
 
 	std::atomic<bool> presence{true};
 	thread_safe<std::array<std::optional<from_headset::visibility_mask_changed::masks>, 2>> visibility_mask;
@@ -62,7 +59,7 @@ class wivrn_hmd : public xrt_device
 	xrt_result_t get_visibility_mask(xrt_visibility_mask_type, uint32_t view_index, xrt_visibility_mask **);
 
 public:
-	using base = xrt_device;
+	using base_t = xrt_device;
 	wivrn_hmd(wivrn::wivrn_session * cnx,
 	          const from_headset::headset_info_packet & info);
 

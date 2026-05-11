@@ -66,6 +66,6 @@ public:
 
 	virtual vk::Sampler sampler() = 0;
 
-	static std::vector<wivrn::video_codec> supported_codecs();
+	static const std::vector<wivrn::video_codec> & supported_codecs();
 };
 } // namespace wivrn

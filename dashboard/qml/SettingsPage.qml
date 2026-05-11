@@ -85,6 +85,7 @@ Kirigami.ScrollablePage {
             }
 
             SelectGame {
+                id: select_game
                 Kirigami.FormData.label: i18n("Autostart application:")
             }
 
@@ -187,6 +188,14 @@ Kirigami.ScrollablePage {
                 }
             }
 
+            Dialogs.FolderDialog{
+                id: openvr_browse
+                onAccepted: {
+                    currentFolder = selectedFolder
+                    openvr_text.text = WivrnServer.host_path(new URL(selectedFolder).pathname);
+                    openvr_text.text = openvr_text.text.replace(/\/linux64$/, "").replace(/\/bin$/, "")
+                }
+            }
             RowLayout {
                 Kirigami.FormData.label: i18n("OpenVR compatibility library:")
                 Layout.fillWidth: true
@@ -211,12 +220,21 @@ Kirigami.ScrollablePage {
                             }
                         }
                     }
+                    onActivated: index => {
+                            if (openvr_libs.get(index).is_custom && openvr_text.text == "")
+                                openvr_browse.open()
+                    }
                 }
                 Controls.TextField {
                     id: openvr_text
                     placeholderText: i18n("Library path, excluding bin/linux64/vrclient.so")
                     visible: !!openvr_combobox.model.get(openvr_combobox.currentIndex)?.is_custom
                     Layout.fillWidth: true
+                }
+                Controls.Button {
+                    text: i18nc("browse to choose the OpenVR compatility to use", "Browse")
+                    visible: openvr_text.visible
+                    onClicked: openvr_browse.open()
                 }
             }
 
@@ -270,6 +288,7 @@ Kirigami.ScrollablePage {
     }
 
     function load() {
+        select_game.load();
         debug_gui.checked = Settings.debugGui;
         steamvr_lh.checked = Settings.steamVrLh;
         hid_forwarding.checked = Settings.hidForwarding;

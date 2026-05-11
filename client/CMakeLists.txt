@@ -194,7 +194,7 @@ khronos_validation.enables = VK_VALIDATION_FEATURE_ENABLE_THREAD_SAFETY_EXT
 ")
 endif()
 
-if(USE_ANDROID_VALIDATION_LAYER)
+if(WIVRN_USE_ANDROID_VALIDATION_LAYER)
     set(VVL_VERSION "1.4.321.0")
 
     if(NOT EXISTS ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
@@ -213,10 +213,10 @@ if(USE_ANDROID_VALIDATION_LAYER)
 
     file(COPY
         ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayer/android-binaries-${VVL_VERSION}/${CMAKE_ANDROID_ARCH_ABI}
-        DESTINATION ${CMAKE_ANDROID_LIB_DIRECTORIES})
+        DESTINATION ${ANDROID_LIB_DIRECTORIES})
 else()
     # silence "Manually-specified variables were not used by the project" warning
-    set(_unused ${CMAKE_ANDROID_LIB_DIRECTORIES})
+    set(_unused ${ANDROID_LIB_DIRECTORIES})
 endif()
 
 

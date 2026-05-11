@@ -23,6 +23,7 @@
 
 #define _(x) boost::locale::gettext(x)
 #define _F(x) fmt::runtime(boost::locale::gettext(x))
+#define _cF(c, x) fmt::runtime(boost::locale::pgettext(c, x))
 #define _S(x) boost::locale::gettext(x).c_str()
 #define _C(c, x) boost::locale::pgettext(c, x)
 #define _cS(c, x) _C(c, x).c_str()

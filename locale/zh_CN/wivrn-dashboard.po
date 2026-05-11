@@ -8,31 +8,31 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-07 16:11+0800\n"
-"PO-Revision-Date: 2026-01-10 13:46+0800\n"
+"POT-Creation-Date: 2026-04-11 14:03+0800\n"
+"PO-Revision-Date: 2026-04-20 13:44+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Gtranslator 49.0\n"
+"X-Generator: Gtranslator 50.0\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #: dashboard/apk_installer.cpp:137
 #, kde-format
 msgid "Cannot save APK file: %1"
-msgstr "无法保存 APK 文件: %1"
+msgstr "无法保存 APK 文件：%1"
 
 #: dashboard/apk_installer.cpp:171
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
-msgstr "正在下载 APK: %1 MB / %2 MB"
+msgstr "正在下载 APK：%1 MB / %2 MB"
 
 #: dashboard/apk_installer.cpp:173
 #, kde-format
 msgid "Downloading APK: %1 MB"
-msgstr "正在下载 APK: %1 MB"
+msgstr "正在下载 APK：%1 MB"
 
 #: dashboard/apk_installer.cpp:182
 #, kde-format
@@ -42,7 +42,7 @@ msgstr "下载已取消"
 #: dashboard/apk_installer.cpp:198
 #, kde-format
 msgid "Cannot download APK: %1"
-msgstr "无法下载 APK: %1"
+msgstr "无法下载 APK：%1"
 
 #: dashboard/apk_installer.cpp:221
 #, kde-format
@@ -52,17 +52,17 @@ msgstr "正在安装 APK"
 #: dashboard/apk_installer.cpp:225
 #, kde-format
 msgid "adb failed to start: %1"
-msgstr "adb 启动失败: %1"
+msgstr "adb 启动失败：%1"
 
 #: dashboard/apk_installer.cpp:235
 #, kde-format
 msgid "adb exited abnormally: %1"
-msgstr "adb 异常终止: %1"
+msgstr "adb 异常终止：%1"
 
 #: dashboard/apk_installer.cpp:243
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
-msgstr "'adb install' 执行失败: 终止代码 %1"
+msgstr "'adb install' 执行失败：终止代码 %1"
 
 #: dashboard/apk_installer.cpp:248
 #, kde-format
@@ -112,15 +112,15 @@ msgstr "在您的头显上安装 WiVRn 应用程序"
 #: dashboard/qml/WizardPage.qml:192
 #, kde-format
 msgid "Checking latest release..."
-msgstr "正在检查最新版本..."
+msgstr "正在检查最新版本…"
 
 #: dashboard/qml/ApkInstallPage.qml:43 dashboard/qml/WizardPage.qml:198
 #, kde-format
 msgid "No APK is available for this version"
 msgstr "此版本无预编译 APK"
 
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:350
-#: dashboard/qml/Main.qml:408 dashboard/qml/WizardPage.qml:211
+#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:376
+#: dashboard/qml/Main.qml:434 dashboard/qml/WizardPage.qml:211
 #: dashboard/qml/WizardPage.qml:337
 #, kde-format
 msgid "ADB is not installed"
@@ -139,7 +139,7 @@ msgid ""
 "client."
 msgstr ""
 "请按照 <a href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/"
-"building.md#client-headset\">文档</a>中的说明构建您自己的客户端。"
+"building.md#client-headset\">文档</a>中的说明来构建您自己的客户端。"
 
 #: dashboard/qml/ConnectUsbDialog.qml:11
 #, kde-format
@@ -161,7 +161,7 @@ msgstr "重新安装 WiVRn"
 msgid "Install WiVRn"
 msgstr "安装 WiVRn"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:413
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:439
 #, kde-format
 msgid "Headsets"
 msgstr "头显"
@@ -170,25 +170,25 @@ msgstr "头显"
 #, kde-format
 msgid "Last connection: %1 second ago"
 msgid_plural "Last connection: %1 seconds ago"
-msgstr[0] "上次连接时间：%1 秒前"
+msgstr[0] "上次连接：%1 秒前"
 
 #: dashboard/qml/HeadsetsPage.qml:31
 #, kde-format
 msgid "Last connection: %1 minute ago"
 msgid_plural "Last connection: %1 minutes ago"
-msgstr[0] "上次连接时间：%1 分鐘前"
+msgstr[0] "上次连接：%1 分钟前"
 
 #: dashboard/qml/HeadsetsPage.qml:33
 #, kde-format
 msgid "Last connection: %1 hour ago"
 msgid_plural "Last connection: %1 hours ago"
-msgstr[0] "上次连接时间：%1 小時前"
+msgstr[0] "上次连接：%1 小时前"
 
 #: dashboard/qml/HeadsetsPage.qml:35
 #, kde-format
 msgid "Last connection: %1 day ago"
 msgid_plural "Last connection: %1 days ago"
-msgstr[0] "上次连接时间：%1 天前"
+msgstr[0] "上次连接：%1 天前"
 
 #: dashboard/qml/HeadsetsPage.qml:40
 #, kde-format
@@ -257,39 +257,63 @@ msgstr "头显统计信息"
 msgid "WiVRn dashboard"
 msgstr "WiVRn 控制面板"
 
-#: dashboard/qml/Main.qml:124
+#: dashboard/qml/Main.qml:51
+#, kde-format
+msgid "Quit WiVRn"
+msgstr "退出 WiVRn"
+
+#: dashboard/qml/Main.qml:52
+#, kde-format
+msgid ""
+"The WiVRn server is active.\n"
+"Closing the window will terminate it."
+msgstr ""
+"WiVRn 服务正在运行。\n"
+"关闭当前窗口将会终止服务。"
+
+#: dashboard/qml/Main.qml:142
 #, kde-format
 msgid "Avahi daemon is not installed"
 msgstr "Avahi 守护进程未安装"
 
-#: dashboard/qml/Main.qml:132
+#: dashboard/qml/Main.qml:150
 #, kde-format
 msgid "Avahi daemon is not started"
 msgstr "Avahi 守护进程未启用"
 
-#: dashboard/qml/Main.qml:139 dashboard/qml/Main.qml:153
-#: dashboard/qml/Main.qml:205
+#: dashboard/qml/Main.qml:157 dashboard/qml/Main.qml:171
+#: dashboard/qml/Main.qml:231
 #, kde-format
 msgid "Fix it"
 msgstr "修复"
 
-#: dashboard/qml/Main.qml:147
+#: dashboard/qml/Main.qml:165
 #, kde-format
 msgid "Firewall may not allow port 9757"
 msgstr "防火墙可能禁止了端口 9757"
 
-#: dashboard/qml/Main.qml:161
+#: dashboard/qml/Main.qml:179
 #, kde-format
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
 msgstr "NVIDIA 显卡至少需要驱动程序版本 565.77，目前版本为 %1"
 
-#: dashboard/qml/Main.qml:167
+#: dashboard/qml/Main.qml:185
 #, kde-format
 msgid "More info"
 msgstr "更多信息"
 
-#: dashboard/qml/Main.qml:175
+#: dashboard/qml/Main.qml:193
+#, kde-format
+msgid "Vulkan drivers cannot be found, you may need to run \"flatpak update\""
+msgstr "无法找到 Vulkan 驱动，您或许需要执行「flatpak update」"
+
+#: dashboard/qml/Main.qml:193
+#, kde-format
+msgid "Vulkan drivers cannot be found"
+msgstr "无法找到 Vulkan 驱动"
+
+#: dashboard/qml/Main.qml:201
 #, kde-format
 msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
@@ -298,151 +322,151 @@ msgstr ""
 "AMD 显卡请使用 Mesa (radv) 驱动程序\n"
 "使用 vaapi 的硬件编码不适用于 AMDVLK 和 AMDGPU-PRO"
 
-#: dashboard/qml/Main.qml:183
+#: dashboard/qml/Main.qml:209
 #, kde-format
 msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
 "Install xrizer or OpenComposite."
 msgstr ""
 "系统未检测到 OpenVR 兼容层，Steam 平台上的 VR 游戏无法正常加载。\n"
-"请安装 xrizer 或 OpenComposite"
+"请安装 xrizer 或 OpenComposite。"
 
-#: dashboard/qml/Main.qml:191
+#: dashboard/qml/Main.qml:217
 #, kde-format
 msgid "Steam is installed as a snap. Snaps are not compatible with WiVRn."
 msgstr "Steam 是以 snap 方式安装的。Snap 与 WiVRn 不兼容。"
 
-#: dashboard/qml/Main.qml:199
+#: dashboard/qml/Main.qml:225
 #, kde-format
 msgid ""
 "Steam is installed as a flatpak but does not have sufficient permissions."
 msgstr "Steam 是以 flatpak 方式安装的，但权限不足。"
 
-#: dashboard/qml/Main.qml:214
+#: dashboard/qml/Main.qml:240
 #, kde-format
 msgid "Restart the server for configuration changes to take effect"
 msgstr "重新启动服务器以使配置更改生效。"
 
-#: dashboard/qml/Main.qml:220
+#: dashboard/qml/Main.qml:246
 #, kde-format
 msgctxt "restart the server"
 msgid "Restart now"
 msgstr "立即重新启动"
 
-#: dashboard/qml/Main.qml:245
+#: dashboard/qml/Main.qml:271
 #, kde-format
 msgid "Server failed to start"
 msgstr "服务器启动失败"
 
-#: dashboard/qml/Main.qml:251 dashboard/qml/TroubleshootPage.qml:89
+#: dashboard/qml/Main.qml:277 dashboard/qml/TroubleshootPage.qml:89
 #, kde-format
 msgid "Open server logs"
 msgstr "开启服务器日志"
 
-#: dashboard/qml/Main.qml:277
+#: dashboard/qml/Main.qml:303
 #, kde-format
 msgid "Server status"
 msgstr "服务器状态"
 
-#: dashboard/qml/Main.qml:283
+#: dashboard/qml/Main.qml:309
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
 msgstr "运行"
 
-#: dashboard/qml/Main.qml:296
+#: dashboard/qml/Main.qml:322
 #, kde-format
 msgctxt "whether pairing is enabled, displayed in front of a checkbox"
 msgid "Pairing"
 msgstr "配对"
 
-#: dashboard/qml/Main.qml:316
+#: dashboard/qml/Main.qml:342
 #, kde-format
 msgid "Headset status"
 msgstr "头显状态"
 
-#: dashboard/qml/Main.qml:323
+#: dashboard/qml/Main.qml:349
 #, kde-format
 msgctxt "label for headset name/status under server running switch"
 msgid "Headset"
 msgstr "头显"
 
-#: dashboard/qml/Main.qml:326
+#: dashboard/qml/Main.qml:352
 #, kde-format
 msgid "Not connected"
 msgstr "未连接"
 
-#: dashboard/qml/Main.qml:330
+#: dashboard/qml/Main.qml:356
 #, kde-format
 msgid "Disconnect"
 msgstr "断开连接"
 
-#: dashboard/qml/Main.qml:339 dashboard/qml/Main.qml:347
-#: dashboard/qml/Main.qml:354
+#: dashboard/qml/Main.qml:365 dashboard/qml/Main.qml:373
+#: dashboard/qml/Main.qml:380
 #, kde-format
 msgctxt "label for USB status or connect button"
 msgid "USB"
 msgstr "USB"
 
-#: dashboard/qml/Main.qml:340
+#: dashboard/qml/Main.qml:366
 #, kde-format
 msgctxt "usb connect button"
 msgid "Connect (wired)"
-msgstr "链接 (有线)"
+msgstr "连接 (有线)"
 
-#: dashboard/qml/Main.qml:357 dashboard/qml/WizardPage.qml:339
+#: dashboard/qml/Main.qml:383 dashboard/qml/WizardPage.qml:339
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
 msgstr "没有检测到头显，或您的头显未启用开发者模式"
 
-#: dashboard/qml/Main.qml:378
+#: dashboard/qml/Main.qml:404
 #, kde-format
 msgid "Steam information"
 msgstr "Steam 信息"
 
-#: dashboard/qml/Main.qml:394
+#: dashboard/qml/Main.qml:420
 #, kde-format
 msgid "Wizard"
 msgstr "向导"
 
-#: dashboard/qml/Main.qml:400
+#: dashboard/qml/Main.qml:426
 #, kde-format
 msgid "Install the app"
 msgstr "安装应用程序"
 
-#: dashboard/qml/Main.qml:419 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:445 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "设置"
 
-#: dashboard/qml/Main.qml:425
+#: dashboard/qml/Main.qml:451
 #, kde-format
 msgid "About"
 msgstr "关于"
 
-#: dashboard/qml/Main.qml:430 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:456 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "疑难解答"
 
-#: dashboard/qml/Main.qml:437
+#: dashboard/qml/Main.qml:463
 #, kde-format
 msgid "Version %1"
 msgstr "版本 %1"
 
-#: dashboard/qml/SelectGame.qml:14
+#: dashboard/qml/SelectGame.qml:12
 #, kde-format
 msgctxt "don't start an application automatically"
 msgid "None"
 msgstr "无"
 
-#: dashboard/qml/SelectGame.qml:20
+#: dashboard/qml/SelectGame.qml:18
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "自定义"
 
-#: dashboard/qml/SelectGame.qml:72
+#: dashboard/qml/SelectGame.qml:70
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
@@ -461,7 +485,7 @@ msgstr "重置"
 #: dashboard/qml/SettingsPage.qml:40
 #, kde-format
 msgid "Encoder:"
-msgstr "编码:"
+msgstr "编码器："
 
 #: dashboard/qml/SettingsPage.qml:46
 #, kde-format
@@ -472,17 +496,17 @@ msgstr "自动"
 #: dashboard/qml/SettingsPage.qml:50
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
-msgstr "nvenc (NVIDIA GPUs)"
+msgstr "nvenc (NVIDIA 显卡)"
 
 #: dashboard/qml/SettingsPage.qml:54
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
-msgstr "vaapi (AMD 和 Intel GPUs)"
+msgstr "vaapi (AMD 和 Intel 显卡)"
 
 #: dashboard/qml/SettingsPage.qml:58
 #, kde-format
 msgid "Vulkan (Any modern GPU)"
-msgstr "Vulkan (任何现代 GPU)"
+msgstr "Vulkan (任何现代显卡)"
 
 #: dashboard/qml/SettingsPage.qml:62
 #, kde-format
@@ -555,7 +579,7 @@ msgstr "自定义 adb 路径"
 #: dashboard/qml/SettingsPage.qml:145
 #, kde-format
 msgid "Adb location:"
-msgstr "adb 路径："
+msgstr "ADB 路径："
 
 #: dashboard/qml/SettingsPage.qml:154
 #, kde-format
@@ -579,15 +603,21 @@ msgstr "自定义"
 msgid "Disabled"
 msgstr "已停用"
 
-#: dashboard/qml/SettingsPage.qml:191
+#: dashboard/qml/SettingsPage.qml:199
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR 兼容层："
 
-#: dashboard/qml/SettingsPage.qml:217
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "兼容层路径，不包含 bin/linux64/vrclient.so"
+
+#: dashboard/qml/SettingsPage.qml:234
+#, kde-format
+msgctxt "browse to choose the OpenVR compatility to use"
+msgid "Browse"
+msgstr "浏览"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
@@ -596,7 +626,7 @@ msgid ""
 "General and paste this in \"Launch options\":"
 msgstr ""
 "对于 Steam 游戏，在 Steam 中右键点击游戏，前往「属性」>「通用」，然后将此文本"
-"粘贴到「启动选项」中:"
+"粘贴到「启动选项」中："
 
 #: dashboard/qml/SteamLaunchOptions.qml:20
 #, kde-format
@@ -612,12 +642,12 @@ msgstr "复制"
 #: dashboard/qml/SteamLaunchOptions.qml:30
 #, kde-format
 msgid "Copied Steam launch command"
-msgstr "已复制 Steam 自动指令"
+msgstr "已复制 Steam 启动命令"
 
 #: dashboard/qml/TroubleshootPage.qml:20
 #, kde-format
 msgid "I cannot find the WiVRn app on my headset"
-msgstr "我在我的头显上找不到 WiVRn 应用程序。"
+msgstr "在头显上找不到 WiVRn 应用程序。"
 
 #: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:353
 #, kde-format
@@ -625,34 +655,34 @@ msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"如果您通过 USB 在 Meta 头显上安裝了 WiVRn，该应用程序将在「未知来源」中。"
+"如果您通过 USB 在 Meta 头显上安装了 WiVRn，该应用程序将在「未知来源」中。"
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
 msgid "I cannot see my computer in the WiVRn app"
-msgstr "我在 WiVRn 应用程序中看不到我的计算机。"
+msgstr "在 WiVRn 应用程序中看不到计算机。"
 
 #: dashboard/qml/TroubleshootPage.qml:25
 #, kde-format
 msgid "If you have a firewall, make sure that port 5353/UDP is open."
-msgstr "如果你有防火墙，请确保端口 5353/UDP 是开放的。"
+msgstr "如果您有防火墙，请确保端口 5353/UDP 是开放的。"
 
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
 msgid "Connecting remains stuck on \"Connection to ...\""
-msgstr "连接过程一直停留在 \"正在连接到 …\""
+msgstr "连接过程一直停留在「正在连接到 …」"
 
 #: dashboard/qml/TroubleshootPage.qml:29 dashboard/qml/TroubleshootPage.qml:33
 #, kde-format
 msgid ""
 "If you have a firewall, make sure that port 9757 is open both for TCP and "
 "UDP."
-msgstr "如果你有防火墙，请确保端口 9757 在 TCP 和 UDP 下都是开放的。"
+msgstr "如果您有防火墙，请确保端口 9757 在 TCP 和 UDP 下都是开放的。"
 
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
 msgid "Connection fails with \"no route to host\""
-msgstr "连接失败，错误信息为 \"no route to host\""
+msgstr "连接失败，错误信息为「no route to host」"
 
 #: dashboard/qml/TroubleshootPage.qml:36
 #, kde-format
@@ -667,7 +697,7 @@ msgid ""
 "server version is <b>%1</b></li></ul>"
 msgstr ""
 "<p>头显应用程序与计算机上服务器的版本必须一致。</p><ul><li>头显应用程序版本位"
-"于\"关于\"页面</li><li>服务器版本是<b>%1</b></li></ul>"
+"于「关于」页面</li><li>服务器版本是<b>%1</b></li></ul>"
 
 #: dashboard/qml/TroubleshootPage.qml:40
 #, kde-format
@@ -680,7 +710,7 @@ msgid ""
 "If you have reinstalled the server or the client or if you want to connect "
 "another headset, you must enable pairing before connecting."
 msgstr ""
-"如果您已重新安装服务器或客户端，或如果您想连接另一个头显，您必须在连接前启用"
+"如果您已重新安装服务器或客户端，或想连接另一个头显，必须在连接前启用"
 "配对。"
 
 #: dashboard/qml/TroubleshootPage.qml:41
@@ -691,7 +721,7 @@ msgstr "目前已启用配对，身份识别码为 %1。"
 #: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
 msgid "Pairing is currently disabled."
-msgstr "目前已停用配对"
+msgstr "目前已停用配对。"
 
 #: dashboard/qml/TroubleshootPage.qml:57
 #, kde-format
@@ -703,7 +733,7 @@ msgstr "我的头显没有声音"
 msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
 "device for applications to use it."
-msgstr "连接头显后，选择 \"WiVRn\" 作为应用程序的预设音频输出设备。"
+msgstr "连接头显后，选择「WiVRn」作为应用程序的预设音频输出设备。"
 
 #: dashboard/qml/TroubleshootPage.qml:61
 #, kde-format
@@ -767,7 +797,7 @@ msgstr "如何启用开发者模式"
 #: dashboard/qml/WizardPage.qml:119
 #, kde-format
 msgid "Follow the manufacturer's instructions below:"
-msgstr "请按照以下设备提供商的说明操作:"
+msgstr "请按照以下设备提供商的说明操作："
 
 #: dashboard/qml/WizardPage.qml:142
 #, kde-format
@@ -791,7 +821,7 @@ msgid ""
 "href=\"https://www.meta.com/experiences/7959676140827574/\">Meta store</a>."
 msgstr ""
 "对于 Quest 2、3、3S 和 Pro，您可以从 <a href=\"https://www.meta.com/"
-"experiences/7959676140827574/\">Meta 商店</a>获取应用程序."
+"experiences/7959676140827574/\">Meta 商店</a>获取应用程序。"
 
 #: dashboard/qml/WizardPage.qml:164
 #, kde-format
@@ -825,8 +855,8 @@ msgid ""
 "<ul><li>The ADB udev rules are installed</li><li>The headset is in <a "
 "href=\"#\">developer mode</a></li></ul></p>"
 msgstr ""
-"<p>未检测到头显。请确认:\n"
-"<ul><li>已安裝 ADB udev 规则</li><li>头显已启用 <a href=\"#\">开发者模式</"
+"<p>未检测到头显。请确认：\n"
+"<ul><li>已安装 ADB udev 规则</li><li>头显已启用 <a href=\"#\">开发者模式</"
 "a></li></ul></p>"
 
 #: dashboard/qml/WizardPage.qml:295
@@ -839,7 +869,7 @@ msgstr "重要信息"
 msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
 "running."
-msgstr "WiVRn 完全取代了 SteamVR，在 WiVRn 运行时，请勿启动 SteamVR"
+msgstr "WiVRn 完全取代了 SteamVR，在 WiVRn 运行时，请勿启动 SteamVR。"
 
 #: dashboard/qml/WizardPage.qml:313
 #, kde-format
@@ -852,13 +882,13 @@ msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
 "and enter PIN \"%2\"."
 msgstr ""
-"要通过 WiFi 连接，请在您的头显上启动 WiVRn 应用程序，连接至 \"%1\" 并输入身份"
-"识别码 \"%2\"。"
+"要通过 WiFi 连接，请在您的头显上启动 WiVRn 应用程序，连接至「%1」并输入身份"
+"识别码「%2」。"
 
 #: dashboard/qml/WizardPage.qml:326
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
-msgstr "要通过 USB 连接，请点击 \"通过 USB 连接\"。"
+msgstr "要通过 USB 连接，请点击「通过 USB 连接」。"
 
 #: dashboard/qml/WizardPage.qml:329
 #, kde-format
@@ -876,8 +906,8 @@ msgid ""
 "If the server is not visible or the connection fails, check that ports 5353 "
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
-"如果服务器不可见或连接失败，请检查防火墙中端口 5353（UDP）和 9757（TCP 和 "
-"UDP）是否开放。"
+"如果服务器不可见或连接失败，请检查防火墙是否开放了端口 5353（UDP）和 9757（TCP 和 "
+"UDP）。"
 
 #: dashboard/qml/WizardPage.qml:371
 #, kde-format
@@ -899,7 +929,7 @@ msgstr "已连接您的头显。"
 msgid ""
 "To connect another headset, make sure pairing is enabled in the dashboard "
 "before connecting."
-msgstr "如果要连接其他头显，请确保在连接之前在控制面板中启用配对。"
+msgstr "如果要连接其他头显，请确保连接前在控制面板中启用配对。"
 
 #: dashboard/qml/WizardPage.qml:423 dashboard/qml/WizardPage.qml:460
 #, kde-format
@@ -911,19 +941,19 @@ msgstr "完成"
 msgid "Finished"
 msgstr "已完成"
 
-#: dashboard/wivrn_server.cpp:538
+#: dashboard/wivrn_server.cpp:540
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:539
+#: dashboard/wivrn_server.cpp:541
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
 
 #, kde-format
 #~ msgid "PIN: %1"
-#~ msgstr "身份识别码: %1"
+#~ msgstr "身份识别码：%1"
 
 #, kde-format
 #~ msgctxt "automatically started application"
@@ -947,7 +977,7 @@ msgstr "Open Composite"
 
 #, kde-format
 #~ msgid "Foveation strength:"
-#~ msgstr "注视点渲染强度:"
+#~ msgstr "注视点渲染强度："
 
 #, kde-format
 #~ msgid "%1 %"
@@ -984,7 +1014,7 @@ msgstr "Open Composite"
 
 #, kde-format
 #~ msgid "Bitrate:"
-#~ msgstr "码率:"
+#~ msgstr "码率："
 
 #, kde-format
 #~ msgctxt "bitrate"
@@ -993,7 +1023,7 @@ msgstr "Open Composite"
 
 #, kde-format
 #~ msgid "Codec:"
-#~ msgstr "编码器:"
+#~ msgstr "编码器："
 
 #, kde-format
 #~ msgctxt "automatic codec setup"
@@ -1024,12 +1054,12 @@ msgstr "Open Composite"
 
 #, kde-format
 #~ msgid "The server does not have CAP_SYS_NICE capabilities"
-#~ msgstr "服务器没有 CAP_SYS_NICE 权限"
+#~ msgstr "服务器没有 CAP_SYS_NICE 能力"
 
 #, kde-format
 #~ msgid ""
 #~ "The CAP_SYS_NICE capability will be used when the server is restarted"
-#~ msgstr "CAP_SYS_NICE 权限将在服务器重新启动时生效"
+#~ msgstr "CAP_SYS_NICE 能力将在服务器重新启动时生效"
 
 #, kde-format
 #~ msgid "No precompiled APK is available for this version"
@@ -1037,7 +1067,7 @@ msgstr "Open Composite"
 
 #, kde-format
 #~ msgid "Encoder layout:"
-#~ msgstr "编码器布局:"
+#~ msgstr "编码器布局："
 
 #, kde-format
 #~ msgctxt "encoder preset"

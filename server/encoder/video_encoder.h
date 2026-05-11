@@ -37,7 +37,7 @@ namespace wivrn
 {
 
 struct encoder_settings;
-struct wivrn_vk_bundle;
+struct vk_bundle;
 class wivrn_session;
 
 inline const char * encoder_nvenc = "nvenc";
@@ -76,6 +76,8 @@ private:
 
 public:
 	const uint8_t stream_idx;
+	const uint32_t target_queue;
+	const bool need_transfer;
 	static const uint8_t num_slots = 2;
 	const double bitrate_multiplier;
 
@@ -111,21 +113,22 @@ protected:
 
 public:
 	static std::unique_ptr<video_encoder> create(
-	        wivrn_vk_bundle &,
+	        wivrn::vk_bundle &,
 	        const encoder_settings & settings,
 	        uint8_t stream_idx);
 
-	video_encoder(uint8_t stream_idx, const encoder_settings & settings, std::unique_ptr<idr_handler>, bool async_send);
+	video_encoder(vk_bundle &, uint8_t stream_idx, uint32_t target_queue, const encoder_settings & settings, std::unique_ptr<idr_handler>, bool async_send);
 	virtual ~video_encoder();
 
-	// return value: true if image should be transitioned to queue and layout for vulkan video encode
-	// semaphore to be signaled by the compositor
-	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index);
-	void post_submit();
+	void present_image(vk::Image y_cbcr,
+	                   vk::SemaphoreSubmitInfo sem_info,
+	                   uint64_t frame_index);
 
 	void on_feedback(const from_headset::feedback &);
 	void reset();
 
+	// bitrate_bps is the bitrate for the whole stream
+	// the encoder bitrate will be scaled accordingly
 	void set_bitrate(uint32_t bitrate_bps);
 	void set_framerate(float framerate);
 
@@ -133,10 +136,13 @@ public:
 	            const to_headset::video_stream_data_shard::view_info_t & view_info,
 	            uint64_t frame_index);
 
+protected:
 	// called on present to submit command buffers for the image.
-	virtual std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) = 0;
-	// called after command buffer passed in present_image was submitted
-	virtual void post_submit(uint8_t slot) {}
+	virtual void present_image(vk::Image y_cbcr,
+	                           vk::SemaphoreSubmitInfo sem_info,
+	                           uint8_t slot,
+	                           uint64_t frame_index) = 0;
+
 	// called when command buffer finished executing
 	virtual std::optional<data> encode(uint8_t slot, uint64_t frame_index) = 0;
 

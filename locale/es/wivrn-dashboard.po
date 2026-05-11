@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-07 09:11+0100\n"
+"POT-Creation-Date: 2026-04-27 14:03+0200\n"
 "PO-Revision-Date: 2025-11-19 20:20+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish <>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Lokalize 25.08.3\n"
+"X-Generator: Qt Linguist 6.11.0\n"
 "X-Language: es_ES\n"
 "X-Source-Language: en_US\n"
 
@@ -119,8 +119,8 @@ msgstr "Comprobando la última versión..."
 msgid "No APK is available for this version"
 msgstr "No hay ningún APK disponible para esta versión"
 
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:350
-#: dashboard/qml/Main.qml:408 dashboard/qml/WizardPage.qml:211
+#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:376
+#: dashboard/qml/Main.qml:434 dashboard/qml/WizardPage.qml:211
 #: dashboard/qml/WizardPage.qml:337
 #, kde-format
 msgid "ADB is not installed"
@@ -135,13 +135,13 @@ msgstr ""
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
 msgid ""
-"Follow the instructions in the <a "
-"href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset\">documentation</a> "
-"to build your own client."
+"Follow the instructions in the <a href=\"https://github.com/WiVRn/WiVRn/blob/"
+"master/docs/building.md#client-headset\">documentation</a> to build your own "
+"client."
 msgstr ""
-"Sigue las instrucciones en la <a "
-"href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset\">documentación</a> "
-"para compilar tu propio cliente."
+"Sigue las instrucciones en la <a href=\"https://github.com/WiVRn/WiVRn/blob/"
+"master/docs/building.md#client-headset\">documentación</a> para compilar tu "
+"propio cliente."
 
 #: dashboard/qml/ConnectUsbDialog.qml:11
 #, kde-format
@@ -163,7 +163,7 @@ msgstr "Reinstalar WiVRn"
 msgid "Install WiVRn"
 msgstr "Instalar WiVRn"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:413
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:439
 #, kde-format
 msgid "Headsets"
 msgstr "Visores"
@@ -265,28 +265,42 @@ msgstr "Estadísticas del visor"
 msgid "WiVRn dashboard"
 msgstr "Panel de control de WiVRn"
 
-#: dashboard/qml/Main.qml:124
+#: dashboard/qml/Main.qml:51
+#, kde-format
+msgid "Quit WiVRn"
+msgstr "Salir de WiVRn"
+
+#: dashboard/qml/Main.qml:52
+#, kde-format
+msgid ""
+"The WiVRn server is active.\n"
+"Closing the window will terminate it."
+msgstr ""
+"El servidor de WiVRn está activo.\n"
+"Cerrar la ventana parará el servidor."
+
+#: dashboard/qml/Main.qml:142
 #, kde-format
 msgid "Avahi daemon is not installed"
 msgstr "El servicio Avahi no está instalado"
 
-#: dashboard/qml/Main.qml:132
+#: dashboard/qml/Main.qml:150
 #, kde-format
 msgid "Avahi daemon is not started"
 msgstr "El servicio Avahi no está iniciado"
 
-#: dashboard/qml/Main.qml:139 dashboard/qml/Main.qml:153
-#: dashboard/qml/Main.qml:205
+#: dashboard/qml/Main.qml:157 dashboard/qml/Main.qml:171
+#: dashboard/qml/Main.qml:231
 #, kde-format
 msgid "Fix it"
 msgstr "Arreglarlo"
 
-#: dashboard/qml/Main.qml:147
+#: dashboard/qml/Main.qml:165
 #, kde-format
 msgid "Firewall may not allow port 9757"
 msgstr "El firewall podría no permitir el puerto 9757"
 
-#: dashboard/qml/Main.qml:161
+#: dashboard/qml/Main.qml:179
 #, kde-format
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
@@ -294,12 +308,24 @@ msgstr ""
 "Las GPU NVIDIA requieren al menos la versión 565.77 del controlador, la "
 "versión actual es %1"
 
-#: dashboard/qml/Main.qml:167
+#: dashboard/qml/Main.qml:185
 #, kde-format
 msgid "More info"
 msgstr "Más información"
 
-#: dashboard/qml/Main.qml:175
+#: dashboard/qml/Main.qml:193
+#, kde-format
+msgid "Vulkan drivers cannot be found, you may need to run \"flatpak update\""
+msgstr ""
+"Los drivers Vulkan no se han encontrado, puede ser que necesite ejecutar "
+"\"flatpak update\""
+
+#: dashboard/qml/Main.qml:193
+#, kde-format
+msgid "Vulkan drivers cannot be found"
+msgstr "Los drivers Vulkan no se han encontrado"
+
+#: dashboard/qml/Main.qml:201
 #, kde-format
 msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
@@ -308,7 +334,7 @@ msgstr ""
 "Usa el controlador Mesa (radv) para las GPU AMD\n"
 "La codificación por hardware con vaapi no funciona con AMDVLK y AMDGPU-PRO"
 
-#: dashboard/qml/Main.qml:183
+#: dashboard/qml/Main.qml:209
 #, kde-format
 msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
@@ -318,144 +344,144 @@ msgstr ""
 "en VR.\n"
 "Instala xrizer o OpenComposite."
 
-#: dashboard/qml/Main.qml:191
+#: dashboard/qml/Main.qml:217
 #, kde-format
 msgid "Steam is installed as a snap. Snaps are not compatible with WiVRn."
 msgstr ""
 "Steam está instalado mediante snap. Los Snaps no son compatibles con WiVRn."
 
-#: dashboard/qml/Main.qml:199
+#: dashboard/qml/Main.qml:225
 #, kde-format
 msgid ""
 "Steam is installed as a flatpak but does not have sufficient permissions."
 msgstr ""
 "Steam está instalado con flatpak, pero no tiene los suficientes permisos."
 
-#: dashboard/qml/Main.qml:214
+#: dashboard/qml/Main.qml:240
 #, kde-format
 msgid "Restart the server for configuration changes to take effect"
 msgstr "Reinicia el servidor para que los cambios surtan efecto"
 
-#: dashboard/qml/Main.qml:220
+#: dashboard/qml/Main.qml:246
 #, kde-format
 msgctxt "restart the server"
 msgid "Restart now"
 msgstr "Reiniciar ahora"
 
-#: dashboard/qml/Main.qml:245
+#: dashboard/qml/Main.qml:271
 #, kde-format
 msgid "Server failed to start"
 msgstr "El servidor no pudo iniciar"
 
-#: dashboard/qml/Main.qml:251 dashboard/qml/TroubleshootPage.qml:89
+#: dashboard/qml/Main.qml:277 dashboard/qml/TroubleshootPage.qml:89
 #, kde-format
 msgid "Open server logs"
 msgstr "Abrir registros del servidor"
 
-#: dashboard/qml/Main.qml:277
+#: dashboard/qml/Main.qml:303
 #, kde-format
 msgid "Server status"
 msgstr "Estado del servidor"
 
-#: dashboard/qml/Main.qml:283
+#: dashboard/qml/Main.qml:309
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
 msgstr "En ejecución"
 
-#: dashboard/qml/Main.qml:296
+#: dashboard/qml/Main.qml:322
 #, kde-format
 msgctxt "whether pairing is enabled, displayed in front of a checkbox"
 msgid "Pairing"
 msgstr "Emparejando"
 
-#: dashboard/qml/Main.qml:316
+#: dashboard/qml/Main.qml:342
 #, kde-format
 msgid "Headset status"
 msgstr "Estado del visor"
 
-#: dashboard/qml/Main.qml:323
+#: dashboard/qml/Main.qml:349
 #, kde-format
 msgctxt "label for headset name/status under server running switch"
 msgid "Headset"
 msgstr "Visor"
 
-#: dashboard/qml/Main.qml:326
+#: dashboard/qml/Main.qml:352
 #, kde-format
 msgid "Not connected"
 msgstr "No conectado"
 
-#: dashboard/qml/Main.qml:330
+#: dashboard/qml/Main.qml:356
 #, kde-format
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#: dashboard/qml/Main.qml:339 dashboard/qml/Main.qml:347
-#: dashboard/qml/Main.qml:354
+#: dashboard/qml/Main.qml:365 dashboard/qml/Main.qml:373
+#: dashboard/qml/Main.qml:380
 #, kde-format
 msgctxt "label for USB status or connect button"
 msgid "USB"
 msgstr "USB"
 
-#: dashboard/qml/Main.qml:340
+#: dashboard/qml/Main.qml:366
 #, kde-format
 msgctxt "usb connect button"
 msgid "Connect (wired)"
 msgstr "Conectar (cableado)"
 
-#: dashboard/qml/Main.qml:357 dashboard/qml/WizardPage.qml:339
+#: dashboard/qml/Main.qml:383 dashboard/qml/WizardPage.qml:339
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
 msgstr "No hay ningún visor conectado o tu visor no está en modo desarrollador"
 
-#: dashboard/qml/Main.qml:378
+#: dashboard/qml/Main.qml:404
 #, kde-format
 msgid "Steam information"
 msgstr "Información de Steam"
 
-#: dashboard/qml/Main.qml:394
+#: dashboard/qml/Main.qml:420
 #, kde-format
 msgid "Wizard"
 msgstr "Asistente"
 
-#: dashboard/qml/Main.qml:400
+#: dashboard/qml/Main.qml:426
 #, kde-format
 msgid "Install the app"
 msgstr "Instalar aplicación"
 
-#: dashboard/qml/Main.qml:419 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:445 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "Ajustes"
 
-#: dashboard/qml/Main.qml:425
+#: dashboard/qml/Main.qml:451
 #, kde-format
 msgid "About"
 msgstr "Acerca de"
 
-#: dashboard/qml/Main.qml:430 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:456 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "Solucionar problemas"
 
-#: dashboard/qml/Main.qml:437
+#: dashboard/qml/Main.qml:463
 #, kde-format
 msgid "Version %1"
 msgstr "Versión %1"
 
-#: dashboard/qml/SelectGame.qml:14
+#: dashboard/qml/SelectGame.qml:12
 #, kde-format
 msgctxt "don't start an application automatically"
 msgid "None"
 msgstr "Ninguno"
 
-#: dashboard/qml/SelectGame.qml:20
+#: dashboard/qml/SelectGame.qml:18
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SelectGame.qml:72
+#: dashboard/qml/SelectGame.qml:61
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
@@ -507,27 +533,27 @@ msgstr "x264 (codificación por software)"
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "\"Auto\" utilizará aceleración por hardware si está disponible"
 
-#: dashboard/qml/SettingsPage.qml:88
+#: dashboard/qml/SettingsPage.qml:89
 #, kde-format
 msgid "Autostart application:"
 msgstr "Aplicación a autoiniciar:"
 
-#: dashboard/qml/SettingsPage.qml:96
+#: dashboard/qml/SettingsPage.qml:97
 #, kde-format
 msgid "Advanced options"
 msgstr "Opciones avanzadas"
 
-#: dashboard/qml/SettingsPage.qml:102
+#: dashboard/qml/SettingsPage.qml:103
 #, kde-format
 msgid "Check system configuration on start"
 msgstr "Comprobar configuración del sistema al iniciar"
 
-#: dashboard/qml/SettingsPage.qml:108
+#: dashboard/qml/SettingsPage.qml:109
 #, kde-format
 msgid "Forward keyboard & mouse from headset"
 msgstr "Pasar el teclado y raton del visor"
 
-#: dashboard/qml/SettingsPage.qml:111
+#: dashboard/qml/SettingsPage.qml:112
 #, kde-format
 msgid ""
 "Keyboard and mouse connected to the client will act as if connected to the "
@@ -538,17 +564,17 @@ msgstr ""
 "conectado al servidor. El SO del cliente podria reservarse ciertas teclas y "
 "combinaciones, los cuales no podrán ser enviados."
 
-#: dashboard/qml/SettingsPage.qml:116
+#: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid "Enable debug window"
 msgstr "Habilitar ventana de depuración"
 
-#: dashboard/qml/SettingsPage.qml:123
+#: dashboard/qml/SettingsPage.qml:124
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Habilitar soporte para dispositivos de seguimiento a través de SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:126
+#: dashboard/qml/SettingsPage.qml:127
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -562,47 +588,53 @@ msgstr ""
 "Los dispositivos deben de estar encendidos antes de conectarte a WiVRn.\n"
 "Una herramienta externa como motoc será necesaria para la calibración."
 
-#: dashboard/qml/SettingsPage.qml:134
+#: dashboard/qml/SettingsPage.qml:135
 #, kde-format
 msgid "Custom adb location"
 msgstr "Ruta de adb personalizada"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:146
 #, kde-format
 msgid "Adb location:"
 msgstr "Ruta de adb:"
 
-#: dashboard/qml/SettingsPage.qml:154
+#: dashboard/qml/SettingsPage.qml:155
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Explorar"
 
-#: dashboard/qml/SettingsPage.qml:164
+#: dashboard/qml/SettingsPage.qml:165
 #, kde-format
 msgid "Default"
 msgstr "Por defecto"
 
-#: dashboard/qml/SettingsPage.qml:178
+#: dashboard/qml/SettingsPage.qml:179
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SettingsPage.qml:183
+#: dashboard/qml/SettingsPage.qml:184
 #, kde-format
 msgid "Disabled"
 msgstr "Deshabilitado"
 
-#: dashboard/qml/SettingsPage.qml:191
+#: dashboard/qml/SettingsPage.qml:200
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Librería de compatibilidad para OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:217
+#: dashboard/qml/SettingsPage.qml:230
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Ruta de librería, excluyendo bin/linux64/vrclient.so"
+
+#: dashboard/qml/SettingsPage.qml:235
+#, kde-format
+msgctxt "browse to choose the OpenVR compatility to use"
+msgid "Browse"
+msgstr "Explorar"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
@@ -682,9 +714,9 @@ msgstr "Tengo un error de \"Servidor WiVRn incompatible\" en mi visor"
 #: dashboard/qml/TroubleshootPage.qml:37
 #, kde-format
 msgid ""
-"<p>The version of the headset app and the server on your computer must "
-"match.</p><ul><li>The headset app version is in the \"About\" "
-"page</li><li>The server version is <b>%1</b></li></ul>"
+"<p>The version of the headset app and the server on your computer must match."
+"</p><ul><li>The headset app version is in the \"About\" page</li><li>The "
+"server version is <b>%1</b></li></ul>"
 msgstr ""
 "<p>La versión de la aplicación del visor y la del servidor en tu computadora "
 "deben coincidir.</p><ul><li>La versión de la aplicación del visor está en la "
@@ -736,13 +768,12 @@ msgstr "Algunos juegos fallan al abrirse o tienen problemas de input"
 #: dashboard/qml/TroubleshootPage.qml:62
 #, kde-format
 msgid ""
-"For game specific issues, check on <a "
-"href=\"https://db.vronlinux.org/\">vronlinux DB</a> if there are known bugs "
-"or workarounds."
+"For game specific issues, check on <a href=\"https://db.vronlinux.org/"
+"\">vronlinux DB</a> if there are known bugs or workarounds."
 msgstr ""
-"Para problemas específicos de un juego, mirar en <a "
-"href=\"https://db.vronlinux.org/\">vronlinux DB</a> por si hubiese algún "
-"problema conocido o por soluciones."
+"Para problemas específicos de un juego, mirar en <a href=\"https://"
+"db.vronlinux.org/\">vronlinux DB</a> por si hubiese algún problema conocido "
+"o por soluciones."
 
 #: dashboard/qml/TroubleshootPage.qml:79
 #, kde-format
@@ -946,12 +977,12 @@ msgstr "Finalizar"
 msgid "Finished"
 msgstr "Terminado"
 
-#: dashboard/wivrn_server.cpp:538
+#: dashboard/wivrn_server.cpp:540
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:539
+#: dashboard/wivrn_server.cpp:541
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"

@@ -29,6 +29,7 @@
 #include "vk/pipeline.h"
 #include "vk/shader.h"
 #include "vk/specialization_constants.h"
+#include <algorithm>
 #include <boost/pfr/core.hpp>
 #include <entt/entity/entity.hpp>
 #include <entt/entt.hpp>
@@ -339,7 +340,7 @@ scene_renderer::renderpass & scene_renderer::get_renderpass(const renderpass_inf
 
 scene_renderer::renderpass scene_renderer::create_renderpass(const renderpass_info & info_)
 {
-	vk::StructureChain<vk::RenderPassCreateInfo, vk::RenderPassFragmentDensityMapCreateInfoEXT, vk::RenderPassMultiviewCreateInfo> info;
+	vk::StructureChain<vk::RenderPassCreateInfo, vk::RenderPassMultiviewCreateInfo> info;
 	scene_renderer::renderpass rp;
 
 	std::vector<vk::AttachmentDescription> attachments;
@@ -390,29 +391,6 @@ scene_renderer::renderpass scene_renderer::create_renderpass(const renderpass_in
 		        .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
 		});
 	}
-
-	if (info_.fragment_density_map)
-	{
-		vk::RenderPassFragmentDensityMapCreateInfoEXT & fragment_density_info = info.get<vk::RenderPassFragmentDensityMapCreateInfoEXT>();
-		rp.fragment_density_attachment = {
-		        .attachment = (uint32_t)attachments.size(),
-		        .layout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
-		};
-		fragment_density_info.fragmentDensityMapAttachment = {
-		        .attachment = (uint32_t)attachments.size(),
-		        .layout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
-		};
-		attachments.push_back(vk::AttachmentDescription{
-		        .format = vk::Format::eR8G8Unorm,
-		        .samples = vk::SampleCountFlagBits::e1,
-		        .loadOp = vk::AttachmentLoadOp::eLoad,
-		        .storeOp = vk::AttachmentStoreOp::eDontCare,
-		        .initialLayout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
-		        .finalLayout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
-		});
-	}
-	else
-		info.unlink<vk::RenderPassFragmentDensityMapCreateInfoEXT>();
 
 	info.get().setAttachments(attachments);
 
@@ -572,27 +550,6 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 		        });
 	}
 
-	if (info.renderpass.fragment_density_map)
-	{
-		assert(info.foveation != VK_NULL_HANDLE);
-
-		out.foveation_view = vk::raii::ImageView(
-		        device,
-		        vk::ImageViewCreateInfo{
-		                .image = info.foveation,
-		                .viewType = vk::ImageViewType::e2DArray,
-		                .format = vk::Format::eR8G8Unorm,
-		                .components{},
-		                .subresourceRange = {
-		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                        .baseMipLevel = 0,
-		                        .levelCount = 1,
-		                        .baseArrayLayer = 0,
-		                        .layerCount = info.renderpass.multiview_count,
-		                },
-		        });
-	}
-
 	vk::FramebufferCreateInfo fb_info{
 	        .renderPass = *get_renderpass(info.renderpass).renderpass,
 	        .width = info.output_size.width,
@@ -616,9 +573,6 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 	}
 
 	attachments[rp.depth_attachment.attachment] = vk::ImageView{*out.depth_view};
-
-	if (rp.fragment_density_attachment)
-		attachments[rp.fragment_density_attachment->attachment] = vk::ImageView{*out.foveation_view};
 
 	fb_info.setAttachments(attachments);
 	out.framebuffer = vk::raii::Framebuffer(device, fb_info);
@@ -675,8 +629,8 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 {
 	spdlog::debug("Creating pipeline");
 
-	auto vertex_shader = shader_loader{device}(info.vertex_shader_name);
-	auto fragment_shader = shader_loader{device}(info.fragment_shader_name);
+	auto vertex_shader = load_shader(device, info.vertex_shader_name);
+	auto fragment_shader = load_shader(device, info.fragment_shader_name);
 
 	auto specialization = make_specialization_constants(
 	        int32_t(info.nb_texcoords),
@@ -732,7 +686,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                .ColorBlendState = {vk::PipelineColorBlendStateCreateInfo{}},
 	                .ColorBlendAttachments = {vk::PipelineColorBlendAttachmentState{
 	                        .blendEnable = info.blend_enable,
-	                        .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+	                        .srcColorBlendFactor = vk::BlendFactor::eOne,
 	                        .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
 	                        .colorBlendOp = vk::BlendOp::eAdd,
 	                        .srcAlphaBlendFactor = vk::BlendFactor::eOne,
@@ -910,7 +864,6 @@ void scene_renderer::render(
         vk::Format depth_format,
         vk::Image color_buffer,
         vk::Image depth_buffer,
-        vk::Image foveation_image,
         std::span<frame_info> frames,
         bool render_debug_draws)
 {
@@ -963,7 +916,6 @@ void scene_renderer::render(
 	        .keep_depth_buffer = depth_buffer != vk::Image{},
 	        .msaa_samples = vk::SampleCountFlagBits::e1,
 	        // .msaa_samples = vk::SampleCountFlagBits::e4, // FIXME: MSAA does not work
-	        .fragment_density_map = foveation_image != vk::Image{},
 	        .multiview_count = (uint32_t)frames.size(),
 	};
 	vk::raii::RenderPass & renderpass = get_renderpass(rp_info).renderpass;
@@ -1059,7 +1011,6 @@ void scene_renderer::render(
 	        .output_size = output_size,
 	        .color = color_buffer,
 	        .depth = depth_buffer,
-	        .foveation = foveation_image,
 	});
 
 	vk::DeviceSize frame_ubo_offset = resources.uniform_buffer_offset;
@@ -1106,8 +1057,12 @@ void scene_renderer::render(
 
 		// TODO: reuse the UBO if another primitive of the same mesh has already been drawn
 		vk::DeviceSize instance_ubo_offset = resources.uniform_buffer_offset;
+		vk::DeviceSize instance_ubo_size = sizeof(instance_gpu_data) + node.extra_shader_data.size();
+
 		instance_gpu_data & object_ubo = *reinterpret_cast<instance_gpu_data *>(ubo + resources.uniform_buffer_offset);
-		resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data));
+		std::span<std::byte> extra_shader_data{reinterpret_cast<std::byte *>(ubo + resources.uniform_buffer_offset + sizeof(instance_gpu_data)), node.extra_shader_data.size()};
+
+		resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data) + node.extra_shader_data.size());
 
 		vk::DeviceSize joints_ubo_offset = 0;
 		if (!node.joints.empty())
@@ -1130,7 +1085,7 @@ void scene_renderer::render(
 			object_ubo.modelview[frame_index] = frame.view * transform;
 			object_ubo.modelviewproj[frame_index] = viewproj[frame_index] * transform;
 		}
-		object_ubo.clipping_planes = node.clipping_planes;
+		std::ranges::copy(node.extra_shader_data, extra_shader_data.begin());
 
 		// Get the material
 		std::shared_ptr<renderer::material> material = primitive.material_ ? primitive.material_ : default_material;
@@ -1139,7 +1094,7 @@ void scene_renderer::render(
 		pipeline_info info{
 		        .renderpass = rp_info,
 		        .vertex_shader_name = primitive.vertex_shader,
-		        .fragment_shader_name = material->fragment_shader_name,
+		        .fragment_shader_name = material->fragment_shader,
 		        .vertex_layout = primitive.layout,
 		        .cull_mode = primitive.cull_mode,
 		        .front_face = primitive.front_face,
@@ -1187,7 +1142,7 @@ void scene_renderer::render(
 		vk::DescriptorBufferInfo buffer_info_2{
 		        .buffer = resources.uniform_buffer,
 		        .offset = instance_ubo_offset,
-		        .range = sizeof(instance_gpu_data),
+		        .range = instance_ubo_size,
 		};
 		vk::DescriptorBufferInfo buffer_info_3{
 		        .buffer = resources.uniform_buffer,

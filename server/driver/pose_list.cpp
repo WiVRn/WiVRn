@@ -100,9 +100,14 @@ pose_list::pose_list(wivrn::device_id id) : device(id)
 		dumper.emplace(dump);
 }
 
+std::pair<XrTime, XrTime> pose_list::get_bounds() const
+{
+	return positions.get_bounds();
+}
+
 void pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	if (source)
+	if (source or not offset)
 		return;
 
 	for (const auto & pose: tracking.device_poses)
@@ -255,13 +260,18 @@ std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
 
 	if (orientation.y)
 	{
-		flags(XRT_SPACE_RELATION_ORIENTATION_VALID_BIT | XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
+		if (auto norm2 = orientation.y->squaredNorm(); norm2 > 0.1)
+		{
+			flags(XRT_SPACE_RELATION_ORIENTATION_VALID_BIT | XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
 
-		ret.pose.orientation = {
-		        .x = (*orientation.y)[1],
-		        .y = (*orientation.y)[2],
-		        .z = (*orientation.y)[3],
-		        .w = (*orientation.y)[0]};
+			orientation.y->normalize();
+
+			ret.pose.orientation = {
+			        .x = (*orientation.y)[1],
+			        .y = (*orientation.y)[2],
+			        .z = (*orientation.y)[3],
+			        .w = (*orientation.y)[0]};
+		}
 
 		if (orientation.dy)
 		{

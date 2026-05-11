@@ -58,12 +58,16 @@
               # Keep in sync with CMakeLists.txt monado rev
               rev = lib.strings.trim (builtins.readFile ./monado-rev);
               # Nix will output the correct hash when it doesn't match
-              hash = "sha256-zU8TLRzd4pb9KzVT/xana6rArcSu31wlCD54p7PJ9UY=";
+              hash = "sha256-x8VuG9N1P0UL3Hy3XSI0gVVyF3sbWIhr6t2iu5Z+Flc=";
             };
           };
 
           buildInputs = oldAttrs.buildInputs ++ extraBuildInputs;
           nativeBuildInputs = oldAttrs.nativeBuildInputs ++ extraNativeBuildInputs;
+          cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [
+              (lib.cmakeFeature "GIT_DESC" "nightly")
+              (lib.cmakeFeature "GIT_COMMIT" "nightly")
+          ];
         }));
       in {
         packages = {

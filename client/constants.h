@@ -40,7 +40,7 @@ constexpr int font_size_large = 75;
 constexpr float scroll_ratio = 10;
 
 // Threshold on the trigger value to register a click
-constexpr float trigger_click_thd = 0.8;
+constexpr float trigger_click_thd = 0.7;
 
 // Thresholds on the distance between the fingertip and GUI layers (positive: in front of the GUI, negative: behind the GUI)
 constexpr float palm_distance_close_thd_lo = 0.18;          // Distance to switch between touch and aim interaction
@@ -53,9 +53,8 @@ constexpr float fingertip_distance_stick_thd = -0.02;       // Max distance wher
 constexpr float scroll_value_thd = 0.01;
 
 // Pointer radius
-constexpr float pointer_radius_in = 10;
-constexpr float pointer_radius_out = 12;
-constexpr float pointer_thickness = 4;
+constexpr float pointer_thickness = 2;
+constexpr float pointer_radius_in = 6;
 
 // Pointer transparency
 constexpr float pointer_alpha = 0.8;
@@ -63,8 +62,7 @@ constexpr float pointer_alpha_disabled = 0.25;
 constexpr float pointer_fading_distance = 40;
 
 // Pointer color
-constexpr uint32_t pointer_color_pressed = 0xffff3300;
-constexpr uint32_t pointer_color_unpressed = 0xffffffff;
+constexpr uint32_t pointer_color = 0x40ffffff;
 constexpr uint32_t pointer_color_border = 0xff000000;
 } // namespace constants::gui
 
@@ -110,13 +108,17 @@ constexpr int zindex_passthrough = -2;
 constexpr int zindex_lobby = -1;
 constexpr int zindex_gui = 0;
 constexpr int zindex_controllers = 1;
-constexpr int zindex_recenter_tip = 2;
+constexpr int zindex_tooltip = 2;
+constexpr int zindex_recenter_tip = 3;
 } // namespace constants::lobby
 
 namespace constants::stream
 {
 constexpr float fade_delay = 3;
 constexpr float fade_duration = 0.25;
+
+constexpr float urgent_fade_delay = 5;
+constexpr ImVec4 urgent_border_color = {8.f, .6f, 0.f, .8f};
 
 // Dimming for the streamed video when the GUI is interactable
 constexpr float dimming_scale = 0.4;
@@ -131,7 +133,7 @@ constexpr float window_rounding = 10;
 
 constexpr ImVec2 tooltip_padding = {5, 5};
 constexpr float tooltip_rounding = 0;
-constexpr float tooltip_distance = 10;
+constexpr glm::vec3 tooltip_distance = {0, 0.004, 0.005};
 
 constexpr ImVec2 button_size = {220, 80};
 constexpr ImVec2 icon_button_size = {80, 80};
@@ -140,5 +142,7 @@ constexpr float connection_popup_width = 1000;
 constexpr ImVec2 pin_entry_key_size = {90, 70};
 constexpr ImVec2 pin_entry_item_spacing = {10, 10};
 constexpr float pin_entry_popup_width = 3 * pin_entry_key_size.x + 2 * pin_entry_item_spacing.x;
+
+constexpr ImColor warn(0xf9, 0x73, 0x06);
 
 } // namespace constants::style

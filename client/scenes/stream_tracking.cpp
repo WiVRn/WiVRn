@@ -86,7 +86,7 @@ from_headset::tracking::pose locate_space(device_id device, XrSpace space, XrSpa
 		        .flags = cast_flags(location.locationFlags, velocity.velocityFlags),
 		};
 	spdlog::warn("xrLocateSpace failed for {}: {}", magic_enum::enum_name(device), xr::to_string(res));
-	return {};
+	return {.device = device};
 }
 
 class locate_spaces_functor
@@ -343,7 +343,7 @@ void scenes::stream::tracking()
 	XrDuration frame_duration;
 	XrTime pattern_begin = instance.now();
 
-	while (not exiting)
+	while (state_ != state::shutdown)
 	{
 		try
 		{
@@ -450,9 +450,10 @@ void scenes::stream::tracking()
 			tracking.production_timestamp = t0;
 			tracking.timestamp = t0 + pattern[pattern_position].prediction_ns;
 			tracking.view_flags = {};
-			tracking.views = {};
 			tracking.state_flags = {};
+			tracking.views = {};
 			tracking.device_poses.clear();
+			tracking.face = {};
 
 			bool compute_lying_down = false;
 			if (recenter_requested.exchange(false))
@@ -474,6 +475,10 @@ void scenes::stream::tracking()
 				{
 					const auto & item = pattern[pattern_position];
 					auto at_time = t0 + item.prediction_ns;
+
+					// Don't merge items that are too far from the current one
+					if (std::abs(tracking.timestamp - at_time) > 1'000'000)
+						break;
 
 					switch (item.device)
 					{
@@ -500,11 +505,39 @@ void scenes::stream::tracking()
 					case wivrn::device_id::LEFT_POKE:
 					case wivrn::device_id::RIGHT_PINCH_POSE:
 					case wivrn::device_id::RIGHT_POKE:
-					case wivrn::device_id::EYE_GAZE:
 						// Don't merge items that are too far from the current one
 						if (std::abs(tracking.timestamp - at_time) > 1'000'000)
 							goto subpattern_end;
 						locate_spaces.add_space(item.device, spaces[item.device], tracking.timestamp, tracking.device_poses);
+						break;
+					case wivrn::device_id::EYE_GAZE:
+						// Eye gaze uses view pose as the origin
+						if (application::get_hmd_traits().view_locate)
+							tracking.device_poses.push_back(locate_space(item.device, spaces[item.device], spaces[wivrn::device_id::HEAD], tracking.timestamp));
+						else
+						{
+							// Pico headsets fail to locate gaze relative to view
+							auto gaze = locate_space(item.device, spaces[item.device], world_space, tracking.timestamp);
+							auto view_pose = locate_space(item.device, view_space, world_space, tracking.timestamp);
+							glm::quat gaze_quat(gaze.pose.orientation.w, gaze.pose.orientation.x, gaze.pose.orientation.y, gaze.pose.orientation.z);
+							glm::quat view_quat(view_pose.pose.orientation.w, view_pose.pose.orientation.x, view_pose.pose.orientation.y, view_pose.pose.orientation.z);
+							gaze_quat = glm::conjugate(view_quat) * gaze_quat;
+							using flags = from_headset::tracking::flags;
+							tracking.device_poses.push_back(
+							        from_headset::tracking::pose{
+							                // Zero position and velocities
+							                .pose = {
+							                        .orientation = {
+							                                .x = gaze_quat.x,
+							                                .y = gaze_quat.y,
+							                                .z = gaze_quat.z,
+							                                .w = gaze_quat.w,
+							                        },
+							                },
+							                .device = item.device,
+							                .flags = uint8_t(gaze.flags & view_pose.flags & ~(flags::linear_velocity_valid | flags::angular_velocity_valid)),
+							        });
+						}
 						break;
 					case wivrn::device_id::LEFT_HAND:
 						if (left_hand)
@@ -552,7 +585,6 @@ void scenes::stream::tracking()
 						break;
 					}
 				}
-			subpattern_end:
 				locate_spaces.resolve(session, tracking.timestamp, tracking.device_poses);
 
 				if (compute_lying_down)
@@ -648,7 +680,7 @@ void scenes::stream::tracking()
 			packets.resize(std::max(packets.size(), 1 + hands.size() + body.size()));
 			size_t packet_count = 0;
 
-			if (not tracking.device_poses.empty())
+			if (not(tracking.device_poses.empty() and std::holds_alternative<std::monostate>(tracking.face)))
 			{
 				auto & packet = packets[packet_count++];
 				packet.clear();
@@ -657,12 +689,9 @@ void scenes::stream::tracking()
 
 			for (const auto & i: hands)
 			{
-				if (i.joints)
-				{
-					auto & packet = packets[packet_count++];
-					packet.clear();
-					wivrn_session::stream_socket_t::serialize(packet, i);
-				}
+				auto & packet = packets[packet_count++];
+				packet.clear();
+				wivrn_session::stream_socket_t::serialize(packet, i);
 			}
 			for (const auto & i: body)
 			{
@@ -675,6 +704,13 @@ void scenes::stream::tracking()
 			}
 
 			network_session->send_stream(std::span(packets.data(), packet_count));
+
+			XrTime old = scheduled_derived_pose;
+			if (old and now > old)
+			{
+				send_derived_pose();
+				scheduled_derived_pose.compare_exchange_strong(old, 0);
+			}
 		}
 		catch (std::exception & e)
 		{
@@ -774,6 +810,12 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 		interaction_profiles[i] = interaction_profile::none;
 	}
 
+	// Wait for runtime to know about the controllers before sending data
+	scheduled_derived_pose = instance.now() + 1'000'000'000;
+}
+
+void scenes::stream::send_derived_pose()
+{
 	auto now = instance.now();
 	for (device_id target: {
 	             device_id::LEFT_AIM,
@@ -788,14 +830,8 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 	{
 		// don't do derived poses for hand interaction
 		const bool right = (target >= device_id::RIGHT_GRIP && target <= device_id::RIGHT_PALM) || target == device_id::RIGHT_PINCH_POSE || target == device_id::RIGHT_POKE;
-		if (interaction_profiles[right].load() == interaction_profile::ext_hand_interaction_ext)
-		{
-			network_session->send_control(from_headset::derived_pose{
-			        .source = target,
-			        .target = target,
-			});
+		if (interaction_profiles[right] == interaction_profile::ext_hand_interaction_ext)
 			continue;
-		}
 
 		auto source = derived_from(target);
 		auto source_space = application::space(device_to_space(source));
@@ -805,37 +841,30 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 		{
 			// This may happen if the runtime does not support palm ext
 			// check if we have a device specific offset
-			switch (guess_model())
+			if (not application::get_hmd_traits().hand_interaction_grip_surface)
 			{
-				case model::oculus_quest:
-				case model::oculus_quest_2:
-				case model::meta_quest_pro:
-				case model::meta_quest_3:
-				case model::meta_quest_3s:
-					switch (target)
-					{
-						case device_id::LEFT_PALM:
-						case device_id::RIGHT_PALM: {
-							glm::quat q(glm::vec3(glm::radians(-60.), 0, 0));
-							network_session->send_control(from_headset::derived_pose{
-							        .source = source,
-							        .target = target,
-							        .relation = {
-							                .orientation = {
-							                        .x = q.x,
-							                        .y = q.y,
-							                        .z = q.z,
-							                        .w = q.w,
-							                },
-							        },
-							});
-						}
-						break;
-						default:
-							break;
+				switch (target)
+				{
+					case device_id::LEFT_PALM:
+					case device_id::RIGHT_PALM: {
+						glm::quat q(glm::vec3(glm::radians(-60.), 0, 0));
+						network_session->send_control(from_headset::derived_pose{
+						        .source = source,
+						        .target = target,
+						        .relation = {
+						                .orientation = {
+						                        .x = q.x,
+						                        .y = q.y,
+						                        .z = q.z,
+						                        .w = q.w,
+						                },
+						        },
+						});
 					}
-				default:
 					break;
+					default:
+						break;
+				}
 			}
 		}
 		else

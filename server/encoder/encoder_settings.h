@@ -27,7 +27,8 @@
 
 namespace wivrn
 {
-struct wivrn_vk_bundle;
+struct vk_bundle;
+class wivrn_session;
 
 struct encoder_settings
 {
@@ -40,13 +41,11 @@ struct encoder_settings
 	uint64_t bitrate;                           // bit/s
 	double bitrate_multiplier;                  // encoder bitrate / global bitrate
 	std::map<std::string, std::string> options; // additional encoder-specific configuration
-	// encoders in the same group are executed in sequence
-	int group = 0;
 	int bit_depth;
 	std::optional<std::string> device;
 };
 
-std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle &, const from_headset::headset_info_packet & info, const from_headset::settings_changed & settings);
+std::array<encoder_settings, 3> get_encoder_settings(wivrn::vk_bundle &, wivrn_session &);
 
 void print_encoders(const std::array<wivrn::encoder_settings, 3> & encoders);
 

@@ -1,0 +1,27 @@
+From e013455ead67f79e18afc5a6bbb453caae76dac9 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Fri, 7 Nov 2025 20:41:16 -0600
+Subject: [PATCH 6/8] st/oxr: push XrEventDataInteractionProfileChanged when
+ profile changes to NULL
+
+---
+ src/xrt/state_trackers/oxr/actions/oxr_input.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/src/xrt/state_trackers/oxr/actions/oxr_input.c b/src/xrt/state_trackers/oxr/actions/oxr_input.c
+index 2bd3ea009..93659ba35 100644
+--- a/src/xrt/state_trackers/oxr/actions/oxr_input.c
++++ b/src/xrt/state_trackers/oxr/actions/oxr_input.c
+@@ -1932,9 +1932,6 @@ session_update_action_bindings(struct oxr_logger *log,
+ #define POPULATE_PROFILE(X)                                                                                            \
+ 	do {                                                                                                           \
+ 		XrPath path = profiles.X != NULL ? profiles.X->path : XR_NULL_PATH;                                    \
+-		if (path == XR_NULL_PATH) {                                                                            \
+-			break; /* Only update on "active" interaction profiles per sub-action path. */                 \
+-		}                                                                                                      \
+ 		if (action_context->X != path) {                                                                       \
+ 			action_context->X = path;                                                                      \
+ 			interaction_profile_changed = true;                                                            \
+-- 
+2.53.0
+

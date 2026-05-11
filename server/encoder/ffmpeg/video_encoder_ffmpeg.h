@@ -21,6 +21,7 @@
 
 #include "encoder/video_encoder.h"
 #include "ffmpeg_helper.h"
+#include "utils/wivrn_vk_bundle.h"
 
 namespace wivrn
 {
@@ -37,8 +38,8 @@ public:
 	};
 
 protected:
-	video_encoder_ffmpeg(uint8_t stream_idx, const encoder_settings & settings) :
-	        wivrn::video_encoder(stream_idx, settings, std::make_unique<default_idr_handler>(), true) {}
+	video_encoder_ffmpeg(vk_bundle & vk, uint8_t stream_idx, const encoder_settings & settings) :
+	        wivrn::video_encoder(vk, stream_idx, vk.queue_family_index, settings, std::make_unique<default_idr_handler>(), true) {}
 
 	virtual void push_frame(bool idr, uint8_t slot) = 0;
 

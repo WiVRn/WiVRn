@@ -23,15 +23,17 @@
 
 #include "application.h"
 #include "constants.h"
+#include "gui_common.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "implot.h"
-#include "utils/contains.h"
 #include "utils/i18n.h"
 #include "utils/ranges.h"
 #include <IconsFontAwesome6.h>
 #include <chrono>
 #include <cmath>
+#include <glm/ext.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <limits>
 #include <ranges>
@@ -376,25 +378,17 @@ void scenes::stream::gui_compact_view()
 	}
 }
 
-static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config, float predicted_display_period)
+static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config)
 {
-	const auto & refresh_rates = session.get_refresh_rates();
-	from_headset::settings_changed packet{
-	        .bitrate_bps = config.bitrate_bps,
-	};
-	if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(refresh_rates, *config.preferred_refresh_rate)))
-	{
-		packet.preferred_refresh_rate = *config.preferred_refresh_rate;
-		packet.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
-	}
-	else
-	{
-		packet.preferred_refresh_rate = predicted_display_period;
-	}
-	network->send_control(std::move(packet));
+	network->send_control(
+	        from_headset::settings_changed{
+	                .preferred_refresh_rate = config.preferred_refresh_rate,
+	                .minimum_refresh_rate = config.minimum_refresh_rate.value_or(0),
+	                .fps_divider = config.fps_divider,
+	                .bitrate_bps = config.bitrate_bps,
+	        });
 }
 
-std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag); // TODO declaration in a .h file
 void scenes::stream::gui_settings(float predicted_display_period)
 {
 	const ImGuiStyle & style = ImGui::GetStyle();
@@ -402,57 +396,8 @@ void scenes::stream::gui_settings(float predicted_display_period)
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
 
-	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
-	{
-		const auto & refresh_rates = session.get_refresh_rates();
-		if (not refresh_rates.empty())
-		{
-			float active_rate = config.preferred_refresh_rate.value_or(refresh_rates.back());
-			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? fmt::format("{}", active_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
-			{
-				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
-				{
-					session.set_refresh_rate(0);
-					config.preferred_refresh_rate = 0;
-					send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
-					config.save();
-				}
-				if (ImGui::IsItemHovered())
-					imgui_ctx->tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
-				for (float rate: refresh_rates)
-				{
-					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.preferred_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						session.set_refresh_rate(rate);
-						config.preferred_refresh_rate = rate;
-						send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
-						config.save();
-					}
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-
-			if (config.preferred_refresh_rate == 0 and refresh_rates.size() > 2)
-			{
-				float min_rate = config.minimum_refresh_rate.value_or(refresh_rates.front());
-				if (ImGui::BeginCombo(_S("Minimum refresh rate"), fmt::format("{}", min_rate).c_str()))
-				{
-					for (float rate: refresh_rates | std::views::take(refresh_rates.size() - 1))
-					{
-						if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.minimum_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
-						{
-							config.minimum_refresh_rate = rate;
-							send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
-							config.save();
-						}
-					}
-					ImGui::EndCombo();
-				}
-				imgui_ctx->vibrate_on_hover();
-			}
-		}
-	}
+	if (gui::refresh_rate(instance, session, *imgui_ctx, config))
+		send_settings_changed_packet(session, network_session.get(), config);
 
 	{
 		const auto text = _("Bitrate:");
@@ -462,11 +407,14 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		ImGui::SameLine(0.f, 10.f);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (size.y / 4.f) - style.FramePadding.y * 3.f);
 		if (ImGui::Button(fmt::format("{}Mbit/s", config.bitrate_bps / 1'000'000).c_str()))
-			gui_status = gui_status::bitrate_settings;
+			next_gui_status = stream_tab::bitrate_settings;
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			imgui_ctx->tooltip(_("Click to adjust bitrate"));
 	}
+
+	if (application::get_openxr_post_processing_supported())
+		gui::post_processing(*imgui_ctx, config);
 
 	{
 		if (ImGui::Checkbox(_S("Lying Down Mode"), &config.lying_down_mode))
@@ -485,115 +433,56 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		}
 	}
 
-	if (application::get_openxr_post_processing_supported())
+	bool send_packet = false;
+	bool save_config = false;
+	ImGui::Text("%s", _S("Foveation center override"));
+	ImGui::Indent();
 	{
-		ImGui::Text("%s", _S("OpenXR post-processing"));
-		ImGui::Indent();
+		if (ImGui::Checkbox(_S("Enable"), &override_foveation_enable))
 		{
-			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.super_sampling;
-			if (ImGui::BeginCombo(_S("Supersampling"), openxr_post_processing_flag_name(current).c_str()))
-			{
-				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
-				        0,
-				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB,
-				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB};
-				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
-				{
-					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						spdlog::info("Setting OpenXR super sampling to {}", openxr_post_processing_flag_name(option));
-						config.openxr_post_processing.super_sampling = option;
-						config.save();
-					}
-					imgui_ctx->vibrate_on_hover();
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				imgui_ctx->tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
-			}
+			send_packet = true;
+			save_config = true;
 		}
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::BeginDisabled(!override_foveation_enable);
+		ImGui::Text("%s", fmt::format(_F("Height {:.1f} deg"), -override_foveation_pitch * 180 / M_PI).c_str());
+		ImGui::Text("%s", fmt::format(_F("Distance {:.2f} m"), override_foveation_distance).c_str());
+		if (ImGui::Button(_S("Default")))
 		{
-			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.sharpening;
-			if (ImGui::BeginCombo(_S("Sharpening"), openxr_post_processing_flag_name(current).c_str()))
-			{
-				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
-				        0,
-				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB,
-				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB};
-				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
-				{
-					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						spdlog::info("Setting OpenXR sharpening to {}", openxr_post_processing_flag_name(option));
-						config.openxr_post_processing.sharpening = option;
-						config.save();
-					}
-					imgui_ctx->vibrate_on_hover();
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				imgui_ctx->tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
-			}
+			override_foveation_distance = configuration{}.override_foveation_distance;
+			override_foveation_pitch = configuration{}.override_foveation_pitch;
+			send_packet = true;
+			save_config = true;
 		}
-		ImGui::Unindent();
+		imgui_ctx->vibrate_on_hover();
 
-		bool send_packet = false;
-		bool save_config = false;
-		ImGui::Text("%s", _S("Foveation center override"));
-		ImGui::Indent();
-		{
-			if (ImGui::Checkbox(_S("Enable"), &override_foveation_enable))
-			{
-				send_packet = true;
-				save_config = true;
-			}
-			imgui_ctx->vibrate_on_hover();
+		ImGui::SameLine();
 
-			ImGui::BeginDisabled(!override_foveation_enable);
-			ImGui::Text("%s", fmt::format(_F("Height {:.1f} deg"), -override_foveation_pitch * 180 / M_PI).c_str());
-			ImGui::Text("%s", fmt::format(_F("Distance {:.2f} m"), override_foveation_distance).c_str());
-			if (ImGui::Button(_S("Default")))
-			{
-				override_foveation_distance = configuration{}.override_foveation_distance;
-				override_foveation_pitch = configuration{}.override_foveation_pitch;
-				send_packet = true;
-				save_config = true;
-			}
-			imgui_ctx->vibrate_on_hover();
+		if (ImGui::Button(_S("Change")))
+			next_gui_status = stream_tab::foveation_settings;
+		imgui_ctx->vibrate_on_hover();
 
-			ImGui::SameLine();
+		ImGui::EndDisabled();
+	}
+	ImGui::Unindent();
 
-			if (ImGui::Button(_S("Change")))
-				gui_status = gui_status::foveation_settings;
-			imgui_ctx->vibrate_on_hover();
+	if (send_packet)
+	{
+		network_session->send_control(from_headset::override_foveation_center{
+		        .enabled = override_foveation_enable,
+		        .pitch = override_foveation_pitch,
+		        .distance = override_foveation_distance,
+		});
+	}
 
-			ImGui::EndDisabled();
-		}
-		ImGui::Unindent();
-
-		if (send_packet)
-		{
-			network_session->send_control(from_headset::override_foveation_center{
-			        .enabled = override_foveation_enable,
-			        .pitch = override_foveation_pitch,
-			        .distance = override_foveation_distance,
-			});
-		}
-
-		if (save_config)
-		{
-			auto & config = application::get_config();
-			config.override_foveation_enable = override_foveation_enable;
-			config.override_foveation_pitch = override_foveation_pitch;
-			config.override_foveation_distance = override_foveation_distance;
-			config.save();
-		}
+	if (save_config)
+	{
+		auto & config = application::get_config();
+		config.override_foveation_enable = override_foveation_enable;
+		config.override_foveation_pitch = override_foveation_pitch;
+		config.override_foveation_distance = override_foveation_distance;
+		config.save();
 	}
 	ImGui::PopStyleVar();
 }
@@ -617,10 +506,10 @@ void scenes::stream::gui_bitrate_settings(float predicted_display_period)
 	if (ok)
 	{
 		config.save();
-		gui_status = gui_status::settings;
+		next_gui_status = stream_tab::settings;
 	}
 
-	send_settings_changed_packet(session, network_session.get(), application::get_config(), predicted_display_period);
+	send_settings_changed_packet(session, network_session.get(), application::get_config());
 }
 
 void scenes::stream::gui_foveation_settings(float predicted_display_period)
@@ -646,7 +535,7 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 
 	if (ok)
 	{
-		gui_status = gui_status::settings;
+		next_gui_status = stream_tab::settings;
 
 		// Save settings
 		auto & config = application::get_config();
@@ -657,7 +546,7 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 	}
 	else if (cancel)
 	{
-		gui_status = gui_status::settings;
+		next_gui_status = stream_tab::settings;
 
 		// Restore settings
 		const auto & config = application::get_config();
@@ -746,70 +635,26 @@ void scenes::stream::gui_applications()
 	ImGui::PopStyleVar(3);
 }
 
-// Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
-static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
+void scenes::stream::gui_toasts()
 {
-	glm::quat q{
-	        pose.orientation.w,
-	        pose.orientation.x,
-	        pose.orientation.y,
-	        pose.orientation.z,
-	};
+	auto toast = gui_toast.lock();
 
-	glm::vec3 p{
-	        pose.position.x,
-	        pose.position.y,
-	        pose.position.z,
-	};
+	if (!toast->has_value())
+	{
+		ImGui::Text("%s", _S("Press both thumbsticks to display the WiVRn window"));
+		return;
+	}
 
-	glm::vec3 normal = glm::column(glm::mat3_cast(q), 2);
-
-	return glm::vec4(normal, -glm::dot(p, normal) - margin);
+	ImGui::Text("%s", (*toast)->content.c_str());
 }
 
 void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
 {
-	if (not(plots_toggle_1 and plots_toggle_2))
-		return;
-	bool interactable = true;
-	XrSpace world_space = application::space(xr::spaces::world);
-	auto views = session.locate_views(viewconfig, predicted_display_time, world_space).second;
-
-	switch (gui_status)
+	if (auto new_status = next_gui_status.load(); new_status != gui_status)
 	{
-		case gui_status::hidden:
-		case gui_status::bitrate_settings:
-		case gui_status::foveation_settings:
-		case gui_status::overlay_only:
-		case gui_status::compact:
-			interactable = false;
-			break;
-		case gui_status::stats:
-		case gui_status::settings:
-		case gui_status::applications:
-		case gui_status::application_launcher:
-			break;
-	}
-	imgui_ctx->set_controllers_enabled(interactable);
-	if (interactable)
-	{
-		if (system.hand_tracking_supported())
-		{
-			left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
-			right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
-		}
-	}
-	else
-	{
-		left_hand.reset();
-		right_hand.reset();
-	}
-
-	if (gui_status != last_gui_status)
-	{
-		last_gui_status = gui_status;
-		if (is_gui_interactable())
-			next_gui_status = gui_status;
+		spdlog::info("Switch tab from {} to {}", magic_enum::enum_name(gui_status), magic_enum::enum_name(new_status));
+		stored_gui_status = gui_status;
+		gui_status = new_status;
 		gui_status_last_change = predicted_display_time;
 
 		// Override session state if the GUI is interactable
@@ -821,17 +666,64 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			network_session->send_control(from_headset::session_state_changed{
 			        .state = XR_SESSION_STATE_VISIBLE,
 			});
+
+		network_session->send_control(from_headset::stream_tab_changed{.tab = new_status});
+	}
+
+	bool interactable = true;
+	XrSpace world_space = application::space(xr::spaces::world);
+	auto views = session.locate_views(viewconfig, predicted_display_time, world_space).second;
+
+	switch (gui_status)
+	{
+		case stream_tab::hidden:
+		case stream_tab::bitrate_settings:
+		case stream_tab::foveation_settings:
+		case stream_tab::overlay_only:
+		case stream_tab::compact:
+			interactable = false;
+			break;
+		case stream_tab::stats:
+		case stream_tab::settings:
+		case stream_tab::applications:
+		case stream_tab::application_launcher:
+			break;
+	}
+	imgui_ctx->set_controllers_enabled(interactable);
+	if (interactable)
+	{
+		if (system.hand_tracking_supported())
+		{
+			if (not left_hand)
+				left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
+			if (not right_hand)
+				right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
+		}
+	}
+	else
+	{
+		left_hand.reset();
+		right_hand.reset();
 	}
 
 	float alpha = 1;
-	if (gui_status == gui_status::hidden)
+	bool is_urgent = false;
+	if (gui_status == stream_tab::hidden)
 	{
-		float t = (predicted_display_time - gui_status_last_change) * 1.e-9f;
+		auto toast = gui_toast.lock();
+		if (toast->has_value())
+			is_urgent = (*toast)->is_urgent;
 
-		alpha = std::clamp<float>(1 - (t - constants::stream::fade_delay) / constants::stream::fade_duration, 0, 1);
+		float t = (predicted_display_time - gui_status_last_change) * 1.e-9f;
+		float delay = is_urgent ? constants::stream::urgent_fade_delay : constants::stream::fade_delay;
+
+		alpha = std::clamp<float>(1 - (t - delay) / constants::stream::fade_duration, 0, 1);
 
 		if (alpha == 0)
+		{
+			toast->reset();
 			return;
+		}
 	}
 
 	// Lock the GUI position to the head, do it before displaying the GUI to avoid being off by one frame when gui_status changes
@@ -841,24 +733,24 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		glm::mat3 M = glm::mat3_cast(head_position->second);
 		switch (gui_status)
 		{
-			case gui_status::bitrate_settings:
-			case gui_status::foveation_settings:
+			case stream_tab::bitrate_settings:
+			case stream_tab::foveation_settings:
 				imgui_ctx->layers()[0].orientation = head_position->second;
-				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, -override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
+				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
 				break;
 
-			case gui_status::hidden:
+			case stream_tab::hidden:
 				// Always use the same position for the GUI shortcut tip
 				imgui_ctx->layers()[0].orientation = head_position->second;
 				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0.0, -0.4, -1.0};
 				break;
 
-			case gui_status::overlay_only:
-			case gui_status::compact:
-			case gui_status::stats:
-			case gui_status::settings:
-			case gui_status::applications:
-			case gui_status::application_launcher:
+			case stream_tab::overlay_only:
+			case stream_tab::compact:
+			case stream_tab::stats:
+			case stream_tab::settings:
+			case stream_tab::applications:
+			case stream_tab::application_launcher:
 				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
 				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
 				break;
@@ -871,47 +763,54 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	const ImGuiStyle & style = ImGui::GetStyle();
 	imgui_ctx->new_frame(predicted_display_time);
 
-	ImVec2 content_size{ImGui::GetMainViewport()->Size - ImVec2{tab_width, 0} - margin_around_window * 2};
+	ImVec2 viewport_size(imgui_ctx->layers()[0].vp_size.x, imgui_ctx->layers()[0].vp_size.y);
+	ImVec2 content_size{viewport_size - ImVec2{tab_width, 0} - margin_around_window * 2};
 	ImVec2 content_center = margin_around_window + content_size / 2 + ImVec2{tab_width, 0};
 
 	bool display_tabs, always_auto_resize;
 	switch (gui_status)
 	{
-		case gui_status::overlay_only:
+		case stream_tab::overlay_only:
 			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			ImGui::SetNextWindowSize(content_size);
 			always_auto_resize = false;
 			display_tabs = false;
 			break;
 
-		case gui_status::hidden:
-		case gui_status::bitrate_settings:
-		case gui_status::foveation_settings:
-			ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+		case stream_tab::hidden:
+		case stream_tab::bitrate_settings:
+		case stream_tab::foveation_settings:
+			ImGui::SetNextWindowPos(viewport_size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			always_auto_resize = true;
 			display_tabs = false;
 			break;
 
-		case gui_status::compact:
+		case stream_tab::compact:
 			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			always_auto_resize = true;
 			display_tabs = false;
 			break;
 
-		case gui_status::stats:
-		case gui_status::settings:
-		case gui_status::applications:
+		case stream_tab::stats:
+		case stream_tab::settings:
+		case stream_tab::applications:
 			ImGui::SetNextWindowPos(margin_around_window);
-			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - margin_around_window * 2);
+			ImGui::SetNextWindowSize(viewport_size - margin_around_window * 2);
 			always_auto_resize = false;
 			display_tabs = true;
 			break;
-		case gui_status::application_launcher:
+		case stream_tab::application_launcher:
 			ImGui::SetNextWindowPos(margin_around_window);
-			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - margin_around_window * 2);
+			ImGui::SetNextWindowSize(viewport_size - margin_around_window * 2);
 			always_auto_resize = false;
 			display_tabs = false;
 			break;
+	}
+
+	if (is_urgent)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Border, constants::stream::urgent_border_color);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 4);
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0);
@@ -926,58 +825,64 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		ImGui::Begin("Stream settings", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	}
 
+	if (is_urgent)
+	{
+		ImGui::PopStyleColor(1);
+		ImGui::PopStyleVar(1);
+	}
+
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 
 	switch (gui_status)
 	{
-		case gui_status::hidden:
-			ImGui::Text("%s", _S("Press both thumbsticks to display the WiVRn window"));
+		case stream_tab::hidden:
+			gui_toasts();
 			break;
 
-		case gui_status::overlay_only:
+		case stream_tab::overlay_only:
 			ImGui::SetCursorPos({20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_performance_metrics();
 			ImGui::EndChild();
 			break;
 
-		case gui_status::compact:
+		case stream_tab::compact:
 			gui_compact_view();
 			break;
 
-		case gui_status::stats:
+		case stream_tab::stats:
 			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_performance_metrics();
 			ImGui::EndChild();
 			break;
 
-		case gui_status::settings:
+		case stream_tab::settings:
 			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_settings(predicted_display_period * 1.e-9f);
 			ImGui::EndChild();
 			break;
 
-		case gui_status::bitrate_settings:
+		case stream_tab::bitrate_settings:
 			gui_bitrate_settings(predicted_display_period * 1.e-9f);
 			break;
 
-		case gui_status::foveation_settings:
+		case stream_tab::foveation_settings:
 			gui_foveation_settings(predicted_display_period * 1.e-9f);
 			break;
 
-		case gui_status::applications:
+		case stream_tab::applications:
 			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_applications();
 			ImGui::EndChild();
 			break;
 
-		case gui_status::application_launcher:
+		case stream_tab::application_launcher:
 			if (apps.draw_gui(*imgui_ctx, _("Cancel")) != app_launcher::None)
-				gui_status = gui_status::applications;
+				next_gui_status = stream_tab::applications;
 	}
 
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding
@@ -991,11 +896,13 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
 
-			RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), gui_status, gui_status::applications, {tab_width, 0});
+			auto target = next_gui_status.load();
+			RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), target, stream_tab::applications, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			if (RadioButtonWithoutCheckBox(ICON_FA_ROCKET "  " + _("Start"), gui_status, gui_status::application_launcher, {tab_width, 0}))
+			if (RadioButtonWithoutCheckBox(ICON_FA_ROCKET "  " + _("Start"), target, stream_tab::application_launcher, {tab_width, 0}))
 			{
+				apps.reset();
 				network_session->send_control(from_headset::get_application_list{
 				        .language = application::get_messages_info().language,
 				        .country = application::get_messages_info().country,
@@ -1004,22 +911,22 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			}
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), gui_status, gui_status::settings, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), target, stream_tab::settings, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), gui_status, gui_status::stats, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), target, stream_tab::stats, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			int n_items_at_end = 4;
 			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - n_items_at_end * ImGui::GetCurrentContext()->FontSize - (n_items_at_end * 2) * style.FramePadding.y - (n_items_at_end - 1) * style.ItemSpacing.y - style.WindowPadding.y);
 
-			RadioButtonWithoutCheckBox(ICON_FA_CHART_LINE "  " + _("Statistics overlay"), gui_status, gui_status::overlay_only, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_CHART_LINE "  " + _("Statistics overlay"), target, stream_tab::overlay_only, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_MINIMIZE "  " + _("Compact view"), gui_status, gui_status::compact, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_MINIMIZE "  " + _("Compact view"), target, stream_tab::compact, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_XMARK "  " + _("Close"), gui_status, gui_status::hidden, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_XMARK "  " + _("Close"), target, stream_tab::hidden, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			bool dummy = false;
@@ -1029,6 +936,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 			ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
 			ImGui::EndChild();
+			next_gui_status = target;
 		}
 		ImGui::PopStyleColor(); // ImGuiCol_ChildBg
 	}
@@ -1069,10 +977,12 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		else
 			recentering_context.reset();
 
-		std::vector<glm::vec4> ray_limits;
-
-		for (auto [_, layer]: layers)
-			ray_limits.push_back(compute_ray_limits(layer.pose));
+		std::vector<glm::mat4> world_to_window;
+		for (auto & window: imgui_ctx->windows())
+		{
+			if (window.space == xr::spaces::world)
+				world_to_window.push_back(glm::inverse(glm::translate(window.position) * glm::mat4(glm::mat3_cast(window.orientation)) * glm::scale(glm::vec3(window.size, 1))));
+		}
 
 		bool hide_left_controller = false;
 		bool hide_right_controller = false;
@@ -1096,7 +1006,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		             hide_left_controller,
 		             hide_right_controller,
 		             hide_right_controller,
-		             ray_limits);
+		             world_to_window);
 
 		// Add the layer with the controllers
 		if (composition_layer_depth_test_supported)

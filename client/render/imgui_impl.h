@@ -68,6 +68,7 @@ public:
 	        uint32_t queue_family_index,
 	        thread_safe<vk::raii::Queue> & queue,
 	        std::shared_ptr<image_cache_type> image_cache = {});
+	~imgui_textures();
 	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
 	ImTextureID load_texture(const std::string & filename);
 	ImTextureID load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name = "");
@@ -136,6 +137,7 @@ public:
 		glm::ivec2 vp_size;
 
 		bool always_show_cursor = false; // Show the cursor in this viewport even if there is a modal popup elsewhere (eg. this is a virtual keyboard)
+		bool tooltip_viewport = false;   // Choose this viewport to display the tooltip, ignore mouse events
 
 		int z_index = 0;
 
@@ -143,6 +145,15 @@ public:
 		{
 			return ImVec2(vp_origin.x + int(vp_size.x / 2), vp_origin.y + int(vp_size.y / 2));
 		}
+	};
+
+	struct window_viewport
+	{
+		// Position of this window in the world
+		xr::spaces space;
+		glm::vec3 position;
+		glm::quat orientation;
+		glm::vec2 size;
 	};
 
 private:
@@ -215,7 +226,7 @@ public:
 		return layers_;
 	}
 
-	std::vector<viewport> windows();
+	std::vector<window_viewport> windows();
 
 	viewport & layer(ImVec2 position);
 
