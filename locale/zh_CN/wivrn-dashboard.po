@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-11 14:03+0800\n"
+"POT-Creation-Date: 2026-04-27 20:03+0800\n"
 "PO-Revision-Date: 2026-04-20 13:44+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
@@ -466,7 +466,7 @@ msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "自定义"
 
-#: dashboard/qml/SelectGame.qml:70
+#: dashboard/qml/SelectGame.qml:61
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
@@ -518,27 +518,27 @@ msgstr "x264 (软件编码器)"
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "\"自动\" 将在可用时优先使用硬件编码"
 
-#: dashboard/qml/SettingsPage.qml:88
+#: dashboard/qml/SettingsPage.qml:89
 #, kde-format
 msgid "Autostart application:"
 msgstr "自动启动应用："
 
-#: dashboard/qml/SettingsPage.qml:96
+#: dashboard/qml/SettingsPage.qml:97
 #, kde-format
 msgid "Advanced options"
 msgstr "进阶选项"
 
-#: dashboard/qml/SettingsPage.qml:102
+#: dashboard/qml/SettingsPage.qml:103
 #, kde-format
 msgid "Check system configuration on start"
 msgstr "在启动时检查系统设置"
 
-#: dashboard/qml/SettingsPage.qml:108
+#: dashboard/qml/SettingsPage.qml:109
 #, kde-format
 msgid "Forward keyboard & mouse from headset"
 msgstr "从头显转发键盘和鼠标输入"
 
-#: dashboard/qml/SettingsPage.qml:111
+#: dashboard/qml/SettingsPage.qml:112
 #, kde-format
 msgid ""
 "Keyboard and mouse connected to the client will act as if connected to the "
@@ -548,17 +548,17 @@ msgstr ""
 "连接到客户端的键盘和鼠标将表现得如同直接连接到服务器。客户端操作系统可能会保"
 "留特定的键映射和快捷键组合，这些无法被转发。"
 
-#: dashboard/qml/SettingsPage.qml:116
+#: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid "Enable debug window"
 msgstr "启用 Debug 窗口"
 
-#: dashboard/qml/SettingsPage.qml:123
+#: dashboard/qml/SettingsPage.qml:124
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "启用 SteamVR 追踪设备支持"
 
-#: dashboard/qml/SettingsPage.qml:126
+#: dashboard/qml/SettingsPage.qml:127
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -571,49 +571,49 @@ msgstr ""
 "设备必须在连接到 WiVRn 之前开启电源。\n"
 "校准需要额外工具，例如 motoc。"
 
-#: dashboard/qml/SettingsPage.qml:134
+#: dashboard/qml/SettingsPage.qml:135
 #, kde-format
 msgid "Custom adb location"
 msgstr "自定义 adb 路径"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:146
 #, kde-format
 msgid "Adb location:"
 msgstr "ADB 路径："
 
-#: dashboard/qml/SettingsPage.qml:154
+#: dashboard/qml/SettingsPage.qml:155
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "浏览"
 
-#: dashboard/qml/SettingsPage.qml:164
+#: dashboard/qml/SettingsPage.qml:165
 #, kde-format
 msgid "Default"
 msgstr "默认"
 
-#: dashboard/qml/SettingsPage.qml:178
+#: dashboard/qml/SettingsPage.qml:179
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "自定义"
 
-#: dashboard/qml/SettingsPage.qml:183
+#: dashboard/qml/SettingsPage.qml:184
 #, kde-format
 msgid "Disabled"
 msgstr "已停用"
 
-#: dashboard/qml/SettingsPage.qml:199
+#: dashboard/qml/SettingsPage.qml:200
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR 兼容层："
 
-#: dashboard/qml/SettingsPage.qml:229
+#: dashboard/qml/SettingsPage.qml:230
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "兼容层路径，不包含 bin/linux64/vrclient.so"
 
-#: dashboard/qml/SettingsPage.qml:234
+#: dashboard/qml/SettingsPage.qml:235
 #, kde-format
 msgctxt "browse to choose the OpenVR compatility to use"
 msgid "Browse"
@@ -710,8 +710,7 @@ msgid ""
 "If you have reinstalled the server or the client or if you want to connect "
 "another headset, you must enable pairing before connecting."
 msgstr ""
-"如果您已重新安装服务器或客户端，或想连接另一个头显，必须在连接前启用"
-"配对。"
+"如果您已重新安装服务器或客户端，或想连接另一个头显，必须在连接前启用配对。"
 
 #: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
@@ -882,8 +881,8 @@ msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
 "and enter PIN \"%2\"."
 msgstr ""
-"要通过 WiFi 连接，请在您的头显上启动 WiVRn 应用程序，连接至「%1」并输入身份"
-"识别码「%2」。"
+"要通过 WiFi 连接，请在您的头显上启动 WiVRn 应用程序，连接至「%1」并输入身份识"
+"别码「%2」。"
 
 #: dashboard/qml/WizardPage.qml:326
 #, kde-format
@@ -906,8 +905,8 @@ msgid ""
 "If the server is not visible or the connection fails, check that ports 5353 "
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
-"如果服务器不可见或连接失败，请检查防火墙是否开放了端口 5353（UDP）和 9757（TCP 和 "
-"UDP）。"
+"如果服务器不可见或连接失败，请检查防火墙是否开放了端口 5353（UDP）和 9757"
+"（TCP 和 UDP）。"
 
 #: dashboard/qml/WizardPage.qml:371
 #, kde-format
