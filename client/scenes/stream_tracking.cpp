@@ -584,6 +584,7 @@ void scenes::stream::tracking()
 					default:
 						break;
 					}
+subpattern_end:
 				}
 				locate_spaces.resolve(session, tracking.timestamp, tracking.device_poses);
 
