@@ -441,13 +441,31 @@ std::pair<glm::vec3, glm::quat> hmd_traits::controller_offset(xr::spaces space) 
 				break;
 		}
 	}
-	else if (profile == "pico-4" or profile == "pico-4u")
+	else if (profile == "pico-4")
 	{
 		switch (space)
 		{
 			case xr::spaces::grip_left:
 			case xr::spaces::grip_right:
 				return {{0, -0.02, -0.05}, glm::angleAxis(glm::radians(-30.f), glm::vec3{1, 0, 0})};
+
+			case xr::spaces::aim_left:
+				return {{-0.005, 0, 0.02}, {1, 0, 0, 0}};
+
+			case xr::spaces::aim_right:
+				return {{0.005, 0, 0.02}, {1, 0, 0, 0}};
+
+			default:
+				break;
+		}
+	}
+	else if (profile == "pico-4u")
+	{
+		switch (space)
+		{
+			case xr::spaces::grip_left:
+			case xr::spaces::grip_right:
+				return {{0, -0.042, -0.042}, glm::angleAxis(glm::radians(-8.f), glm::vec3{1, 0, 0})};
 
 			case xr::spaces::aim_left:
 				return {{-0.005, 0, 0.02}, {1, 0, 0, 0}};
