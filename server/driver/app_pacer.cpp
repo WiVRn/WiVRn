@@ -216,8 +216,8 @@ void app_pacer::mark_gpu_done(int64_t frame_id, int64_t when_ns)
 		return;
 
 	std::lock_guard lock(mutex);
-	cpu_time = lerp0(cpu_time, frame.delivered - frame.wake_up, 0.1);
-	gpu_time = lerp0(gpu_time, when_ns - frame.delivered, 0.1);
+	cpu_time = lerp0(cpu_time, std::min(3 * period, frame.delivered - frame.wake_up), 0.1);
+	gpu_time = lerp0(gpu_time, std::min(3 * period, when_ns - frame.delivered), 0.1);
 }
 
 pacing_app_factory::pacing_app_factory() :
