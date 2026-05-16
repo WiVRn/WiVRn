@@ -94,7 +94,7 @@ const std::map<XrVersion, version_info> version_info::versions = {{
 
 static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & info, std::vector<const char *> & in_extensions)
 {
-	XrResult res;
+	XrResult res = XR_ERROR_API_VERSION_UNSUPPORTED;
 	for (XrVersion version: {
 	             XR_API_VERSION_1_1,
 	             XR_API_VERSION_1_0,
