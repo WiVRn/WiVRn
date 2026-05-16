@@ -27,13 +27,27 @@ namespace wivrn
 {
 struct clock_offset;
 
-class hand_joints_list : public history<hand_joints_list, xrt_hand_joint_set>
+struct hand_aim_data
+{
+	bool valid = false;
+	uint64_t status = 0;
+	xrt_pose aim_pose{};
+	float pinch_strength[4] = {}; // index, middle, ring, little
+};
+
+struct hand_tracking_data
+{
+	xrt_hand_joint_set joints{};
+	hand_aim_data aim{};
+};
+
+class hand_joints_list : public history<hand_joints_list, hand_tracking_data>
 {
 public:
 	const int hand_id;
 
-	static xrt_hand_joint_set interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t);
-	static xrt_hand_joint_set extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, int64_t ta, int64_t tb, int64_t t);
+	static hand_tracking_data interpolate(const hand_tracking_data & a, const hand_tracking_data & b, float t);
+	static hand_tracking_data extrapolate(const hand_tracking_data & a, const hand_tracking_data & b, int64_t ta, int64_t tb, int64_t t);
 
 	hand_joints_list(int hand_id) :
 	        hand_id(hand_id) {}
