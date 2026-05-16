@@ -419,8 +419,8 @@ bool wivrn::vk_bundle::optimal_transfer(uint32_t from, uint32_t to) const
 	{
 		auto props = physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyOwnershipTransferPropertiesKHR>>();
 
-		auto to = std::get<1>(props[from]).optimalImageTransferToQueueFamilies;
-		return to & (1 << to);
+		auto mask = std::get<1>(props[from]).optimalImageTransferToQueueFamilies;
+		return (mask & (1u << to)) != 0;
 	}
 #endif
 	return true;
