@@ -162,9 +162,13 @@ private:
 	XrAction foveation_ok = XR_NULL_HANDLE;
 	XrAction foveation_cancel = XR_NULL_HANDLE;
 
-	// Position of the GUI relative to the view space, in view space axes
+	// Position of the GUI relative to the view space, in view space axes, used when the GUI is not interactable
 	glm::vec3 head_gui_position{-0.1, -0.3, -1.2}; // Shift 10cm left by default so that the stats are centered accounting for the tab list
 	glm::quat head_gui_orientation{1, 0, 0, 0};
+
+	// Position of the GUI relative to the world space, in world space axes, used when the GUI is interactable
+	glm::vec3 world_gui_position;
+	glm::quat world_gui_orientation;
 
 	bool override_foveation_enable;
 	float override_foveation_pitch; // The pitch is the opposite as the height displayed in the GUI

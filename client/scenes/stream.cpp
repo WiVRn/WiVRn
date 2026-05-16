@@ -681,50 +681,27 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 
 void scenes::stream::update_gui_position(xr::spaces controller)
 {
-	std::optional<std::pair<glm::vec3, glm::quat>> aim;
-
-	if (application::get_hmd_traits().view_locate)
-	{
-		aim = application::locate_controller(
-		        application::space(controller),
-		        application::space(xr::spaces::view),
-		        predicted_display_time);
-	}
-	else
-	{
-		// Pico fails to find its controllers within view space, so use the head position in
-		// world space as a reference
-		aim = application::locate_controller(
-		        application::space(controller),
-		        application::space(xr::spaces::world),
-		        predicted_display_time);
-
-		auto head_position = application::locate_controller(application::space(xr::spaces::view),
-		                                                    application::space(xr::spaces::world),
-		                                                    predicted_display_time);
-		if (not(aim and head_position))
-			return;
-
-		aim->first = glm::conjugate(head_position->second) * (aim->first - head_position->first);
-		aim->second = glm::conjugate(head_position->second) * aim->second;
-	}
+	std::optional<std::pair<glm::vec3, glm::quat>> aim = application::locate_controller(
+	        application::space(controller),
+	        application::space(xr::spaces::world),
+	        predicted_display_time);
 
 	if (not aim)
 		return;
 
 	auto [offset_position, offset_orientation] = input->offset[controller];
 
-	auto head_controller_position = aim->first + glm::mat3_cast(aim->second * offset_orientation) * offset_position;
-	auto head_controller_orientation = aim->second * offset_orientation;
-	auto head_controller_direction = -glm::column(glm::mat3_cast(head_controller_orientation), 2);
+	auto world_controller_position = aim->first + glm::mat3_cast(aim->second * offset_orientation) * offset_position;
+	auto world_controller_orientation = aim->second * offset_orientation;
+	auto world_controller_direction = -glm::column(glm::mat3_cast(world_controller_orientation), 2);
 
 	if (not recentering_context)
 	{
 		// First frame of recentering: get the GUI position relative to the controller
 
 		// Compute the intersection of the ray with the GUI
-		auto gui_controller_direction = glm::conjugate(head_gui_orientation) * head_controller_direction;
-		auto gui_controller_position = glm::conjugate(head_gui_orientation) * (head_controller_position - head_gui_position);
+		auto gui_controller_direction = glm::conjugate(world_gui_orientation) * world_controller_direction;
+		auto gui_controller_position = glm::conjugate(world_gui_orientation) * (world_controller_position - world_gui_position);
 
 		float lambda = -gui_controller_position.z / gui_controller_direction.z;
 		auto gui_intersection = gui_controller_position + lambda * gui_controller_direction;
@@ -739,8 +716,8 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 		}
 		else
 		{
-			glm::vec3 controller_gui_position = glm::conjugate(head_controller_orientation) * (head_gui_position - head_controller_position);
-			glm::quat controller_gui_orientation = glm::conjugate(head_controller_orientation) * head_gui_orientation;
+			glm::vec3 controller_gui_position = glm::conjugate(world_controller_orientation) * (world_gui_position - world_controller_position);
+			glm::quat controller_gui_orientation = glm::conjugate(world_controller_orientation) * world_gui_orientation;
 
 			recentering_context.emplace(controller, controller_gui_position, controller_gui_orientation);
 		}
@@ -750,8 +727,8 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 		// Subsequent frames of recentering: keep the GUI locked to the controller
 		auto [_, controller_gui_position, controller_gui_orientation] = *recentering_context;
 
-		head_gui_position = head_controller_position + head_controller_orientation * controller_gui_position;
-		head_gui_orientation = head_controller_orientation * controller_gui_orientation;
+		world_gui_position = world_controller_position + world_controller_orientation * controller_gui_position;
+		world_gui_orientation = world_controller_orientation * controller_gui_orientation;
 	}
 }
 

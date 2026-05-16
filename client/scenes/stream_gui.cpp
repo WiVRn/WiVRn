@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <glm/ext/quaternion_common.hpp>
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "stream.h"
@@ -635,6 +636,24 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	if (auto new_status = next_gui_status.load(); new_status != gui_status)
 	{
 		spdlog::info("Switch tab from {} to {}", magic_enum::enum_name(gui_status), magic_enum::enum_name(new_status));
+
+		if (not is_gui_interactable() and is_interactable(new_status))
+		{
+			if (auto head_position = application::locate_controller(application::space(xr::spaces::view), application::space(xr::spaces::world), predicted_display_time))
+			{
+				world_gui_orientation = head_position->second * head_gui_orientation;
+				world_gui_position = head_position->first + glm::mat3_cast(head_position->second) * head_gui_position;
+			}
+		}
+		else if (is_gui_interactable() and not is_interactable(new_status))
+		{
+			if (auto head_position = application::locate_controller(application::space(xr::spaces::view), application::space(xr::spaces::world), predicted_display_time))
+			{
+				head_gui_orientation = glm::conjugate(head_position->second) * world_gui_orientation;
+				head_gui_position = glm::mat3_cast(glm::conjugate(head_position->second)) * (world_gui_position - head_position->first);
+			}
+		}
+
 		stored_gui_status = gui_status;
 		gui_status = new_status;
 		gui_status_last_change = predicted_display_time;
@@ -729,12 +748,16 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 			case stream_tab::overlay_only:
 			case stream_tab::compact:
+				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
+				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
+				break;
+
 			case stream_tab::stats:
 			case stream_tab::settings:
 			case stream_tab::applications:
 			case stream_tab::application_launcher:
-				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
-				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
+				imgui_ctx->layers()[0].orientation = world_gui_orientation;
+				imgui_ctx->layers()[0].position = world_gui_position;
 				break;
 		}
 	}
