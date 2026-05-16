@@ -78,6 +78,10 @@ public:
 	const uint8_t stream_idx;
 	const uint32_t target_queue;
 	const bool need_transfer;
+	// Layout the encoder needs y_cbcr to arrive in. Set during construction
+	// or init() and read by the compositor on every layer_commit — must not
+	// change after the first frame.
+	vk::ImageLayout target_layout = vk::ImageLayout::eGeneral;
 	static const uint8_t num_slots = 2;
 	const double bitrate_multiplier;
 
