@@ -542,6 +542,11 @@ QList<openVRCompatLib> wivrn_server::openVRCompat() const
 		};
 
 	QList<openVRCompatLib> result;
+	for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_EXTRA_SEARCH_PATH), std::string_view(":")))
+	{
+		if (std::filesystem::path fs = std::string_view(path); !fs.empty() && std::filesystem::exists(fs))
+			result.push_back(openVRCompatLib(QString::fromStdString(fs.string()), QString::fromStdString(fs.string())));
+	}
 	for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
 	{
 		if (std::filesystem::path fs = std::string_view(path); std::filesystem::exists(fs))

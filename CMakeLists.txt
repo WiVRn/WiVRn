@@ -56,6 +56,8 @@ option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" OFF)
 
 set(OVR_COMPAT_SEARCH_PATH "/opt/xrizer:/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite"
     CACHE STRING "List of places to search for the OpenVR compatibility layer, separated by :")
+set(OVR_COMPAT_EXTRA_SEARCH_PATH ""
+    CACHE STRING "Additional places to search for the OpenVR compatibility layer (prepended before OVR_COMPAT_SEARCH_PATH), separated by :")
 
 option(WIVRN_FEATURE_DEBUG_GUI "Enable Monado debug GUI" OFF)
 option(WIVRN_FEATURE_RENDERDOC "Support renderdoc" OFF)

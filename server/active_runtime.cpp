@@ -72,6 +72,11 @@ std::filesystem::path active_runtime::openvr_compat_path()
 		                if (flatpak_root)
 			                return *flatpak_root / "xrizer";
 
+		                for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_EXTRA_SEARCH_PATH), std::string_view(":")))
+		                {
+			                if (std::filesystem::path res = std::string_view(path); !res.empty() && std::filesystem::exists(res))
+				                return res;
+		                }
 		                for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
 		                {
 			                if (std::filesystem::path res = std::string_view(path); std::filesystem::exists(res))
