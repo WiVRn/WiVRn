@@ -21,7 +21,6 @@
 #include "wivrn_packets.h"
 
 #include "utils/handle.h"
-#include "xr/meta_body_tracking_fidelity.h"
 #include <array>
 #include <optional>
 #include <openxr/openxr.h>

@@ -201,7 +201,7 @@ if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
     find_package(Fontconfig REQUIRED)
 
     if (WIVRN_USE_SYSTEM_OPENXR)
-        find_package(OpenXR 1.1.53 REQUIRED)
+        find_package(OpenXR 1.1.58 REQUIRED)
     endif()
 
     if (WIVRN_USE_SYSTEM_LIBKTX)
@@ -239,8 +239,8 @@ FetchContent_Declare(fastgltf      EXCLUDE_FROM_ALL SYSTEM URL https://github.co
                                    URL_HASH SHA256=0bb564e127b14c22f062db50f89381dd2e0a20dbaf4987ca138a4ae8728712f9)
 FetchContent_Declare(glm           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/g-truc/glm/releases/download/1.0.2/glm-1.0.2.zip
                                    URL_HASH SHA256=77fff075c5ab0caf076fade41558c5458d9a242aba2b2076bb72008bdb51a35e)
-FetchContent_Declare(openxr_loader EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.1.54.tar.gz
-                                   URL_HASH SHA256=2055688081066e37238be996534f349420ac52ed34f8514836704232121ee7f3)
+FetchContent_Declare(openxr_loader EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.1.58.tar.gz
+                                   URL_HASH SHA256=815b933219c398314366c289221526428418d799205a73a9640c97ca4242602b)
 FetchContent_Declare(spdlog        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/gabime/spdlog/archive/refs/tags/v1.16.0.tar.gz
                                    URL_HASH SHA256=8741753e488a78dd0d0024c980e1fb5b5c85888447e309d9cb9d949bdb52aa3e)
 FetchContent_Declare(stb           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.zip

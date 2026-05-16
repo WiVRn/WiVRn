@@ -34,7 +34,6 @@
 #include "xr/check.h"
 #include "xr/htc_exts.h"
 #include "xr/htc_face_tracker.h"
-#include "xr/meta_body_tracking_fidelity.h"
 #include "xr/to_string.h"
 #include <algorithm>
 #include <boost/locale.hpp>
