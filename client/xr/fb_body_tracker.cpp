@@ -19,7 +19,6 @@
 #include "fb_body_tracker.h"
 #include "spdlog/spdlog.h"
 #include "xr/instance.h"
-#include "xr/meta_body_tracking_fidelity.h"
 #include "xr/session.h"
 #include "xr/to_string.h"
 #include <ranges>
