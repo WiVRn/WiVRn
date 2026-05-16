@@ -749,14 +749,13 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	ImVec2 content_size{viewport_size - ImVec2{tab_width, 0} - margin_around_window * 2};
 	ImVec2 content_center = margin_around_window + content_size / 2 + ImVec2{tab_width, 0};
 
-	bool display_tabs, always_auto_resize;
+	bool display_tabs = false;
+	bool always_auto_resize = false;
 	switch (gui_status)
 	{
 		case stream_tab::overlay_only:
 			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			ImGui::SetNextWindowSize(content_size);
-			always_auto_resize = false;
-			display_tabs = false;
 			break;
 
 		case stream_tab::hidden:
@@ -764,13 +763,11 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		case stream_tab::foveation_settings:
 			ImGui::SetNextWindowPos(viewport_size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			always_auto_resize = true;
-			display_tabs = false;
 			break;
 
 		case stream_tab::compact:
 			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			always_auto_resize = true;
-			display_tabs = false;
 			break;
 
 		case stream_tab::stats:
@@ -778,14 +775,11 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		case stream_tab::applications:
 			ImGui::SetNextWindowPos(margin_around_window);
 			ImGui::SetNextWindowSize(viewport_size - margin_around_window * 2);
-			always_auto_resize = false;
 			display_tabs = true;
 			break;
 		case stream_tab::application_launcher:
 			ImGui::SetNextWindowPos(margin_around_window);
 			ImGui::SetNextWindowSize(viewport_size - margin_around_window * 2);
-			always_auto_resize = false;
-			display_tabs = false;
 			break;
 	}
 

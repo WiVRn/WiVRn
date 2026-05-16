@@ -338,7 +338,7 @@ void scenes::stream::tracking()
 	decltype(to_headset::tracking_control::pattern) pattern;
 	size_t pattern_position = 0;
 
-	XrDuration frame_duration;
+	XrDuration frame_duration{};
 	XrTime pattern_begin = instance.now();
 
 	while (state_ != state::shutdown)
