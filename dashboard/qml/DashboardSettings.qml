@@ -9,5 +9,7 @@ Settings {
 
 	property bool adb_custom: false
 	property string adb_location: ""
+
+	property bool auto_connect_usb: false
 }
 
