@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-11 08:04+0200\n"
-"PO-Revision-Date: 2026-04-11 08:04+0200\n"
+"POT-Creation-Date: 2026-05-17 20:24+0200\n"
+"PO-Revision-Date: 2026-05-17 20:24+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
 "Language: French\n"
@@ -480,7 +480,7 @@ msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: dashboard/qml/SelectGame.qml:70
+#: dashboard/qml/SelectGame.qml:61
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
@@ -533,27 +533,32 @@ msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr ""
 "« Automatique » utilisera l'accélération matérielle si elle est disponible"
 
-#: dashboard/qml/SettingsPage.qml:88
+#: dashboard/qml/SettingsPage.qml:89
 #, kde-format
 msgid "Autostart application:"
 msgstr "Auto démarrage :"
 
-#: dashboard/qml/SettingsPage.qml:96
+#: dashboard/qml/SettingsPage.qml:94
+#, kde-format
+msgid "Auto connect from USB"
+msgstr "Connecter automatiquement par USB"
+
+#: dashboard/qml/SettingsPage.qml:102
 #, kde-format
 msgid "Advanced options"
 msgstr "Paramètres avancés"
 
-#: dashboard/qml/SettingsPage.qml:102
+#: dashboard/qml/SettingsPage.qml:108
 #, kde-format
 msgid "Check system configuration on start"
 msgstr "Vérifier les paramètres système au démarrage"
 
-#: dashboard/qml/SettingsPage.qml:108
+#: dashboard/qml/SettingsPage.qml:114
 #, kde-format
 msgid "Forward keyboard & mouse from headset"
 msgstr "Transmettre le clavier et la souris depuis le casque"
 
-#: dashboard/qml/SettingsPage.qml:111
+#: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
 "Keyboard and mouse connected to the client will act as if connected to the "
@@ -564,17 +569,17 @@ msgstr ""
 "connectés au serveur. L'OS du client peut réserver certaines touches et "
 "combinaisons, qui ne peuvent pas être transmises."
 
-#: dashboard/qml/SettingsPage.qml:116
+#: dashboard/qml/SettingsPage.qml:122
 #, kde-format
 msgid "Enable debug window"
 msgstr "Activer la fenêtre de débogage"
 
-#: dashboard/qml/SettingsPage.qml:123
+#: dashboard/qml/SettingsPage.qml:129
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Activer le support des manettes SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:126
+#: dashboard/qml/SettingsPage.qml:132
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -588,49 +593,49 @@ msgstr ""
 "WiVRn.\n"
 "Un utilitaire tiers tel que motoc est nécessaire pour la calibration."
 
-#: dashboard/qml/SettingsPage.qml:134
+#: dashboard/qml/SettingsPage.qml:140
 #, kde-format
 msgid "Custom adb location"
 msgstr "Spécifier l'emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:151
 #, kde-format
 msgid "Adb location:"
 msgstr "Emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:154
+#: dashboard/qml/SettingsPage.qml:160
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Parcourir"
 
-#: dashboard/qml/SettingsPage.qml:164
+#: dashboard/qml/SettingsPage.qml:170
 #, kde-format
 msgid "Default"
 msgstr "Par défaut"
 
-#: dashboard/qml/SettingsPage.qml:178
+#: dashboard/qml/SettingsPage.qml:184
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: dashboard/qml/SettingsPage.qml:183
+#: dashboard/qml/SettingsPage.qml:189
 #, kde-format
 msgid "Disabled"
 msgstr "Désactivé"
 
-#: dashboard/qml/SettingsPage.qml:199
+#: dashboard/qml/SettingsPage.qml:205
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Compatibilité OpenVR :"
 
-#: dashboard/qml/SettingsPage.qml:229
+#: dashboard/qml/SettingsPage.qml:235
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Chemin de la bibliothèque, en enlevant bin/linux64/vrclient.so"
 
-#: dashboard/qml/SettingsPage.qml:234
+#: dashboard/qml/SettingsPage.qml:240
 #, kde-format
 msgctxt "browse to choose the OpenVR compatility to use"
 msgid "Browse"
