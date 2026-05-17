@@ -508,10 +508,10 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 	float delta_pitch = application::read_action_float(settings_adjust).value_or(std::pair{0, 0}).second * predicted_display_period;
 
 	// Maximum speed 2m/s @ 1m
-	float delta_distance = std::exp(std::log(2) * application::read_action_float(foveation_distance).value_or(std::pair{0, 0}).second * predicted_display_period);
+	float delta_distance = std::pow(constants::stream::gui_max_foveation_speed, application::read_action_float(foveation_distance).value_or(std::pair{0, 0}).second * predicted_display_period);
 
-	override_foveation_pitch = std::clamp<float>(override_foveation_pitch + delta_pitch, -M_PI / 3, M_PI / 3);
-	override_foveation_distance = std::clamp<float>(override_foveation_distance * delta_distance, 0.5, 100);
+	override_foveation_pitch = std::clamp<float>(override_foveation_pitch + delta_pitch, constants::stream::gui_min_foveation_pitch, constants::stream::gui_max_foveation_pitch);
+	override_foveation_distance = std::clamp<float>(override_foveation_distance * delta_distance, constants::stream::gui_min_foveation_distance, constants::stream::gui_max_foveation_distance);
 
 	bool ok = application::read_action_bool(foveation_ok).value_or(std::pair{0, false}).second;
 	bool cancel = application::read_action_bool(foveation_cancel).value_or(std::pair{0, false}).second;
@@ -690,7 +690,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		case stream_tab::application_launcher:
 			break;
 	}
-	imgui_ctx->set_controllers_enabled(interactable);
+	imgui_ctx->set_controllers_enabled(interactable and not recentering_context);
 	if (interactable)
 	{
 		if (system.hand_tracking_supported())
@@ -965,14 +965,14 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			}
 
 			if (state)
-				update_gui_position(controller);
+				update_gui_position(controller, predicted_display_period * 1e-9f);
 			else
 				recentering_context.reset();
 		}
 		else if (auto state = application::read_action_bool(recenter_left); state and state->second)
-			update_gui_position(xr::spaces::aim_left);
+			update_gui_position(xr::spaces::aim_left, predicted_display_period * 1e-9f);
 		else if (auto state = application::read_action_bool(recenter_right); state and state->second)
-			update_gui_position(xr::spaces::aim_right);
+			update_gui_position(xr::spaces::aim_right, predicted_display_period * 1e-9f);
 		else
 			recentering_context.reset();
 

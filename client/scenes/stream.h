@@ -157,6 +157,8 @@ private:
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
 	XrAction recenter_left = XR_NULL_HANDLE;
 	XrAction recenter_right = XR_NULL_HANDLE;
+	XrAction gui_distance_left = XR_NULL_HANDLE;
+	XrAction gui_distance_right = XR_NULL_HANDLE;
 	XrAction settings_adjust = XR_NULL_HANDLE;
 	XrAction foveation_distance = XR_NULL_HANDLE;
 	XrAction foveation_ok = XR_NULL_HANDLE;
@@ -176,7 +178,7 @@ private:
 
 	// Which controller is used for recentering and position of the GUI relative to the controller, in controller axes, during recentering
 	std::optional<std::tuple<xr::spaces, glm::vec3, glm::quat>> recentering_context;
-	void update_gui_position(xr::spaces controller);
+	void update_gui_position(xr::spaces controller, float predicted_display_period);
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> current_blit_handles;
