@@ -127,6 +127,10 @@ Kirigami.ScrollablePage {
                     toolTipText: i18n("Allows the use of lighthouse-based controllers and trackers.\nRequires SteamVR to be installed.\nDevices must be be powered on before connecting to WiVRn.\nAn external tool such as motoc is needed for calibration.")
                 }
             }
+            Controls.CheckBox {
+                id: auto_connect_usb
+                text: i18n("Auto connect from USB")
+            }
 
             Controls.CheckBox {
                 id: adb_custom
@@ -285,6 +289,8 @@ Kirigami.ScrollablePage {
         Settings.debugGui = debug_gui.checked;
         Settings.steamVrLh = steamvr_lh.checked;
         Settings.hidForwarding = hid_forwarding.checked;
+
+        DashboardSettings.auto_connect_usb = auto_connect_usb.checked;
     }
 
     function load() {
@@ -292,6 +298,8 @@ Kirigami.ScrollablePage {
         debug_gui.checked = Settings.debugGui;
         steamvr_lh.checked = Settings.steamVrLh;
         hid_forwarding.checked = Settings.hidForwarding;
+
+        auto_connect_usb.checked = DashboardSettings.auto_connect_usb;
 
         openvr_combobox.load()
 
