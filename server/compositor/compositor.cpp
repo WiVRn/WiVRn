@@ -442,6 +442,14 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 			                .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
 			                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
 			                .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
+			                // For a queue-family ownership transfer in EXCLUSIVE
+			                // sharing mode, the release barrier's old/new layout
+			                // must match the encoder-side acquire. Both sides use
+			                // eGeneral → eGeneral here; the encoder issues a
+			                // separate non-QFOT barrier to transition to its
+			                // required layout (eVideoEncodeSrcKHR, etc.).
+			                .oldLayout = vk::ImageLayout::eGeneral,
+			                .newLayout = vk::ImageLayout::eGeneral,
 			                .srcQueueFamilyIndex = vk.queue_family_index,
 			                .dstQueueFamilyIndex = encoder->target_queue,
 			                .image = images[i].image,

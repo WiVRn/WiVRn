@@ -638,14 +638,18 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		compositor_sem.stageMask = vk::PipelineStageFlagBits2::eCopy;
 
 		beman::inplace_vector::inplace_vector<vk::ImageMemoryBarrier2, 2> im_barriers;
+		// y_cbcr was written by the compositor in eGeneral and stays in
+		// eGeneral here. eGeneral is a valid source layout for copyImage,
+		// so no layout transition is needed; the QFOT acquire below uses
+		// eGeneral → eGeneral to match the compositor's release.
 		vk::ImageLayout y_cbcr_layout{vk::ImageLayout::eGeneral};
 		if (need_transfer)
 		{
 			im_barriers.push_back(vk::ImageMemoryBarrier2{
 			        .dstStageMask = vk::PipelineStageFlagBits2KHR::eCopy,
 			        .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-			        .oldLayout = y_cbcr_layout,
-			        .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+			        .oldLayout = vk::ImageLayout::eGeneral,
+			        .newLayout = vk::ImageLayout::eGeneral,
 			        .srcQueueFamilyIndex = vk.queue_family_index,
 			        .dstQueueFamilyIndex = target_queue,
 			        .image = y_cbcr,
@@ -655,7 +659,6 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 			                             .baseArrayLayer = stream_idx,
 			                             .layerCount = 1},
 			});
-			y_cbcr_layout = vk::ImageLayout::eTransferSrcOptimal;
 		}
 		im_barriers.push_back(vk::ImageMemoryBarrier2{
 		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eCopy,
@@ -739,13 +742,15 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 	else
 	{
 		compositor_sem.stageMask = vk::PipelineStageFlagBits2::eVideoEncodeKHR;
+		// QFOT acquire (must match compositor's eGeneral → eGeneral release)
+		// followed by a non-QFOT layout transition to eVideoEncodeSrcKHR,
+		// which vkCmdEncodeVideoKHR requires.
+		beman::inplace_vector::inplace_vector<vk::ImageMemoryBarrier2, 2> im_barriers;
 		if (need_transfer)
 		{
-			vk::ImageMemoryBarrier2 video_barrier{
-			        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
-			        .dstAccessMask = vk::AccessFlagBits2::eVideoEncodeReadKHR,
+			im_barriers.push_back(vk::ImageMemoryBarrier2{
 			        .oldLayout = vk::ImageLayout::eGeneral,
-			        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
+			        .newLayout = vk::ImageLayout::eGeneral,
 			        .srcQueueFamilyIndex = vk.queue_family_index,
 			        .dstQueueFamilyIndex = target_queue,
 			        .image = y_cbcr,
@@ -754,12 +759,24 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 			                             .levelCount = 1,
 			                             .baseArrayLayer = stream_idx,
 			                             .layerCount = 1},
-			};
-			video_cmd_buf.pipelineBarrier2({
-			        .imageMemoryBarrierCount = 1,
-			        .pImageMemoryBarriers = &video_barrier,
 			});
 		}
+		im_barriers.push_back(vk::ImageMemoryBarrier2{
+		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
+		        .dstAccessMask = vk::AccessFlagBits2::eVideoEncodeReadKHR,
+		        .oldLayout = vk::ImageLayout::eGeneral,
+		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
+		        .image = y_cbcr,
+		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+		                             .baseMipLevel = 0,
+		                             .levelCount = 1,
+		                             .baseArrayLayer = stream_idx,
+		                             .layerCount = 1},
+		});
+		video_cmd_buf.pipelineBarrier2({
+		        .imageMemoryBarrierCount = uint32_t(im_barriers.size()),
+		        .pImageMemoryBarriers = im_barriers.data(),
+		});
 
 		auto it = image_views.find(VkImage(y_cbcr));
 		if (it != image_views.end())
