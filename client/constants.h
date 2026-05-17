@@ -123,6 +123,18 @@ constexpr ImVec4 urgent_border_color = {8.f, .6f, 0.f, .8f};
 // Dimming for the streamed video when the GUI is interactable
 constexpr float dimming_scale = 0.4;
 constexpr float dimming_bias = 0.01;
+
+constexpr float gui_max_foveation_speed = 2; // Maximum speed (@ 1m) when changing the foveation distance with the thumbstick
+constexpr float gui_min_foveation_distance = 0.5;
+constexpr float gui_max_foveation_distance = 100;
+
+constexpr float gui_min_foveation_pitch = -M_PI / 3;
+constexpr float gui_max_foveation_pitch = M_PI / 3;
+
+constexpr float gui_max_layer_speed = 10; // Maximum speed (@ 1m) when changing the GUI distance with the thumbstick
+constexpr float gui_min_layer_distance = 0.5;
+constexpr float gui_max_layer_distance = 3;
+
 } // namespace constants::stream
 
 namespace constants::style

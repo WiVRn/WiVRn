@@ -506,6 +506,8 @@ void scenes::stream::on_focused()
 	}
 	recenter_left = get_action("recenter_left").first;
 	recenter_right = get_action("recenter_right").first;
+	gui_distance_left = get_action("gui_distance_left").first;
+	gui_distance_right = get_action("gui_distance_right").first;
 	settings_adjust = get_action("settings_adjust").first;
 	foveation_distance = get_action("foveation_distance").first;
 	foveation_ok = get_action("foveation_ok").first;
@@ -679,7 +681,7 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 	return frame;
 }
 
-void scenes::stream::update_gui_position(xr::spaces controller)
+void scenes::stream::update_gui_position(xr::spaces controller, float predicted_display_period)
 {
 	std::optional<std::pair<glm::vec3, glm::quat>> aim = application::locate_controller(
 	        application::space(controller),
@@ -725,7 +727,13 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 	else
 	{
 		// Subsequent frames of recentering: keep the GUI locked to the controller
-		auto [_, controller_gui_position, controller_gui_orientation] = *recentering_context;
+		auto & [_, controller_gui_position, controller_gui_orientation] = *recentering_context;
+
+		if (auto gui_distance = application::read_action_float(controller == xr::spaces::aim_left ? gui_distance_left : gui_distance_right))
+		{
+			controller_gui_position.z *= std::pow(constants::stream::gui_max_layer_speed, gui_distance->second * predicted_display_period);
+			controller_gui_position.z = -std::clamp<float>(-controller_gui_position.z, constants::stream::gui_min_layer_distance, constants::stream::gui_max_layer_distance);
+		}
 
 		world_gui_position = world_controller_position + world_controller_orientation * controller_gui_position;
 		world_gui_orientation = world_controller_orientation * controller_gui_orientation;
@@ -1207,6 +1215,8 @@ scene::meta & scenes::stream::get_meta_scene()
 
 	                {"recenter_left", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	                {"recenter_right", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	                {"gui_distance_left", XR_ACTION_TYPE_FLOAT_INPUT},
+	                {"gui_distance_right", XR_ACTION_TYPE_FLOAT_INPUT},
 
 	                {"settings_adjust", XR_ACTION_TYPE_FLOAT_INPUT},
 	                {"foveation_distance", XR_ACTION_TYPE_FLOAT_INPUT},
@@ -1240,6 +1250,8 @@ scene::meta & scenes::stream::get_meta_scene()
 
 	                                {"recenter_left", "/user/hand/left/input/squeeze/value"},
 	                                {"recenter_right", "/user/hand/right/input/squeeze/value"},
+	                                {"gui_distance_left", "/user/hand/left/input/thumbstick/y"},
+	                                {"gui_distance_right", "/user/hand/right/input/thumbstick/y"},
 	                                {"settings_adjust", "/user/hand/right/input/thumbstick/y"},
 	                                {"foveation_distance", "/user/hand/left/input/thumbstick/y"},
 	                                {"foveation_ok", "/user/hand/right/input/a/click"},
