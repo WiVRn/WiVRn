@@ -89,6 +89,11 @@ Kirigami.ScrollablePage {
                 Kirigami.FormData.label: i18n("Autostart application:")
             }
 
+            Controls.CheckBox {
+                id: auto_connect_usb
+                text: i18n("Auto connect from USB")
+            }
+
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
             }
@@ -126,10 +131,6 @@ Kirigami.ScrollablePage {
                 Kirigami.ContextualHelpButton {
                     toolTipText: i18n("Allows the use of lighthouse-based controllers and trackers.\nRequires SteamVR to be installed.\nDevices must be be powered on before connecting to WiVRn.\nAn external tool such as motoc is needed for calibration.")
                 }
-            }
-            Controls.CheckBox {
-                id: auto_connect_usb
-                text: i18n("Auto connect from USB")
             }
 
             Controls.CheckBox {
