@@ -19,6 +19,7 @@
 #include "target_instance_wivrn.h"
 
 #include "utils/method.h"
+#include "utils/wivrn_trace.h"
 
 #include "xrt/xrt_instance.h"
 #include "xrt/xrt_system.h"
@@ -100,6 +101,7 @@ xrt_result_t
 xrt_instance_create(struct xrt_instance_info * ii, struct xrt_instance ** out_xinst)
 {
 	u_trace_marker_init();
+	wivrn::trace::init();
 
 	*out_xinst = new wivrn::instance();
 

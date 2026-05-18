@@ -9,6 +9,7 @@
 #include "openxr/openxr.h"
 #include "sleep_inhibitor.h"
 #include "util/u_trace_marker.h"
+#include "utils/wivrn_trace.h"
 
 #include "active_runtime.h"
 #include "avahi_publisher.h"
@@ -951,7 +952,9 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 
 	listen_socket = create_listen_socket();
 
-	u_trace_marker_init();
+	// wivrn::trace::init runs in the per-session child via xrt_instance_create
+	// (target_instance_wivrn.cpp): the percetto producer is not fork-safe, so it
+	// must connect from the forked child rather than the daemon parent.
 
 	// Initialize main loop
 	main_loop = g_main_loop_new(nullptr, false);

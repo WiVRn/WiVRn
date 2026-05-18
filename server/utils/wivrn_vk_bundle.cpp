@@ -284,6 +284,10 @@ wivrn::vk_bundle::vk_bundle() :
 #ifdef VK_KHR_unified_image_layouts
 		        VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME,
 #endif
+// For perfetto GPU timestamp tracing
+#ifdef VK_EXT_calibrated_timestamps
+		        VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+#endif
 		};
 		for (auto & ext: physical_device.enumerateDeviceExtensionProperties())
 		{

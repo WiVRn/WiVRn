@@ -121,6 +121,8 @@ if (WIVRN_BUILD_SERVER)
 			driver/xrt_cast.cpp
 
 			utils/wivrn_vk_bundle.cpp
+			utils/wivrn_trace.cpp
+			utils/gpu_timestamp_pool.cpp
 		)
 	target_compile_features(wivrn-server PRIVATE cxx_std_20)
 	target_compile_definitions(wivrn-server PRIVATE VULKAN_HPP_NO_CONSTRUCTORS)
@@ -169,6 +171,21 @@ if (WIVRN_BUILD_SERVER)
 	if(WIVRN_USE_X264)
 		target_sources(wivrn-server PRIVATE encoder/video_encoder_x264.cpp)
 		target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)
+	endif()
+
+	if(WIVRN_USE_PERFETTO)
+		find_package(percetto QUIET)
+		if(NOT percetto_FOUND)
+			pkg_check_modules(PERCETTO IMPORTED_TARGET percetto)
+		endif()
+		if(percetto_FOUND)
+			target_link_libraries(wivrn-server PRIVATE percetto::percetto)
+		elseif(PERCETTO_FOUND)
+			target_link_libraries(wivrn-server PRIVATE PkgConfig::PERCETTO)
+		else()
+			message(FATAL_ERROR "WIVRN_USE_PERFETTO=ON but percetto was not found.")
+		endif()
+		target_compile_definitions(wivrn-server PRIVATE WIVRN_USE_PERFETTO)
 	endif()
 
 	if(WIVRN_USE_SYSTEMD)

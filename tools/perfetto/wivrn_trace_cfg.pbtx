@@ -1,0 +1,70 @@
+# Perfetto config for WiVRn-only server tracing.
+#
+# This config captures *only* WiVRn track_event slices and nothing else from
+# the rest of the system — no ftrace scheduling rows, no other producers'
+# events. Result: small traces focused on the encoder pipeline.
+#
+# If you want system context (kthreads, GPU power, other processes) use
+# tools/perfetto/wivrn_full_trace_cfg.pbtx instead — or pass --full to the
+# wrapper. Adding ftrace here would defeat the WiVRn-only goal: ftrace events
+# (sched_switch etc.) fire across all PIDs and CPUs and have no PID filter
+# at the producer side, so the trace would contain every process's scheduling.
+#
+# Easiest: use the wrapper, which handles the socket setup below:
+#   tools/perfetto/wivrn_capture.sh
+#
+# Manual capture: traced's default socket path (/run/perfetto/traced-*.sock)
+# only root can bind to. Pick a user-writable path and pass it on every side,
+# otherwise the perfetto consumer fails with "Could not connect to the traced
+# socket /run/perfetto/traced-consumer.sock" and the trace is empty.
+#
+#   SOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+#   PRODUCER="${SOCK_DIR}/wivrn-perfetto-producer.sock"
+#   CONSUMER="${SOCK_DIR}/wivrn-perfetto-consumer.sock"
+#
+#   # 1. Start the daemon. traced reads the socket paths from env vars at
+#   #    startup; it has no --producer-socket / --consumer-socket CLI flags.
+#   #    No traced_probes / sudo needed because this config has no ftrace.
+#   PERFETTO_PRODUCER_SOCK_NAME="$PRODUCER" \
+#   PERFETTO_CONSUMER_SOCK_NAME="$CONSUMER" \
+#       traced --background
+#
+#   # 2. Start wivrn-server (built with -DWIVRN_USE_PERFETTO=ON). The server's
+#   #    trace init defaults PERFETTO_PRODUCER_SOCK_NAME to the same path, so
+#   #    no env var is needed here.
+#   WIVRN_TRACING=true wivrn-server
+#
+#   # 3. Capture. Reproduce the workload while this runs.
+#   PERFETTO_PRODUCER_SOCK_NAME="$PRODUCER" \
+#   PERFETTO_CONSUMER_SOCK_NAME="$CONSUMER" \
+#       perfetto -c tools/perfetto/wivrn_trace_cfg.pbtx --txt -o trace.pftrace
+#
+# Open trace.pftrace in https://ui.perfetto.dev. Each slice carries `frame`
+# and `stream` debug args for per-frame pivoting across the encoder,
+# compositor, network, and feedback tracks.
+
+duration_ms: 15000
+buffers {
+    size_kb: 65536
+    fill_policy: RING_BUFFER
+}
+
+data_sources {
+    config {
+        name: "track_event"
+        target_buffer: 0
+        track_event_config {
+            # Allowlist of WiVRn categories. wivrn-server is the only percetto
+            # producer in-process (Monado's percetto integration is not wired
+            # in), so listing only WiVRn categories is sufficient to keep the
+            # trace WiVRn-only. (Do NOT add `disabled_categories: "*"`: percetto
+            # evaluates that against its own category set in a way that ends up
+            # silencing the enabled allowlist too — empty traces.)
+            enabled_categories: "encoder"
+            enabled_categories: "encoder_gpu"
+            enabled_categories: "compositor"
+            enabled_categories: "network"
+            enabled_categories: "feedback"
+        }
+    }
+}

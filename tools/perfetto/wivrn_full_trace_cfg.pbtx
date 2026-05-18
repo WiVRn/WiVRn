@@ -1,0 +1,81 @@
+# Perfetto config for full-system WiVRn capture.
+#
+# Like wivrn_trace_cfg.pbtx but unfiltered: every track_event category is kept
+# and the ftrace set is broadened to scheduling, frequency, frame timing, GPU
+# activity, and IRQs. Use this when you want WiVRn events in context with the
+# rest of the system (a misbehaving game, a third-party driver, a kthread
+# stealing CPU). Trade-off: bigger traces, more setup cost.
+#
+# Easiest:
+#   tools/perfetto/wivrn_capture.sh -c tools/perfetto/wivrn_full_trace_cfg.pbtx
+#
+# Manual:
+#   sudo traced --set-socket-permissions $USER:0660:$USER:0660 &
+#   sudo traced_probes --background
+#   perfetto -c tools/perfetto/wivrn_full_trace_cfg.pbtx --txt -o trace.pftrace
+#
+# Run wivrn-server with WIVRN_TRACING=true and reproduce the workload. Open the
+# resulting .pftrace in https://ui.perfetto.dev.
+
+duration_ms: 15000
+buffers {
+    size_kb: 262144
+    fill_policy: RING_BUFFER
+}
+
+# Unfiltered track_event: every category from every producer is recorded.
+data_sources {
+    config {
+        name: "track_event"
+        target_buffer: 0
+        track_event_config {
+            enabled_categories: "*"
+        }
+    }
+}
+
+# Broader system context than the default config: scheduling, frequency,
+# OpenXR/graphics frame timing, GPU frequency/memory, and IRQs.
+data_sources {
+    config {
+        name: "linux.ftrace"
+        target_buffer: 0
+        ftrace_config {
+            ftrace_events: "sched/sched_switch"
+            ftrace_events: "sched/sched_waking"
+            ftrace_events: "sched/sched_process_exit"
+            ftrace_events: "sched/sched_process_free"
+            ftrace_events: "power/cpu_frequency"
+            ftrace_events: "power/cpu_idle"
+            ftrace_events: "power/gpu_frequency"
+            ftrace_events: "power/suspend_resume"
+            ftrace_events: "irq/irq_handler_entry"
+            ftrace_events: "irq/irq_handler_exit"
+            ftrace_events: "irq/softirq_entry"
+            ftrace_events: "irq/softirq_exit"
+            ftrace_events: "drm/drm_vblank_event"
+            atrace_categories: "gfx"
+            atrace_categories: "sched"
+            atrace_categories: "freq"
+        }
+    }
+}
+
+# Process/thread names so threads show up labelled in the UI.
+data_sources {
+    config {
+        name: "linux.process_stats"
+        target_buffer: 0
+        process_stats_config {
+            scan_all_processes_on_start: true
+        }
+    }
+}
+
+# System info: CPU count, kernel, distro.
+data_sources {
+    config {
+        name: "linux.system_info"
+        target_buffer: 0
+    }
+}

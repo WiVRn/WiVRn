@@ -20,6 +20,7 @@
 #include "video_encoder_ffmpeg.h"
 
 #include "util/u_logging.h"
+#include "utils/wivrn_trace.h"
 
 extern "C"
 {
@@ -83,9 +84,13 @@ std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(uint8_t s
 
 	bool is_idr = idr_handler.get_type(frame_index) == default_idr_handler::frame_type::i;
 
-	push_frame(is_idr, slot);
 	std::shared_ptr<AVPacket> enc_pkt(av_packet_alloc(), [](AVPacket * d) { av_packet_free(&d); });
-	int err = avcodec_receive_packet(encoder_ctx.get(), enc_pkt.get());
+	int err;
+	{
+		wivrn::trace::scope trace_send_recv(wivrn::trace::cpu_track::encoder, stream_idx, frame_index, "avcodec_send+receive");
+		push_frame(is_idr, slot);
+		err = avcodec_receive_packet(encoder_ctx.get(), enc_pkt.get());
+	}
 	if (err == 0)
 	{
 		return data{

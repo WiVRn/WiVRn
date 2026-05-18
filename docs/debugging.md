@@ -15,9 +15,7 @@ This guide covers debugging techniques for WiVRn, including log collection, cras
 - [Crash Debugging](#crash-debugging)
   - [Server Crashes](#server-crashes)
   - [HMD Client Crashes](#hmd-client-crashes)
-- [Performance Debugging](#performance-debugging)
-  - [Timing Analysis](#timing-analysis)
-  - [Perfetto Profiling](#perfetto-profiling)
+- [Performance Profiling](#performance-profiling)
 - [USB Tunneling](#usb-tunneling)
 - [Game Debugging](#game-debugging)
 - [Environment Variables Reference](#environment-variables-reference)
@@ -254,43 +252,12 @@ adb logcat '*:F' | grep -A 50 wivrn
 
 ---
 
-## Performance Debugging
+## Performance Profiling
 
-### Timing Analysis
-
-WiVRn can record detailed timing information for analysis.
-
-Capture timing data:
-
-```bash
-WIVRN_DUMP_TIMINGS=/tmp/wivrn-timings.csv wivrn-server
-```
-
-### Perfetto Profiling
-
-[Perfetto](https://perfetto.dev/) provides detailed system-wide profiling.
-
-#### HMD Profiling
-
-Enable persistent tracing on Android:
-
-```bash
-adb shell setprop persist.traced.enable 1
-```
-
-Open the [Perfetto UI](https://ui.perfetto.dev/), connect to your device, and configure tracing as needed.
-
-See the [Android tracing quickstart](https://perfetto.dev/docs/quickstart/android-tracing) for detailed instructions.
-
-#### Server Profiling
-
-Ensure WiVRn is built with `XRT_FEATURE_TRACING=ON` to enable [Monado tracing with Perfetto](https://monado.pages.freedesktop.org/monado/tracing-perfetto.html).
-
-Start with tracing enabled:
-
-```bash
-XRT_TRACING=true wivrn-server
-```
+WiVRn supports timing analysis via CSV dumps and detailed system-wide
+profiling with Perfetto. See [docs/profiling.md](profiling.md) for capturing
+timing data, profiling the HMD client and server, and comparing the Vulkan,
+NVENC, and VAAPI encoder paths.
 
 ---
 
@@ -363,7 +330,7 @@ The log is located at `$XDG_STATE_HOME/xrizer/xrizer.txt`, or `$HOME/.local/stat
 | `WIVRN_DUMP_TIMINGS` | Path to dump timing CSV (e.g., `/tmp/wivrn-timings.csv`) |
 | `WIVRN_LOGLEVEL` | Log level for the native client |
 | `WIVRN_AUTOCONNECT` | Auto-connect to the first discovered server |
-| `XRT_TRACING` | Enable Perfetto tracing (`true`/`false`) |
+| `WIVRN_TRACING` | Enable WiVRn Perfetto tracing (`true`/`1`/`yes`/`on`). Requires `WIVRN_USE_PERFETTO=ON` at build time. See [docs/profiling.md](profiling.md). |
 
 ### Vulkan
 

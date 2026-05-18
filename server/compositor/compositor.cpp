@@ -35,6 +35,7 @@
 #include "encoder/video_encoder.h"
 #include "inplace_vector.hpp"
 #include "utils/method.h"
+#include "utils/wivrn_trace.h"
 
 #include "xrt/xrt_config_build.h" // IWYU pragma: keep
 #ifdef XRT_FEATURE_RENDERDOC
@@ -624,11 +625,14 @@ void compositor::encoder_work(std::stop_token tok)
 		if (req < 0)
 		{
 			encode_request.wait(req);
+			wivrn::trace::cpu_instant(wivrn::trace::cpu_track::compositor, "encoder_work wake", 0, 0);
 			continue;
 		}
 
 		assert(req < images.size());
 		auto & image = images[req];
+
+		wivrn::trace::scope trace_iter(wivrn::trace::cpu_track::compositor, 0, image.frame_index, "encoder_work iter");
 
 		try
 		{
@@ -715,6 +719,17 @@ compositor::compositor(wivrn_session & session) :
 	        vk.has_instance_ext(VK_EXT_DEBUG_UTILS_EXTENSION_NAME),
 	        log_level);
 	vk::detail::resultCheck(vk::Result(res), "vk_init_from_given");
+
+	// vk_init_from_given has no parameter for VK_EXT_calibrated_timestamps;
+	// propagate it so vk_convert_timestamps_to_host_ns works.
+#ifdef VK_EXT_calibrated_timestamps
+	c_base->vk.has_EXT_calibrated_timestamps = vk.has_device_ext(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+#endif
+
+	// Hand monado's vk_bundle to the trace module so calibrated-timestamp
+	// consumers (gpu_timestamp_pool) can route through monado's helper and
+	// share its calibration cache with any future monado-side perfetto tracing.
+	wivrn::trace::set_calibration_source(&c_base->vk);
 
 	// vk_init_from_given assumes a graphics queue was provided
 	c_base->vk.graphics_queue = nullptr;
