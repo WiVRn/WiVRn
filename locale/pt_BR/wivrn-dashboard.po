@@ -1,7 +1,7 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the WiVRn-dashboard package.
 #
-# SPDX-FileCopyrightText: 2025, 2026 Claudio Sampaio (Patola)
+# SPDX-FileCopyrightText: 2025-2026 Claudio Sampaio (Patola)
 # LuckShiba <LuckShiba@protonmail.com>, 2025.
 #
 # SPDX-FileCopyrightText: 2025 myghi63 <myghi63@disroot.org>
@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-16 21:54+0100\n"
-"PO-Revision-Date: 2026-02-16 23:23+0100\n"
+"POT-Creation-Date: 2026-05-17 20:18+0200\n"
+"PO-Revision-Date: 2026-05-18 00:33+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Lokalize 25.12.2\n"
+"X-Generator: Lokalize 26.04.1\n"
 
 #: dashboard/apk_installer.cpp:137
 #, kde-format
@@ -131,8 +131,7 @@ msgstr "ABD não está instalado"
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
 msgid "Connect a headset and make sure developer mode is enabled"
-msgstr ""
-"Conecte um headset e assegure que o modo desenvolvedor esteja habilitado"
+msgstr "Conecte um headset e assegure que o modo desenvolvedor esteja habilitado"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -243,8 +242,7 @@ msgstr "Inicie o aplicativo do WiVRn no seu headset e use o PIN: %1"
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
 msgid "Enable pairing to allow your headset to connect to this computer"
-msgstr ""
-"Ative o pareamento para permitir que seu headset conecte-se a esse computador"
+msgstr "Ative o pareamento para permitir que seu headset conecte-se a esse computador"
 
 #: dashboard/qml/HeadsetsPage.qml:171 dashboard/qml/TroubleshootPage.qml:45
 #, kde-format
@@ -303,10 +301,8 @@ msgstr "O firewall pode não permitir a porta 9757"
 
 #: dashboard/qml/Main.qml:179
 #, kde-format
-msgid ""
-"NVIDIA GPUs require at least driver version 565.77, current version is %1"
-msgstr ""
-"GPUs NVIDIA requerem pelo menos o driver versão 565.77, a versão atual é %1"
+msgid "NVIDIA GPUs require at least driver version 565.77, current version is %1"
+msgstr "GPUs NVIDIA requerem pelo menos o driver versão 565.77, a versão atual é %1"
 
 #: dashboard/qml/Main.qml:185
 #, kde-format
@@ -317,8 +313,8 @@ msgstr "Mais informações"
 #, kde-format
 msgid "Vulkan drivers cannot be found, you may need to run \"flatpak update\""
 msgstr ""
-"Drivers vulkan não foram encontrados, você pode ter que rodar \"flatpak update"
-"\""
+"Drivers vulkan não foram encontrados, você pode ter que rodar \"flatpak "
+"update\""
 
 #: dashboard/qml/Main.qml:193
 #, kde-format
@@ -351,15 +347,13 @@ msgstr "A Steam está instalada como snap. Snaps não são compatíveis com WiVR
 
 #: dashboard/qml/Main.qml:225
 #, kde-format
-msgid ""
-"Steam is installed as a flatpak but does not have sufficient permissions."
+msgid "Steam is installed as a flatpak but does not have sufficient permissions."
 msgstr "A Steam está instalada como flatpak e não tem permissões suficientes."
 
 #: dashboard/qml/Main.qml:240
 #, kde-format
 msgid "Restart the server for configuration changes to take effect"
-msgstr ""
-"Reinicie o servidor para que as alterações de configuração tenham efeito"
+msgstr "Reinicie o servidor para que as alterações de configuração tenham efeito"
 
 #: dashboard/qml/Main.qml:246
 #, kde-format
@@ -431,8 +425,7 @@ msgstr "Conectar (por cabo)"
 #: dashboard/qml/Main.qml:383 dashboard/qml/WizardPage.qml:339
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
-msgstr ""
-"Nenhum headset está conectado ou seu headset não está em modo desenvolvedor"
+msgstr "Nenhum headset está conectado ou seu headset não está em modo desenvolvedor"
 
 #: dashboard/qml/Main.qml:404
 #, kde-format
@@ -469,19 +462,19 @@ msgstr "Resolver problemas"
 msgid "Version %1"
 msgstr "Versão %1"
 
-#: dashboard/qml/SelectGame.qml:14
+#: dashboard/qml/SelectGame.qml:12
 #, kde-format
 msgctxt "don't start an application automatically"
 msgid "None"
 msgstr "Nenhum"
 
-#: dashboard/qml/SelectGame.qml:20
+#: dashboard/qml/SelectGame.qml:18
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SelectGame.qml:72
+#: dashboard/qml/SelectGame.qml:61
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
@@ -533,27 +526,32 @@ msgstr "x264 (codificação por software)"
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "\"Auto\" usará aceleração de hardware se disponível"
 
-#: dashboard/qml/SettingsPage.qml:88
+#: dashboard/qml/SettingsPage.qml:89
 #, kde-format
 msgid "Autostart application:"
 msgstr "Autoiniciar aplicação:"
 
-#: dashboard/qml/SettingsPage.qml:96
+#: dashboard/qml/SettingsPage.qml:94
+#, kde-format
+msgid "Auto connect from USB"
+msgstr "Autoconectar pela USB"
+
+#: dashboard/qml/SettingsPage.qml:102
 #, kde-format
 msgid "Advanced options"
 msgstr "Opções avançadas"
 
-#: dashboard/qml/SettingsPage.qml:102
+#: dashboard/qml/SettingsPage.qml:108
 #, kde-format
 msgid "Check system configuration on start"
 msgstr "Verificar configuração do sistema ao iniciar"
 
-#: dashboard/qml/SettingsPage.qml:108
+#: dashboard/qml/SettingsPage.qml:114
 #, kde-format
 msgid "Forward keyboard & mouse from headset"
 msgstr "Repassar teclado & mouse do headset"
 
-#: dashboard/qml/SettingsPage.qml:111
+#: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
 "Keyboard and mouse connected to the client will act as if connected to the "
@@ -564,17 +562,17 @@ msgstr ""
 "O OS cliente pode reservar teclas e combinações específicas, as quais podem "
 "não ser repassadas."
 
-#: dashboard/qml/SettingsPage.qml:116
+#: dashboard/qml/SettingsPage.qml:122
 #, kde-format
 msgid "Enable debug window"
 msgstr "Ativar janela de depuração"
 
-#: dashboard/qml/SettingsPage.qml:123
+#: dashboard/qml/SettingsPage.qml:129
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Ativar suporte a dispositivos rastreados pelo SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:126
+#: dashboard/qml/SettingsPage.qml:132
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -587,47 +585,53 @@ msgstr ""
 "Os dispositivos precisam estar ligados antes de se conectar ao WiVRn.\n"
 "Uma ferramenta externa como o motoc é necessária para calibração."
 
-#: dashboard/qml/SettingsPage.qml:134
+#: dashboard/qml/SettingsPage.qml:140
 #, kde-format
 msgid "Custom adb location"
 msgstr "Caminho personalizado do adb"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:151
 #, kde-format
 msgid "Adb location:"
 msgstr "Caminho do adb:"
 
-#: dashboard/qml/SettingsPage.qml:154
+#: dashboard/qml/SettingsPage.qml:160
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Navegar"
 
-#: dashboard/qml/SettingsPage.qml:164
+#: dashboard/qml/SettingsPage.qml:170
 #, kde-format
 msgid "Default"
 msgstr "Default"
 
-#: dashboard/qml/SettingsPage.qml:178
+#: dashboard/qml/SettingsPage.qml:184
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SettingsPage.qml:183
+#: dashboard/qml/SettingsPage.qml:189
 #, kde-format
 msgid "Disabled"
 msgstr "Desativado"
 
-#: dashboard/qml/SettingsPage.qml:191
+#: dashboard/qml/SettingsPage.qml:205
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Biblioteca de compatibilidade OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:217
+#: dashboard/qml/SettingsPage.qml:235
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Caminho da biblioteca, excluindo bin/linux64/vrclient.so"
+
+#: dashboard/qml/SettingsPage.qml:240
+#, kde-format
+msgctxt "browse to choose the OpenVR compatility to use"
+msgid "Browse"
+msgstr "Navegar"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
@@ -678,8 +682,7 @@ msgstr "Não consigo ver meu computador no aplicativo do WiVRn"
 #: dashboard/qml/TroubleshootPage.qml:25
 #, kde-format
 msgid "If you have a firewall, make sure that port 5353/UDP is open."
-msgstr ""
-"Se você tem firewall, se certifique que a porta 5353/UDP esteja aberta."
+msgstr "Se você tem firewall, se certifique que a porta 5353/UDP esteja aberta."
 
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
