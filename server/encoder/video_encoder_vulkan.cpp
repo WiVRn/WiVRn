@@ -20,7 +20,9 @@
 
 #include "encoder/encoder_settings.h"
 #include "inplace_vector.hpp"
+#include "os/os_time.h"
 #include "util/u_logging.h"
+#include "utils/wivrn_trace.h"
 #include "utils/wivrn_vk_bundle.h"
 
 #include <iostream>
@@ -565,6 +567,15 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		vk.name(query_pool, std::format("vulkan encoder {} query pool", stream_idx));
 	}
 
+	// Each pool is bound to the queue family that records its timestamps; pools
+	// whose corresponding code path never runs stay dormant.
+	ts_pool = gpu_timestamp_pool(vk, encode_queue.family_index, num_slots, std::format("vulkan encoder {} encode", stream_idx));
+	if (tmp_image)
+		ts_pool_image_copy = gpu_timestamp_pool(vk, encode_queue.family_index, num_slots, std::format("vulkan encoder {} image-copy", stream_idx));
+	const uint32_t host_copy_family = vk.transfer_queue ? vk.transfer_queue.family_index : encode_queue.family_index;
+	ts_pool_host_copy = gpu_timestamp_pool(vk, host_copy_family, num_slots, std::format("vulkan encoder {} host-copy", stream_idx));
+	ts_pool_host_copy_overflow = gpu_timestamp_pool(vk, host_copy_family, num_slots, std::format("vulkan encoder {} host-copy-overflow", stream_idx));
+
 	// command pools
 	{
 		video_command_pool = vk.device.createCommandPool(
@@ -685,6 +696,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		        .pImageMemoryBarriers = im_barriers.data(),
 		});
 
+		ts_pool_image_copy.cmd_begin(video_cmd_buf, encode_slot, frame_index, vk::PipelineStageFlagBits2::eCopy);
 		video_cmd_buf.copyImage(
 		        y_cbcr,
 		        target_layout,
@@ -726,6 +738,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		                        },
 		                },
 		        });
+		ts_pool_image_copy.cmd_end(video_cmd_buf, encode_slot, vk::PipelineStageFlagBits2::eCopy);
 
 		vk::ImageMemoryBarrier2 tmp_image_barrier{
 		        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
@@ -911,7 +924,9 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		encode_info.setReferenceSlots(ref_slot->info);
 
 	video_cmd_buf.beginQuery(*query_pool, encode_slot, {});
+	ts_pool.cmd_begin(video_cmd_buf, encode_slot, frame_index, vk::PipelineStageFlagBits2::eVideoEncodeKHR);
 	video_cmd_buf.encodeVideoKHR(encode_info);
+	ts_pool.cmd_end(video_cmd_buf, encode_slot, vk::PipelineStageFlagBits2::eVideoEncodeKHR);
 	video_cmd_buf.endQuery(*query_pool, encode_slot);
 	video_cmd_buf.endVideoCodingKHR(vk::VideoEndCodingInfoKHR{});
 
@@ -943,12 +958,14 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 				cmd.pipelineBarrier2(dep_info);
 			}
 
+			ts_pool_host_copy.cmd_begin(cmd, encode_slot, frame_index, vk::PipelineStageFlagBits2::eCopy);
 			cmd.copyBuffer(
 			        slot_item.output_buffer,
 			        slot_item.host_buffer,
 			        vk::BufferCopy{
 			                .size = slot_item.copy_size,
 			        });
+			ts_pool_host_copy.cmd_end(cmd, encode_slot, vk::PipelineStageFlagBits2::eCopy);
 			cmd.end();
 		}
 		else
@@ -964,12 +981,14 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 			        .memoryBarrierCount = 1,
 			        .pMemoryBarriers = &mem_barrier,
 			});
+			ts_pool_host_copy.cmd_begin(video_cmd_buf, encode_slot, frame_index, vk::PipelineStageFlagBits2::eCopy);
 			video_cmd_buf.copyBuffer(
 			        slot_item.output_buffer,
 			        slot_item.host_buffer,
 			        vk::BufferCopy{
 			                .size = slot_item.copy_size,
 			        });
+			ts_pool_host_copy.cmd_end(video_cmd_buf, encode_slot, vk::PipelineStageFlagBits2::eCopy);
 		}
 	}
 
@@ -1043,6 +1062,34 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
 	}
 
+	if (auto s = ts_pool.collect(encode_slot))
+	{
+		wivrn::trace::gpu_slice(wivrn::trace::gpu_track::vulkan_encode,
+		                        "encodeVideoKHR",
+		                        s->begin_ns,
+		                        s->end_ns,
+		                        s->frame_index,
+		                        stream_idx);
+	}
+	if (auto s = ts_pool_image_copy.collect(encode_slot))
+	{
+		wivrn::trace::gpu_slice(wivrn::trace::gpu_track::vulkan_image_copy,
+		                        "vk_copy_image_tmp",
+		                        s->begin_ns,
+		                        s->end_ns,
+		                        s->frame_index,
+		                        stream_idx);
+	}
+	if (auto s = ts_pool_host_copy.collect(encode_slot))
+	{
+		wivrn::trace::gpu_slice(wivrn::trace::gpu_track::vulkan_host_copy,
+		                        "vk_copy_to_host",
+		                        s->begin_ns,
+		                        s->end_ns,
+		                        s->frame_index,
+		                        stream_idx);
+	}
+
 	// We don't copy the whole buffer, but an estimate of how much we'll need
 	// If that wasn't enough, we have to issue a second copy command for the rest
 	if (slot_item.host_buffer and size > slot_item.copy_size)
@@ -1054,6 +1101,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 
 		cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
+		ts_pool_host_copy_overflow.cmd_begin(cmd, encode_slot, frame_index, vk::PipelineStageFlagBits2::eCopy);
 		cmd.copyBuffer(
 		        slot_item.output_buffer,
 		        slot_item.host_buffer,
@@ -1062,6 +1110,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		                .dstOffset = slot_item.copy_size,
 		                .size = size - slot_item.copy_size,
 		        });
+		ts_pool_host_copy_overflow.cmd_end(cmd, encode_slot, vk::PipelineStageFlagBits2::eCopy);
 
 		cmd.end();
 
@@ -1085,6 +1134,16 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		{
 			U_LOG_E("Timeout on stream %d", stream_idx);
 			return {};
+		}
+
+		if (auto s = ts_pool_host_copy_overflow.collect(encode_slot))
+		{
+			wivrn::trace::gpu_slice(wivrn::trace::gpu_track::vulkan_host_copy_overflow,
+			                        "vk_copy_to_host_overflow",
+			                        s->begin_ns,
+			                        s->end_ns,
+			                        s->frame_index,
+			                        stream_idx);
 		}
 	}
 

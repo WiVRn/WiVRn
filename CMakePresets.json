@@ -9,6 +9,7 @@
 		{
 			"name": "base",
 			"hidden": true,
+			"generator": "Ninja",
 			"cacheVariables": {
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
 				"CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
@@ -62,6 +63,24 @@
 				"WIVRN_BUILD_SERVER": "ON",
 				"WIVRN_BUILD_SERVER_LIBRARY": "ON",
 				"WIVRN_BUILD_WIVRNCTL": "ON"
+			}
+		},
+		{
+			"name": "server-tracing",
+			"displayName": "Server with Perfetto tracing",
+			"inherits": "server",
+			"binaryDir": "${sourceDir}/build-server-tracing",
+			"cacheVariables": {
+				"WIVRN_USE_PERFETTO": "ON"
+			}
+		},
+		{
+			"name": "server-tracing-monado",
+			"displayName": "Server with Perfetto tracing (incl. Monado)",
+			"inherits": "server-tracing",
+			"binaryDir": "${sourceDir}/build-server-tracing-monado",
+			"cacheVariables": {
+				"WIVRN_TRACE_MONADO": "ON"
 			}
 		},
 		{

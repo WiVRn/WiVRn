@@ -19,12 +19,12 @@
 #include "target_instance_wivrn.h"
 
 #include "utils/method.h"
+#include "utils/wivrn_trace.h"
 
 #include "xrt/xrt_instance.h"
 #include "xrt/xrt_system.h"
 
 #include "b_system.h"
-#include "util/u_trace_marker.h"
 
 #include <assert.h>
 
@@ -82,7 +82,7 @@ instance::instance() :
                 .is_system_available = method_pointer<&instance::is_system_available>,
                 .create_system = method_pointer<&instance::create_system>,
                 .get_prober = method_pointer<&instance::get_prober>,
-                .destroy = [](xrt_instance * ptr) { delete (instance *)ptr; },
+                .destroy = [](xrt_instance * ptr) { wivrn::trace::shutdown(); delete (instance *)ptr; },
                 .startup_timestamp = os_monotonic_get_ns(),
         }
 {
@@ -99,7 +99,7 @@ void instance::set_ipc_server(ipc_server * server)
 xrt_result_t
 xrt_instance_create(struct xrt_instance_info * ii, struct xrt_instance ** out_xinst)
 {
-	u_trace_marker_init();
+	wivrn::trace::init();
 
 	*out_xinst = new wivrn::instance();
 

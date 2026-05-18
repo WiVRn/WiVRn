@@ -24,6 +24,7 @@
 
 #include "encoder_settings.h"
 #include "os/os_time.h"
+#include "utils/wivrn_trace.h"
 #include "wivrn_config.h"
 
 #include <string>
@@ -234,6 +235,7 @@ void video_encoder::set_framerate(float framerate)
 
 void video_encoder::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo info, uint64_t frame_index)
 {
+	wivrn::trace::scope trace_present(wivrn::trace::cpu_track::encoder, stream_idx, frame_index, "present_image");
 	// Wait for encoder to be done
 	present_slot = (present_slot + 1) % num_slots;
 	state[present_slot].wait(busy);
@@ -271,6 +273,7 @@ void video_encoder::encode(wivrn_session & cnx,
 	this->cnx = &cnx;
 	clock = cnx.get_offset();
 
+	wivrn::trace::scope trace_encode(wivrn::trace::cpu_track::encoder, stream_idx, frame_index, "encode");
 	auto encode_begin = os_monotonic_get_ns();
 	timing_info = {
 	        .encode_begin = clock.to_headset(encode_begin),
@@ -297,6 +300,13 @@ void video_encoder::encode(wivrn_session & cnx,
 void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool control)
 {
 	std::lock_guard lock(mutex);
+	if (shard.shard_idx == 0)
+	{
+		// One SendData call per NAL; span the whole frame, not each call.
+		wivrn::trace::cpu_begin(wivrn::trace::cpu_track::network, stream_idx, shard.frame_idx, "SendData");
+		cnx->dump_time("send_begin", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
+		timing_info.send_begin = clock.to_headset(os_monotonic_get_ns());
+	}
 	if (end_of_frame)
 	{
 		timing_info.send_end = clock.to_headset(os_monotonic_get_ns());
@@ -305,11 +315,6 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 	}
 	if (video_dump)
 		video_dump.write((char *)data.data(), data.size());
-	if (shard.shard_idx == 0)
-	{
-		cnx->dump_time("send_begin", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
-		timing_info.send_begin = clock.to_headset(os_monotonic_get_ns());
-	}
 
 	ssize_t max_payload_size = (cnx->has_stream() and not control) ? to_headset::video_stream_data_shard::max_payload_size : std::numeric_limits<uint32_t>::max();
 
@@ -341,7 +346,10 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 		begin = next;
 	}
 	if (end_of_frame)
+	{
 		cnx->dump_time("send_end", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
+		wivrn::trace::cpu_end(wivrn::trace::cpu_track::network, stream_idx, shard.frame_idx, "SendData");
+	}
 }
 
 } // namespace wivrn

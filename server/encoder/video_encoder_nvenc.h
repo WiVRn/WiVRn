@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "utils/gpu_timestamp_pool.h"
 #include "video_encoder.h"
 #include "video_encoder_nvenc_shared_state.h"
 #include <array>
@@ -52,6 +53,8 @@ private:
 		NV_ENC_REGISTERED_PTR nvenc_resource;
 	};
 	std::array<in_t, num_slots> in;
+
+	gpu_timestamp_pool ts_pool;
 
 	float fps;
 	uint64_t bitrate;

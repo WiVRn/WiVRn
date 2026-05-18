@@ -28,6 +28,7 @@
 #include "utils/load_icon.h"
 #include "utils/method.h"
 #include "utils/scoped_lock.h"
+#include "utils/wivrn_trace.h"
 
 #include "audio/audio_setup.h"
 #include "wivrn_android_face_tracker.h"
@@ -383,6 +384,9 @@ void wivrn_session::pause_session()
 		audio_handle->pause();
 
 	// FIXME: pause compositor
+
+	// Rotate this connection's trace before it pauses for reconnect.
+	wivrn::trace::flush_session();
 }
 
 void wivrn_session::resume_session()
@@ -1066,6 +1070,7 @@ void wivrn_session::set_foveated_size(uint32_t width, uint32_t height)
 
 void wivrn_session::dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream, const char * extra)
 {
+	trace::instant_feedback(event.c_str(), time, frame, stream);
 	if (feedback_csv)
 	{
 		std::lock_guard lock(csv_mutex);

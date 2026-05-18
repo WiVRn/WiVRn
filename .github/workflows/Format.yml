@@ -21,3 +21,19 @@ jobs:
       with:
         clang-format-version: '21'
         check-path: ${{ matrix.path }}
+
+  python-format-check:
+    name: Python lint (ruff)
+    runs-on: ubuntu-24.04
+    if: ${{ vars.APK_ONLY == '' }}
+    steps:
+    - uses: actions/checkout@v6
+    # Scope set by `include` in ruff.toml.
+    - name: Run ruff lint check
+      uses: astral-sh/ruff-action@v3
+      with:
+        args: "check"
+    - name: Run ruff format check
+      uses: astral-sh/ruff-action@v3
+      with:
+        args: "format --check"
