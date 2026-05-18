@@ -22,6 +22,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
+#include "utils/gpu_timestamp_pool.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "video_encoder.h"
 #include "vk/allocation.h"
@@ -44,6 +45,11 @@ class video_encoder_vulkan : public video_encoder
 	uint64_t sem_value = 0;
 
 	vk::raii::QueryPool query_pool = nullptr;
+	gpu_timestamp_pool ts_pool;
+	// Optional per-op GPU timestamp pools; created only when their path runs.
+	gpu_timestamp_pool ts_pool_image_copy;
+	gpu_timestamp_pool ts_pool_host_copy;
+	gpu_timestamp_pool ts_pool_host_copy_overflow;
 	vk::raii::CommandPool transfer_command_pool = nullptr;
 	vk::raii::CommandPool video_command_pool = nullptr;
 

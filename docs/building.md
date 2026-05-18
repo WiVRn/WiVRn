@@ -36,6 +36,21 @@ Lighthouse driver support for use with lighthouse-tracked devices
 
 Additionally, if your environment requires absolute paths inside the OpenXR runtime manifest, you can add `-DWIVRN_OPENXR_MANIFEST_TYPE=absolute` to the build configuration.
 
+## Profiling / tracing build
+
+To build the server with Perfetto tracing for local profiling, use the `server-tracing` preset (it is the `server` preset plus `WIVRN_USE_PERFETTO=ON`):
+
+```bash
+cmake --preset server-tracing
+cmake --build build-server-tracing
+```
+
+This requires the Perfetto amalgamated SDK installed where CMake looks for it (`/usr/share/perfetto/sdk/perfetto.{h,cc}`, override with `-DPERFETTO_SDK_DIR=<dir>`). Tracing is gated at runtime by the `WIVRN_TRACING` env var, so a tracing-enabled build has no cost until you set it.
+
+To also instrument Monado under the same switch, use the `server-tracing-monado` preset (adds `WIVRN_TRACE_MONADO=ON`); this requires [percetto](https://github.com/olvaffe/percetto/) to be discoverable at configure time.
+
+See [profiling](profiling.md) for how to run the server with tracing and capture/analyse traces.
+
 # Dashboard
 
 The WiVRn dashboard requires Qt6, and the WiVRn server.

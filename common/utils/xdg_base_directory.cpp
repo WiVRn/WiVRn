@@ -54,6 +54,14 @@ std::filesystem::path xdg_data_home()
 	return ".";
 }
 
+std::filesystem::path xdg_runtime_dir()
+{
+	if (const char * xdg_runtime_dir = std::getenv("XDG_RUNTIME_DIR"); xdg_runtime_dir and *xdg_runtime_dir)
+		return xdg_runtime_dir;
+
+	return "/tmp";
+}
+
 std::vector<std::filesystem::path> xdg_config_dirs()
 {
 	std::vector<std::filesystem::path> paths;

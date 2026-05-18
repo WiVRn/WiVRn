@@ -9,6 +9,7 @@
 #include "openxr/openxr.h"
 #include "sleep_inhibitor.h"
 #include "util/u_trace_marker.h"
+#include "utils/wivrn_trace.h"
 
 #include "active_runtime.h"
 #include "avahi_publisher.h"
@@ -952,8 +953,6 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	if (do_active_runtime)
 		active_runtime::cleanup_openxr();
 	listen_socket = create_listen_socket();
-
-	u_trace_marker_init();
 
 	// Initialize main loop
 	main_loop = g_main_loop_new(nullptr, false);

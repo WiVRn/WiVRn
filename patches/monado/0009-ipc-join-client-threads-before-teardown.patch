@@ -1,0 +1,62 @@
+From a149552933bda15ffab81460f38dbe90abd0dfe0 Mon Sep 17 00:00:00 2001
+From: no name <git-am@invalid>
+Date: Sun, 28 Jun 2026 11:36:08 -0600
+Subject: [PATCH] ipc: join client threads before teardown
+
+On shutdown main_loop() returns as soon as s->running is cleared, but the
+per-client threads may still be in common_shutdown() destroying their
+compositor and dereferencing s->xsysd/s->xso. teardown_all() then frees
+those resources concurrently, so a client thread can lock a mutex the main
+thread has already destroyed (assert om->initialized in
+multi_compositor_destroy). Join the client threads first.
+---
+ src/xrt/ipc/server/ipc_server_process.c | 28 +++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
+
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index caa82d05d..9dfffceaa 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -163,11 +163,39 @@ print_linux_end_user_started_information(enum u_logging_level log_level)
+ 	U_LOG_IFL_I(log_level, "%s", sink.buffer);
+ }
+ 
++/*!
++ * Join any still-running per-client threads.
++ *
++ * On shutdown @ref main_loop returns as soon as `s->running` is cleared, but the
++ * per-client threads may still be inside common_shutdown(), which destroys each
++ * client's compositor and dereferences `s->xsysd` / `s->xso`. Waiting for them
++ * here, before teardown_all() destroys those resources, avoids a race where a
++ * client thread locks a mutex the teardown below has already freed (observed as
++ * an `om->initialized` assertion in multi_compositor_destroy). `s->running` is
++ * already false by this point, so each client loop exits within its poll timeout.
++ */
++static void
++join_all_client_threads(struct ipc_server *s)
++{
++	for (uint32_t i = 0; i < IPC_MAX_CLIENTS; i++) {
++		struct ipc_thread *it = &s->threads[i];
++		if (it->state == IPC_THREAD_READY) {
++			continue;
++		}
++		os_thread_join(&it->thread);
++		os_thread_destroy(&it->thread);
++		it->state = IPC_THREAD_READY;
++	}
++}
++
+ static void
+ teardown_all(struct ipc_server *s)
+ {
+ 	u_var_remove_root(s);
+ 
++	// Client threads reference the resources destroyed below; wait them out first.
++	join_all_client_threads(s);
++
+ 	xrt_syscomp_destroy(&s->xsysc);
+ 
+ 	xrt_space_overseer_destroy(&s->xso);
+-- 
+2.54.0
+

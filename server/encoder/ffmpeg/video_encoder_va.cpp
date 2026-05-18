@@ -23,7 +23,9 @@
 
 #include "encoder/encoder_settings.h"
 
+#include "os/os_time.h"
 #include "util/u_logging.h"
+#include "utils/wivrn_trace.h"
 #include "utils/wivrn_vk_bundle.h"
 
 #include <drm_fourcc.h>
@@ -430,9 +432,11 @@ video_encoder_va::video_encoder_va(wivrn::vk_bundle & vk,
 			vk.device.bindImageMemory2(bind_info);
 		}
 	}
+
+	ts_pool = gpu_timestamp_pool(vk, vk.queue.family_index, num_slots, std::format("va encoder {} pixel copy", stream_idx));
 }
 
-void video_encoder_va::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, uint8_t slot, uint64_t)
+void video_encoder_va::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, uint8_t slot, uint64_t frame_index)
 {
 	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
 	{
@@ -467,6 +471,8 @@ void video_encoder_va::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, 
 
 	auto & cmd = in[slot].cmd;
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+	ts_pool.cmd_begin(cmd, slot, frame_index, vk::PipelineStageFlagBits2::eTopOfPipe);
 
 	cmd.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eAllCommands,
@@ -534,6 +540,8 @@ void video_encoder_va::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, 
 	        nullptr,
 	        im_barriers);
 
+	ts_pool.cmd_end(cmd, slot, vk::PipelineStageFlagBits2::eAllTransfer);
+
 	cmd.end();
 
 	std::unique_lock lock(vk.queue.mutex);
@@ -553,6 +561,17 @@ void video_encoder_va::push_frame(bool idr, uint8_t slot)
 {
 	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
 		throw std::runtime_error("timeout");
+
+	if (auto s = ts_pool.collect(slot))
+	{
+		wivrn::trace::gpu_slice(wivrn::trace::gpu_track::va_copy,
+		                        "vk_copy_luma_chroma",
+		                        s->begin_ns,
+		                        s->end_ns,
+		                        s->frame_index,
+		                        stream_idx);
+	}
+
 	auto & va_frame = in[slot].va_frame;
 	va_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
 	int err = avcodec_send_frame(encoder_ctx.get(), va_frame.get());

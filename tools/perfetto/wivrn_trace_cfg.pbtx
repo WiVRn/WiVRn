@@ -1,0 +1,32 @@
+# WiVRn-only Perfetto config: WiVRn track_event slices, no ftrace. Small,
+# encoder-focused traces. For system context use wivrn_full_trace_cfg.pbtx
+# (or --full).
+#
+# Capture:  tools/perfetto/wivrn_capture.py
+# Manual setup and socket details: docs/profiling.md.
+
+duration_ms: 15000
+buffers {
+    size_kb: 65536
+    fill_policy: RING_BUFFER
+}
+
+data_sources {
+    config {
+        name: "track_event"
+        target_buffer: 0
+        track_event_config {
+            # Allowlist must match the category names in
+            # server/utils/wivrn_trace.cpp exactly (Perfetto does exact/glob,
+            # not substring matching). Listing only WiVRn categories keeps the
+            # trace WiVRn-only even when Monado is built with tracing.
+            # Do NOT add `disabled_categories: "*"`: it also silences the
+            # enabled allowlist, giving empty traces.
+            enabled_categories: "wivrn_encoder"
+            enabled_categories: "wivrn_encoder_gpu"
+            enabled_categories: "wivrn_compositor"
+            enabled_categories: "wivrn_network"
+            enabled_categories: "wivrn_feedback"
+        }
+    }
+}

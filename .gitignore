@@ -11,11 +11,13 @@ build/
 build-*/
 **/result
 
+__pycache__/
 *.so
 a.out
 *.pgm
 *.zip
 *.keystore
+*.pftrace
 gradle.properties
 local.properties
 compile_commands.json
