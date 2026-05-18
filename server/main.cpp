@@ -161,12 +161,16 @@ static std::string steam_command()
 	if (not pressure_vessel_openxr_support())
 		command = "PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1";
 
+	std::string_view home{"\0", 1};
+	if (auto h = std::getenv("HOME"))
+		home = h;
+
 	if (auto p = active_runtime::openvr_compat_path().string(); not p.empty())
 	{
 		// /usr cannot be shared in pressure vessel container
 		if (p.starts_with("/usr"))
 			append_delim(command, " VR_OVERRIDE=/run/host" + p, ' ');
-		else if (p.starts_with("/var"))
+		else if (p.starts_with("/var") and not p.starts_with(home))
 			append_delim(command, "PRESSURE_VESSEL_FILESYSTEMS_RW=" + find_dir(p, "io.github.wivrn.wivrn").string(), ' ');
 	}
 
