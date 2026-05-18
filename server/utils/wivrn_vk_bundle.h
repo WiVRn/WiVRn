@@ -21,6 +21,7 @@
 
 #include "vk/vk_allocator.h"
 #include <cstdint>
+#include <inplace_vector.hpp>
 #include <mutex>
 #include <type_traits>
 #include <vector>
@@ -61,23 +62,25 @@ uint64_t vk_handle(const T & handle)
 
 struct vk_bundle
 {
+	struct queue_data
+	{
+		std::mutex mutex;
+		vk::raii::Queue queue = nullptr;
+		uint32_t family_index = vk::QueueFamilyIgnored;
+		operator bool() const
+		{
+			return *queue != VK_NULL_HANDLE;
+		}
+	};
 	vk::raii::Context vk_ctx;
 	vk::raii::Instance instance;
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device device;
 	std::optional<vk_allocator> allocator;
 
-	std::mutex queue_mutex;
-	vk::raii::Queue queue;
-	uint32_t queue_family_index;
-
-	std::mutex transfer_queue_mutex;
-	vk::raii::Queue transfer_queue;
-	uint32_t transfer_queue_family_index;
-
-	std::mutex encode_queue_mutex;
-	vk::raii::Queue encode_queue;
-	uint32_t encode_queue_family_index;
+	queue_data queue;
+	queue_data transfer_queue;
+	beman::inplace_vector::inplace_vector<queue_data, 3> encode_queues;
 
 	vk::raii::DebugUtilsMessengerEXT debug;
 

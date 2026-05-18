@@ -39,7 +39,7 @@ public:
 
 protected:
 	video_encoder_ffmpeg(vk_bundle & vk, uint8_t stream_idx, const encoder_settings & settings) :
-	        wivrn::video_encoder(vk, stream_idx, vk.queue_family_index, settings, std::make_unique<default_idr_handler>(), true) {}
+	        wivrn::video_encoder(vk, stream_idx, vk.queue.family_index, settings, std::make_unique<default_idr_handler>(), true) {}
 
 	virtual void push_frame(bool idr, uint8_t slot) = 0;
 

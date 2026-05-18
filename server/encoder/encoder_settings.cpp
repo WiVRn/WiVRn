@@ -181,7 +181,7 @@ class prober
 
 	bool has_vk(video_codec codec)
 	{
-		if (*vk.encode_queue == VK_NULL_HANDLE)
+		if (vk.encode_queues.empty())
 			return false;
 		if (not std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(vk.feat).videoMaintenance1)
 		{
@@ -190,7 +190,7 @@ class prober
 		}
 		auto prop = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyVideoPropertiesKHR>>();
 		assert(vk.encode_queue_family_index < prop.size());
-		const auto flags = prop.at(vk.encode_queue_family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations;
+		const auto flags = prop.at(vk.encode_queues[0].family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations;
 		switch (codec)
 		{
 			case h264: {

@@ -93,7 +93,7 @@ vk::raii::CommandPool make_cmd_pool(wivrn::vk_bundle & vk, uint8_t stream_idx)
 	auto res = vk.device.createCommandPool(vk::CommandPoolCreateInfo{
 
 	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
-	        .queueFamilyIndex = *vk.transfer_queue ? vk.transfer_queue_family_index : vk.queue_family_index,
+	        .queueFamilyIndex = vk.transfer_queue ? vk.transfer_queue.family_index : vk.queue.family_index,
 	});
 	vk.name(res, std::format("x264 encoder {} command pool", stream_idx));
 	return res;
@@ -106,7 +106,7 @@ video_encoder_x264::video_encoder_x264(
         uint8_t stream_idx) :
         video_encoder(vk,
                       stream_idx,
-                      *vk.transfer_queue ? vk.transfer_queue_family_index : vk.queue_family_index,
+                      vk.transfer_queue ? vk.transfer_queue.family_index : vk.queue.family_index,
                       settings,
                       std::make_unique<default_idr_handler>(),
                       false),
@@ -224,7 +224,7 @@ void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo
 		vk::ImageMemoryBarrier2 barrier{
 		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
 		        .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-		        .srcQueueFamilyIndex = vk.queue_family_index,
+		        .srcQueueFamilyIndex = vk.queue.family_index,
 		        .dstQueueFamilyIndex = target_queue,
 		        .image = y_cbcr,
 		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -274,21 +274,20 @@ void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo
 
 	cmd.end();
 
-	std::unique_lock lock(*vk.transfer_queue ? vk.transfer_queue_mutex : vk.queue_mutex);
+	std::unique_lock lock(vk.transfer_queue ? vk.transfer_queue.mutex : vk.queue.mutex);
 	vk::CommandBufferSubmitInfo cmd_info{
 	        .commandBuffer = *cmd,
 	};
 	compositor_sem.stageMask = vk::PipelineStageFlagBits2::eTransfer;
 
 	vk.device.resetFences(*in[slot].fence);
-	(*vk.transfer_queue ? vk.transfer_queue : vk.queue)
-	        .submit2(vk::SubmitInfo2{
-	                         .waitSemaphoreInfoCount = 1,
-	                         .pWaitSemaphoreInfos = &compositor_sem,
-	                         .commandBufferInfoCount = 1,
-	                         .pCommandBufferInfos = &cmd_info,
-	                 },
-	                 *in[slot].fence);
+	(vk.transfer_queue ? vk.transfer_queue : vk.queue).queue.submit2(vk::SubmitInfo2{
+	                                                                         .waitSemaphoreInfoCount = 1,
+	                                                                         .pWaitSemaphoreInfos = &compositor_sem,
+	                                                                         .commandBufferInfoCount = 1,
+	                                                                         .pCommandBufferInfos = &cmd_info,
+	                                                                 },
+	                                                                 *in[slot].fence);
 }
 
 std::optional<video_encoder::data> video_encoder_x264::encode(uint8_t slot, uint64_t frame_index)

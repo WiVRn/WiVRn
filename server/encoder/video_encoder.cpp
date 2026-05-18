@@ -193,7 +193,7 @@ video_encoder::video_encoder(vk_bundle & vk,
                              bool async_send) :
         stream_idx(stream_idx),
         target_queue(target_queue),
-        need_transfer(not vk.optimal_transfer(vk.queue_family_index, target_queue)),
+        need_transfer(not vk.optimal_transfer(vk.queue.family_index, target_queue)),
         bitrate_multiplier(settings.bitrate_multiplier),
         shared_sender(async_send ? sender::get() : nullptr),
         idr(std::move(idr)),

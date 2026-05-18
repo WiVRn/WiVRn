@@ -434,7 +434,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	{
 		if (encoder->stream_idx == 2 and not view_info.alpha)
 			continue;
-		else if (encoder->need_transfer or encoder->target_queue == vk.queue_family_index)
+		else if (encoder->need_transfer or encoder->target_queue == vk.queue.family_index)
 		{
 			image_barriers.push_back(
 			        vk::ImageMemoryBarrier2{
@@ -452,7 +452,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 			                // transition the encoder needs.
 			                .oldLayout = vk::ImageLayout::eGeneral,
 			                .newLayout = encoder->target_layout,
-			                .srcQueueFamilyIndex = vk.queue_family_index,
+			                .srcQueueFamilyIndex = vk.queue.family_index,
 			                .dstQueueFamilyIndex = encoder->target_queue,
 			                .image = images[i].image,
 			                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -482,8 +482,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		vk::CommandBufferSubmitInfo cmd_info{
 		        .commandBuffer = cmd,
 		};
-		std::unique_lock lock{vk.queue_mutex};
-		vk.queue.submit2(vk::SubmitInfo2{
+		std::unique_lock lock{vk.queue.mutex};
+		vk.queue.queue.submit2(vk::SubmitInfo2{
 		        .commandBufferInfoCount = 1,
 		        .pCommandBufferInfos = &cmd_info,
 		        .signalSemaphoreInfoCount = 1,
@@ -682,7 +682,7 @@ compositor::compositor(wivrn_session & session) :
         session(session),
         cmd_pool(vk.device, vk::CommandPoolCreateInfo{
                                     .flags = vk::CommandPoolCreateFlagBits::eTransient,
-                                    .queueFamilyIndex = vk.queue_family_index,
+                                    .queueFamilyIndex = vk.queue.family_index,
                             }),
         query_pool(vk.device, vk::QueryPoolCreateInfo{
                                       .queryType = vk::QueryType::eTimestamp,
@@ -706,7 +706,7 @@ compositor::compositor(wivrn_session & session) :
 	        *vk.instance,
 	        *vk.physical_device,
 	        *vk.device,
-	        vk.queue_family_index,
+	        vk.queue.family_index,
 	        0,
 	        vk.has_device_ext(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME),
 	        vk.has_device_ext(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME),
@@ -720,9 +720,7 @@ compositor::compositor(wivrn_session & session) :
 	c_base->vk.graphics_queue = nullptr;
 
 	if (c_base->vk.main_queue)
-		c_base->vk.main_queue->mutex = copy_mutex(vk.queue_mutex);
-	if (c_base->vk.encode_queue)
-		c_base->vk.encode_queue->mutex = copy_mutex(vk.encode_queue_mutex);
+		c_base->vk.main_queue->mutex = copy_mutex(vk.queue.mutex);
 
 	{
 		comp_vulkan_formats formats{};

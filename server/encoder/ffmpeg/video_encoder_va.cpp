@@ -159,7 +159,7 @@ vk::raii::CommandPool make_cmd_pool(wivrn::vk_bundle & vk, uint8_t stream_idx)
 	auto res = vk.device.createCommandPool(vk::CommandPoolCreateInfo{
 
 	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
-	        .queueFamilyIndex = vk.queue_family_index,
+	        .queueFamilyIndex = vk.queue.family_index,
 	});
 	vk.name(res, std::format("vaapi encoder {} command pool", stream_idx));
 	return res;
@@ -536,17 +536,17 @@ void video_encoder_va::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, 
 
 	cmd.end();
 
-	std::unique_lock lock(vk.queue_mutex);
+	std::unique_lock lock(vk.queue.mutex);
 	vk::CommandBufferSubmitInfo cmd_info{
 	        .commandBuffer = *cmd,
 	};
 
 	vk.device.resetFences(*in[slot].fence);
-	vk.queue.submit2(vk::SubmitInfo2{
-	                         .commandBufferInfoCount = 1,
-	                         .pCommandBufferInfos = &cmd_info,
-	                 },
-	                 *in[slot].fence);
+	vk.queue.queue.submit2(vk::SubmitInfo2{
+	                               .commandBufferInfoCount = 1,
+	                               .pCommandBufferInfos = &cmd_info,
+	                       },
+	                       *in[slot].fence);
 }
 
 void video_encoder_va::push_frame(bool idr, uint8_t slot)

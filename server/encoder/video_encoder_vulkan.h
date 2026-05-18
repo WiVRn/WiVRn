@@ -22,6 +22,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
+#include "utils/wivrn_vk_bundle.h"
 #include "video_encoder.h"
 #include "vk/allocation.h"
 
@@ -30,6 +31,7 @@ namespace wivrn
 class video_encoder_vulkan : public video_encoder
 {
 	wivrn::vk_bundle & vk;
+	wivrn::vk_bundle::queue_data & encode_queue;
 	const vk::VideoEncodeCapabilitiesKHR encode_caps;
 #ifdef VK_KHR_video_encode_intra_refresh
 	vk::VideoEncodeIntraRefreshInfoKHR intra_info{};

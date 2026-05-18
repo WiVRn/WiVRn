@@ -153,7 +153,7 @@ static vk::raii::CommandPool make_cmd_pool(wivrn::vk_bundle & vk, uint8_t stream
 	auto res = vk.device.createCommandPool(vk::CommandPoolCreateInfo{
 
 	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
-	        .queueFamilyIndex = vk.queue_family_index,
+	        .queueFamilyIndex = vk.queue.family_index,
 	});
 	vk.name(res, std::format("nvenc encoder {} command pool", stream_idx));
 	return res;
@@ -163,7 +163,7 @@ video_encoder_nvenc::video_encoder_nvenc(
         wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx) :
-        video_encoder(vk, stream_idx, vk.queue_family_index, settings, std::make_unique<default_idr_handler>(), true),
+        video_encoder(vk, stream_idx, vk.queue.family_index, settings, std::make_unique<default_idr_handler>(), true),
         vk(vk),
         cmd_pool{make_cmd_pool(vk, stream_idx)},
         shared_state(video_encoder_nvenc_shared_state::get()),
@@ -461,17 +461,17 @@ void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInf
 	                }});
 	cmd.end();
 
-	std::unique_lock lock(vk.queue_mutex);
+	std::unique_lock lock(vk.queue.mutex);
 	vk::CommandBufferSubmitInfo cmd_info{
 	        .commandBuffer = *cmd,
 	};
 
 	vk.device.resetFences(*in[slot].fence);
-	vk.queue.submit2(vk::SubmitInfo2{
-	                         .commandBufferInfoCount = 1,
-	                         .pCommandBufferInfos = &cmd_info,
-	                 },
-	                 *in[slot].fence);
+	vk.queue.queue.submit2(vk::SubmitInfo2{
+	                               .commandBufferInfoCount = 1,
+	                               .pCommandBufferInfos = &cmd_info,
+	                       },
+	                       *in[slot].fence);
 }
 
 std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uint64_t frame_index)
