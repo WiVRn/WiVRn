@@ -282,6 +282,9 @@ wivrn::vk_bundle::vk_bundle() :
 #ifdef VK_KHR_maintenance9
 		        VK_KHR_MAINTENANCE_9_EXTENSION_NAME,
 #endif
+#ifdef VK_KHR_unified_image_layouts
+		        VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME,
+#endif
 		};
 		for (auto & ext: physical_device.enumerateDeviceExtensionProperties())
 		{
@@ -328,6 +331,16 @@ wivrn::vk_bundle::vk_bundle() :
 #ifdef VK_KHR_video_encode_intra_refresh
 		if (has_device_ext(VK_KHR_VIDEO_ENCODE_INTRA_REFRESH_EXTENSION_NAME))
 			std::get<vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>(feat).videoEncodeIntraRefresh = std::get<vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>(physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>()).videoEncodeIntraRefresh;
+#endif
+#ifdef VK_KHR_unified_image_layouts
+		if (has_device_ext(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME))
+		{
+			const auto available = std::get<vk::PhysicalDeviceUnifiedImageLayoutsFeaturesKHR>(physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceUnifiedImageLayoutsFeaturesKHR>());
+			auto & enabled = std::get<vk::PhysicalDeviceUnifiedImageLayoutsFeaturesKHR>(feat);
+			enabled.unifiedImageLayouts = available.unifiedImageLayouts;
+			enabled.unifiedImageLayoutsVideo = available.unifiedImageLayoutsVideo;
+			U_LOG_D("GPU unified layout support: %d (video: %d)", enabled.unifiedImageLayouts, enabled.unifiedImageLayoutsVideo);
+		}
 #endif
 
 		device = vk::raii::Device(

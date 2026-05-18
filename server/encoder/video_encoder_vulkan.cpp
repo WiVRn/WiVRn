@@ -323,6 +323,10 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	target_layout = tmp_image
 	                        ? vk::ImageLayout::eGeneral
 	                        : vk::ImageLayout::eVideoEncodeSrcKHR;
+#ifdef VK_KHR_unified_image_layouts
+	if (std::get<vk::PhysicalDeviceUnifiedImageLayoutsFeaturesKHR>(vk.feat).unifiedImageLayoutsVideo)
+		target_layout = vk::ImageLayout::eGeneral;
+#endif
 
 	// Decode picture buffer (DPB) images
 	vk::VideoFormatPropertiesKHR reference_picture_format = select_video_format(
@@ -749,6 +753,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		// VkImageMemoryBarrier2 spec (executed once between the queues).
 		// When need_transfer is false (optimal cross-queue transfer, no QFOT)
 		// the same barrier degenerates to a plain layout transition.
+		// The transition may not even be needed, skipping the barrier entirely
 		vk::ImageMemoryBarrier2 barrier{
 		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
 		        .dstAccessMask = vk::AccessFlagBits2::eVideoEncodeReadKHR,
@@ -763,10 +768,11 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		                             .baseArrayLayer = stream_idx,
 		                             .layerCount = 1},
 		};
-		video_cmd_buf.pipelineBarrier2({
-		        .imageMemoryBarrierCount = 1,
-		        .pImageMemoryBarriers = &barrier,
-		});
+		if (barrier.oldLayout != barrier.newLayout or barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
+			video_cmd_buf.pipelineBarrier2({
+			        .imageMemoryBarrierCount = 1,
+			        .pImageMemoryBarriers = &barrier,
+			});
 
 		auto it = image_views.find(VkImage(y_cbcr));
 		if (it != image_views.end())

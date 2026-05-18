@@ -92,6 +92,9 @@ struct vk_bundle
 #ifdef VK_KHR_video_encode_intra_refresh
 	        vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR,
 #endif
+#ifdef VK_KHR_unified_image_layouts
+	        vk::PhysicalDeviceUnifiedImageLayoutsFeaturesKHR,
+#endif
 	        vk::PhysicalDeviceVulkan12Features,
 	        vk::PhysicalDeviceVulkan13Features>
 	        feat{};
