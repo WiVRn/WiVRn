@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-11 01:11+0800\n"
+"POT-Creation-Date: 2026-05-16 23:03+0800\n"
 "PO-Revision-Date: 2026-05-11 14:29+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
@@ -147,14 +147,14 @@ msgid "Default environment"
 msgstr "默认环境"
 
 #: client/scenes/lobby_gui.cpp:100 client/scenes/lobby_gui.cpp:240
-#: client/scenes/stream_gui.cpp:915
+#: client/scenes/stream_gui.cpp:909
 msgid "Disconnect"
 msgstr "终止连接"
 
 #: client/scenes/lobby_gui.cpp:120 client/scenes/lobby_gui.cpp:250
 #: client/scenes/lobby_gui_customize.cpp:752
 #: client/scenes/lobby_gui_customize.cpp:843
-#: client/scenes/lobby_gui_customize.cpp:899 client/scenes/stream_gui.cpp:911
+#: client/scenes/lobby_gui_customize.cpp:899 client/scenes/stream_gui.cpp:905
 msgid "Close"
 msgstr "关闭"
 
@@ -201,7 +201,7 @@ msgid "TCP only"
 msgstr "仅限 TCP"
 
 #: client/scenes/lobby_gui.cpp:337 client/scenes/lobby_gui_customize.cpp:654
-#: client/scenes/stream_gui.cpp:866
+#: client/scenes/stream_gui.cpp:860
 msgid "Cancel"
 msgstr "取消"
 
@@ -534,7 +534,7 @@ msgstr "新增服务器"
 msgid "Server list"
 msgstr "服务器列表"
 
-#: client/scenes/lobby_gui.cpp:1856 client/scenes/stream_gui.cpp:896
+#: client/scenes/lobby_gui.cpp:1856 client/scenes/stream_gui.cpp:890
 msgid "Settings"
 msgstr "设置"
 
@@ -782,23 +782,23 @@ msgstr "叠加层"
 msgid "Request to quit, may be ignored by the application"
 msgstr "退出请求可能会被应用程序忽略"
 
-#: client/scenes/stream_gui.cpp:882
+#: client/scenes/stream_gui.cpp:876
 msgid "Applications"
 msgstr "应用程序"
 
-#: client/scenes/stream_gui.cpp:885
+#: client/scenes/stream_gui.cpp:879
 msgid "Start"
 msgstr "启动"
 
-#: client/scenes/stream_gui.cpp:899
+#: client/scenes/stream_gui.cpp:893
 msgid "Stats"
 msgstr "统计"
 
-#: client/scenes/stream_gui.cpp:905
+#: client/scenes/stream_gui.cpp:899
 msgid "Statistics overlay"
 msgstr "统计数据叠加"
 
-#: client/scenes/stream_gui.cpp:908
+#: client/scenes/stream_gui.cpp:902
 msgid "Compact view"
 msgstr "概览"
 
