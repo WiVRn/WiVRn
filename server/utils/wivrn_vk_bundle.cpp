@@ -29,6 +29,9 @@
 
 DEBUG_GET_ONCE_NUM_OPTION(force_gpu_index, "XRT_COMPOSITOR_FORCE_GPU_INDEX", -1)
 
+// Default 3: left and right eye + alpha
+DEBUG_GET_ONCE_NUM_OPTION(max_vulkan_encoders, "WIVRN_MAX_VULKAN_ENCODERS", 3)
+
 namespace
 {
 
@@ -297,8 +300,7 @@ wivrn::vk_bundle::vk_bundle() :
 		U_LOG_D("transfer queue index: %d", transfer_queue_index);
 #if WIVRN_USE_VULKAN_ENCODE
 		std::vector<int> encode_queue_indices;
-		// Get up to 3 encode queues (left, right and alpha encoders)
-		for (int i = 0; i < 3; ++i)
+		for (int i = 0; i < debug_get_num_option_max_vulkan_encoders(); ++i)
 		{
 			int encode_queue_index = get_queue_index(queues, queues_info, encode_queue_family_index);
 			if (encode_queue_index < 0)
