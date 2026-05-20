@@ -400,7 +400,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	                .newLayout = vk::ImageLayout::eGeneral,
 	                .image = images[i].image,
 	                .subresourceRange = {
-	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0 | vk::ImageAspectFlagBits::ePlane1,
 	                        .levelCount = 1,
 	                        .layerCount = images[i].image.info().arrayLayers,
 	                },
@@ -455,7 +455,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 			                .srcQueueFamilyIndex = vk.queue.family_index,
 			                .dstQueueFamilyIndex = encoder->target_queue,
 			                .image = images[i].image,
-			                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+			                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::ePlane0 | vk::ImageAspectFlagBits::ePlane1,
 			                                     .baseMipLevel = 0,
 			                                     .levelCount = 1,
 			                                     .baseArrayLayer = encoder->stream_idx,

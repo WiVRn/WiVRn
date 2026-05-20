@@ -158,15 +158,22 @@ vk::VideoFormatPropertiesKHR wivrn::video_encoder_vulkan::select_video_format(
 	throw std::runtime_error("No suitable image format found");
 }
 
+static size_t get_encode_queue_index(const wivrn::vk_bundle & vk, uint8_t stream_idx)
+{
+	if (vk.encode_queues.empty())
+		throw std::runtime_error("No vulkan encode queues available");
+	return stream_idx % vk.encode_queues.size();
+}
+
 wivrn::video_encoder_vulkan::video_encoder_vulkan(
         wivrn::vk_bundle & vk,
         const vk::VideoCapabilitiesKHR & video_caps,
         const vk::VideoEncodeCapabilitiesKHR & in_encode_caps,
         uint8_t stream_idx,
         const encoder_settings & settings) :
-        video_encoder(vk, stream_idx, vk.encode_queues[stream_idx % vk.encode_queues.size()].family_index, settings, std::make_unique<dpb_state>(), true),
+        video_encoder(vk, stream_idx, vk.encode_queues[get_encode_queue_index(vk, stream_idx)].family_index, settings, std::make_unique<dpb_state>(), true),
         vk(vk),
-        encode_queue(vk.encode_queues[stream_idx % vk.encode_queues.size()]),
+        encode_queue(vk.encode_queues[get_encode_queue_index(vk, stream_idx)]),
         encode_caps(patch_capabilities(in_encode_caps)),
         num_dpb_slots(std::min(video_caps.maxDpbSlots, 16u))
 {
@@ -660,7 +667,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 			        .srcQueueFamilyIndex = vk.queue.family_index,
 			        .dstQueueFamilyIndex = target_queue,
 			        .image = y_cbcr,
-			        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+			        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::ePlane0 | vk::ImageAspectFlagBits::ePlane1,
 			                             .baseMipLevel = 0,
 			                             .levelCount = 1,
 			                             .baseArrayLayer = stream_idx,
@@ -673,7 +680,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		        .oldLayout = vk::ImageLayout::eUndefined,
 		        .newLayout = vk::ImageLayout::eTransferDstOptimal,
 		        .image = tmp_image,
-		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::ePlane0 | vk::ImageAspectFlagBits::ePlane1,
 		                             .baseMipLevel = 0,
 		                             .levelCount = 1,
 		                             .baseArrayLayer = encode_slot,
@@ -735,7 +742,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		        .oldLayout = vk::ImageLayout::eTransferDstOptimal,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
 		        .image = tmp_image,
-		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::ePlane0 | vk::ImageAspectFlagBits::ePlane1,
 		                             .baseMipLevel = 0,
 		                             .levelCount = 1,
 		                             .baseArrayLayer = encode_slot,
@@ -763,7 +770,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		        .srcQueueFamilyIndex = need_transfer ? vk.queue.family_index : vk::QueueFamilyIgnored,
 		        .dstQueueFamilyIndex = need_transfer ? target_queue : vk::QueueFamilyIgnored,
 		        .image = y_cbcr,
-		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::ePlane0 | vk::ImageAspectFlagBits::ePlane1,
 		                             .baseMipLevel = 0,
 		                             .levelCount = 1,
 		                             .baseArrayLayer = stream_idx,
