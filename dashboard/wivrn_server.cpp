@@ -25,6 +25,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDesktopServices>
+#include <QTimer>
 #include <QtLogging>
 #include <cassert>
 #include <memory>
@@ -52,7 +53,14 @@ wivrn_server::wivrn_server(QObject * parent) :
 
 	const QStringList services = QDBusConnection::sessionBus().interface()->registeredServiceNames();
 	if (services.contains("io.github.wivrn.Server"))
+	{
+		// Server is already up. Move to a transitional state so Main.qml's
+		// onCompleted does not see Status::Stopped and spawn a duplicate
+		// process. The state will transition to Started after the initial
+		// properties have been fetched (see refresh_server_properties).
+		m_serverStatus = Status::Starting;
 		on_server_dbus_registered();
+	}
 }
 
 wivrn_server::~wivrn_server()
@@ -220,8 +228,6 @@ void wivrn_server::on_server_ready_read_standard_output()
 
 void wivrn_server::on_server_dbus_registered()
 {
-	serverStatusChanged(m_serverStatus = Status::Started);
-
 	if (server_interface)
 		server_interface->deleteLater();
 	if (server_properties_interface)
@@ -233,7 +239,11 @@ void wivrn_server::on_server_dbus_registered()
 	connect(server_properties_interface.get(), &OrgFreedesktopDBusPropertiesInterface::PropertiesChanged, this, &wivrn_server::on_server_properties_changed);
 	connect(server_interface.get(), &IoGithubWivrnServerInterface::ServerError, [this](const QString & w, const QString & m) { serverError(serverErrorData(w, m)); });
 
-	serverStatusChanged(m_serverStatus = Status::Started);
+	// Server status transitions to Started only after refresh_server_properties
+	// successfully fetches the initial properties. The well-known D-Bus name
+	// can be owned before the server exports its interface and populates the
+	// properties (see on_name_acquired in server/main.cpp), so the name being
+	// owned alone does not mean the server is usable yet.
 	refresh_server_properties();
 }
 
@@ -283,7 +293,22 @@ void wivrn_server::refresh_server_properties()
 	get_all_properties_call_watcher = std::make_unique<QDBusPendingCallWatcher>(props_pending, this);
 
 	connect(get_all_properties_call_watcher.get(), &QDBusPendingCallWatcher::finished, [this, props_pending]() {
-		on_server_properties_changed("io.github.wivrn.Server", props_pending.value(), {});
+		QVariantMap props = props_pending.value();
+		// The server only exports the D-Bus interface and sets its properties
+		// from inside on_name_acquired (server/main.cpp), after it owns the
+		// well-known name. Our GetAll can race ahead of that and come back
+		// with an error or an empty reply that does not contain
+		// JsonConfiguration. In that case, retry shortly after until the
+		// properties become available.
+		if (props_pending.isError() || !props.contains("JsonConfiguration"))
+		{
+			QTimer::singleShot(200, this, &wivrn_server::refresh_server_properties);
+			return;
+		}
+		on_server_properties_changed("io.github.wivrn.Server", props, {});
+
+		if (m_serverStatus != Status::Started)
+			serverStatusChanged(m_serverStatus = Status::Started);
 	});
 }
 
