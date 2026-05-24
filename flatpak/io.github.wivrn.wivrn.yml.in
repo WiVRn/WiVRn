@@ -35,10 +35,11 @@ finish-args:
   # Set the active OpenXR / OpenVR runtime
   - --filesystem=xdg-config/openxr:create
   - --filesystem=xdg-config/openvr:create
-  # SlimeVR
+  # Access to SlimeVR IPC sockets
   - --filesystem=xdg-run/SlimeVRInput
   - --filesystem=xdg-run/SlimeVRRpc
   - --filesystem=xdg-run/.flatpak/dev.slimevr.SlimeVR
+  - --filesystem=xdg-data/dev.slimevr.SlimeVR
   # Let outside application access the WiVRn socket
   - --filesystem=xdg-run/wivrn:create
   - --own-name=io.github.wivrn.Server
