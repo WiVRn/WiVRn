@@ -31,6 +31,11 @@ void add_hand(scene & scene,
               const std::filesystem::path & gltf_path,
               uint32_t layer_mask);
 
+void add_hand(scene & scene,
+              XrHandEXT hand,
+              const xr::hand_tracker::mesh_data & mesh,
+              uint32_t layer_mask);
+
 void apply(entt::registry & scene,
            const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & left_hand,
            const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & right_hand);

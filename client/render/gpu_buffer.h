@@ -24,6 +24,7 @@
 #include "vk/allocation.h"
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
+#include <span>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
@@ -88,6 +89,12 @@ public:
 
 		size_t alignment = std::max<size_t>(4, alignof(T));
 		return add(alignment, data_to_add);
+	}
+
+	size_t add_indices(std::span<const uint16_t> indices)
+	{
+		usage |= vk::BufferUsageFlagBits::eIndexBuffer;
+		return add(4, indices.data(), indices.size_bytes());
 	}
 
 	std::pair<size_t, vk::IndexType> add_indices(const fastgltf::Accessor & accessor)
