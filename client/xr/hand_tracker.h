@@ -32,14 +32,32 @@ class session;
 class hand_tracker : public utils::handle<XrHandTrackerEXT>
 {
 	PFN_xrLocateHandJointsEXT xrLocateHandJointsEXT{};
+	bool aim_supported{};
 
 public:
 	hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info);
 
 	using joint = std::pair<XrHandJointLocationEXT, XrHandJointVelocityEXT>;
 
-	std::optional<std::array<joint, XR_HAND_JOINT_COUNT_EXT>> locate(XrSpace space, XrTime time);
+	struct aim_state
+	{
+		XrHandTrackingAimFlagsFB status;
+		XrPosef aim_pose;
+		float pinch_strength_index;
+		float pinch_strength_middle;
+		float pinch_strength_ring;
+		float pinch_strength_little;
+	};
+
+	struct locate_result
+	{
+		std::array<joint, XR_HAND_JOINT_COUNT_EXT> joints;
+		std::optional<aim_state> aim;
+	};
+
+	std::optional<locate_result> locate(XrSpace space, XrTime time);
 
 	static bool check_flags(const std::array<joint, XR_HAND_JOINT_COUNT_EXT> & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity);
+	static bool check_flags(const locate_result & result, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity);
 };
 } // namespace xr
