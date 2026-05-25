@@ -161,7 +161,7 @@ std::array<wivrn::compositor::image, 2> make_images(wivrn::vk_bundle & vk, vk::C
 		image_allocation image{
 		        vk.device,
 		        image_info.get(),
-		        VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO},
+		        VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
 		        std::format("compositor YCbCr image {}", i),
 		};
 		vk::Image vk_image{image};

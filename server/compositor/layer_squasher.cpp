@@ -350,7 +350,7 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
                       }
                               .get(),
                       VmaAllocationCreateInfo{
-                              .usage = VMA_MEMORY_USAGE_AUTO,
+                              .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
                       },
                       "layer squasher target"},
         render_view_srgb{make_view(vk, render_target, vk::ImageUsageFlagBits::eSampled, 0), make_view(vk, render_target, vk::ImageUsageFlagBits::eSampled, 1)},
