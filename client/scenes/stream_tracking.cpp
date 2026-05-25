@@ -700,6 +700,7 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 			DO_PROFILE(meta, touch_controller_rift_cv1)
 			DO_PROFILE(meta, touch_controller_quest_1_rift_s)
 			DO_PROFILE(meta, touch_controller_quest_2)
+			DO_PROFILE(yvr, touch_controller_yvr)
 			DO_PROFILE(samsung, odyssey_controller)
 			DO_PROFILE(valve, index_controller)
 
