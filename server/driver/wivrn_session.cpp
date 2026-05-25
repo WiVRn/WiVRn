@@ -517,6 +517,7 @@ static xrt_device_name get_name(interaction_profile profile)
 		case interaction_profile::meta_touch_controller_rift_cv1:
 		case interaction_profile::meta_touch_controller_quest_1_rift_s:
 		case interaction_profile::meta_touch_controller_quest_2:
+		case interaction_profile::yvr_touch_controller_yvr:
 			return XRT_DEVICE_TOUCH_CONTROLLER;
 		case interaction_profile::meta_touch_pro_controller:
 			return XRT_DEVICE_TOUCH_PRO_CONTROLLER;

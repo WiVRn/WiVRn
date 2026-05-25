@@ -167,6 +167,11 @@ void hmd_traits::init()
 		needs_srgb_conversion = false;
 	}
 
+	else if (manufacturer == "Play For Dream" and model == "PFDM MR")
+	{
+		controller_profile = "yvr-touch-v2";
+	}
+
 	else if (manufacturer == "Pico")
 	{
 		permissions[feature::eye_gaze] = "com.picovr.permission.EYE_TRACKING";

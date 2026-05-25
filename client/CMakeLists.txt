@@ -290,7 +290,7 @@ wivrn_webxr_controller(PROFILE pico-4                  DESTINATION ${ASSETS_DIR}
 wivrn_webxr_controller(PROFILE pico-4u                 DESTINATION ${ASSETS_DIR}/controllers TARGET wivrn)
 wivrn_webxr_controller(PROFILE pico-neo3               DESTINATION ${ASSETS_DIR}/controllers TARGET wivrn)
 wivrn_webxr_controller(PROFILE samsung-galaxyxr        DESTINATION ${ASSETS_DIR}/controllers TARGET wivrn)
-
+wivrn_webxr_controller(PROFILE yvr-touch-v2            DESTINATION ${ASSETS_DIR}/controllers TARGET wivrn)
 
 # Add the VR splash screen (only used on Quest)
 if(ANDROID)

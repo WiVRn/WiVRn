@@ -39,7 +39,7 @@
 namespace wivrn
 {
 
-static constexpr int protocol_revision = 1;
+static constexpr int protocol_revision = 2;
 
 enum class device_id : uint8_t
 {
@@ -160,6 +160,7 @@ enum class interaction_profile : uint8_t
 	meta_touch_controller_rift_cv1,
 	meta_touch_controller_quest_1_rift_s,
 	meta_touch_controller_quest_2,
+	yvr_touch_controller_yvr,
 	samsung_odyssey_controller,
 	valve_index_controller,
 };

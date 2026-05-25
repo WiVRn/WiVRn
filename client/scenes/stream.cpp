@@ -1247,6 +1247,7 @@ scene::meta & scenes::stream::get_meta_scene()
 	                                "/interaction_profiles/bytedance/pico_neo3_controller",
 	                                "/interaction_profiles/bytedance/pico4_controller",
 	                                "/interaction_profiles/bytedance/pico4s_controller",
+	                                "/interaction_profiles/yvr/touch_controller_yvr",
 	                                "/interaction_profiles/htc/vive_focus3_controller",
 	                        },
 	                        {
