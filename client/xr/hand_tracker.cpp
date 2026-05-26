@@ -24,7 +24,6 @@
 #include "xr/to_string.h"
 #include <algorithm>
 #include <cassert>
-#include <new>
 #include <spdlog/spdlog.h>
 
 xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info) :
@@ -133,23 +132,15 @@ const xr::hand_tracker::mesh_data * xr::hand_tracker::mesh()
 	}
 
 	mesh_data data;
-	try
-	{
-		data.joint_bind_poses.resize(mesh.jointCountOutput);
-		data.joint_radii.resize(mesh.jointCountOutput);
-		data.joint_parents.resize(mesh.jointCountOutput);
-		data.vertex_positions.resize(mesh.vertexCountOutput);
-		data.vertex_normals.resize(mesh.vertexCountOutput);
-		data.vertex_uvs.resize(mesh.vertexCountOutput);
-		data.vertex_blend_indices.resize(mesh.vertexCountOutput);
-		data.vertex_blend_weights.resize(mesh.vertexCountOutput);
-		data.indices.resize(mesh.indexCountOutput);
-	}
-	catch (const std::bad_alloc &)
-	{
-		spdlog::warn("Hand mesh allocation failed for {} vertices and {} indices", mesh.vertexCountOutput, mesh.indexCountOutput);
-		return nullptr;
-	}
+	data.joint_bind_poses.resize(mesh.jointCountOutput);
+	data.joint_radii.resize(mesh.jointCountOutput);
+	data.joint_parents.resize(mesh.jointCountOutput);
+	data.vertex_positions.resize(mesh.vertexCountOutput);
+	data.vertex_normals.resize(mesh.vertexCountOutput);
+	data.vertex_uvs.resize(mesh.vertexCountOutput);
+	data.vertex_blend_indices.resize(mesh.vertexCountOutput);
+	data.vertex_blend_weights.resize(mesh.vertexCountOutput);
+	data.indices.resize(mesh.indexCountOutput);
 
 	mesh.jointCapacityInput = data.joint_bind_poses.size();
 	mesh.jointBindPoses = data.joint_bind_poses.data();
@@ -193,11 +184,11 @@ const xr::hand_tracker::mesh_data * xr::hand_tracker::mesh()
 
 	const int joint_count = static_cast<int>(mesh.jointCountOutput);
 	if (!std::ranges::all_of(data.vertex_blend_indices, [joint_count](const XrVector4sFB & blend_indices) {
-			return 0 <= blend_indices.x && blend_indices.x < joint_count &&
-			       0 <= blend_indices.y && blend_indices.y < joint_count &&
-			       0 <= blend_indices.z && blend_indices.z < joint_count &&
-			       0 <= blend_indices.w && blend_indices.w < joint_count;
-		}))
+		    return 0 <= blend_indices.x && blend_indices.x < joint_count &&
+		           0 <= blend_indices.y && blend_indices.y < joint_count &&
+		           0 <= blend_indices.z && blend_indices.z < joint_count &&
+		           0 <= blend_indices.w && blend_indices.w < joint_count;
+	    }))
 	{
 		spdlog::warn("Hand mesh has out-of-range blend indices");
 		return nullptr;
@@ -205,8 +196,8 @@ const xr::hand_tracker::mesh_data * xr::hand_tracker::mesh()
 
 	const int vertex_count = static_cast<int>(mesh.vertexCountOutput);
 	if (!std::ranges::all_of(data.indices, [vertex_count](int16_t index) {
-			return 0 <= index && index < vertex_count;
-		}))
+		    return 0 <= index && index < vertex_count;
+	    }))
 	{
 		spdlog::warn("Hand mesh has out-of-range indices");
 		return nullptr;

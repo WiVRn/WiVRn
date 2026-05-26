@@ -156,15 +156,15 @@ static std::shared_ptr<renderer::mesh> create_hand_mesh_fb_mesh(scene & scene, c
 		glm::vec2 texcoord_1{};
 		glm::vec4 color{1, 1, 1, 1};
 		glm::vec4 joints{
-				static_cast<float>(mesh.vertex_blend_indices.at(i).x),
-				static_cast<float>(mesh.vertex_blend_indices.at(i).y),
-				static_cast<float>(mesh.vertex_blend_indices.at(i).z),
-				static_cast<float>(mesh.vertex_blend_indices.at(i).w)};
+		        static_cast<float>(mesh.vertex_blend_indices.at(i).x),
+		        static_cast<float>(mesh.vertex_blend_indices.at(i).y),
+		        static_cast<float>(mesh.vertex_blend_indices.at(i).z),
+		        static_cast<float>(mesh.vertex_blend_indices.at(i).w)};
 		glm::vec4 weights{
-				mesh.vertex_blend_weights.at(i).x,
-				mesh.vertex_blend_weights.at(i).y,
-				mesh.vertex_blend_weights.at(i).z,
-				mesh.vertex_blend_weights.at(i).w};
+		        mesh.vertex_blend_weights.at(i).x,
+		        mesh.vertex_blend_weights.at(i).y,
+		        mesh.vertex_blend_weights.at(i).z,
+		        mesh.vertex_blend_weights.at(i).w};
 
 		if (i == 0)
 			obb_min = obb_max = position;
