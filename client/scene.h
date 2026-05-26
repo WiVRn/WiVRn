@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <entt/entity/registry.hpp>
 #include <filesystem>
+#include <functional>
 #include <span>
 #include <string>
 #include <unordered_map>
@@ -217,6 +218,8 @@ public:
 	virtual bool on_input_scroll(float h, float v);
 
 	entt::registry world;
+
+	std::shared_ptr<renderer::material> create_material(std::function<void(renderer::material &)> init = {}) const;
 
 	std::shared_ptr<entt::registry> load_gltf(const std::filesystem::path & path, std::function<void(float)> progress_cb = {});
 	void unload_gltf(const std::filesystem::path & path);

@@ -25,6 +25,7 @@
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
 #include "utils/ranges.h"
+#include <cstring>
 #include <entt/core/fwd.hpp>
 #include <magic_enum.hpp>
 #include <spdlog/spdlog.h>
@@ -527,6 +528,26 @@ void scene::unload_gltf(const std::filesystem::path & path)
 std::pair<entt::entity, components::node &> scene::add_gltf(const std::filesystem::path & path, uint32_t layer_mask)
 {
 	return add_gltf(load_gltf(path), layer_mask);
+}
+
+std::shared_ptr<renderer::material> scene::create_material(std::function<void(renderer::material &)> init) const
+{
+	auto material = std::make_shared<renderer::material>(*renderer->get_default_material());
+	if (init)
+		init(*material);
+
+	material->buffer = std::make_shared<buffer_allocation>(
+	        device,
+	        vk::BufferCreateInfo{
+	                .size = sizeof(material->staging),
+	                .usage = vk::BufferUsageFlagBits::eUniformBuffer},
+	        VmaAllocationCreateInfo{
+	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+	                .usage = VMA_MEMORY_USAGE_AUTO});
+	material->offset = 0;
+	std::memcpy(material->buffer->map(), &material->staging, sizeof(material->staging));
+	material->buffer->unmap();
+	return material;
 }
 
 void scene::remove(entt::entity entity)
