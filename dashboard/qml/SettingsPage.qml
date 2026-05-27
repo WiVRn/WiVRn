@@ -283,7 +283,7 @@ Kirigami.ScrollablePage {
         }
         DashboardSettings.adb_custom = adb_custom.checked;
         DashboardSettings.adb_location = adb_location.text;
-        Adb.setPath(DashboardSettings.adb_custom.checked ? adb_location.text : "adb");
+        Adb.setPath(adb_custom.checked ? adb_location.text : "adb");
 
         DashboardSettings.show_system_checks = show_system_checks.checked;
 
