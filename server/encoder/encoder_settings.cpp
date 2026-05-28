@@ -189,7 +189,6 @@ class prober
 			return false;
 		}
 		auto prop = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyVideoPropertiesKHR>>();
-		assert(vk.encode_queue_family_index < prop.size());
 		const auto flags = prop.at(vk.encode_queues[0].family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations;
 		switch (codec)
 		{
