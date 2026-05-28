@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-27 13:42+0200\n"
-"PO-Revision-Date: 2026-05-28 10:52+0200\n"
+"PO-Revision-Date: 2026-05-28 11:17+0200\n"
 "Last-Translator: not\n"
 "Language-Team: Slovak <>\n"
 "Language: sk\n"
@@ -472,13 +472,13 @@ msgstr "Verzia %1"
 #, kde-format
 msgctxt "don't start an application automatically"
 msgid "None"
-msgstr "Žiadne"
+msgstr "Žiadna"
 
 #: dashboard/qml/SelectGame.qml:18
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
-msgstr "Vlastné"
+msgstr "Vlastná"
 
 #: dashboard/qml/SelectGame.qml:61
 #, kde-format
@@ -609,18 +609,18 @@ msgstr "Prehľadať"
 #: dashboard/qml/SettingsPage.qml:170
 #, kde-format
 msgid "Default"
-msgstr "Predvolené"
+msgstr "Predvolená"
 
 #: dashboard/qml/SettingsPage.qml:184
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
-msgstr "Vlastné"
+msgstr "Vlastná"
 
 #: dashboard/qml/SettingsPage.qml:189
 #, kde-format
 msgid "Disabled"
-msgstr "Vypnuté"
+msgstr "Vypnutá"
 
 #: dashboard/qml/SettingsPage.qml:205
 #, kde-format
@@ -636,7 +636,7 @@ msgstr "Cesta ku knižnici (okrem bin/linux64/vrclient.so)"
 #, kde-format
 msgctxt "browse to choose the OpenVR compatility to use"
 msgid "Browse"
-msgstr ""
+msgstr "Prehľadať"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
