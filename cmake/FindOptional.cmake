@@ -1,0 +1,27 @@
+macro(wivrn_option OPTION_VAR DESCRIPTION DEFAULT)
+    set(${OPTION_VAR} "${DEFAULT}" CACHE STRING "${DESCRIPTION}")
+    set_property(CACHE ${OPTION_VAR} PROPERTY STRINGS "AUTO;ON;OFF")
+endmacro()
+
+# Finds optional packages. If AUTO, probe for the packages, if ON require them, if OFF skip.
+# Usage: wivrn_find_optional_pkgconfig(<OPTION_VAR> <PKG_NAME=mod1,mod2...> ...)
+function(wivrn_find_optional_pkgconfig OPTION_VAR)
+    foreach(ARG IN LISTS ARGN)
+        string(REPLACE "=" ";" ARG_PARTS "${ARG}")
+        list(GET ARG_PARTS 0 PKG_NAME)
+        list(GET ARG_PARTS 1 PKG_MODULES_STR)
+        string(REPLACE "," ";" PKG_MODULES "${PKG_MODULES_STR}")
+
+        if (${OPTION_VAR} STREQUAL "AUTO")
+            pkg_check_modules(${PKG_NAME} IMPORTED_TARGET ${PKG_MODULES})
+            if (NOT ${PKG_NAME}_FOUND)
+                set(${OPTION_VAR} OFF PARENT_SCOPE)
+                return()
+            endif()
+        else()
+            pkg_check_modules(${PKG_NAME} REQUIRED IMPORTED_TARGET ${PKG_MODULES})
+        endif()
+    endforeach()
+
+    set(${OPTION_VAR} ON PARENT_SCOPE)
+endfunction()

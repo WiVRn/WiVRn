@@ -20,6 +20,7 @@ check_pie_supported()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(FetchContent)
+include(FindOptional)
 include(ExternalProject)
 include(GNUInstallDirs)
 
@@ -27,7 +28,7 @@ option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" ON)
 option(WIVRN_USE_SYSTEM_OPENXR "Use system OpenXR headers" ON)
 option(WIVRN_USE_SYSTEM_LIBKTX "Use system KTX-Software library" ON)
-option(WIVRN_USE_SYSTEMD "Use libsystemd" ON)
+wivrn_option(WIVRN_USE_SYSTEMD "Use libsystemd" AUTO)
 option(WIVRN_COMPRESS_GLB "Compress textures in GLB files with gltf-transform" OFF)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_USE_ANDROID_BIN_LIBKTX "Download the prebuilt libktx for android" OFF)
@@ -47,12 +48,12 @@ if(WIVRN_OPTIMIZE_SHADERS AND WIVRN_DEBUG_SHADERS)
 endif()
 
 option(WIVRN_USE_NVENC "Enable nvenc (Nvidia) hardware encoder" ON)
-option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" ON)
+wivrn_option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" AUTO)
 option(WIVRN_USE_VULKAN_ENCODE "Enable vulkan video encoder" ON)
-option(WIVRN_USE_X264 "Enable x264 software encoder" ON)
+wivrn_option(WIVRN_USE_X264 "Enable x264 software encoder" AUTO)
 
-option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" ON)
-option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" OFF)
+wivrn_option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" AUTO)
+wivrn_option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" AUTO)
 
 set(OVR_COMPAT_SEARCH_PATH "/opt/xrizer:/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite"
     CACHE STRING "List of places to search for the OpenVR compatibility layer, separated by :")
@@ -114,14 +115,13 @@ if (WIVRN_BUILD_SERVER)
         message(FATAL_ERROR "Vulkan version must be at least 1.3.261, found ${Vulkan_VERSION}")
     endif()
 
+    wivrn_find_optional_pkgconfig(WIVRN_USE_X264 X264=x264)
+
     if (NOT WIVRN_USE_NVENC AND NOT WIVRN_USE_VAAPI AND NOT WIVRN_USE_X264 AND NOT WIVRN_USE_VULKAN_ENCODE)
         message(FATAL_ERROR "No encoder selected, use at least one of WIVRN_USE_NVENC, WIVRN_USE_VAAPI, WIVRN_USE_VULKAN_ENCODE or WIVRN_USE_X264")
     endif()
 
-    if (WIVRN_USE_VAAPI)
-        pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavcodec libavutil)
-        pkg_check_modules(LIBDRM REQUIRED IMPORTED_TARGET libdrm)
-    endif()
+    wivrn_find_optional_pkgconfig(WIVRN_USE_VAAPI LIBAV=libavcodec,libavutil LIBDRM=libdrm)
 
     if (WIVRN_USE_VULKAN_ENCODE)
         if (Vulkan_VERSION VERSION_LESS 1.3.283)
@@ -129,21 +129,11 @@ if (WIVRN_BUILD_SERVER)
         endif()
     endif()
 
-    if (WIVRN_USE_X264)
-        pkg_check_modules(X264 REQUIRED IMPORTED_TARGET x264)
-    endif()
+    wivrn_find_optional_pkgconfig(WIVRN_USE_SYSTEMD SYSTEMD=libsystemd)
 
-    if (WIVRN_USE_SYSTEMD)
-        pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
-    endif()
+    wivrn_find_optional_pkgconfig(WIVRN_USE_PIPEWIRE libpipewire=libpipewire-0.3)
 
-    if (WIVRN_USE_PIPEWIRE)
-        pkg_check_modules(libpipewire REQUIRED IMPORTED_TARGET libpipewire-0.3)
-    endif()
-
-    if (WIVRN_USE_PULSEAUDIO)
-        pkg_check_modules(libpulse REQUIRED IMPORTED_TARGET libpulse)
-    endif()
+    wivrn_find_optional_pkgconfig(WIVRN_USE_PULSEAUDIO libpulse=libpulse)
 
     pkg_check_modules(AVAHI REQUIRED IMPORTED_TARGET avahi-client avahi-glib)
     find_package(Eigen3 REQUIRED)
