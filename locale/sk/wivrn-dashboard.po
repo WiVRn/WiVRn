@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-27 13:42+0200\n"
-"PO-Revision-Date: 2026-05-27 15:43+0200\n"
+"PO-Revision-Date: 2026-05-28 10:52+0200\n"
 "Last-Translator: not\n"
 "Language-Team: Slovak <>\n"
 "Language: sk\n"
@@ -128,7 +128,7 @@ msgstr "ADB nie je nainštalované"
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
 msgid "Connect a headset and make sure developer mode is enabled"
-msgstr "Pripojte headset a uistite sa, že je zapnutý vývojársky režim"
+msgstr "Pripojte headset a uistite sa, že je zapnutý režim pre vývojárov"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -332,7 +332,7 @@ msgid ""
 "Hardware encoding with vaapi does not work with AMDVLK and AMDGPU-PRO"
 msgstr ""
 "Pre AMD GPUs používajte ovládač Mesa (radv)\n"
-"Hardvérové kódovanie cez vaapi nefunguje s AMDVLK ani AMDGPU-PRO"
+"Hardvérové enkódovanie cez vaapi nefunguje s AMDVLK ani AMDGPU-PRO"
 
 #: dashboard/qml/Main.qml:209
 #, kde-format
@@ -386,7 +386,7 @@ msgstr "Stav servera"
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
-msgstr "Beží"
+msgstr "Zapnutý"
 
 #: dashboard/qml/Main.qml:322
 #, kde-format
@@ -408,7 +408,7 @@ msgstr "Headset"
 #: dashboard/qml/Main.qml:352
 #, kde-format
 msgid "Not connected"
-msgstr "Nepripojené"
+msgstr "Nepripojený"
 
 #: dashboard/qml/Main.qml:356
 #, kde-format
@@ -431,7 +431,7 @@ msgstr "Pripojiť (káblom)"
 #: dashboard/qml/Main.qml:383 dashboard/qml/WizardPage.qml:339
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
-msgstr "Žiadny headset nie je pripojený alebo nemá zapnutý vývojársky režim"
+msgstr "Žiadny headset nie je pripojený alebo nemá zapnutý režim pre vývojárov"
 
 #: dashboard/qml/Main.qml:404
 #, kde-format
@@ -525,7 +525,7 @@ msgstr "Vulkan (akákoľvek moderná grafická karta)"
 #: dashboard/qml/SettingsPage.qml:62
 #, kde-format
 msgid "x264 (software encoding)"
-msgstr "x264 (softvérové kódovanie)"
+msgstr "x264 (softvérové enkódovanie)"
 
 #: dashboard/qml/SettingsPage.qml:79
 #, kde-format
@@ -675,7 +675,7 @@ msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Ak ste nainštalovali WiVRn cez USB na Meta headset, aplikácia sa nachádza v "
+"Ak ste nainštalovali WiVRn cez USB na Meta headsete, aplikácia sa nachádza v "
 "sekcii „neznáme zdroje“."
 
 #: dashboard/qml/TroubleshootPage.qml:24
@@ -686,7 +686,7 @@ msgstr "Nevidím svoj počítač v aplikácii WiVRn"
 #: dashboard/qml/TroubleshootPage.qml:25
 #, kde-format
 msgid "If you have a firewall, make sure that port 5353/UDP is open."
-msgstr "Ak používate firewall, uistite sa, že port 5353/UDP je povolený."
+msgstr "Ak používate firewall, uistite sa, že port 5353/UDP je otvorený."
 
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
@@ -699,7 +699,7 @@ msgid ""
 "If you have a firewall, make sure that port 9757 is open both for TCP and "
 "UDP."
 msgstr ""
-"Ak používate firewall, uistite sa, že port 9757 je povolený pre TCP aj UDP."
+"Ak používate firewall, uistite sa, že port 9757 je otvorený pre TCP aj UDP."
 
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
@@ -734,7 +734,7 @@ msgid ""
 "another headset, you must enable pairing before connecting."
 msgstr ""
 "Ak ste preinštalovali server alebo klienta, alebo ak chcete pripojiť iný "
-"headset, musíte pred pripojením povoliť párovanie."
+"headset, musíte pred pripojením zapnúť párovanie."
 
 #: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
@@ -757,7 +757,8 @@ msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
 "device for applications to use it."
 msgstr ""
-"Keď je headset pripojený, vyberte WiVRn ako predvolené zvukové zariadenie, "
+"Keď je headset pripojený, vyberte „WiVRn“ ako predvolené zvukové zariadenie,"
+" "
 "aby ho aplikácie používali."
 
 #: dashboard/qml/TroubleshootPage.qml:61
@@ -773,7 +774,7 @@ msgid ""
 msgstr ""
 "Pri problémoch konkrétnych hier skontrolujte <a href=\"https://db.vronlinux.or"
 "g/"
-"\">databázu vronlinux</a> , či neexistujú známe chyby alebo riešenia."
+"\">vronlinux databázu</a> , či neexistujú známe chyby alebo riešenia."
 
 #: dashboard/qml/TroubleshootPage.qml:79
 #, kde-format
@@ -820,7 +821,7 @@ msgstr "Ďalej"
 #: dashboard/qml/WizardPage.qml:112
 #, kde-format
 msgid "How to enable developer mode"
-msgstr "Ako zapnúť vývojársky režim"
+msgstr "Ako zapnúť režim pre vývojárov"
 
 #: dashboard/qml/WizardPage.qml:119
 #, kde-format
@@ -841,7 +842,7 @@ msgstr ""
 #: dashboard/qml/WizardPage.qml:148
 #, kde-format
 msgid "Install from the Meta store"
-msgstr "Nainštalovať z Meta Store"
+msgstr "Nainštalovať z Meta obchodu"
 
 #: dashboard/qml/WizardPage.qml:152
 #, kde-format
@@ -890,7 +891,7 @@ msgid ""
 msgstr ""
 "<p>Headset nebol rozpoznaný. Uistite sa, že:\n"
 "<ul><li>Máte nainštalované udev pravidlá pre ADB</li><li>headset je vo  <a "
-"href=\"#\">vývojárskom režime</a></li></ul></p>"
+"href=\"#\">režim pre vývojárov</a></li></ul></p>"
 
 #: dashboard/qml/WizardPage.qml:295
 #, kde-format
@@ -903,8 +904,8 @@ msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
 "running."
 msgstr ""
-"WiVRn úplne nahrádza SteamVR, preto by ste SteamVR nemali spúšťať, keď beží "
-"WiVRn"
+"WiVRn úplne nahrádza SteamVR, preto by ste SteamVR nemali spúšťať, ak je "
+"WiVRn spustený."
 
 #: dashboard/qml/WizardPage.qml:313
 #, kde-format
@@ -942,7 +943,7 @@ msgid ""
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
 "Ak server nie je viditeľný alebo pripojenie zlyhá, skontrolujte, či máte vo fi"
-"rewalle povolené porty 5353 (UDP) a 9757 (TCP aj UDP)."
+"rewalle otvorené porty 5353 (UDP) a 9757 (TCP aj UDP)."
 
 #: dashboard/qml/WizardPage.qml:371
 #, kde-format
@@ -966,7 +967,7 @@ msgid ""
 "before connecting."
 msgstr ""
 "Ak chcete pripojiť ďalší headset, uistite sa, že je v ovládacom paneli "
-"povolené párovanie."
+"zapnuté párovanie."
 
 #: dashboard/qml/WizardPage.qml:423 dashboard/qml/WizardPage.qml:460
 #, kde-format
