@@ -26,10 +26,37 @@
 namespace wivrn
 {
 
-struct steam_icon
+class steam
 {
-	std::string clienticon;
-	std::string linuxclienticon;
+public:
+	struct application
+	{
+		uint64_t appid;
+		// localised names, with empty locale for default
+		std::unordered_map<std::string, std::string> name;
+		std::string url;
+	};
+	struct icon
+	{
+		std::string clienticon;
+		std::string linuxclienticon;
+	};
+
+private:
+	std::filesystem::path root;
+	bool flatpak;
+	std::optional<uint32_t> default_userid;
+	std::optional<std::unordered_map<uint32_t, icon>> icons;
+	std::unordered_map<uint32_t, std::filesystem::path> shortcut_icons;
+
+	steam(std::filesystem::path root, bool flatpak);
+
+public:
+	static std::vector<steam> find_installations();
+
+	std::vector<application> list_applications();
+	std::optional<std::filesystem::path> get_icon(uint64_t app_id);
+	std::string get_steam_command() const;
 };
 
 struct steam_shortcut
@@ -38,8 +65,5 @@ struct steam_shortcut
 	std::string name;
 	std::optional<std::filesystem::path> icon;
 };
-
-std::unordered_map<uint32_t, steam_icon> read_steam_icons(std::filesystem::path path);
-std::vector<steam_shortcut> read_steam_shortcuts(std::filesystem::path path);
 
 } // namespace wivrn

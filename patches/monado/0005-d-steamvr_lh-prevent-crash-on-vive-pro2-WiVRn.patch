@@ -1,17 +1,17 @@
-From c63be87d014aa9b67d7a8766a952a70701a629b4 Mon Sep 17 00:00:00 2001
+From f592eb8af17a15b8cd6a20c308ee0f254c88463f Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Sun, 28 Sep 2025 11:33:10 +0200
-Subject: [PATCH 06/11] d/steamvr_lh: prevent crash on vive pro2/WiVRn
+Subject: [PATCH 5/8] d/steamvr_lh: prevent crash on vive pro2/WiVRn
 
 ---
  src/xrt/drivers/steamvr_lh/steamvr_lh.cpp | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
-index 25c68a0ea..86baa9fd4 100644
+index 5c36e4e89..b77288bd0 100644
 --- a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
 +++ b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
-@@ -913,7 +913,7 @@ steamvr_lh_create_devices(struct xrt_prober *xp, struct xrt_system_devices **out
+@@ -956,7 +956,7 @@ steamvr_lh_create_devices(struct xrt_prober *xp, struct xrt_system_devices **out
  
  	// Include the HMD
  	if (svrs->ctx->hmd) {

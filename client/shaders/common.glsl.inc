@@ -1,7 +1,6 @@
 // kate: hl glsl
 
 const int nb_views = 2;
-const int nb_clipping = 4;
 const int nb_texcoords = 2;
 
 const bool use_pbr = false;
@@ -20,7 +19,6 @@ layout(set = 0, binding = 1) uniform mesh_ubo
     mat4 model;
     mat4 modelview[nb_views];
     mat4 modelviewproj[nb_views];
-    vec4 clipping_plane[nb_clipping];
 } mesh;
 
 layout(set = 0, binding = 2) uniform joints_ubo

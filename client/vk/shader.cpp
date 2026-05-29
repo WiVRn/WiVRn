@@ -18,7 +18,6 @@
  */
 
 #include "shader.h"
-#include "utils/cache.h"
 #include "wivrn_shaders.h"
 #include <magic_enum.hpp>
 #include <spdlog/spdlog.h>
@@ -103,9 +102,4 @@ std::shared_ptr<shader> shader_loader::operator()(const std::string & name)
 	}
 
 	return (*this)(shaders.at(name));
-}
-
-std::shared_ptr<shader> load_shader(vk::raii::Device & device, const std::string & name)
-{
-	return shader_loader{device}(name);
 }

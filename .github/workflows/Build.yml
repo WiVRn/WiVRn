@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - preset: 'client'
-            packages: libboost-all-dev libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
+          - preset: 'client-no-system-boost'
+            packages: libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
         # dashboard requires a more recent Ubuntu, have it out of this job
           - preset: 'dissector-no-system-boost'
             packages: libboost-all-dev wireshark-dev
@@ -57,7 +57,7 @@ jobs:
         restore-keys: cmake-linux-
 
     - name: Install dependencies
-      if: ${{ matrix.config.preset == 'client' }}
+      if: ${{ startswith(matrix.config.preset, 'client') }}
       run: |
         wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
@@ -141,6 +141,8 @@ jobs:
         -DFETCHCONTENT_BASE_DIR=${{github.workspace}}/cmake-fetch
         --preset dashboard
         -DWIVRN_USE_SYSTEM_OPENXR=OFF
+        -DGIT_DESC=${{github.sha}}
+        -DGIT_COMMIT=${{github.sha}}
 
     - name: Build
       # Build your program with the given configuration
@@ -377,7 +379,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt update
-        apt install --yes libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev pkexec libboost-all-dev librsvg2-bin dpkg-dev pkg-config debhelper-compat build-essential lintian cmake libnotify-dev qt6-declarative-dev extra-cmake-modules libkirigami-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev jq sudo cmake gcc g++ git wget libssl-dev qcoro-qt6-dev librsvg2-dev libarchive-dev npm
+        apt install --yes libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev pkexec libboost-all-dev librsvg2-bin dpkg-dev pkg-config debhelper-compat build-essential lintian cmake libnotify-dev qt6-declarative-dev extra-cmake-modules libkirigami-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev jq sudo cmake gcc g++ git wget libssl-dev qcoro-qt6-dev librsvg2-dev libarchive-dev npm qml6-module-org-kde-kirigamiaddons-formcard
 
         wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.3.2-Linux-x86_64.deb
@@ -469,8 +471,8 @@ jobs:
     - name: Download artifacts (APK)
       uses: actions/download-artifact@v4
       with:
+        name: apk-Release
         path: apk
-        pattern: 'apk-Release'
 
     - name: Download artifacts (flatpak)
       uses: actions/download-artifact@v4

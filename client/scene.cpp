@@ -25,6 +25,7 @@
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
 #include "utils/ranges.h"
+#include <cstring>
 #include <entt/core/fwd.hpp>
 #include <magic_enum.hpp>
 #include <spdlog/spdlog.h>
@@ -155,28 +156,20 @@ void scene::render_world(
         bool keep_depth_buffer,
         uint32_t layer_mask,
         XrColor4f clear_color,
-        const std::optional<xr::foveation_profile> & foveation,
         bool render_debug_draws)
 {
-	std::vector<scene_renderer::frame_info> frames;
-	frames.reserve(views.size());
+	assert(views.size() <= layer::max_views);
+	beman::inplace_vector::inplace_vector<scene_renderer::frame_info, layer::max_views> frames;
+	beman::inplace_vector::inplace_vector<XrCompositionLayerProjectionView, layer::max_views> composition_layer_color;
+	beman::inplace_vector::inplace_vector<XrCompositionLayerDepthInfoKHR, layer::max_views> composition_layer_depth;
 
-	// TODO inplace vector
-	std::vector<XrCompositionLayerProjectionView> composition_layer_color;
-	std::vector<XrCompositionLayerDepthInfoKHR> composition_layer_depth;
-
-	composition_layer_color.reserve(views.size());
-	if (keep_depth_buffer)
-		composition_layer_depth.reserve(views.size());
-
-	auto [color_swapchain, color_image, foveation_image] = [&]() -> std::tuple<XrSwapchain, vk::Image, vk::Image> {
-		xr::swapchain & color_swapchain = get_swapchain(swapchain_format, width, height, 1, views.size(), foveation);
+	auto [color_swapchain, color_image] = [&]() -> std::tuple<XrSwapchain, vk::Image> {
+		xr::swapchain & color_swapchain = get_swapchain(swapchain_format, width, height, 1, views.size());
 
 		int color_image_index = color_swapchain.acquire();
-		vk::Image color_image = color_swapchain.images()[color_image_index].image;
-		vk::Image foveation_image = color_swapchain.images()[color_image_index].foveation;
+		vk::Image color_image = color_swapchain.image(color_image_index);
 		color_swapchain.wait();
-		return {color_swapchain, color_image, foveation_image};
+		return {color_swapchain, color_image};
 	}();
 
 	auto [depth_swapchain, depth_image] = [&]() -> std::pair<XrSwapchain, vk::Image> {
@@ -185,7 +178,7 @@ void scene::render_world(
 			xr::swapchain & depth_swapchain = get_swapchain(depth_format, width, height, 1, views.size());
 
 			int depth_image_index = depth_swapchain.acquire();
-			vk::Image depth_image = depth_swapchain.images()[depth_image_index].image;
+			vk::Image depth_image = depth_swapchain.image(depth_image_index);
 			depth_swapchain.wait();
 			return {depth_swapchain, depth_image};
 		}
@@ -246,51 +239,19 @@ void scene::render_world(
 	        depth_format,
 	        color_image,
 	        depth_image,
-	        foveation_image,
 	        frames,
 	        render_debug_draws);
 
 	add_projection_layer(
 	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
 	        space,
-	        std::move(composition_layer_color),
-	        std::move(composition_layer_depth));
+	        composition_layer_color,
+	        composition_layer_depth);
 }
 
-xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size, const std::optional<xr::foveation_profile> & foveation)
+xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size)
 {
-	XrFoveationProfileFB foveation_profile = XR_NULL_HANDLE;
-	XrFoveationLevelFB foveation_level = XR_FOVEATION_LEVEL_NONE_FB;
-	float foveation_vertical_offset_degrees = 0;
-	bool foveation_dynamic = false;
-
-	if (foveation)
-	{
-		foveation_profile = *foveation;
-		foveation_level = foveation->level();
-		foveation_vertical_offset_degrees = foveation->vertical_offset_degrees();
-		foveation_dynamic = foveation->dynamic();
-	}
-
 	// Look for an exact match
-	for (swapchain_entry & entry: swapchains)
-	{
-		if (not entry.used and
-		    entry.format == format and
-		    entry.width == width and
-		    entry.height == height and
-		    entry.sample_count == sample_count and
-		    entry.array_size == array_size and
-		    entry.foveation_level == foveation_level and
-		    entry.foveation_vertical_offset_degrees == foveation_vertical_offset_degrees and
-		    entry.foveation_dynamic == foveation_dynamic)
-		{
-			entry.used = true;
-			return entry.swapchain;
-		}
-	}
-
-	// Look for a swapchain with a different foveation profile
 	for (swapchain_entry & entry: swapchains)
 	{
 		if (not entry.used and
@@ -300,13 +261,7 @@ xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t h
 		    entry.sample_count == sample_count and
 		    entry.array_size == array_size)
 		{
-			spdlog::info("Updating swapchain foveation profile to {}, {:.1f} deg", magic_enum::enum_name(foveation_level), foveation_vertical_offset_degrees);
-			entry.foveation_level = foveation_level;
-			entry.foveation_vertical_offset_degrees = foveation_vertical_offset_degrees;
-			entry.foveation_dynamic = foveation_dynamic;
-
 			entry.used = true;
-			entry.swapchain.update_foveation(*foveation);
 			return entry.swapchain;
 		}
 	}
@@ -318,9 +273,6 @@ xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t h
 	        .height = height,
 	        .sample_count = sample_count,
 	        .array_size = array_size,
-	        .foveation_level = foveation_level,
-	        .foveation_vertical_offset_degrees = foveation_vertical_offset_degrees,
-	        .foveation_dynamic = foveation_dynamic,
 	        .used = true,
 	        .swapchain = xr::swapchain(
 	                instance,
@@ -330,8 +282,7 @@ xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t h
 	                width,
 	                height,
 	                sample_count,
-	                array_size,
-	                foveation_profile)};
+	                array_size)};
 	spdlog::info("Created swapchain");
 
 	return swapchains.emplace_back(std::move(new_swapchain)).swapchain;
@@ -377,8 +328,8 @@ void scene::render_start(bool passthrough, XrTime predicted_display_time_)
 void scene::add_projection_layer(
         XrCompositionLayerFlags flags,
         XrSpace space,
-        std::vector<XrCompositionLayerProjectionView> && color_views,
-        std::vector<XrCompositionLayerDepthInfoKHR> && depth_views)
+        std::span<XrCompositionLayerProjectionView> color_views,
+        std::span<XrCompositionLayerDepthInfoKHR> depth_views)
 {
 	layers.push_back(layer{
 	        .composition_layer = XrCompositionLayerProjection{
@@ -389,8 +340,8 @@ void scene::add_projection_layer(
 	                .viewCount = (uint32_t)color_views.size(),
 	                .views = nullptr,
 	        },
-	        .color_views = std::move(color_views),
-	        .depth_views = std::move(depth_views),
+	        .color_views{color_views.begin(), color_views.end()},
+	        .depth_views{depth_views.begin(), depth_views.end()},
 	});
 }
 
@@ -577,6 +528,26 @@ void scene::unload_gltf(const std::filesystem::path & path)
 std::pair<entt::entity, components::node &> scene::add_gltf(const std::filesystem::path & path, uint32_t layer_mask)
 {
 	return add_gltf(load_gltf(path), layer_mask);
+}
+
+std::shared_ptr<renderer::material> scene::create_material(std::function<void(renderer::material &)> init) const
+{
+	auto material = std::make_shared<renderer::material>(*renderer->get_default_material());
+	if (init)
+		init(*material);
+
+	material->buffer = std::make_shared<buffer_allocation>(
+	        device,
+	        vk::BufferCreateInfo{
+	                .size = sizeof(material->staging),
+	                .usage = vk::BufferUsageFlagBits::eUniformBuffer},
+	        VmaAllocationCreateInfo{
+	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+	                .usage = VMA_MEMORY_USAGE_AUTO});
+	material->offset = 0;
+	std::memcpy(material->buffer->map(), &material->staging, sizeof(material->staging));
+	material->buffer->unmap();
+	return material;
 }
 
 void scene::remove(entt::entity entity)

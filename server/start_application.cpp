@@ -155,7 +155,7 @@ void forked_children::start_application(const std::vector<std::string> & args, c
 		if (path)
 			tmp.push_back("--directory=" + *path);
 	}
-	else
+	else if (path)
 	{
 		try
 		{

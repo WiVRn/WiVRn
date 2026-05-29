@@ -165,7 +165,7 @@ Kirigami.ApplicationWindow {
                         text: i18n("Firewall may not allow port 9757")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: DashboardSettings.show_system_checks && Firewall.needSetup
+                        visible: DashboardSettings.show_system_checks && Firewall.needSetup && Settings.port == Settings.default_port
                         actions: [
                             Kirigami.Action {
                                 text: i18n("Fix it")
@@ -186,6 +186,14 @@ Kirigami.ApplicationWindow {
                                 onTriggered: Qt.openUrlExternally("https://github.com/WiVRn/WiVRn/issues/180")
                             }
                         ]
+                    }
+
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: Settings.flatpak ? i18n("Vulkan drivers cannot be found, you may need to run \"flatpak update\"") : i18n("Vulkan drivers cannot be found")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: DashboardSettings.show_system_checks && (VulkanInfo.type == VulkanInfo.SoftGPU || VulkanInfo.type == VulkanInfo.NoGPU)
                     }
 
                     Kirigami.InlineMessage {

@@ -1,11 +1,17 @@
 include(KDEInstallDirs)
 include(KDECMakeSettings)
+include(ECMFeatureSummary)
 include(ECMFindQmlModule)
 include(ECMQmlModule)
 include(I18n)
 
 ecm_find_qmlmodule(org.kde.kirigami REQUIRED)
 ecm_find_qmlmodule(org.kde.kirigamiaddons.formcard REQUIRED)
+ecm_feature_summary(WHAT REQUIRED_PACKAGES_NOT_FOUND FATAL_ON_MISSING_REQUIRED_PACKAGES)
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
 add_executable(wivrn-dashboard
     avahi.cpp

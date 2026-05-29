@@ -23,7 +23,7 @@
 #include "xrt/xrt_instance.h"
 #include "xrt/xrt_system.h"
 
-#include "util/u_system.h"
+#include "b_system.h"
 #include "util/u_trace_marker.h"
 
 #include <assert.h>
@@ -50,7 +50,7 @@ xrt_result_t instance::create_system(
 	assert(*out_xsysd == NULL);
 	assert(out_xsysc == NULL || *out_xsysc == NULL);
 	assert(server);
-	auto u_sys = u_system_create();
+	auto u_sys = b_system_create();
 	*out_xsys = &u_sys->base;
 
 	struct xrt_system_compositor * xsysc = NULL;
@@ -61,10 +61,13 @@ xrt_result_t instance::create_system(
 	        out_xspovrs,
 	        out_xsysc);
 	if (res != XRT_SUCCESS)
+	{
+		ipc_server_stop(server);
 		return res;
+	}
 	session = (wivrn_session *)*out_xsysd;
 	session->start(server);
-	u_system_set_system_compositor(u_sys, *out_xsysc);
+	b_system_set_system_compositor(u_sys, *out_xsysc);
 	return res;
 }
 
@@ -88,11 +91,8 @@ instance::instance() :
 void instance::set_ipc_server(ipc_server * server)
 {
 	this->server = server;
-	if (!server)
-	{
-		assert(session);
+	if (session and not server)
 		session->stop();
-	}
 }
 
 } // namespace wivrn

@@ -19,7 +19,7 @@
 
 #include "instance.h"
 
-#include "hardware.h"
+#include "application.h"
 #include "xr/details/enumerate.h"
 #include "xr/htc_exts.h"
 #include "xr/to_string.h"
@@ -94,24 +94,18 @@ const std::map<XrVersion, version_info> version_info::versions = {{
 
 static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & info, std::vector<const char *> & in_extensions)
 {
-	XrResult res;
+	XrResult res = XR_ERROR_API_VERSION_UNSUPPORTED;
 	for (XrVersion version: {
 	             XR_API_VERSION_1_1,
 	             XR_API_VERSION_1_0,
 	     })
 	{
-		switch (guess_model())
+		if (version > application::get_hmd_traits().max_openxr_api_version)
 		{
-			case model::htc_vive_focus_3:
-			case model::htc_vive_xr_elite:
-			case model::htc_vive_focus_vision:
-				if (version > XR_API_VERSION_1_0)
-				{
-					spdlog::info("skip OpenXR 1.1 for HTC");
-					continue;
-				}
-			default:
-				break;
+			spdlog::info("skip OpenXR {} due to headset quirk max version {}",
+			             xr::to_string(version),
+			             xr::to_string(application::get_hmd_traits().max_openxr_api_version));
+			continue;
 		}
 		std::vector<const char *> extensions;
 		info.applicationInfo.apiVersion = version;

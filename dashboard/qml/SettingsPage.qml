@@ -85,7 +85,13 @@ Kirigami.ScrollablePage {
             }
 
             SelectGame {
+                id: select_game
                 Kirigami.FormData.label: i18n("Autostart application:")
+            }
+
+            Controls.CheckBox {
+                id: auto_connect_usb
+                text: i18n("Auto connect from USB")
             }
 
             Kirigami.Separator {
@@ -187,6 +193,14 @@ Kirigami.ScrollablePage {
                 }
             }
 
+            Dialogs.FolderDialog{
+                id: openvr_browse
+                onAccepted: {
+                    currentFolder = selectedFolder
+                    openvr_text.text = WivrnServer.host_path(new URL(selectedFolder).pathname);
+                    openvr_text.text = openvr_text.text.replace(/\/linux64$/, "").replace(/\/bin$/, "")
+                }
+            }
             RowLayout {
                 Kirigami.FormData.label: i18n("OpenVR compatibility library:")
                 Layout.fillWidth: true
@@ -211,12 +225,21 @@ Kirigami.ScrollablePage {
                             }
                         }
                     }
+                    onActivated: index => {
+                            if (openvr_libs.get(index).is_custom && openvr_text.text == "")
+                                openvr_browse.open()
+                    }
                 }
                 Controls.TextField {
                     id: openvr_text
                     placeholderText: i18n("Library path, excluding bin/linux64/vrclient.so")
                     visible: !!openvr_combobox.model.get(openvr_combobox.currentIndex)?.is_custom
                     Layout.fillWidth: true
+                }
+                Controls.Button {
+                    text: i18nc("browse to choose the OpenVR compatility to use", "Browse")
+                    visible: openvr_text.visible
+                    onClicked: openvr_browse.open()
                 }
             }
 
@@ -260,19 +283,24 @@ Kirigami.ScrollablePage {
         }
         DashboardSettings.adb_custom = adb_custom.checked;
         DashboardSettings.adb_location = adb_location.text;
-        Adb.setPath(DashboardSettings.adb_custom.checked ? adb_location.text : "adb");
+        Adb.setPath(adb_custom.checked ? adb_location.text : "adb");
 
         DashboardSettings.show_system_checks = show_system_checks.checked;
 
         Settings.debugGui = debug_gui.checked;
         Settings.steamVrLh = steamvr_lh.checked;
         Settings.hidForwarding = hid_forwarding.checked;
+
+        DashboardSettings.auto_connect_usb = auto_connect_usb.checked;
     }
 
     function load() {
+        select_game.load();
         debug_gui.checked = Settings.debugGui;
         steamvr_lh.checked = Settings.steamVrLh;
         hid_forwarding.checked = Settings.hidForwarding;
+
+        auto_connect_usb.checked = DashboardSettings.auto_connect_usb;
 
         openvr_combobox.load()
 

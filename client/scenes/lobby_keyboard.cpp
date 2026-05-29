@@ -199,7 +199,7 @@ virtual_keyboard::layout symbols = {
         }, // 12
         {
                 {1.5},
-                {1}, // {1, "", ImGuiKey_None, "1/2", virtual_keyboard::key_flag_hidden},
+                {1, "."},
                 {1, "\""},
                 {1, "<"},
                 {1, ">"},

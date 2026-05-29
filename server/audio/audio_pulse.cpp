@@ -404,6 +404,16 @@ struct pulse_device : public audio_device
 		mic_buffer.push(std::move(mic_data));
 	}
 
+	void pause() override
+	{
+	}
+
+	void resume() override
+	{
+		session.send_control(description());
+		session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, (bool)microphone});
+	}
+
 	pulse_device(
 	        const std::string & source_name,
 	        const std::string & source_description,

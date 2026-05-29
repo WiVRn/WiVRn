@@ -76,5 +76,9 @@ Kirigami.MenuDialog {
         select_usb_device.connected_headset_count = nb_found;
         if (nb_found != 1)
             select_usb_device.connected_headset_serial = "";
+
+        if (DashboardSettings.auto_connect_usb && nb_found == 1 && !WivrnServer.headsetConnected) {
+            Adb.startUsbConnection(select_usb_device.connected_headset_serial, WivrnServer.pin);
+        }
     }
 }

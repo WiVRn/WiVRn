@@ -22,6 +22,7 @@
 #include "pose_list.h"
 
 #include <array>
+#include <mutex>
 #include <openxr/openxr.h>
 
 namespace wivrn
@@ -39,7 +40,7 @@ class view_list
 {
 	pose_list head_poses{device_id::HEAD};
 	std::mutex mutex;
-	XrViewStateFlags flags;
+	XrViewStateFlags flags{};
 	std::array<xrt_pose, 2> poses;
 	std::array<xrt_fov, 2> fovs;
 

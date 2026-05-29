@@ -23,6 +23,9 @@
 #ifdef Success
 #undef Success
 #endif
+#ifdef Complex
+#undef Complex
+#endif
 
 #include <Eigen/Cholesky>
 #include <Eigen/Core>
@@ -171,6 +174,10 @@ public:
 		// Data turned invalid, return it
 		if (not closest->y)
 			return *closest;
+
+		// Avoid returning obviously wrong data
+		if (std::abs(closest->timestamp - timestamp) > 1'000'000'000)
+			return {};
 
 		// Not enough data to extrapolate
 		if (row < 2)

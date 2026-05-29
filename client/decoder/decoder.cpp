@@ -71,14 +71,20 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
 	__builtin_unreachable();
 }
 
-std::vector<wivrn::video_codec> wivrn::decoder::supported_codecs()
+static std::vector<wivrn::video_codec> supported_codecs_()
 {
 	std::vector<wivrn::video_codec> res;
 #ifdef __ANDROID__
-	android::decoder::supported_codecs(res);
+	wivrn::android::decoder::supported_codecs(res);
 #else
-	ffmpeg::decoder::supported_codecs(res);
+	wivrn::ffmpeg::decoder::supported_codecs(res);
 #endif
-	res.push_back(video_codec::raw);
+	res.push_back(wivrn::video_codec::raw);
+	return res;
+}
+
+const std::vector<wivrn::video_codec> & wivrn::decoder::supported_codecs()
+{
+	static std::vector<wivrn::video_codec> res = supported_codecs_();
 	return res;
 }

@@ -31,7 +31,7 @@ class ipc_server_cb : public ipc_server_callbacks
 	void client_disconnected(ipc_server *, uint32_t);
 
 public:
-	using base = void;
+	using base_t = void;
 	ipc_server_cb();
 };
 } // namespace wivrn

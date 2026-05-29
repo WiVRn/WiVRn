@@ -28,11 +28,11 @@ struct method_trait
 template <auto Method, typename Result, typename Class, typename... Args>
 struct method_trait<Method, Result (Class::*)(Args...)>
 {
-	static Result magic(Class::base * arg, Args... args)
+	static Result magic(Class::base_t * arg, Args... args)
 	{
 		return std::invoke(Method, static_cast<Class *>(arg), args...);
 	}
-	static Result magic2(Args... args, Class::base * arg)
+	static Result magic2(Args... args, Class::base_t * arg)
 	{
 		return std::invoke(Method, static_cast<Class *>(arg), args...);
 	}
@@ -48,7 +48,7 @@ namespace wivrn
 // Example:
 // class derived: public base_class
 // {
-// 	using base = base_class;
+// 	using base_t = base_class;
 // 	void foo(int x);
 // };
 //

@@ -21,6 +21,7 @@
 #include "escape_string.h"
 #include "gui_config.h"
 #include "utils/flatpak.h"
+#include "wivrn_config.h"
 #include "wivrn_server.h"
 #include <QList>
 #include <QObject>
@@ -121,6 +122,8 @@ void Settings::emitAllChanged()
 	debugGuiChanged();
 	steamVrLhChanged();
 	hidForwardingChanged();
+	portChanged();
+	hostnameChanged();
 }
 
 void Settings::load(const wivrn_server * server)
@@ -429,6 +432,40 @@ void Settings::set_tcpOnly(const bool & value)
 		tcpOnlyChanged();
 }
 
+int Settings::port() const
+{
+	auto it = m_jsonSettings.find("port");
+	if (it != m_jsonSettings.end() and it->is_number_integer())
+		return *it;
+	return wivrn::default_port;
+}
+
+void Settings::set_port(const int & value)
+{
+	auto old = port();
+	m_jsonSettings["port"] = value;
+	if (old != value)
+		portChanged();
+}
+
+QString Settings::hostname() const
+{
+	if (auto it = m_jsonSettings.find("hostname"); it != m_jsonSettings.end() and it->is_string())
+		return QString::fromStdString(*it);
+	return "";
+}
+
+void Settings::set_hostname(const QString & value)
+{
+	auto old = hostname();
+	if (value == "")
+		m_jsonSettings.erase("hostname");
+	else
+		m_jsonSettings["hostname"] = value.toStdString();
+	if (old != value)
+		hostnameChanged();
+}
+
 QString Settings::openvr() const
 {
 	// OpenVR compat library
@@ -452,7 +489,7 @@ void Settings::set_openvr(const QString & value)
 	else
 		m_jsonSettings["openvr-compat-path"] = value.toStdString();
 	if (old != value)
-		tcpOnlyChanged();
+		openvrChanged();
 }
 
 QList<Settings::video_codec> Settings::allowedCodecs() const
@@ -504,12 +541,19 @@ void Settings::restore_defaults()
 	m_jsonSettings.erase("use-steamvr-lh");
 	m_jsonSettings.erase("tcp-only");
 	m_jsonSettings.erase("application");
+	m_jsonSettings.erase("port");
+	m_jsonSettings.erase("hostname");
 	emitAllChanged();
 }
 
 bool Settings::flatpak() const
 {
 	return wivrn::is_flatpak();
+}
+
+int Settings::default_port() const
+{
+	return wivrn::default_port;
 }
 
 bool Settings::debug_gui() const

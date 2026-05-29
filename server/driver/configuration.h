@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "hostname.h"
+#include "wivrn_config.h"
 #include <array>
 #include <chrono>
 #include <filesystem>
@@ -57,6 +59,8 @@ struct configuration
 	bool use_steamvr_lh = false;
 	bool hid_forwarding = false;
 	bool tcp_only = false;
+	int port = wivrn::default_port;
+	std::string hostname = wivrn::hostname();
 	service_publication publication = service_publication::avahi;
 
 	// monostate: default value, string: user defined, nullptr: disabled

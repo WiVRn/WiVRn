@@ -64,4 +64,7 @@ struct shader_loader
 	std::shared_ptr<shader> operator()(const std::string & name);
 };
 
-std::shared_ptr<shader> load_shader(vk::raii::Device & device, const std::string & name);
+inline std::shared_ptr<shader> load_shader(vk::raii::Device & device, const std::string & name)
+{
+	return shader_loader{device}(name);
+}

@@ -1,8 +1,11 @@
 #pragma once
 
+#include "wifi_lock.h"
+
 #include <chrono>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <netinet/in.h>
 #include <string>
 #include <thread>
@@ -32,6 +35,7 @@ public:
 	static inline const std::chrono::milliseconds discover_period{5000};
 
 private:
+	wifi_lock::multicast multicast;
 	std::unique_ptr<dnssd_cache> cache;
 
 	std::thread dnssd_thread;

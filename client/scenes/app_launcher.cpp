@@ -103,14 +103,6 @@ app_launcher::app_launcher(
 	default_icon = textures.load_texture("assets://default_icon.ktx2");
 }
 
-app_launcher::~app_launcher()
-{
-	stream.device.waitIdle();
-	for (const auto & [app_id, app_icon]: app_icons)
-		textures.free_texture(app_icon);
-	textures.free_texture(default_icon);
-}
-
 app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const std::string & cancel)
 {
 	auto res = clicked::None;

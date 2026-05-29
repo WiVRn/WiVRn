@@ -39,7 +39,12 @@ option(WIVRN_BUILD_WIVRNCTL "Build wivrnctl" ON)
 option(WIVRN_BUILD_DISSECTOR "Build Wireshark dissector" OFF)
 option(WIVRN_BUILD_TEST "Build test binaries" OFF)
 option(WIVRN_WERROR "Treat warnings as errors" OFF)
-option(WIVRN_OPTIMIZE_SHADERS "Run siprv-opt on compiled shaders" ON)
+option(WIVRN_OPTIMIZE_SHADERS "Run spirv-opt on compiled shaders" ON)
+option(WIVRN_DEBUG_SHADERS "Compile shaders with debug information" OFF)
+
+if(WIVRN_OPTIMIZE_SHADERS AND WIVRN_DEBUG_SHADERS)
+    message(FATAL_ERROR "WIVRN_OPTIMIZE_SHADERS and WIVRN_DEBUG_SHADERS are incompatible")
+endif()
 
 option(WIVRN_USE_NVENC "Enable nvenc (Nvidia) hardware encoder" ON)
 option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" ON)
@@ -96,10 +101,10 @@ endif()
 include(VulkanVersion)
 
 if (WIVRN_USE_SYSTEM_BOOST AND NEED_COMMON)
-    if (WIVRN_BUILD_DISSECTOR)
-        find_package(Boost 1.84.0 REQUIRED COMPONENTS locale url)
+    if (WIVRN_BUILD_DISSECTOR OR WIVRN_BUILD_CLIENT)
+        find_package(Boost 1.84.0 REQUIRED COMPONENTS locale url iostreams)
     else()
-        find_package(Boost 1.75.0 REQUIRED COMPONENTS locale url)
+        find_package(Boost 1.75.0 REQUIRED COMPONENTS locale url iostreams)
     endif()
 endif()
 
@@ -172,10 +177,6 @@ if (WIVRN_BUILD_DASHBOARD)
     find_package(nlohmann_json REQUIRED)
     find_package(QCoro6 REQUIRED COMPONENTS Core Network Qml)
     qcoro_enable_coroutines()
-
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTORCC ON)
-    set(CMAKE_AUTOUIC ON)
 endif()
 
 if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_DASHBOARD)
@@ -200,7 +201,7 @@ if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
     find_package(Fontconfig REQUIRED)
 
     if (WIVRN_USE_SYSTEM_OPENXR)
-        find_package(OpenXR 1.1.53 REQUIRED)
+        find_package(OpenXR 1.1.58 REQUIRED)
     endif()
 
     if (WIVRN_USE_SYSTEM_LIBKTX)
@@ -238,8 +239,8 @@ FetchContent_Declare(fastgltf      EXCLUDE_FROM_ALL SYSTEM URL https://github.co
                                    URL_HASH SHA256=0bb564e127b14c22f062db50f89381dd2e0a20dbaf4987ca138a4ae8728712f9)
 FetchContent_Declare(glm           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/g-truc/glm/releases/download/1.0.2/glm-1.0.2.zip
                                    URL_HASH SHA256=77fff075c5ab0caf076fade41558c5458d9a242aba2b2076bb72008bdb51a35e)
-FetchContent_Declare(openxr_loader EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.1.54.tar.gz
-                                   URL_HASH SHA256=2055688081066e37238be996534f349420ac52ed34f8514836704232121ee7f3)
+FetchContent_Declare(openxr_loader EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.1.58.tar.gz
+                                   URL_HASH SHA256=815b933219c398314366c289221526428418d799205a73a9640c97ca4242602b)
 FetchContent_Declare(spdlog        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/gabime/spdlog/archive/refs/tags/v1.16.0.tar.gz
                                    URL_HASH SHA256=8741753e488a78dd0d0024c980e1fb5b5c85888447e309d9cb9d949bdb52aa3e)
 FetchContent_Declare(stb           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.zip
@@ -276,6 +277,20 @@ FetchContent_Declare(monado
     PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${MONADO_PATCHES}
     EXCLUDE_FROM_ALL
 )
+
+add_custom_target(wivrn-version ALL
+    COMMAND ${CMAKE_COMMAND}
+        -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
+        -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/common/version.cpp.in
+        -D OUTPUT_FILE=${CMAKE_BINARY_DIR}/version.cpp
+        -D INPUT_FILE_1=${CMAKE_CURRENT_SOURCE_DIR}/server/u_git_tag.cpp.in
+        -D OUTPUT_FILE_1=${CMAKE_BINARY_DIR}/u_git_tag.cpp
+        -D GIT_DESC="${GIT_DESC}"
+        -D GIT_COMMIT="${GIT_COMMIT}"
+        -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
+        BYPRODUCTS ${CMAKE_BINARY_DIR}/version.cpp ${CMAKE_BINARY_DIR}/u_git_tag.cpp
+        SOURCES common/version.cpp.in server/u_git_tag.cpp.in
+    )
 
 add_subdirectory(external)
 if (NEED_COMMON)

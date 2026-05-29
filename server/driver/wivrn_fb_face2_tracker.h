@@ -94,7 +94,7 @@ class wivrn_fb_face2_tracker : public xrt_device
 	wivrn::wivrn_session & cnx;
 
 public:
-	using base = xrt_device;
+	using base_t = xrt_device;
 	wivrn_fb_face2_tracker(xrt_device * hmd, wivrn::wivrn_session & cnx);
 
 	xrt_result_t update_inputs();

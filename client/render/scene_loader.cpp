@@ -45,6 +45,9 @@
 #include <limits>
 #include <ranges>
 #include <simdjson/dom.h>
+#include <simdjson/dom/element.h>
+#include <simdjson/dom/object.h>
+#include <simdjson/error.h>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vulkan/vulkan_format_traits.hpp>
@@ -513,7 +516,7 @@ struct : std::error_category
 } fastgltf_error_category;
 // END
 
-fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::filesystem::path & directory)
+fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::filesystem::path & directory, std::function<void(simdjson::dom::object &, std::size_t, fastgltf::Category)> extra_callback)
 {
 	fastgltf::Parser parser(
 	        fastgltf::Extensions::KHR_texture_basisu |
@@ -523,6 +526,12 @@ fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::fi
 	        fastgltf::Options::DontRequireValidAssetMember |
 	        fastgltf::Options::AllowDouble |
 	        fastgltf::Options::DecomposeNodeMatrices;
+
+	parser.setUserPointer(&extra_callback);
+	parser.setExtrasParseCallback([](simdjson::dom::object * extras, std::size_t object_index, fastgltf::Category category, void * user_pointer) {
+		auto f = reinterpret_cast<std::function<void(simdjson::dom::object &, std::size_t, fastgltf::Category)> *>(user_pointer);
+		(*f)(*extras, object_index, category);
+	});
 
 	auto expected_asset = parser.loadGltf(buffer, directory, gltf_options);
 
@@ -540,7 +549,8 @@ class loader_context
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
 	thread_safe<vk::raii::Queue> & queue;
-	image_loader & loader;
+	image_loader loader;
+	const std::map<std::tuple<fastgltf::Category, size_t, std::string>, std::string> & extras;
 
 	std::vector<utils::mapped_file> loaded_assets;
 	utils::mapped_file & load_from_asset(const std::filesystem::path & path)
@@ -563,14 +573,16 @@ public:
 	               vk::raii::PhysicalDevice physical_device,
 	               vk::raii::Device & device,
 	               thread_safe<vk::raii::Queue> & queue,
-	               image_loader & loader) :
+	               uint32_t queue_family_index,
+	               std::map<std::tuple<fastgltf::Category, size_t, std::string>, std::string> & extras) :
 	        base_directory(std::move(base_directory)),
 	        name(std::move(name)),
 	        gltf(gltf),
 	        physical_device(physical_device),
 	        device(device),
 	        queue(queue),
-	        loader(loader)
+	        loader(device, physical_device, queue, queue_family_index),
+	        extras(extras)
 	{
 	}
 
@@ -793,6 +805,8 @@ public:
 		materials.reserve(gltf.materials.size());
 		for (const fastgltf::Material & gltf_material: gltf.materials)
 		{
+			size_t material_id = materials.size();
+
 			// Copy the default material, without references to its buffer or descriptor set
 			auto & material = *materials.emplace_back(std::make_shared<renderer::material>(default_material));
 			material.name = gltf_material.name;
@@ -803,20 +817,23 @@ public:
 			switch (gltf_material.alphaMode)
 			{
 				case fastgltf::AlphaMode::Opaque:
-					material.fragment_shader_name = "lit.frag";
+					material.fragment_shader = "lit.frag";
 					material.blend_enable = false;
 					break;
 
 				case fastgltf::AlphaMode::Mask:
-					material.fragment_shader_name = "lit_mask.frag";
+					material.fragment_shader = "lit_mask.frag";
 					material.blend_enable = false;
 					break;
 
 				case fastgltf::AlphaMode::Blend:
-					material.fragment_shader_name = "lit.frag";
+					material.fragment_shader = "lit.frag";
 					material.blend_enable = true;
 					break;
 			}
+
+			if (auto it = extras.find({fastgltf::Category::Materials, material_id, "fragment_shader"}); it != extras.end())
+				material.fragment_shader = it->second;
 
 			renderer::material::gpu_data & material_data = material.staging;
 
@@ -870,6 +887,7 @@ public:
 		meshes.reserve(gltf.meshes.size());
 		for (const fastgltf::Mesh & gltf_mesh: gltf.meshes)
 		{
+			size_t mesh_id = meshes.size();
 			std::shared_ptr<renderer::mesh> & mesh_ref = meshes.emplace_back();
 			mesh_ref = std::make_shared<renderer::mesh>();
 
@@ -892,7 +910,9 @@ public:
 
 				renderer::vertex_layout & layout = primitive_ref.layout;
 
-				if (gltf_primitive.findAttribute("JOINTS_0") == gltf_primitive.attributes.cend())
+				if (auto it = extras.find({fastgltf::Category::Meshes, mesh_id, "vertex_shader"}); it != extras.end())
+					primitive_ref.vertex_shader = it->second;
+				else if (gltf_primitive.findAttribute("JOINTS_0") == gltf_primitive.attributes.cend())
 					primitive_ref.vertex_shader = "lit.vert";
 				else
 					primitive_ref.vertex_shader = "lit_skinned.vert";
@@ -1007,7 +1027,6 @@ public:
 			node.orientation = glm::make_quat(TRS.rotation.data());
 			node.scale = glm::make_vec3(TRS.scale.data());
 			node.visible = true;
-			std::ranges::fill(node.clipping_planes, glm::vec4{0, 0, 0, 1});
 		}
 
 		return entities;
@@ -1148,10 +1167,19 @@ std::shared_ptr<entt::registry> scene_loader::operator()(
 	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
 		throw std::system_error((int)error, fastgltf_error_category);
 
-	fastgltf::Asset asset = load_gltf_asset(data_buffer.get(), parent_path);
+	std::map<std::tuple<fastgltf::Category, size_t, std::string>, std::string> gltf_extras;
 
-	image_loader loader{device, physical_device, queue, queue_family_index};
-	loader_context ctx{parent_path, name, asset, physical_device, device, queue, loader};
+	fastgltf::Asset asset = load_gltf_asset(data_buffer.get(), parent_path, [&](simdjson::dom::object & extras, std::size_t object_index, fastgltf::Category category) {
+		std::string_view value;
+
+		for (const auto & kv: extras)
+		{
+			if (kv.value.get_string().get(value) == simdjson::SUCCESS)
+				gltf_extras.emplace(std::tuple{category, object_index, kv.key}, value);
+		}
+	});
+
+	loader_context ctx{parent_path, name, asset, physical_device, device, queue, queue_family_index, gltf_extras};
 
 #ifndef NDEBUG
 	if (auto error = fastgltf::validate(asset); error != fastgltf::Error::None)

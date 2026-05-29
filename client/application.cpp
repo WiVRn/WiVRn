@@ -19,7 +19,6 @@
 
 #include "application.h"
 
-#include "hardware.h"
 #include "openxr/openxr.h"
 #include "scene.h"
 #include "spdlog/common.h"
@@ -35,7 +34,6 @@
 #include "xr/check.h"
 #include "xr/htc_exts.h"
 #include "xr/htc_face_tracker.h"
-#include "xr/meta_body_tracking_fidelity.h"
 #include "xr/to_string.h"
 #include <algorithm>
 #include <boost/locale.hpp>
@@ -479,6 +477,47 @@ static std::vector<interaction_profile> interaction_profiles{
                 },
         },
         interaction_profile{
+                .profile_name = "/interaction_profiles/yvr/touch_controller_yvr",
+                .input_sources = {
+                        "/user/hand/left/output/haptic",
+                        "/user/hand/right/output/haptic",
+
+                        "/user/hand/left/input/grip/pose",
+                        "/user/hand/left/input/aim/pose",
+
+                        "/user/hand/right/input/grip/pose",
+                        "/user/hand/right/input/aim/pose",
+
+                        "/user/hand/left/input/x/click",
+                        "/user/hand/left/input/x/touch",
+                        "/user/hand/left/input/y/click",
+                        "/user/hand/left/input/y/touch",
+                        "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/squeeze/value",
+                        "/user/hand/left/input/squeeze/click",
+                        "/user/hand/left/input/trigger/value",
+                        "/user/hand/left/input/trigger/touch",
+                        "/user/hand/left/input/thumbstick",
+                        "/user/hand/left/input/thumbstick/click",
+                        "/user/hand/left/input/thumbstick/touch",
+                        "/user/hand/left/input/thumbrest/touch",
+
+                        "/user/hand/right/input/a/click",
+                        "/user/hand/right/input/a/touch",
+                        "/user/hand/right/input/b/click",
+                        "/user/hand/right/input/b/touch",
+                        "/user/hand/right/input/system/click",
+                        "/user/hand/right/input/squeeze/value",
+                        "/user/hand/right/input/squeeze/click",
+                        "/user/hand/right/input/trigger/value",
+                        "/user/hand/right/input/trigger/touch",
+                        "/user/hand/right/input/thumbstick",
+                        "/user/hand/right/input/thumbstick/click",
+                        "/user/hand/right/input/thumbstick/touch",
+                        "/user/hand/right/input/thumbrest/touch",
+                },
+        },
+        interaction_profile{
                 .profile_name = "/interaction_profiles/htc/vive_focus3_controller",
                 .required_extensions = {XR_HTC_VIVE_FOCUS3_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
@@ -749,8 +788,7 @@ void application::initialize_vulkan()
 			instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 		}
 
-		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and
-		    guess_model() != model::oculus_quest) // Quest 1 lies, the extension won't load
+		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and get_hmd_traits().vk_debug_ext_allowed)
 		{
 			debug_utils_found = true;
 			instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -1006,21 +1044,8 @@ void application::initialize_actions()
 		profile.available = std::ranges::all_of(profile.required_extensions, [&](auto & ext) { return xr_instance.has_extension(ext); }) and
 		                    profile.min_version <= api_version;
 
-		if (profile.profile_name.ends_with("khr/simple_controller"))
-		{
-			switch (guess_model())
-			{
-				// Quest hand tracking creates a fake khr/simple_controller when hand tracking
-				// is enabled, this messes with native hand tracking
-				case model::meta_quest_3:
-				case model::meta_quest_pro:
-				case model::meta_quest_3s:
-				case model::oculus_quest_2:
-					profile.available = false;
-				default:
-					break;
-			}
-		}
+		if (profile.profile_name.ends_with("khr/simple_controller") and not get_hmd_traits().bind_simple_controller)
+			profile.available = false;
 
 		if (!profile.available)
 			continue;
@@ -1028,21 +1053,8 @@ void application::initialize_actions()
 		// Patch profile to add grip_surface or palm_ext
 		bool add_palms = true;
 		if (profile.profile_name.ends_with("ext/hand_interaction_ext"))
-		{
-			switch (guess_model())
-			{
-				// Quest breaks spec and does not support grip_surface for ext/hand_interaction_ext
-				case model::meta_quest_3:
-				case model::meta_quest_pro:
-				case model::meta_quest_3s:
-				case model::oculus_quest_2:
-				case model::oculus_quest:
-					add_palms = false;
-					break;
-				default:
-					break;
-			}
-		}
+			add_palms = get_hmd_traits().hand_interaction_grip_surface;
+
 		if (add_palms)
 		{
 			if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or xr_instance.has_extension(XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
@@ -1212,6 +1224,7 @@ void application::initialize_actions()
 
 void application::initialize()
 {
+	runtime_hmd_traits.init();
 	// LogLayersAndExtensions
 	assert(!xr_instance);
 	std::vector<const char *> xr_extensions{
@@ -1230,6 +1243,7 @@ void application::initialize()
 	        XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME,
 	        XR_EXT_HAND_INTERACTION_EXTENSION_NAME,
 	        XR_EXT_HAND_TRACKING_EXTENSION_NAME,
+	        XR_FB_HAND_TRACKING_MESH_EXTENSION_NAME,
 	        XR_EXT_PALM_POSE_EXTENSION_NAME,
 	        XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME,
 	        XR_EXT_USER_PRESENCE_EXTENSION_NAME,
@@ -1243,10 +1257,6 @@ void application::initialize()
 	        XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME,
 	        XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME,
 	        XR_FB_FACE_TRACKING2_EXTENSION_NAME,
-	        // Disable foveation, doesn't seem useful
-	        // XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME,
-	        // XR_FB_FOVEATION_EXTENSION_NAME,
-	        // XR_FB_FOVEATION_VULKAN_EXTENSION_NAME,
 	        XR_FB_PASSTHROUGH_EXTENSION_NAME,
 	        XR_FB_SWAPCHAIN_UPDATE_STATE_EXTENSION_NAME,
 
@@ -1340,7 +1350,7 @@ void application::initialize()
 	spaces[size_t(xr::spaces::view)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
 	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
-	config.emplace(xr_system_id);
+	config.emplace(xr_system_id, xr_session);
 
 	// HTC face tracker fails if created later
 	// we can destroy it right away, it actually stores static handles

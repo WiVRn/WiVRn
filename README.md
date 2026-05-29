@@ -38,15 +38,19 @@ WiVRn support a wide range of VR devices:
 
 ## PC Server/Dashboard
 
-We recommend using the flatpak package from Flathub:
+We recommend using native packages if available for your distribution:
+- [Arch User Repository](https://aur.archlinux.org/packages/wivrn-dashboard)
+- [Fedora](https://packages.fedoraproject.org/pkgs/wivrn/wivrn/)
+- [Gentoo Guru](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn)
+- [NixOS](https://search.nixos.org/packages?channel=25.11&show=wivrn)
+
+For OpenVR and Steam compatibility, you also need a [compatibility library](#openvr-and-steam-games) such as xrizer or OpenComposite.
+
+A flatpak is available on Flathub for all distributions:
 
 [![Flathub](https://flathub.org/api/badge)](https://flathub.org/apps/io.github.wivrn.wivrn)
 
-Alternatively, packages are available from:
-- [Arch User Repositoy](https://aur.archlinux.org/packages/wivrn-dashboard)
-- [Fedora](https://packages.fedoraproject.org/pkgs/wivrn/wivrn/)
-- [Gentoo Guru](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn)
-
+Note that due to flatpak sandboxing some features may not be available such as Lighthouse tracked devices.
 
 ## Headset Client/App
 
@@ -97,7 +101,7 @@ The flatpak includes [OpenComposite](https://gitlab.com/znixian/OpenOVR/) and [x
 
 If using Wine/Proton, it will probe for OpenVR at startup, This means even for OpenXR applications, OpenComposite or xrizer is required.
 
-When you start the server through flatpak, it automatically configures the current OpenVR to use xrizer.
+When a headset connects, wivrn-server sets the OpenVR runtime to xrizer unless manually configured differently.
 
 ### Steam Flatpak
 If you're using the Steam Flatpak, you'll need to grant read only access to the following paths:
@@ -175,6 +179,15 @@ If the server list is empty in the headset app:
 - Connect through USB or use a better WiFi router.
 
 Note: WiVRn isn't properly optimized for NVIDIA GPUs due to the lack of developers with NVIDIA hardware. Motion latency may be significantly worse at rendering resolutions higher than default.</details>
+
+# Community Support
+
+We are available on either **Discord** or **Matrix space**:
+
+[![LVRA Discord](https://img.shields.io/discord/1065291958328758352?style=for-the-badge&logo=discord)](https://discord.gg/EHAYe3tTYa) [![LVRA Matrix](https://img.shields.io/matrix/linux-vr-adventures:matrix.org?logo=matrix&style=for-the-badge)](https://matrix.to/#/#linux-vr-adventures:matrix.org)
+
+Please use the `wivrn` chat room for questions or issues specific to WiVRn.
+
 
 # Contributing
 

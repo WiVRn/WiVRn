@@ -43,8 +43,15 @@ void wivrn::tracking_control::add_request(device_id device, XrTime now, XrTime a
 
 	if (not std::ranges::contains(last_control.pattern, device, &to_headset::tracking_control::sample::device))
 	{
-		last_control.pattern.push_back({.device = device, .prediction_ns = prediction});
-		cnx.send_control(to_headset::tracking_control(last_control));
+		try
+		{
+			cnx.send_control(to_headset::tracking_control(last_control));
+			last_control.pattern.push_back({.device = device, .prediction_ns = prediction});
+		}
+		catch (...)
+		{
+			// ignore network errors
+		}
 	}
 }
 

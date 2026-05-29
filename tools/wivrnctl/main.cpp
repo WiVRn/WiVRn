@@ -20,6 +20,7 @@
 #include <chrono>
 #include <format>
 #include <ranges>
+#include <string_view>
 #include <systemd/sd-bus.h>
 #include <type_traits>
 
@@ -86,6 +87,22 @@ sd_bus_message_ptr get_property(const sd_bus_ptr & bus, const char * member, con
 		throw e;
 	}
 	return sd_bus_message_ptr(msg);
+}
+
+std::string get_property_string(const sd_bus_ptr & bus, const char * member)
+{
+	sd_bus_error error = SD_BUS_ERROR_NULL;
+	char * val;
+	int ret = sd_bus_get_property_string(bus.get(), destination, path, interface, member, &error, &val);
+	if (ret < 0)
+	{
+		std::runtime_error e(std::string("read property ") + member + " failed: " + error.message);
+		sd_bus_error_free(&error);
+		throw e;
+	}
+	std::string res(val);
+	free(val);
+	return res;
 }
 
 template <typename... Args>
@@ -196,6 +213,12 @@ void pair(int duration)
 		if (ret < 0)
 			throw std::system_error(-ret, std::system_category(), "Failed to read PIN");
 
+		if (std::string_view(pin) == "")
+		{
+			std::cout << "Cannot enable pairing while session is active." << pin << std::endl;
+			return;
+		}
+
 		std::cout << "PIN: " << pin << std::endl;
 	}
 }
@@ -209,6 +232,23 @@ void unpair(size_t headset_id)
 		throw std::runtime_error(std::format("Invalid headset number: {}", headset_id));
 
 	call_method(bus, "RevokeKey", "s", values.at(headset_id - 1).public_key.c_str());
+}
+
+void tab(std::string tab_name)
+{
+	auto bus = get_user_bus();
+	if (tab_name.empty())
+	{
+		auto val = get_property_string(bus, "ClientTab");
+		if (val.empty())
+			std::cout << "<No tab>" << std::endl;
+		else
+			std::cout << val << std::endl;
+	}
+	else
+	{
+		call_method(bus, "SetClientTab", "s", tab_name.c_str());
+	}
 }
 
 template <typename T, typename U>
@@ -332,6 +372,11 @@ int main(int argc, char ** argv)
 
 	app.add_subcommand("disconnect", "Disconnect headset")
 	        ->callback(disconnect);
+
+	std::string tab_name;
+	app.add_subcommand("tab", "Show or set current tab on headset")
+	        ->callback([&]() { return tab(tab_name); })
+	        ->add_option("[TAB]", tab_name, "Tab to select");
 
 	try
 	{

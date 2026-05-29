@@ -23,17 +23,19 @@
 
 #include <condition_variable>
 #include <cstdint>
-#include <main/comp_target.h>
 #include <mutex>
 #include <thread>
 #include <vector>
+
+#include "main/comp_target.h"
+#include "util/u_var.h"
 
 namespace wivrn
 {
 
 struct clock_offset;
 
-class wivrn_pacer
+class pacer
 {
 public:
 	struct frame_info
@@ -44,18 +46,18 @@ public:
 	};
 
 private:
-	std::mutex mutex;
-	uint64_t frame_duration_ns;
+	mutable std::mutex mutex;
+	int64_t frame_duration_ns;
 	int64_t last_ns = 0;
 	int64_t frame_id = 0;
-
-	int64_t client_render_phase_ns = 0;
 
 	int64_t mean_wake_up_to_present_ns = 1'000'000;
 	int64_t safe_present_to_decoded_ns = 0;
 	int64_t mean_render_to_display_ns = 0;
 
 	int64_t last_wake_up_ns = 0;
+
+	u_var_draggable_f32 client_margin_ms;
 
 	struct frame_time
 	{
@@ -73,10 +75,10 @@ private:
 	std::array<frame_info, 8> in_flight_frames;
 
 public:
-	wivrn_pacer(uint64_t frame_duration);
-	~wivrn_pacer();
+	pacer(uint64_t frame_duration);
+	~pacer();
 
-	uint64_t get_frame_duration();
+	uint64_t get_frame_duration() const;
 	void set_frame_duration(uint64_t frame_duration);
 
 	void predict(

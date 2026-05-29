@@ -32,6 +32,7 @@
 #include "wivrn_packets.h"
 #include "xr/space.h"
 #include <mutex>
+#include <queue>
 #include <shared_mutex>
 #include <thread>
 #include <vulkan/vulkan_core.h>
@@ -45,7 +46,8 @@ public:
 	{
 		initializing,
 		streaming,
-		stalled
+		stalled,
+		shutdown,
 	};
 	static const size_t image_buffer_size = 3;
 
@@ -53,6 +55,7 @@ public:
 
 private:
 	static const size_t view_count = 2;
+	static const size_t decoder_count = view_count + 1;
 
 	struct accumulator_images
 	{
@@ -68,14 +71,14 @@ private:
 
 	// for frames inside accumulator images
 	std::mutex frames_mutex;
-	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, view_count + 1> common_frame(XrTime display_time);
+	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> common_frame(XrTime display_time);
 
 	std::unique_ptr<wivrn_session> network_session;
-	std::atomic<bool> exiting = false;
 	std::thread network_thread;
 	thread_safe<to_headset::tracking_control> tracking_control{};
 	std::array<std::atomic<interaction_profile>, 2> interaction_profiles; // left and right hand
 	std::atomic<bool> interaction_profile_changed = false;
+	std::atomic<XrTime> scheduled_derived_pose = 0; // Tracking thread will compute derived pose when time is reached
 	std::atomic<bool> recenter_requested = false;
 	std::atomic<bool> hid_forwarding = false;
 	std::atomic<XrDuration> display_time_phase = 0;
@@ -86,7 +89,7 @@ private:
 
 	std::shared_mutex decoder_mutex;
 	std::optional<to_headset::video_stream_description> video_stream_description;
-	std::array<accumulator_images, view_count + 1> decoders; // Locked by decoder_mutex
+	std::array<accumulator_images, decoder_count> decoders; // Locked by decoder_mutex
 
 	std::optional<stream_defoveator> defoveator;
 
@@ -102,7 +105,16 @@ private:
 	std::unordered_multimap<device_id, haptics_action> haptics_actions;
 	std::vector<std::tuple<device_id, XrAction, XrActionType>> input_actions;
 
-	state state_ = state::initializing;
+	std::atomic<state> state_ = state::initializing;
+
+	void set_state(state new_state)
+	{
+		state prev = state_;
+		if (prev == state::shutdown)
+			return;
+
+		state_.compare_exchange_strong(prev, new_state);
+	}
 
 	xr::swapchain swapchain;
 
@@ -119,26 +131,27 @@ private:
 	uint32_t height;
 
 	std::optional<imgui_context> imgui_ctx;
-	enum class gui_status
+	struct gui_toast
 	{
-		hidden,
-		overlay_only,
-		compact,
-		stats,
-		settings,
-		bitrate_settings,
-		foveation_settings,
-		applications,
-		application_launcher,
+		std::string content;
+		bool is_urgent = false;
 	};
 
+	static bool is_interactable(stream_tab);
 	bool is_gui_interactable() const;
 
-	std::atomic<gui_status> gui_status = gui_status::hidden;
-	enum gui_status last_gui_status = gui_status::hidden;
-	enum gui_status next_gui_status = gui_status::applications;
-	XrTime gui_status_last_change;
+	// Tab currently being displayed
+	stream_tab gui_status = stream_tab::hidden;
+	// Tab that we will switch to if button is pressed
+	stream_tab stored_gui_status = stream_tab::applications;
+	// Tab that will be displayed on next render()
+	std::atomic<stream_tab> next_gui_status = stream_tab::hidden;
 	float dimming = 0;
+
+	thread_safe<std::optional<gui_toast>> gui_toast;
+	std::atomic<XrTime> gui_status_last_change;
+
+	thread_safe<std::queue<std::string>> stream_error_queue;
 
 	XrAction plots_toggle_1 = XR_NULL_HANDLE;
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
@@ -162,7 +175,7 @@ private:
 	void update_gui_position(xr::spaces controller);
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
-	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, view_count + 1> current_blit_handles;
+	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> current_blit_handles;
 
 	XrTime running_application_req = 0;
 	thread_safe<to_headset::running_applications> running_applications;
@@ -196,6 +209,7 @@ public:
 	void operator()(to_headset::pin_check_2 &&) {};
 	void operator()(to_headset::pin_check_4 &&) {};
 	void operator()(to_headset::handshake &&) {};
+	void operator()(to_headset::server_message &&);
 	void operator()(to_headset::video_stream_data_shard &&);
 	void operator()(to_headset::haptics &&);
 	void operator()(to_headset::timesync_query &&);
@@ -204,6 +218,7 @@ public:
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(to_headset::refresh_rate_change &&);
+	void operator()(to_headset::stream_tab_change &&);
 	void operator()(to_headset::application_list &&);
 	void operator()(to_headset::application_icon &&);
 	void operator()(to_headset::running_applications &&);
@@ -218,14 +233,11 @@ public:
 		return state_;
 	}
 
-	bool alive() const
-	{
-		return !exiting;
-	}
-
+	void exit();
 	void start_application(std::string appid);
 
 	static meta & get_meta_scene();
+	std::optional<std::string> pop_stream_error();
 
 private:
 	void process_packets();
@@ -233,10 +245,10 @@ private:
 	void read_actions();
 
 	void on_interaction_profile_changed(const XrEventDataInteractionProfileChanged &);
+	void send_derived_pose();
 
 	void setup(const to_headset::video_stream_description &);
 	void setup_reprojection_swapchain(uint32_t width, uint32_t height);
-	void exit();
 
 	vk::raii::QueryPool query_pool = nullptr;
 	bool query_pool_filled = false;
@@ -302,13 +314,14 @@ private:
 	float compact_cpu_time = 0;
 	float compact_gpu_time = 0;
 
-	void accumulate_metrics(XrTime predicted_display_time, const std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, view_count + 1> & blit_handles, const gpu_timestamps & timestamps);
+	void accumulate_metrics(XrTime predicted_display_time, const std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> & blit_handles, const gpu_timestamps & timestamps);
 	void gui_performance_metrics();
 	void gui_compact_view();
 	void gui_settings(float predicted_display_period);
 	void gui_bitrate_settings(float predicted_display_period);
 	void gui_foveation_settings(float predicted_display_period);
 	void gui_applications();
+	void gui_toasts();
 	void draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);
 };
 } // namespace scenes

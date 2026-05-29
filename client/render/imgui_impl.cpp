@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstddef>
 #include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <limits>
@@ -208,13 +209,18 @@ imgui_textures::imgui_textures(
 		this->image_cache = std::make_shared<image_cache_type>(device, physical_device, queue, queue_family_index);
 }
 
+imgui_textures::~imgui_textures()
+{
+	device.waitIdle();
+}
+
 std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
 	std::vector<std::pair<ImVec2, float>> intersections;
 
 	for (const auto & i: layers_)
 	{
-		if (i.space != xr::spaces::world)
+		if (i.space != xr::spaces::world or i.tooltip_viewport)
 			continue;
 
 		auto M = glm::transpose(glm::mat3_cast(i.orientation)); // world-to-plane transform
@@ -633,10 +639,6 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 					auto trigger = application::read_action_float(ctrl.trigger).value_or(std::pair{0, 0});
 					state.trigger_value = trigger.second;
 
-					// TODO tunable
-					/*if (new_state.trigger_value < 0.5)
-					        new_state.trigger_clicked = false;
-					else */
 					if (state.trigger_value > constants::gui::trigger_click_thd)
 						state.trigger_clicked = true;
 				}
@@ -843,7 +845,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 			application::haptic_start(haptic_output, XR_NULL_PATH, 10'000'000, 1000, 1);
 	}
 
-	vk::Image destination = swapchain.images()[image_index].image;
+	vk::Image destination = swapchain.image(image_index);
 
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
@@ -920,15 +922,13 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 			else
 				alpha *= constants::gui::pointer_alpha_disabled;
 
-			ImU32 color_pressed = ImGui::GetColorU32(constants::gui::pointer_color_pressed, alpha);
-			ImU32 color_unpressed = ImGui::GetColorU32(constants::gui::pointer_color_unpressed, alpha);
-
-			bool pressed = controller.second.trigger_clicked || controller.second.fingertip_touching;
+			float radius_in = constants::gui::pointer_radius_in;
+			float radius_out = radius_in + constants::gui::pointer_thickness * 0.5;
 
 			ImDrawList * draw_list = ImGui::GetForegroundDrawList();
 			draw_list->PushClipRect(clip_rect_min, clip_rect_max);
-			draw_list->AddCircleFilled(*position, constants::gui::pointer_radius_in, pressed ? color_pressed : color_unpressed);
-			draw_list->AddCircle(*position, constants::gui::pointer_radius_out, ImGui::GetColorU32(constants::gui::pointer_color_border, alpha), 0, constants::gui::pointer_thickness);
+			draw_list->AddCircleFilled(*position, radius_in, ImGui::GetColorU32(constants::gui::pointer_color, alpha));
+			draw_list->AddCircle(*position, radius_out, ImGui::GetColorU32(constants::gui::pointer_color_border, alpha), 0, constants::gui::pointer_thickness);
 			draw_list->PopClipRect();
 		}
 	}
@@ -983,14 +983,46 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 	for (auto & i: layers_)
 	{
 		bool visible = false;
+
+		ImRect layer_rect(
+		        i.vp_origin.x,
+		        i.vp_origin.y,
+		        i.vp_origin.x + i.vp_size.x,
+		        i.vp_origin.y + i.vp_size.y);
+
+		ImRect all_windows_rect{
+		        std::numeric_limits<float>::max(),
+		        std::numeric_limits<float>::max(),
+		        std::numeric_limits<float>::lowest(),
+		        std::numeric_limits<float>::lowest(),
+		};
+
 		for (ImGuiWindow * window: context->Windows)
 		{
-			if (window->Active and not window->Hidden and window_intersects_viewport(window, i))
+			ImRect window_rect{
+			        window->Pos.x,
+			        window->Pos.y,
+			        window->Pos.x + window->Size.x,
+			        window->Pos.y + window->Size.y};
+
+			if (window->Active and not window->Hidden and layer_rect.Overlaps(window_rect))
 			{
 				visible = true;
-				break;
+
+				// Take the union of all visible windows in this layer
+				all_windows_rect.Add(window_rect);
 			}
 		}
+
+		// Take the intersection with the layer
+		all_windows_rect.ClipWithFull(layer_rect);
+
+		glm::vec2 pixel_size = i.size / glm::vec2(i.vp_size);
+		glm::vec2 all_windows_center(all_windows_rect.GetCenter().x, all_windows_rect.GetCenter().y);
+		glm::vec2 layer_center(layer_rect.GetCenter().x, layer_rect.GetCenter().y);
+
+		glm::vec3 new_position = i.position + i.orientation * glm::vec3((all_windows_center - layer_center) * pixel_size, 0);
+		glm::vec2 new_size = glm::vec2(all_windows_rect.GetWidth(), all_windows_rect.GetHeight()) * pixel_size;
 
 		if (not visible)
 			continue;
@@ -1006,12 +1038,12 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 		                        .swapchain = swapchain,
 		                        .imageRect = {
 		                                .offset = {
-		                                        .x = i.vp_origin.x,
-		                                        .y = i.vp_origin.y,
+		                                        .x = int(all_windows_rect.Min.x),
+		                                        .y = int(all_windows_rect.Min.y),
 		                                },
 		                                .extent = {
-		                                        .width = i.vp_size.x,
-		                                        .height = i.vp_size.y,
+		                                        .width = int(all_windows_rect.Max.x - all_windows_rect.Min.x),
+		                                        .height = int(all_windows_rect.Max.y - all_windows_rect.Min.y),
 		                                }},
 		                },
 		                .pose = {
@@ -1022,14 +1054,14 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 		                                .w = i.orientation.w,
 		                        },
 		                        .position = {
-		                                .x = i.position.x,
-		                                .y = i.position.y,
-		                                .z = i.position.z,
+		                                .x = new_position.x,
+		                                .y = new_position.y,
+		                                .z = new_position.z,
 		                        },
 		                },
 		                .size = {
-		                        .width = i.size.x,
-		                        .height = i.size.y,
+		                        .width = new_size.x,
+		                        .height = new_size.y,
 		                },
 		        });
 	}
@@ -1037,11 +1069,9 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 	return quads;
 }
 
-std::vector<imgui_context::viewport> imgui_context::windows()
+std::vector<imgui_context::window_viewport> imgui_context::windows()
 {
-	std::vector<imgui_context::viewport> w;
-
-	ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal();
+	std::vector<imgui_context::window_viewport> w;
 
 	for (const imgui_context::viewport & layer: layers_)
 	{
@@ -1052,10 +1082,7 @@ std::vector<imgui_context::viewport> imgui_context::windows()
 
 		for (ImGuiWindow * window: context->Windows)
 		{
-			if (not window->Active or window->Hidden /*or window->ParentWindowInBeginStack != nullptr*/)
-				continue;
-
-			if (modal_popup != nullptr and window != modal_popup and not layer.always_show_cursor)
+			if (not window->Active or window->Hidden or (window->Flags & ImGuiWindowFlags_ChildWindow))
 				continue;
 
 			if (not window_intersects_viewport(window, layer))
@@ -1066,7 +1093,7 @@ std::vector<imgui_context::viewport> imgui_context::windows()
 			ImVec2 min = ImMax(v.Min, window->Pos);
 			ImVec2 center = (min + max) / 2;
 
-			w.push_back(viewport{
+			w.push_back(window_viewport{
 			        .space = layer.space,
 			        .position = layer.position +
 			                    glm::mat3_cast(layer.orientation) *
@@ -1079,9 +1106,6 @@ std::vector<imgui_context::viewport> imgui_context::windows()
 			                (max.x - min.x) * layer.size.x / layer.vp_size.x,
 			                (max.y - min.y) * layer.size.y / layer.vp_size.y,
 			        },
-			        .vp_origin = {min.x, min.y},
-			        .vp_size = {max.x - min.x, max.y - min.y},
-			        .always_show_cursor = layer.always_show_cursor,
 			});
 		}
 	}
@@ -1241,34 +1265,32 @@ void imgui_context::tooltip(std::string_view text)
 	// FIXME: this is incorrect if we use the docking branch of imgui
 	ImGuiViewport * viewport = ImGui::GetMainViewport();
 	auto & current_layer = layer(ImGui::GetMousePos());
-	auto pos_backup = viewport->Pos;
-	auto size_backup = viewport->Size;
-	viewport->Pos = ImVec2(current_layer.vp_origin.x, current_layer.vp_origin.y);
-	viewport->Size = ImVec2(current_layer.vp_size.x, current_layer.vp_size.y);
 
-	ImVec2 pos{
+	assert(std::ranges::contains(layers_, true, &viewport::tooltip_viewport));
+	auto & tooltip_layer = *std::ranges::find(layers_, true, &viewport::tooltip_viewport);
+
+	// Get the item position before drawing the tooltip (top center)
+	ImVec2 item_position{
 	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
-	        ImGui::GetItemRectMin().y - constants::style::tooltip_distance,
+	        ImGui::GetItemRectMin().y,
 	};
 
+	auto pos_backup = viewport->Pos;
+	auto size_backup = viewport->Size;
+	viewport->Pos = ImVec2(tooltip_layer.vp_origin.x, tooltip_layer.vp_origin.y);
+	viewport->Size = ImVec2(tooltip_layer.vp_size.x, tooltip_layer.vp_size.y);
+
+	// Draw the tooltip in the tooltip layer
+	// Clamp position to avoid overflowing on the left or the right
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::tooltip_rounding);
 
-	// Clamp position to avoid overflowing on the left or the right
 	auto & style = ImGui::GetStyle();
 	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
-	const ImVec2 size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
-	pos.x = std::clamp<float>(pos.x, viewport->Pos.x + size.x / 2, viewport->Pos.x + viewport->Size.x - size.x / 2);
-	ImVec2 pivot = {0.5, 1};
+	const ImVec2 tooltip_size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
 
-	// Move tooltip below the item if it overflows on the top
-	if (pos.y - size.y <= viewport->Pos.y)
-	{
-		pos.y = ImGui::GetItemRectMax().y + constants::style::tooltip_distance;
-		pivot.y = 0;
-	}
-
-	ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
+	ImGui::SetNextWindowPos(viewport->Pos + viewport->Size * 0.5, ImGuiCond_Always, {0.5, 0.5});
+	ImGui::SetNextWindowSizeConstraints({0, 0}, viewport->Size);
 	if (ImGui::BeginTooltip())
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
@@ -1276,11 +1298,21 @@ void imgui_context::tooltip(std::string_view text)
 		ImGui::PopStyleColor();
 		ImGui::EndTooltip();
 	}
-
 	ImGui::PopStyleVar(2);
 
 	viewport->Pos = pos_backup;
 	viewport->Size = size_backup;
+
+	// Compute the tooltip position
+	glm::quat tooltip_orientation = current_layer.orientation;
+	auto M = glm::mat3_cast(tooltip_orientation);
+
+	float pixel_size = current_layer.size.y / current_layer.vp_size.y;
+	glm::vec3 tooltip_position_centre = rw_from_vp(item_position) + M * (glm::vec3(0, tooltip_size.y / 2, 0) * pixel_size + constants::style::tooltip_distance);
+
+	// Position the tooltip layer
+	tooltip_layer.position = tooltip_position_centre;
+	tooltip_layer.orientation = tooltip_orientation;
 }
 
 // https://github.com/ocornut/imgui/issues/3379#issuecomment-2943903877

@@ -25,6 +25,7 @@
 #endif
 
 #include "configuration.h"
+#include "hmd_traits.h"
 #include "utils/singleton.h"
 #include "utils/thread_safe.h"
 #include "vk/vk_allocator.h"
@@ -74,6 +75,7 @@ class application : public singleton<application>
 {
 	friend class scene;
 
+private:
 #ifdef __ANDROID__
 	friend __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj);
 #endif
@@ -157,6 +159,7 @@ class application : public singleton<application>
 
 	boost::locale::generator gen;
 	boost::locale::gnu_gettext::messages_info messages_info;
+	hmd_traits runtime_hmd_traits;
 
 private:
 	void loop();
@@ -400,6 +403,12 @@ public:
 	static bool get_openxr_post_processing_supported()
 	{
 		return instance().openxr_post_processing_supported;
+	}
+
+	static const hmd_traits & get_hmd_traits()
+	{
+		assert(instance().runtime_hmd_traits.is_initialized());
+		return instance().runtime_hmd_traits;
 	}
 
 	static auto & get_generic_trackers()

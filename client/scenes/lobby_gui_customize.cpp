@@ -283,7 +283,6 @@ void scenes::lobby::update_file_picker()
 			                vk::Format::eD32Sfloat, // Depth format
 			                output,                 // Output image
 			                vk::Image{},            // Depth image
-			                vk::Image{},            // Foveation image
 			                {&frame, 1},            // View info
 			                false);
 			        local_renderer.end_frame();

@@ -140,7 +140,7 @@ decoder::decoder(
 		// latency mode
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_WIDTH, width);
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, height);
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(description.fps));
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(description.frame_rate));
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_PRIORITY, 0);
 
 		media_codec.reset(AMediaCodec_createDecoderByType(mime(description.codec[stream_index])));

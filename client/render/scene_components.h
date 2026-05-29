@@ -19,6 +19,7 @@
 #pragma once
 
 #include <array>
+#include <inplace_vector.hpp>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -100,7 +101,7 @@ struct material
 	size_t offset;
 
 	std::string name;
-	std::string fragment_shader_name = "lit.frag";
+	std::string fragment_shader = "lit.frag";
 };
 
 struct primitive
@@ -110,7 +111,7 @@ struct primitive
 	uint32_t vertex_count;
 	vk::IndexType index_type;
 	vk::DeviceSize index_offset;
-	std::vector<vk::DeviceSize> vertex_offset; // TODO: inplace_vector
+	beman::inplace_vector::inplace_vector<vk::DeviceSize, 8> vertex_offset; // See VkPhysicalDeviceLimits::maxVertexInputBindings
 	vertex_layout layout;
 
 	glm::vec3 obb_min;
@@ -155,10 +156,23 @@ struct node
 	bool visible = true;
 	uint32_t layer_mask = -1;
 
-	std::array<glm::vec4, 4> clipping_planes;
-
 	// TODO: separate component?
 	std::vector<std::pair<entt::entity, glm::mat4>> joints; // Node index, inverse bind matrix of each joint
+
+	std::vector<std::byte> extra_shader_data;
+	template <typename T>
+	void set_extra_shader_data(const T & data)
+	{
+		extra_shader_data.resize(sizeof(std::decay_t<T>));
+		memcpy(extra_shader_data.data(), &data, sizeof(std::decay_t<T>));
+	}
+
+	template <typename T>
+	T & get_extra_shader_data()
+	{
+		assert(extra_shader_data.size() == sizeof(std::decay_t<T>));
+		return *reinterpret_cast<T *>(extra_shader_data.data());
+	}
 
 	// For internal use by the renderer
 	glm::mat4 transform_to_root;

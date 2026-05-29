@@ -22,9 +22,7 @@
 #include "vk/allocation.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
-#include "xrt/xrt_device.h"
 
-#include "utils/singleton.h"
 #include <mutex>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -34,14 +32,13 @@ namespace wivrn
 {
 
 struct clock_offset;
-struct wivrn_vk_bundle;
+struct vk_bundle;
 
-class wivrn_foveation : public singleton<wivrn_foveation>
+class foveation
 {
 	std::mutex mutex;
 
-	const size_t foveated_width; // per eye
-	const size_t foveated_height;
+	const vk::Extent3D foveated_size; // per eye
 
 	// Natural vertical gaze angle
 	const float angle_offset;
@@ -53,10 +50,14 @@ class wivrn_foveation : public singleton<wivrn_foveation>
 	from_headset::override_foveation_center manual_foveation = {};
 	std::array<to_headset::foveation_parameter, 2> params;
 
-	vk::raii::CommandPool command_pool;
-	vk::raii::CommandBuffer cmd;
 	buffer_allocation gpu_buffer;
-	buffer_allocation host_buffer;
+	vk::raii::Sampler sampler;
+
+	vk::raii::DescriptorSetLayout ds_layout;
+	vk::raii::PipelineLayout layout;
+	vk::raii::Pipeline pipeline;
+	vk::raii::DescriptorPool descriptor_pool;
+	vk::DescriptorSet descriptor_set;
 
 	// parameters used for last computation
 	struct P
@@ -72,23 +73,30 @@ class wivrn_foveation : public singleton<wivrn_foveation>
 	P last;
 
 	// must hold lock on mutex to call it
-	void compute_params(
-	        xrt_rect src[2],
-	        const xrt_fov fovs[2]);
+	void compute_params();
+
+	void update_ubo(
+	        vk::raii::CommandBuffer & cmd,
+	        bool flip_y,
+	        std::array<xrt_rect, 2> src_rect,
+	        std::array<xrt_fov, 2> src_fov);
 
 public:
-	wivrn_foveation(wivrn_vk_bundle &, const xrt_hmd_parts &);
+	foveation(wivrn::vk_bundle &,
+	          vk::Extent3D foveated_size);
 
-	void update_tracking(const from_headset::tracking &, const clock_offset &);
+	void update_tracking(const from_headset::tracking &);
 	void update_foveation_center_override(const from_headset::override_foveation_center &);
-	std::array<to_headset::foveation_parameter, 2> get_parameters();
 
-	vk::Buffer get_gpu_buffer();
-
-	vk::CommandBuffer update_foveation_buffer(
-	        vk::Buffer target,
+	std::array<to_headset::foveation_parameter, 2> foveate(
+	        vk::raii::Device &,
+	        vk::raii::CommandBuffer & cmd,
+	        vk::ImageView y,
+	        vk::ImageView cbcr,
 	        bool flip_y,
-	        xrt_rect src[2],
-	        xrt_fov fovs[2]);
+	        std::array<vk::ImageView, 2> src,
+	        std::array<xrt_rect, 2> src_rect,
+	        std::array<xrt_fov, 2> src_fov,
+	        bool alpha);
 };
 } // namespace wivrn
