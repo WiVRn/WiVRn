@@ -1,6 +1,5 @@
 #
-# SPDX-FileCopyrightText: 2025 Guillaume Meunier <guillaume.meunier@centraliens.net>
-# Guillaume Meunier <guillaume.meunier@centraliens.net>, 2025-2026.
+#  <>, 2025-2026.
 #
 msgid ""
 msgstr ""
@@ -14,8 +13,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Gtranslator 48.0\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Gtranslator 50.0\n"
 
 #: dashboard/apk_installer.cpp:137
 #, kde-format
@@ -136,9 +135,9 @@ msgid ""
 "master/docs/building.md#client-headset\">documentation</a> to build your own "
 "client."
 msgstr ""
-"Suivez les instructions dans la <a href=\"https://github.com/WiVRn/WiVRn/"
-"blob/master/docs/building.md#client-headset\">documentation</a> pour "
-"construire votre propre client."
+"Suivez les instructions de la <a href=\"https://github.com/WiVRn/WiVRn/blob/"
+"master/docs/building.md#client-headset\">documentation</a> pour construire "
+"votre propre client."
 
 #: dashboard/qml/ConnectUsbDialog.qml:11
 #, kde-format
@@ -218,7 +217,7 @@ msgstr "Nom du casque…"
 #: dashboard/qml/HeadsetsPage.qml:128
 #, kde-format
 msgid "Remove"
-msgstr "Enlever"
+msgstr "Supprimer"
 
 #: dashboard/qml/HeadsetsPage.qml:143
 #, kde-format
@@ -359,7 +358,7 @@ msgstr ""
 #: dashboard/qml/Main.qml:240
 #, kde-format
 msgid "Restart the server for configuration changes to take effect"
-msgstr "Redémarez le serveur pour appliquer les changements"
+msgstr "Redémarez le serveur pour appliquer les modifications"
 
 #: dashboard/qml/Main.qml:246
 #, kde-format
@@ -567,7 +566,7 @@ msgid ""
 msgstr ""
 "Le clavier et la souris connectés au casque agiront comme s'ils étaient "
 "connectés au serveur. L'OS du client peut réserver certaines touches et "
-"combinaisons, qui ne peuvent pas être transmises."
+"combinaisons, qui ne peuvent donc pas être transmises."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -601,7 +600,7 @@ msgstr "Spécifier l'emplacement d'adb"
 #: dashboard/qml/SettingsPage.qml:151
 #, kde-format
 msgid "Adb location:"
-msgstr "Emplacement d'adb"
+msgstr "Emplacement d'adb :"
 
 #: dashboard/qml/SettingsPage.qml:160
 #, kde-format
@@ -654,8 +653,8 @@ msgstr ""
 #, kde-format
 msgid "Paste this in the Steam launch options for the app you want to start"
 msgstr ""
-"Collez ceci dans les options de lancement de Steam de l'appli que vous "
-"voulez démarrer"
+"Collez ceci dans les options de lancement de l'appli Steam que vous voulez "
+"démarrer"
 
 #: dashboard/qml/SteamLaunchOptions.qml:26
 #, kde-format
@@ -895,7 +894,7 @@ msgid ""
 "<ul><li>The ADB udev rules are installed</li><li>The headset is in <a "
 "href=\"#\">developer mode</a></li></ul></p>"
 msgstr ""
-"<p>Aucun casque détecté. Assurez-vous que:\n"
+"<p>Aucun casque détecté. Assurez-vous que :\n"
 "<ul><li>Les règles udev sont installées</li><li>Le casque est en <a "
 "href=\"#\">mode développeur</a></li></ul></p>"
 
@@ -973,7 +972,7 @@ msgid ""
 "before connecting."
 msgstr ""
 "Pour connecter un autre casque, assurez-vous que l'appairage est activé dans "
-"le tableau de bord avant de vous connecter."
+"le tableau de bord avant de le connecter."
 
 #: dashboard/qml/WizardPage.qml:423 dashboard/qml/WizardPage.qml:460
 #, kde-format
