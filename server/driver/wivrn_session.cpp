@@ -40,6 +40,7 @@
 #include "wivrn_packets.h"
 #include "xr/to_string.h"
 
+#include "b_hand_tracker.h"
 #include "b_system.h"
 #include "target_builder_helpers.h"
 #include "util/u_logging.h"
@@ -78,6 +79,7 @@ bool is_forced_extension(const char * ext_name)
 wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, b_system & system) :
         xrt_system_devices{
                 .get_roles = method_pointer<&wivrn_session::get_roles>,
+                .create_hand_tracker = b_hand_tracker_create,
                 .feature_inc = method_pointer<&wivrn_session::feature_inc>,
                 .feature_dec = method_pointer<&wivrn_session::feature_dec>,
                 .destroy = method_pointer<&wivrn_session::destroy>,
