@@ -18,7 +18,7 @@ Kirigami.ScrollablePage {
 
         TroubleshootCard {
             title: i18n("I cannot find the WiVRn app on my headset")
-            details: i18n("If you installed WiVRn over USB on a Meta headset, the app is in the \"unknown sources\" section.")
+            details: i18n("If you installed WiVRn over USB on a Meta or Pico headset, the app is in the \"unknown sources\" section.")
         }
         TroubleshootCard {
             title: i18n("I cannot see my computer in the WiVRn app")
