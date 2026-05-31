@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-17 20:24+0200\n"
-"PO-Revision-Date: 2026-05-17 20:24+0200\n"
+"POT-Creation-Date: 2026-05-31 21:59+0200\n"
+"PO-Revision-Date: 2026-05-31 22:00+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
 "Language: French\n"
@@ -676,11 +676,11 @@ msgstr "Je ne trouve pas l'application WiVRn sur mon casque"
 #: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:353
 #, kde-format
 msgid ""
-"If you installed WiVRn over USB on a Meta headset, the app is in the "
+"If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Si vous avez installé WiVRn par USB sur un casque Meta, l'application est "
-"dans la section « sources inconnues »."
+"Si vous avez installé WiVRn par USB sur un casque Meta ou Pico, "
+"l'application est dans la section « sources inconnues »"
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
@@ -985,15 +985,23 @@ msgstr "Finir"
 msgid "Finished"
 msgstr "Terminé"
 
-#: dashboard/wivrn_server.cpp:540
+#: dashboard/wivrn_server.cpp:565
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:541
+#: dashboard/wivrn_server.cpp:566
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid ""
+#~ "If you installed WiVRn over USB on a Meta headset, the app is in the "
+#~ "\"unknown sources\" section."
+#~ msgstr ""
+#~ "Si vous avez installé WiVRn par USB sur un casque Meta, l'application est "
+#~ "dans la section « sources inconnues »."
 
 #, kde-format
 #~ msgid "PIN: %1"
