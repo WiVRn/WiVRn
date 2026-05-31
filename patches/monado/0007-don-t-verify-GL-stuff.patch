@@ -1,4 +1,4 @@
-From 6834120e579093e2f2bfa0d4269a051e7047b9ee Mon Sep 17 00:00:00 2001
+From 0832cc9a2ccd0f67b3bd3a11ec1b1d1398dfebda Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Sun, 25 Jan 2026 10:09:10 +0100
 Subject: [PATCH 7/8] don't verify GL stuff
@@ -29,5 +29,5 @@ index 8f35222cf..1418a8231 100644
  }
  
 -- 
-2.53.0
+2.54.0
 
