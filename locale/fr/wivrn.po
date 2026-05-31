@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-03 17:23+0200\n"
+"POT-Creation-Date: 2026-05-31 21:06+0200\n"
 "PO-Revision-Date: 2026-05-03 17:26+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "X-Generator: Gtranslator 48.0\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: client/scene.cpp:73
+#: client/scene.cpp:74
 msgid "No supported swapchain format"
 msgstr "Aucun format de swapchain supporté"
 
@@ -26,7 +26,6 @@ msgid "Connected to WiVRn server"
 msgstr "Connecté au serveur WiVRn"
 
 #: client/scenes/app_launcher.cpp:121
-#, c++-format
 msgid "Connected to {}"
 msgstr "Connecté à {}"
 
@@ -42,7 +41,6 @@ msgstr ""
 "transmission."
 
 #: client/scenes/app_launcher.cpp:139
-#, c++-format
 msgid "Start an application on {} or select one to start streaming."
 msgstr ""
 "Démarrez une application sur {} ou depuis la liste pour commencer la "
@@ -54,7 +52,6 @@ msgid "Automatic"
 msgstr "Automatique"
 
 #: client/scenes/gui_common.cpp:43
-#, c++-format
 msgctxt "refresh rate selection, with reprojection"
 msgid "{} ({} with space warp)"
 msgstr "{} ({} avec reprojection)"
@@ -105,7 +102,7 @@ msgid ""
 "Useful when the input resolution is high compared to the headset display"
 msgstr ""
 "Réduit le scintillement des contours à haut contraste.\n"
-"Utile quand la résolution d’entrée est haute comparée à l’écran du casque"
+"Utile quand la définition d’entrée est haute comparée à l’écran du casque"
 
 #: client/scenes/gui_common.cpp:173
 msgid "Sharpening"
@@ -117,50 +114,47 @@ msgid ""
 "Useful when the input resolution is low compared to the headset display"
 msgstr ""
 "Améliore la clarté des contours à haut contraste et réduit le flou.\n"
-"Utile quand la résolution d’entrée est basse comparée à l’écran du casque"
+"Utile quand la définition d’entrée est basse comparée à l’écran du casque"
 
-#: client/scenes/lobby.cpp:221
+#: client/scenes/lobby.cpp:220
 msgid "Incompatible WiVRn server: no protocol field in TXT"
 msgstr "Serveur WiVRn incompatible : pas de champ protocol dans le TXT"
 
-#: client/scenes/lobby.cpp:224
-#, c++-format
+#: client/scenes/lobby.cpp:223
 msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
 msgstr ""
 "Version du protocole WiVRn du serveur incompatible (client : {}, serveur : "
 "{})"
 
-#: client/scenes/lobby.cpp:239
-#, c++-format
+#: client/scenes/lobby.cpp:238
 msgid "Cannot resolve hostname: {}"
 msgstr "Impossible de résoudre le nom : {}"
 
-#: client/scenes/lobby.cpp:326 client/scenes/lobby.cpp:332
-#, c++-format
+#: client/scenes/lobby.cpp:325 client/scenes/lobby.cpp:331
 msgid "Cannot connect to {} ({}): {}"
 msgstr "Impossible de se connecter à {} ({}) : {}"
 
-#: client/scenes/lobby.cpp:410
+#: client/scenes/lobby.cpp:409
 msgid "Waiting for connection"
-msgstr "Attente de connexion"
+msgstr "En attente de connexion"
 
-#: client/scenes/lobby.cpp:1298
+#: client/scenes/lobby.cpp:1314
 msgid "Passthrough"
 msgstr "Vue réelle"
 
-#: client/scenes/lobby.cpp:1310
+#: client/scenes/lobby.cpp:1326
 msgid "Default environment"
 msgstr "Environnement par défaut"
 
 #: client/scenes/lobby_gui.cpp:100 client/scenes/lobby_gui.cpp:240
-#: client/scenes/stream_gui.cpp:915
+#: client/scenes/stream_gui.cpp:909
 msgid "Disconnect"
 msgstr "Déconnecter"
 
 #: client/scenes/lobby_gui.cpp:120 client/scenes/lobby_gui.cpp:250
 #: client/scenes/lobby_gui_customize.cpp:752
 #: client/scenes/lobby_gui_customize.cpp:843
-#: client/scenes/lobby_gui_customize.cpp:899 client/scenes/stream_gui.cpp:911
+#: client/scenes/lobby_gui_customize.cpp:899 client/scenes/stream_gui.cpp:905
 msgid "Close"
 msgstr "Fermer"
 
@@ -169,7 +163,6 @@ msgid "Connection"
 msgstr "Connexion en cours"
 
 #: client/scenes/lobby_gui.cpp:128
-#, c++-format
 msgid "Connection to {}"
 msgstr "Connexion à {}"
 
@@ -186,7 +179,6 @@ msgid "Disconnected"
 msgstr "Connexion terminée"
 
 #: client/scenes/lobby_gui.cpp:270
-#, c++-format
 msgid "Disconnected from {}"
 msgstr "Connexion à {} terminée"
 
@@ -207,7 +199,7 @@ msgid "TCP only"
 msgstr "TCP seulement"
 
 #: client/scenes/lobby_gui.cpp:337 client/scenes/lobby_gui_customize.cpp:654
-#: client/scenes/stream_gui.cpp:866
+#: client/scenes/stream_gui.cpp:860
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -254,20 +246,18 @@ msgstr "Langue système"
 
 #: client/scenes/lobby_gui.cpp:612
 msgid "Render resolution"
-msgstr "Résolution de rendu"
+msgstr "Définition de rendu"
 
 #: client/scenes/lobby_gui.cpp:616
-#, c-format, c++-format
+#, c-format
 msgid "{}%% - {}x{} per eye"
 msgstr "{} %% - {}x{} par œil"
 
 #: client/scenes/lobby_gui.cpp:627
-#, c++-format
 msgid "Resolution larger than {}x{} may not be supported by the headset"
-msgstr "Les résolutions plus grandes que {}x{} pourraient ne pas fonctionner"
+msgstr "Les définitions plus grandes que {}x{} pourraient ne pas fonctionner"
 
 #: client/scenes/lobby_gui.cpp:633
-#, c++-format
 msgctxt "resolution is higher than recommended"
 msgid "Recommended maximum is {}%"
 msgstr "Maximum recommandé : {}%"
@@ -277,7 +267,7 @@ msgid "Foveated encoding"
 msgstr "Fovéation d'encodage"
 
 #: client/scenes/lobby_gui.cpp:647
-#, c-format, c++-format
+#, c-format
 msgid "{}%%"
 msgstr "{} %%"
 
@@ -300,7 +290,6 @@ msgstr ""
 "consommation d'énergie et améliore la qualité."
 
 #: client/scenes/lobby_gui.cpp:671
-#, c++-format
 msgctxt "foveation is lower than recommended"
 msgid "Recommended minimum is {}%"
 msgstr "Minimum recommandé : {}%"
@@ -338,15 +327,13 @@ msgid "Bitrate"
 msgstr "Débit"
 
 #: client/scenes/lobby_gui.cpp:742
-#, c++-format
 msgid "{}Mbit/s"
 msgstr "{} Mbit/s"
 
 #: client/scenes/lobby_gui.cpp:753
-#, c++-format
 msgctxt "bitrate value is higher than recommended"
 msgid "Recommended maximum is {}Mbit/s"
-msgstr "Maximum recommandé : {}Mbit/s"
+msgstr "Maximum recommandé : {} Mbit/s"
 
 #: client/scenes/lobby_gui.cpp:759
 msgid "High power mode"
@@ -355,7 +342,7 @@ msgstr "Mode haute consommation"
 #: client/scenes/lobby_gui.cpp:762
 msgid "Increase power usage to allow higher resolution and refresh rate"
 msgstr ""
-"Augmente la consommation d'énergie pour permettre une résolution\n"
+"Augmente la consommation d'énergie pour permettre une définition\n"
 "et une fréquence de rafraîchissement plus élevées"
 
 #: client/scenes/lobby_gui.cpp:768
@@ -552,7 +539,7 @@ msgstr "Ajouter un serveur"
 msgid "Server list"
 msgstr "Serveurs"
 
-#: client/scenes/lobby_gui.cpp:1856 client/scenes/stream_gui.cpp:896
+#: client/scenes/lobby_gui.cpp:1856 client/scenes/stream_gui.cpp:890
 msgid "Settings"
 msgstr "Paramètres"
 
@@ -593,29 +580,24 @@ msgid "Locally loaded environment"
 msgstr "Environnement chargé localement"
 
 #: client/scenes/lobby_gui_customize.cpp:226
-#, c++-format
 msgid "Locally loaded environment ({})"
 msgstr "Environnement chargé localement ({})"
 
 #: client/scenes/lobby_gui_customize.cpp:299
-#, c++-format
 msgid "Cannot load local environment: {}"
 msgstr "Impossible de charger l'environnement local ({})"
 
 #: client/scenes/lobby_gui_customize.cpp:332
-#, c++-format
 msgid "Cannot load environment list: {}"
 msgstr "Impossible de charger la liste d'environnements: {}"
 
 #: client/scenes/lobby_gui_customize.cpp:462
-#, c++-format
 msgid "Author: {}"
 msgstr "Auteur : {}"
 
 #: client/scenes/lobby_gui_customize.cpp:466
-#, c++-format
 msgid "Size: {:.1f} MB"
-msgstr "Taille: {:.1f} Mo"
+msgstr "Taille : {:.1f} Mo"
 
 #: client/scenes/lobby_gui_customize.cpp:546
 msgid "Delete this model"
@@ -623,13 +605,11 @@ msgstr "Supprimer ce modèle"
 
 #: client/scenes/lobby_gui_customize.cpp:582
 #: client/scenes/lobby_gui_customize.cpp:788
-#, c++-format
 msgid "HTTP error {} when downloading {}"
 msgstr "Erreur HTTP {} lors du téléchargement de {}"
 
 #: client/scenes/lobby_gui_customize.cpp:590
 #: client/scenes/lobby_gui_customize.cpp:796
-#, c++-format
 msgid ""
 "Curl error when downloading {}\n"
 "{}: {}"
@@ -638,7 +618,6 @@ msgstr ""
 "{} : {}"
 
 #: client/scenes/lobby_gui_customize.cpp:651
-#, c++-format
 msgid "Really delete {}?"
 msgstr "Supprimer {} ?"
 
@@ -647,7 +626,6 @@ msgid "Delete"
 msgstr "Supprimer"
 
 #: client/scenes/lobby_gui_customize.cpp:736
-#, c++-format
 msgid "Cannot load environment: {}"
 msgstr "Impossible de charger l'environnement : {}"
 
@@ -680,7 +658,6 @@ msgid "Upload"
 msgstr "Téléversement"
 
 #: client/scenes/stream_gui.cpp:248
-#, c++-format
 msgid "Decoder {}"
 msgstr "Décodeur {}"
 
@@ -717,7 +694,6 @@ msgid "Predicted"
 msgstr "Prédiction"
 
 #: client/scenes/stream_gui.cpp:345
-#, c++-format
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "Latence mouvement à photons estimée : {} ms"
 
@@ -750,14 +726,12 @@ msgid "Enable"
 msgstr "Activer"
 
 #: client/scenes/stream_gui.cpp:431 client/scenes/stream_gui.cpp:502
-#, c++-format
 msgid "Height {:.1f} deg"
 msgstr "Hauteur : {:.1f} deg"
 
 #: client/scenes/stream_gui.cpp:432 client/scenes/stream_gui.cpp:503
-#, c++-format
 msgid "Distance {:.2f} m"
-msgstr "Distance {:.2f} m"
+msgstr "Distance : {:.2f} m"
 
 #: client/scenes/stream_gui.cpp:433
 msgid "Default"
@@ -776,7 +750,6 @@ msgid "Press A to go back"
 msgstr "Appuyez sur A pour revenir"
 
 #: client/scenes/stream_gui.cpp:478
-#, c++-format
 msgid "Bitrate: {}Mbit/s"
 msgstr "Débit : {} MBit/s"
 
@@ -800,23 +773,23 @@ msgstr "Surcouches"
 msgid "Request to quit, may be ignored by the application"
 msgstr "Demande de quitter, peut être ignoré par l'application"
 
-#: client/scenes/stream_gui.cpp:882
+#: client/scenes/stream_gui.cpp:876
 msgid "Applications"
 msgstr "Applications"
 
-#: client/scenes/stream_gui.cpp:885
+#: client/scenes/stream_gui.cpp:879
 msgid "Start"
 msgstr "Démarrer"
 
-#: client/scenes/stream_gui.cpp:899
+#: client/scenes/stream_gui.cpp:893
 msgid "Stats"
 msgstr "Statistiques"
 
-#: client/scenes/stream_gui.cpp:905
+#: client/scenes/stream_gui.cpp:899
 msgid "Statistics overlay"
 msgstr "Statistiques seules"
 
-#: client/scenes/stream_gui.cpp:908
+#: client/scenes/stream_gui.cpp:902
 msgid "Compact view"
 msgstr "Vue compacte"
 
