@@ -350,7 +350,7 @@ Kirigami.ScrollablePage {
             }
             BetterLabel {
                 Layout.fillWidth: true
-                text: i18n("If you installed WiVRn over USB on a Meta headset, the app is in the \"unknown sources\" section.")
+                text: i18n("If you installed WiVRn over USB on a Meta or Pico headset, the app is in the \"unknown sources\" section.")
                 Layout.topMargin: Kirigami.Units.largeSpacing
             }
             BetterLabel {
