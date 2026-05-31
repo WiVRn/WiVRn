@@ -10,10 +10,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-17 20:18+0200\n"
-"PO-Revision-Date: 2026-05-18 00:33+0200\n"
+"POT-Creation-Date: 2026-05-31 21:58+0200\n"
+"PO-Revision-Date: 2026-06-01 01:35+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
-"Language-Team: Portuguese <>\n"
+"Language-Team: Portuguese <kde-i18n-doc@kde.org>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -668,11 +668,11 @@ msgstr "Não consigo encontrar o aplicativo do WiVRn no meu headset"
 #: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:353
 #, kde-format
 msgid ""
-"If you installed WiVRn over USB on a Meta headset, the app is in the "
+"If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Se você instalou o WiVRn pelo USB em um headset Meta, o aplicativo está na "
-"seção \"fontes desconhecidas\"."
+"Se você instalou o WiVRN por USB em um headset Pico ou Meta, a aplicação "
+"está na seção de \"fontes desconhecidas\"."
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
@@ -975,15 +975,23 @@ msgstr "Terminar"
 msgid "Finished"
 msgstr "Terminado"
 
-#: dashboard/wivrn_server.cpp:540
+#: dashboard/wivrn_server.cpp:565
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:541
+#: dashboard/wivrn_server.cpp:566
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid ""
+#~ "If you installed WiVRn over USB on a Meta headset, the app is in the "
+#~ "\"unknown sources\" section."
+#~ msgstr ""
+#~ "Se você instalou o WiVRn pelo USB em um headset Meta, o aplicativo está "
+#~ "na seção \"fontes desconhecidas\"."
 
 #, kde-format
 #~ msgid "PIN: %1"
