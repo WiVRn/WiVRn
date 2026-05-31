@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-16 17:03+0200\n"
+"POT-Creation-Date: 2026-05-26 10:52+0200\n"
 "PO-Revision-Date: 2025-11-19 20:23+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish <>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "X-Language: es_ES\n"
 "X-Source-Language: en_US\n"
 
-#: client/scene.cpp:73
+#: client/scene.cpp:74
 msgid "No supported swapchain format"
 msgstr "Formato de swapchain no compatible"
 
@@ -143,11 +143,11 @@ msgstr "No se puede conectar a {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Esperando conexión"
 
-#: client/scenes/lobby.cpp:1297
+#: client/scenes/lobby.cpp:1314
 msgid "Passthrough"
 msgstr "Exterior"
 
-#: client/scenes/lobby.cpp:1309
+#: client/scenes/lobby.cpp:1326
 msgid "Default environment"
 msgstr "Entorno por defecto"
 
