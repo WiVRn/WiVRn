@@ -1,4 +1,4 @@
-From e013455ead67f79e18afc5a6bbb453caae76dac9 Mon Sep 17 00:00:00 2001
+From f400f0e63259bcadd9a7955ae0275caa5aea3ded Mon Sep 17 00:00:00 2001
 From: Sapphire <imsapphire0@gmail.com>
 Date: Fri, 7 Nov 2025 20:41:16 -0600
 Subject: [PATCH 6/8] st/oxr: push XrEventDataInteractionProfileChanged when
@@ -23,5 +23,5 @@ index 2bd3ea009..93659ba35 100644
  			action_context->X = path;                                                                      \
  			interaction_profile_changed = true;                                                            \
 -- 
-2.53.0
+2.54.0
 
