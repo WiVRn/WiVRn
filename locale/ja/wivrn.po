@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.16\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-19 13:04+0900\n"
+"POT-Creation-Date: 2026-06-01 13:47+0900\n"
 "PO-Revision-Date: 2024-06-20 10:33+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language: Japanese\n"
@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: client/scene.cpp:73
+#: client/scene.cpp:74
 msgid "No supported swapchain format"
 msgstr "互換性のあるスワップチェーンは見つからなかった"
 
@@ -129,11 +129,11 @@ msgstr "{}に接続できませんでした：({}) {}"
 msgid "Waiting for connection"
 msgstr "接続を待っています"
 
-#: client/scenes/lobby.cpp:1297
+#: client/scenes/lobby.cpp:1314
 msgid "Passthrough"
 msgstr "パススルー"
 
-#: client/scenes/lobby.cpp:1309
+#: client/scenes/lobby.cpp:1326
 msgid "Default environment"
 msgstr "デフォルトのホーム環境"
 
