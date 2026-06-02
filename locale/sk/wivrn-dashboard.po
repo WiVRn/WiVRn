@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-27 13:42+0200\n"
-"PO-Revision-Date: 2026-05-28 11:17+0200\n"
+"POT-Creation-Date: 2026-05-31 21:58+0200\n"
+"PO-Revision-Date: 2026-06-02 14:23+0200\n"
 "Last-Translator: not\n"
 "Language-Team: Slovak <>\n"
 "Language: sk\n"
@@ -305,8 +305,7 @@ msgstr "Firewall môže blokovať port 9757"
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
 msgstr ""
-"NVIDIA GPUs vyžadujú minimálne verziu ovládača 565.77, aktuálna verzia je "
-"%1"
+"NVIDIA GPUs vyžadujú minimálne verziu ovládača 565.77, aktuálna verzia je %1"
 
 #: dashboard/qml/Main.qml:185
 #, kde-format
@@ -317,8 +316,8 @@ msgstr "Viac info"
 #, kde-format
 msgid "Vulkan drivers cannot be found, you may need to run \"flatpak update\""
 msgstr ""
-"Nepodarilo sa nájsť ovládače Vulkan. Možno bude potrebné spustiť \"flatpak upd"
-"ate\""
+"Nepodarilo sa nájsť ovládače Vulkan. Možno bude potrebné spustiť \"flatpak "
+"update\""
 
 #: dashboard/qml/Main.qml:193
 #, kde-format
@@ -340,8 +339,8 @@ msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
 "Install xrizer or OpenComposite."
 msgstr ""
-"Kompatibilita s OpenVR nebola zistená, Hry v steame nebude možné "
-"spustiť vo VR.\n"
+"Kompatibilita s OpenVR nebola zistená, Hry v steame nebude možné spustiť vo "
+"VR.\n"
 "Nainštalujte xrizer alebo OpenComposite."
 
 #: dashboard/qml/Main.qml:217
@@ -564,8 +563,9 @@ msgid ""
 "server. Client OS may reserve specific keys and combinations, which cannot "
 "be forwarded."
 msgstr ""
-"Klávesnica a myš pripojené ku klientovi sa budú správať, akoby boli pripojené "
-"k serveru. Niektoré klávesy alebo skratky však môže klientský systém blokovať."
+"Klávesnica a myš pripojené ku klientovi sa budú správať, akoby boli "
+"pripojené k serveru. Niektoré klávesy alebo skratky však môže klientský "
+"systém blokovať."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -672,11 +672,12 @@ msgstr "Neviem nájsť aplikáciu WiVRn v headsete"
 #: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:353
 #, kde-format
 msgid ""
-"If you installed WiVRn over USB on a Meta headset, the app is in the "
+"If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Ak ste nainštalovali WiVRn cez USB na Meta headsete, aplikácia sa nachádza v "
-"sekcii „neznáme zdroje“."
+"Ak ste nainštalovali WiVRn cez USB na Meta alebo Pico headsete, aplikácia sa n"
+"achádza v \""
+"\"sekcii „neznáme zdroje“."
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
@@ -757,8 +758,7 @@ msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
 "device for applications to use it."
 msgstr ""
-"Keď je headset pripojený, vyberte „WiVRn“ ako predvolené zvukové zariadenie,"
-" "
+"Keď je headset pripojený, vyberte „WiVRn“ ako predvolené zvukové zariadenie, "
 "aby ho aplikácie používali."
 
 #: dashboard/qml/TroubleshootPage.qml:61
@@ -772,9 +772,9 @@ msgid ""
 "For game specific issues, check on <a href=\"https://db.vronlinux.org/"
 "\">vronlinux DB</a> if there are known bugs or workarounds."
 msgstr ""
-"Pri problémoch konkrétnych hier skontrolujte <a href=\"https://db.vronlinux.or"
-"g/"
-"\">vronlinux databázu</a> , či neexistujú známe chyby alebo riešenia."
+"Pri problémoch konkrétnych hier skontrolujte <a href=\"https://"
+"db.vronlinux.org/\">vronlinux databázu</a> , či neexistujú známe chyby alebo "
+"riešenia."
 
 #: dashboard/qml/TroubleshootPage.qml:79
 #, kde-format
@@ -942,8 +942,8 @@ msgid ""
 "If the server is not visible or the connection fails, check that ports 5353 "
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
-"Ak server nie je viditeľný alebo pripojenie zlyhá, skontrolujte, či máte vo fi"
-"rewalle otvorené porty 5353 (UDP) a 9757 (TCP aj UDP)."
+"Ak server nie je viditeľný alebo pripojenie zlyhá, skontrolujte, či máte vo "
+"firewalle otvorené porty 5353 (UDP) a 9757 (TCP aj UDP)."
 
 #: dashboard/qml/WizardPage.qml:371
 #, kde-format
@@ -988,6 +988,14 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid ""
+#~ "If you installed WiVRn over USB on a Meta headset, the app is in the "
+#~ "\"unknown sources\" section."
+#~ msgstr ""
+#~ "Ak ste nainštalovali WiVRn cez USB na Meta headsete, aplikácia sa "
+#~ "nachádza v sekcii „neznáme zdroje“."
 
 #, kde-format
 #~ msgid "No precompiled APK is available for this version"
