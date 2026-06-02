@@ -12,7 +12,7 @@ Some distributions already ship application profiles that exclude specific appli
 
 ### Identifying the issue
 
-To check whether your system is affected, monitor the GPU P-State using nvidia-smi or another GPU monitoring tool while playing a game with the NVIDIA NVENC encoder enabled. If the GPU remains in P2 under load while using NVENC, but reaches P0 with the Vulkan encoder or after applying this profile, the system is likely affected.
+To check whether your system is affected, monitor the GPU P-State using `watch nvidia-smi -q -d PERFORMANCE` while playing a game with the NVIDIA NVENC encoder enabled. If the GPU remains in P2 under load while using NVENC, but reaches P0 with the Vulkan encoder or after applying this profile, the system is likely affected.
 
 ### Workaround instructions
 > [!NOTE] 
@@ -35,18 +35,44 @@ To check whether your system is affected, monitor the GPU P-State using nvidia-s
 {
     "profiles": [
         {
-            "name": "CudaNoStablePerfLimit",
-            "settings": ["0x166c5e", 0 ]
+            "name": "WiVRnServer",
+            "settings": [
+                {
+                  "key"   : "0x166c5e",
+                  "value" : 0
+                },
+                {
+                  "key"   : "GLVRRAllowed",
+                  "value" : false
+                },
+                {
+                  "key"   : "VKDirectGSYNCAllowed",
+                  "value" : false
+                },
+                {
+                  "key"   : "VKDirectGSYNCCompatibleAllowed",
+                  "value" : 0
+                },
+                {
+                  "key"   : "GLShowGraphicsOSD",
+                  "value" : false
+                }
+            ]
         }
     ],
     "rules": [
-        { "pattern" : { "feature" : "procname", "matches" : "wivrn-server" }, "profile" : "CudaNoStablePerfLimit" }
+        { "pattern" : { "feature" : "procname", "matches" : "wivrn-server" }, "profile" : "WiVRnServer" }
     ]
 }
-
 ```
 3. Save the file
 
     Save the file and `restart wivrn-server`. The profile should be applied automatically by the NVIDIA driver.
 
-`0x166c5e` is an internal NVIDIA driver setting ID for CUDA performance limiting behavior and `0` disables this limitation.
+| Settings key | Reference name | Value | Description |
+| --- | --- | :---: | --- |
+| `0x166c5e` | CUDA - Force P2 State | 0 | Controls forcing of the CUDA P-State. When set to 0, prevents automatic forcing of a specific P-State. |
+| `GLVRRAllowed` | G-SYNC VRR | false | Enables VRR support for applications on G-SYNC compatible monitors. Set to false to disable this feature. |
+| `VKDirectGSYNCAllowed` | Vulkan Direct G-SYNC | false | Enables VRR support for vulkan direct-to-display applications on G-SYNC compatible monitors. Set to false to disable this feature. |
+| `VKDirectGSYNCCompatibleAllowed` | Vulkan Direct Compatible G-SYNC | 0 | Allows VRR on validated or unvalidated G-SYNC compatible monitors for Vulkan Direct-to-Display applications. Set to value 0 to disable this feature. |
+| `GLShowGraphicsOSD` | Graphics API OSD | false | Control whether the graphics API visual indicator is rendered on top of OpenGL and Vulkan applications. Set to false to disable this feature. |
