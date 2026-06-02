@@ -169,6 +169,10 @@ If the server list is empty in the headset app:
 - Navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, or
 - For flatpak, navigate to `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.</details>
 
+<details><summary>My NVIDIA GPU P-State is limited to P2 instead of reaching the highest P0 while using the NVIDIA NVENC encoder</summary>
+    
+- See [nvenc](docs/nvenc.md) for troubleshooting.</details>
+
 <details><summary>I have high motion latency, black borders following my view, hear corrupted audio or see a corrupted, pixelated image</summary>
 
 - When connecting through USB, make sure the headset isn't connected through WiFi (switch off WiFi)
