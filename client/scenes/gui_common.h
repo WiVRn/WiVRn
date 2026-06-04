@@ -26,6 +26,7 @@ namespace xr
 {
 class instance;
 class session;
+class system;
 } // namespace xr
 
 namespace wivrn
@@ -37,6 +38,11 @@ namespace gui
 bool refresh_rate(
         xr::instance & instance,
         xr::session & session,
+        imgui_context & imgui_ctx,
+        configuration & config);
+
+bool body_tracking_parts(
+        xr::system & system,
         imgui_context & imgui_ctx,
         configuration & config);
 

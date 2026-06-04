@@ -27,6 +27,7 @@
 #include <optional>
 #include <simdjson.h>
 #include <string>
+#include <type_traits>
 #include <openxr/openxr.h>
 
 namespace xr
@@ -73,7 +74,7 @@ public:
 	bool forward_mouse = false;
 	bool forward_gamepad = false;
 
-	bool fb_lower_body = false;
+	std::underlying_type_t<wivrn::from_headset::body_part_mask> body_part_mask = ~0;
 
 	bool enable_stream_gui = true;
 

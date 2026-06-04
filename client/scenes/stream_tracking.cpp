@@ -365,8 +365,7 @@ void scenes::stream::tracking()
 								        instance,
 								        system,
 								        session,
-								        application::get_generic_trackers(),
-								        config.fb_lower_body);
+								        application::get_generic_trackers());
 						}
 						else
 							body_tracker.emplace<std::monostate>();

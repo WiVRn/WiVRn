@@ -22,11 +22,13 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <magic_enum.hpp>
 #include <netinet/in.h>
 #include <openssl/aes.h>
 #include <optional>
 #include <span>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -270,6 +272,19 @@ enum class body_type : uint8_t
 	htc,
 };
 
+enum class body_part_mask : uint32_t
+{
+	chest = 1 << 0,
+	left_elbow = 1 << 1,
+	right_elbow = 1 << 2,
+	hip = 1 << 3,
+	left_knee = 1 << 4,
+	right_knee = 1 << 5,
+	left_foot = 1 << 6,
+	right_foot = 1 << 7,
+	max,
+};
+
 struct settings_changed
 {
 	float preferred_refresh_rate;
@@ -282,6 +297,8 @@ struct settings_changed
 	// Whether the server should mirror the gamepad to a virtual uinput device;
 	// gamepad inputs are always forwarded for the OpenXR path
 	bool mirror_gamepad = false;
+	// which virtual trackers should be enabled for body tracking
+	std::underlying_type_t<body_part_mask> enabled_body_parts;
 };
 
 struct headset_info_packet
@@ -940,3 +957,10 @@ using packets = std::variant<
         running_applications>;
 } // namespace to_headset
 } // namespace wivrn
+
+template <>
+struct magic_enum::customize::enum_range<wivrn::from_headset::body_part_mask>
+{
+	static constexpr int min = 0;
+	static constexpr int max = static_cast<int>(wivrn::from_headset::body_part_mask::max) - 1;
+};

@@ -189,8 +189,24 @@ configuration::configuration(xr::system & system, xr::session & session)
 		if (auto val = root["forward_gamepad"]; val.is_bool())
 			forward_gamepad = val.get_bool();
 
-		if (auto val = root["fb_lower_body"]; val.is_bool())
-			fb_lower_body = val.get_bool();
+		if (auto val = root["body_parts"]; val.is_object())
+		{
+			for (const auto & [b, name]: magic_enum::enum_entries<wivrn::from_headset::body_part_mask>())
+			{
+				const auto & body_part = val[name];
+				if (!body_part.is_bool())
+					continue;
+
+				if (body_part.get_bool())
+				{
+					body_part_mask |= std::to_underlying(b);
+				}
+				else
+				{
+					body_part_mask &= ~std::to_underlying(b);
+				}
+			}
+		}
 
 		if (auto val = root["virtual_keyboard_layout"]; val.is_string())
 			virtual_keyboard_layout = val.get_string().value();
@@ -306,7 +322,21 @@ void configuration::save()
 	json << ",\"forward_keyboard\":" << std::boolalpha << forward_keyboard;
 	json << ",\"forward_mouse\":" << std::boolalpha << forward_mouse;
 	json << ",\"forward_gamepad\":" << std::boolalpha << forward_gamepad;
-	json << ",\"fb_lower_body\":" << std::boolalpha << fb_lower_body;
+
+	std::stringstream body_part_ss;
+	for (const auto & [b, name]: magic_enum::enum_entries<wivrn::from_headset::body_part_mask>())
+	{
+		bool enabled = (body_part_mask & std::to_underlying(b)) != 0;
+		body_part_ss << "\"" << name << "\":" << std::boolalpha << enabled << ",";
+	}
+
+	std::string body_parts_str = body_part_ss.str();
+	if (!body_parts_str.empty())
+	{
+		body_parts_str.pop_back(); // Remove last comma
+		json << ",\"body_parts\":{" << body_parts_str << "}";
+	}
+
 	json << ",\"enable_stream_gui\":" << std::boolalpha << enable_stream_gui;
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;

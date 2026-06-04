@@ -44,6 +44,7 @@ class wivrn_generic_tracker : public xrt_device
 	xrt_input pose_input;
 
 	wivrn_session & cnx;
+	bool enabled = true;
 
 public:
 	using base_t = xrt_device;
@@ -53,5 +54,7 @@ public:
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 
 	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const xrt_space_relation & pose, const clock_offset & offset);
+
+	void set_enabled(bool enabled);
 };
 } // namespace wivrn

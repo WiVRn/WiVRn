@@ -507,6 +507,9 @@ void wivrn_session::operator()(const from_headset::settings_changed & settings)
 	if (not settings.mirror_gamepad and uinput_handler)
 		uinput_handler->destroy_gamepad();
 
+	if (body_tracker)
+		(*body_tracker)(settings);
+
 	wivrn_ipc_socket_monado->send(std::move(settings));
 }
 
