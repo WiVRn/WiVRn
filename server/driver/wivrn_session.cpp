@@ -489,6 +489,9 @@ void wivrn_session::operator()(const from_headset::settings_changed & settings)
 	if (settings.preferred_refresh_rate != 0)
 		compositor.set_framerate(settings.preferred_refresh_rate / settings.fps_divider);
 
+	if (body_tracker)
+		(*body_tracker)(settings);
+
 	wivrn_ipc_socket_monado->send(std::move(settings));
 }
 

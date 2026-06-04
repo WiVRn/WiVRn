@@ -27,14 +27,14 @@
 #include <variant>
 #include <openxr/openxr.h>
 
-xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s, bool lower_body) :
+xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s, bool full_body) :
         handle(inst.get_proc<PFN_xrDestroyBodyTrackerFB>("xrDestroyBodyTrackerFB")),
         xrRequestBodyTrackingFidelityMETA(inst.has_extension(XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME)
                                                   ? inst.get_proc<PFN_xrRequestBodyTrackingFidelityMETA>("xrRequestBodyTrackingFidelityMETA")
                                                   : nullptr),
         xrLocateBodyJointsFB(inst.get_proc<PFN_xrLocateBodyJointsFB>("xrLocateBodyJointsFB")),
         xrGetBodySkeletonFB(inst.get_proc<PFN_xrGetBodySkeletonFB>("xrGetBodySkeletonFB")),
-        joint_set(lower_body ? XR_BODY_JOINT_SET_FULL_BODY_META : XR_BODY_JOINT_SET_DEFAULT_FB)
+        joint_set(full_body ? XR_BODY_JOINT_SET_FULL_BODY_META : XR_BODY_JOINT_SET_DEFAULT_FB)
 {
 	auto xrCreateBodyTrackerFB = inst.get_proc<PFN_xrCreateBodyTrackerFB>("xrCreateBodyTrackerFB");
 
@@ -47,7 +47,7 @@ xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s, bool lower_bo
 
 	// Enable IOBT.
 	if (xrRequestBodyTrackingFidelityMETA)
-		CHECK_XR(xrRequestBodyTrackingFidelityMETA(id, XR_BODY_TRACKING_FIDELITY_HIGH_META));
+		xrRequestBodyTrackingFidelityMETA(id, XR_BODY_TRACKING_FIDELITY_HIGH_META);
 }
 
 xr::fb_body_tracker::packet_type xr::fb_body_tracker::locate_spaces(XrTime time, XrSpace reference)

@@ -245,6 +245,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		}
 
 		info.settings.bitrate_bps = config.bitrate_bps;
+		info.settings.enabled_body_parts = config.body_part_mask;
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
@@ -285,7 +286,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 					info.body_tracking = from_headset::body_type::fb;
 					break;
 				case xr::body_tracker_type::meta:
-					info.body_tracking = config.fb_lower_body ? from_headset::body_type::meta : from_headset::body_type::fb;
+					info.body_tracking = from_headset::body_type::meta;
 					break;
 				case xr::body_tracker_type::pico:
 					info.body_tracking = from_headset::body_type::bd;
@@ -475,15 +476,23 @@ void scenes::stream::on_focused()
 	        session,
 	        device,
 	        swapchain_format,
-	        1800,
+	        3600,
 	        1200);
 
 	std::vector<imgui_context::viewport> vps{
 	        {
+	                // Main window
 	                .space = xr::spaces::world,
 	                // Position and orientation are set at each frame
 	                .size = {1.2, 0.6666},
 	                .vp_origin = {0, 0},
+	                .vp_size = {1800, 1000},
+	        },
+	        {
+	                // Popup window
+	                .space = xr::spaces::world,
+	                .size = {1.2, 0.6666},
+	                .vp_origin = {1800, 0},
 	                .vp_size = {1800, 1000},
 	        },
 	        {

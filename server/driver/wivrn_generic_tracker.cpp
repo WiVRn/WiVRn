@@ -117,6 +117,9 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 {
 	XrTime production_timestamp;
 
+	if (!enabled)
+		return XRT_ERROR_INPUT_UNSUPPORTED;
+
 	if (name == XRT_INPUT_GENERIC_TRACKER_POSE)
 	{
 		std::tie(production_timestamp, *res) = poses.get_at(at_timestamp_ns);
@@ -132,5 +135,10 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 void wivrn_generic_tracker::update_tracking(XrTime produced_timestamp, XrTime timestamp, const xrt_space_relation & pose, const clock_offset & offset)
 {
 	poses.update_tracking(produced_timestamp, timestamp, pose, offset);
+}
+
+void wivrn_generic_tracker::set_enabled(bool enabled)
+{
+	this->enabled = enabled;
 }
 } // namespace wivrn

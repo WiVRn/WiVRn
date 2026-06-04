@@ -840,18 +840,12 @@ void scenes::lobby::gui_settings()
 
 		imgui_ctx->vibrate_on_hover();
 
-		if (body_tracker == xr::body_tracker_type::meta)
 		{
 			ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
 			ImGui::Indent();
-			if (ImGui::Checkbox(_S("Enable lower body tracking"), &config.fb_lower_body))
 			{
-				config.save();
+				gui::body_tracking_parts(system, *imgui_ctx, config);
 			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-				imgui_ctx->tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
-
 			ImGui::Unindent();
 			ImGui::EndDisabled();
 		}

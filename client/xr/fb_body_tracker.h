@@ -41,7 +41,7 @@ class fb_body_tracker : public utils::handle<XrBodyTrackerFB>
 public:
 	using packet_type = wivrn::from_headset::meta_body;
 
-	fb_body_tracker(instance & inst, session & s, bool lower_body);
+	fb_body_tracker(instance & inst, session & s, bool full_body);
 
 	packet_type locate_spaces(XrTime time, XrSpace reference);
 	bool should_send_skeleton();

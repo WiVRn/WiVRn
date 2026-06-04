@@ -30,6 +30,7 @@
 
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_results.h"
+#include <unordered_map>
 
 static_assert(std::to_underlying(XR_BODY_JOINT_COUNT_FB) == std::to_underlying(XRT_BODY_JOINT_COUNT_FB));
 static_assert(std::to_underlying(XR_FULL_BODY_JOINT_COUNT_META) == std::to_underlying(XRT_FULL_BODY_JOINT_COUNT_META));
@@ -178,9 +179,9 @@ void body_joints_list::update_tracking(const wivrn::from_headset::meta_body & tr
 	};
 	std::visit(utils::overloaded{
 	                   [&](std::monostate) {
-		                   for (auto & [_, t]: parent.virtual_trackers)
+		                   for (auto & [_, tracker]: parent.virtual_trackers)
 		                   {
-			                   t.update_tracking(tracking.production_timestamp, tracking.timestamp, {}, offset);
+			                   tracker.update_tracking(tracking.production_timestamp, tracking.timestamp, {}, offset);
 		                   }
 	                   },
 	                   [&](auto & joints) {
@@ -194,7 +195,9 @@ void body_joints_list::update_tracking(const wivrn::from_headset::meta_body & tr
 
 			                   if (auto it = parent.virtual_trackers.find(joint); it != parent.virtual_trackers.cend())
 			                   {
-				                   it->second.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
+				                   const auto body_part = parent.joint_body_parts.at(joint);
+				                   auto & tracker = it->second;
+				                   tracker.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
 			                   }
 		                   }
 	                   }},
@@ -220,7 +223,9 @@ void body_joints_list::update_tracking(const wivrn::from_headset::bd_body & trac
 
 		if (auto it = parent.virtual_trackers.find(joint); it != parent.virtual_trackers.cend())
 		{
-			it->second.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
+			const auto body_part = parent.joint_body_parts.at(joint);
+			auto & tracker = it->second;
+			tracker.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
 		}
 	}
 
@@ -243,8 +248,17 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
         joints_list(cnx.get_info().body_tracking, *this),
         cnx(cnx)
 {
-	// joint id, pretty name
-	std::map<uint32_t, std::string> virtual_joints{};
+	static const std::unordered_map<from_headset::body_part_mask, std::string> body_part_pretty_names{
+	        {from_headset::body_part_mask::chest, "Chest"},
+	        {from_headset::body_part_mask::left_elbow, "Left Elbow"},
+	        {from_headset::body_part_mask::right_elbow, "Right Elbow"},
+	        {from_headset::body_part_mask::hip, "Hip"},
+	        {from_headset::body_part_mask::left_knee, "Left Knee"},
+	        {from_headset::body_part_mask::right_knee, "Right Knee"},
+	        {from_headset::body_part_mask::left_foot, "Left Foot"},
+	        {from_headset::body_part_mask::right_foot, "Right Foot"},
+	};
+
 	switch (cnx.get_info().body_tracking)
 	{
 		case from_headset::body_type::meta:
@@ -259,14 +273,14 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
 			        .name = XRT_INPUT_META_FULL_BODY_TRACKING,
 			});
 
-			virtual_joints.emplace(XRT_FULL_BODY_JOINT_CHEST_META, "Chest");
-			virtual_joints.emplace(XRT_FULL_BODY_JOINT_LEFT_ARM_LOWER_META, "Left Elbow");
-			virtual_joints.emplace(XRT_FULL_BODY_JOINT_RIGHT_ARM_LOWER_META, "Right Elbow");
-			virtual_joints.emplace(XRT_FULL_BODY_JOINT_HIPS_META, "Hip");
-			virtual_joints.emplace(XRT_FULL_BODY_JOINT_LEFT_LOWER_LEG_META, "Left Knee");
-			virtual_joints.emplace(XRT_FULL_BODY_JOINT_RIGHT_LOWER_LEG_META, "Right Knee");
-			virtual_joints.emplace(XRT_FULL_BODY_JOINT_LEFT_FOOT_TRANSVERSE_META, "Left Foot");
-			virtual_joints.emplace(XRT_FULL_BODY_JOINT_RIGHT_FOOT_TRANSVERSE_META, "Right Foot");
+			joint_body_parts.emplace(XRT_FULL_BODY_JOINT_CHEST_META, from_headset::body_part_mask::chest);
+			joint_body_parts.emplace(XRT_FULL_BODY_JOINT_LEFT_ARM_LOWER_META, from_headset::body_part_mask::left_elbow);
+			joint_body_parts.emplace(XRT_FULL_BODY_JOINT_RIGHT_ARM_LOWER_META, from_headset::body_part_mask::right_elbow);
+			joint_body_parts.emplace(XRT_FULL_BODY_JOINT_HIPS_META, from_headset::body_part_mask::hip);
+			joint_body_parts.emplace(XRT_FULL_BODY_JOINT_LEFT_LOWER_LEG_META, from_headset::body_part_mask::left_knee);
+			joint_body_parts.emplace(XRT_FULL_BODY_JOINT_RIGHT_LOWER_LEG_META, from_headset::body_part_mask::right_knee);
+			joint_body_parts.emplace(XRT_FULL_BODY_JOINT_LEFT_FOOT_TRANSVERSE_META, from_headset::body_part_mask::left_foot);
+			joint_body_parts.emplace(XRT_FULL_BODY_JOINT_RIGHT_FOOT_TRANSVERSE_META, from_headset::body_part_mask::right_foot);
 			break;
 		case from_headset::body_type::fb:
 			strcpy(str, "WiVRn FB body tracker");
@@ -276,10 +290,10 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
 			        .name = XRT_INPUT_FB_BODY_TRACKING,
 			});
 
-			virtual_joints.emplace(XRT_BODY_JOINT_CHEST_FB, "Chest");
-			virtual_joints.emplace(XRT_BODY_JOINT_LEFT_ARM_LOWER_FB, "Left Elbow");
-			virtual_joints.emplace(XRT_BODY_JOINT_RIGHT_ARM_LOWER_FB, "Right Elbow");
-			virtual_joints.emplace(XRT_BODY_JOINT_HIPS_FB, "Hip");
+			joint_body_parts.emplace(XRT_BODY_JOINT_CHEST_FB, from_headset::body_part_mask::chest);
+			joint_body_parts.emplace(XRT_BODY_JOINT_LEFT_ARM_LOWER_FB, from_headset::body_part_mask::left_elbow);
+			joint_body_parts.emplace(XRT_BODY_JOINT_RIGHT_ARM_LOWER_FB, from_headset::body_part_mask::right_elbow);
+			joint_body_parts.emplace(XRT_BODY_JOINT_HIPS_FB, from_headset::body_part_mask::hip);
 			break;
 		case from_headset::body_type::bd:
 			strcpy(str, "WiVRn BD body tracker");
@@ -289,14 +303,14 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
 			        .name = XRT_INPUT_BD_BODY_TRACKING,
 			});
 
-			virtual_joints.emplace(XRT_BODY_JOINT_SPINE3_BD, "Chest");
-			virtual_joints.emplace(XRT_BODY_JOINT_LEFT_ELBOW_BD, "Left Elbow");
-			virtual_joints.emplace(XRT_BODY_JOINT_RIGHT_ELBOW_BD, "Right Elbow");
-			virtual_joints.emplace(XRT_BODY_JOINT_PELVIS_BD, "Hip");
-			virtual_joints.emplace(XRT_BODY_JOINT_LEFT_KNEE_BD, "Left Knee");
-			virtual_joints.emplace(XRT_BODY_JOINT_RIGHT_KNEE_BD, "Right Knee");
-			virtual_joints.emplace(XRT_BODY_JOINT_LEFT_FOOT_BD, "Left Foot");
-			virtual_joints.emplace(XRT_BODY_JOINT_RIGHT_FOOT_BD, "Right Foot");
+			joint_body_parts.emplace(XRT_BODY_JOINT_SPINE3_BD, from_headset::body_part_mask::chest);
+			joint_body_parts.emplace(XRT_BODY_JOINT_LEFT_ELBOW_BD, from_headset::body_part_mask::left_elbow);
+			joint_body_parts.emplace(XRT_BODY_JOINT_RIGHT_ELBOW_BD, from_headset::body_part_mask::right_elbow);
+			joint_body_parts.emplace(XRT_BODY_JOINT_PELVIS_BD, from_headset::body_part_mask::hip);
+			joint_body_parts.emplace(XRT_BODY_JOINT_LEFT_KNEE_BD, from_headset::body_part_mask::left_knee);
+			joint_body_parts.emplace(XRT_BODY_JOINT_RIGHT_KNEE_BD, from_headset::body_part_mask::right_knee);
+			joint_body_parts.emplace(XRT_BODY_JOINT_LEFT_FOOT_BD, from_headset::body_part_mask::left_foot);
+			joint_body_parts.emplace(XRT_BODY_JOINT_RIGHT_FOOT_BD, from_headset::body_part_mask::right_foot);
 			break;
 		default:
 			assert(false);
@@ -306,9 +320,12 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
 	inputs = inputs_array.data();
 	input_count = inputs_array.size();
 
-	for (auto & [joint, name]: virtual_joints)
+	for (auto & [joint, body_part]: joint_body_parts)
 	{
-		auto [it, success] = virtual_trackers.try_emplace(joint, name, hmd, cnx);
+		auto & name = body_part_pretty_names.at(body_part);
+		auto [it, success] = virtual_trackers.emplace(std::piecewise_construct,
+		                                              std::forward_as_tuple(joint),
+		                                              std::forward_as_tuple(name, hmd, cnx));
 		assert(success);
 		device_add_callback(it->second);
 	}
@@ -384,4 +401,12 @@ void wivrn_body_tracker::update_skeleton(const from_headset::meta_body_skeleton 
 	meta_skeleton_generation++;
 }
 
+void wivrn_body_tracker::operator()(const from_headset::settings_changed & settings)
+{
+	for (auto & [joint, tracker]: virtual_trackers)
+	{
+		const auto body_part = joint_body_parts.at(joint);
+		tracker.set_enabled(settings.enabled_body_parts & body_part);
+	}
+}
 } // namespace wivrn

@@ -30,7 +30,7 @@
 #include "wivrn_packets.h"
 
 #include <atomic>
-#include <map>
+#include <unordered_map>
 
 namespace wivrn
 {
@@ -65,7 +65,10 @@ class wivrn_body_tracker : public xrt_device
 	std::atomic_uint32_t meta_skeleton_generation;
 
 protected:
-	std::map<uint32_t, wivrn_generic_tracker> virtual_trackers;
+	// key is joint
+	std::unordered_map<uint32_t, from_headset::body_part_mask> joint_body_parts;
+	// key is joint
+	std::unordered_map<uint32_t, wivrn_generic_tracker> virtual_trackers;
 
 public:
 	using base_t = xrt_device;
@@ -78,6 +81,8 @@ public:
 	void update_tracking(const from_headset::meta_body &, const clock_offset &);
 	void update_tracking(const from_headset::bd_body &, const clock_offset &);
 	void update_skeleton(const from_headset::meta_body_skeleton &);
+
+	void operator()(const from_headset::settings_changed & settings);
 };
 
 } // namespace wivrn

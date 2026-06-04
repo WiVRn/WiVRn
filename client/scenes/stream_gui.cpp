@@ -387,6 +387,7 @@ static void send_settings_changed_packet(xr::session & session, wivrn_session * 
 	                .minimum_refresh_rate = config.minimum_refresh_rate.value_or(0),
 	                .fps_divider = config.fps_divider,
 	                .bitrate_bps = config.bitrate_bps,
+	                .enabled_body_parts = config.body_part_mask,
 	        });
 }
 
@@ -412,6 +413,12 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			imgui_ctx->tooltip(_("Click to adjust bitrate"));
+	}
+
+	if (config.check_feature(feature::body_tracking))
+	{
+		if (gui::body_tracking_parts(system, *imgui_ctx, config))
+			send_settings_changed_packet(session, network_session.get(), config);
 	}
 
 	gui::post_processing(*imgui_ctx, config);
@@ -760,6 +767,10 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 				imgui_ctx->layers()[0].position = world_gui_position;
 				break;
 		}
+
+		// Position popup layer
+		imgui_ctx->layers()[1].orientation = imgui_ctx->layers()[0].orientation;
+		imgui_ctx->layers()[1].position = imgui_ctx->layers()[0].position + imgui_ctx->layers()[0].orientation * constants::lobby::popup_position;
 	}
 
 	const float tab_width = 300;

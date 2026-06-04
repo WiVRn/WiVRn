@@ -48,33 +48,33 @@ xr::body_tracker_type xr::body_tracker_supported(xr::instance & instance, xr::sy
 	return xr::body_tracker_type::none;
 }
 
-xr::body_tracker xr::make_body_tracker(xr::instance & instance, xr::system & system, xr::session & session, std::vector<std::pair<XrPath, xr::space>> & generic_trackers, bool full_body)
+xr::body_tracker xr::make_body_tracker(xr::instance & instance, xr::system & system, xr::session & session, std::vector<std::pair<XrPath, xr::space>> & generic_trackers)
 {
-	if (instance.has_extension(XR_FB_BODY_TRACKING_EXTENSION_NAME))
+	switch (body_tracker_supported(instance, system))
 	{
-		if (instance.has_extension(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME) and system.meta_body_tracking_properties().supportsFullBodyTracking)
+		case body_tracker_type::meta:
 			return xr::body_tracker(std::in_place_type_t<xr::fb_body_tracker>(),
 			                        instance,
 			                        session,
-			                        full_body);
-		if (system.fb_body_tracking_properties().supportsBodyTracking)
+			                        true);
+		case body_tracker_type::fb:
 			return xr::body_tracker(std::in_place_type_t<xr::fb_body_tracker>(),
 			                        instance,
 			                        session,
 			                        false);
-	}
-
-	if (not generic_trackers.empty())
-		return xr::body_tracker(std::in_place_type_t<xr::htc_body_tracker>(),
-		                        session,
-		                        generic_trackers);
-
-	if (instance.has_extension(XR_BD_BODY_TRACKING_EXTENSION_NAME))
-	{
-		if (system.bd_body_tracking_properties().supportsBodyTracking)
+		case body_tracker_type::pico:
 			return xr::body_tracker(std::in_place_type_t<xr::pico_body_tracker>(),
 			                        instance,
 			                        session);
+		case body_tracker_type::htc:
+			if (not generic_trackers.empty())
+				return xr::body_tracker(std::in_place_type_t<xr::htc_body_tracker>(),
+				                        session,
+				                        generic_trackers);
+
+			break;
+		default:
+			break;
 	}
 
 	return std::monostate();
