@@ -21,6 +21,8 @@
 #include "xr/face_tracker.h"
 #include "xr/fb_face_tracker2.h"
 #include "xr/space.h"
+#include <glm/ext/quaternion_geometric.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <magic_enum.hpp>
@@ -737,6 +739,30 @@ void scenes::stream::update_gui_position(xr::spaces controller, float predicted_
 
 		world_gui_position = world_controller_position + world_controller_orientation * controller_gui_position;
 		world_gui_orientation = world_controller_orientation * controller_gui_orientation;
+
+		if ((world_gui_orientation * glm::vec3(0, 1, 0)).y > 0.985)
+		{
+			glm::mat3 M = glm::mat3_cast(world_gui_orientation);
+
+			// Snap the Y axis of the GUI layer to the Y axis of the world frame
+			M[1] = glm::vec3(0, 1, 0);
+
+			// Re-orthonormalize the matrix
+			M[0] = M[0] - glm::dot(M[0], M[1]) * M[1];
+			M[0] = M[0] / glm::length(M[0]);
+
+			// M[2] = M[2] - glm::dot(M[2], M[1]) * M[1];
+			// M[2] = M[2] / glm::length(M[2]);
+			M[2] = glm::cross(M[0], M[1]);
+
+			world_gui_orientation = glm::quat_cast(M);
+		}
+
+		if (std::abs(world_gui_orientation.z) < 0.1)
+		{
+			world_gui_orientation.z = 0;
+			world_gui_orientation = glm::normalize(world_gui_orientation);
+		}
 	}
 }
 
