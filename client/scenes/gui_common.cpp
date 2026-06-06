@@ -150,7 +150,7 @@ bool body_tracking_parts(
 	const auto & popup_layer = imgui_ctx.layers()[1];
 	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
 	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
 
