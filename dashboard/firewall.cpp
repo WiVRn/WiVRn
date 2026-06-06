@@ -90,6 +90,8 @@ public:
 
 	bool need_setup() override
 	{
+		// Some setups prompt for credentials in getServices, which triggers on every dashboard start
+		return false;
 		QDBusReply<QStringList> res = zone.call("getServices", "");
 		if (not res.isValid())
 		{
