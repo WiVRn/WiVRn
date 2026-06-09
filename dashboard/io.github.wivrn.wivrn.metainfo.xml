@@ -68,6 +68,18 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="26.6" date="2026-06-10">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.6</url>
+			<description>
+				<ul>
+					<li>Improved reconnection mechanism, now with warnings and errors</li>
+					<li>Improved image quality when content does not fill the whole field of view</li>
+					<li>Add a half FPS mode to reduce load at the expense of framerate</li>
+					<li>Fixed Vulkan video encode on NVIDIA GPUs</li>
+					<li>Many bugfixes</li>
+				</ul>
+			</description>
+		</release>
 		<release version="26.2" date="2026-02-08">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.2</url>
 			<description>
