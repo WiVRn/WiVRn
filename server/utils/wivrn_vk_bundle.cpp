@@ -123,7 +123,7 @@ int get_queue_index(const std::vector<vk::QueueFamilyProperties> & queues, std::
 			auto count = queues.at(family_index).queueCount;
 			if (info.queueCount == count)
 			{
-				U_LOG_W("Insufficient vulkan queues for family %d", family_index);
+				U_LOG_D("Insufficient vulkan queues for family %d", family_index);
 				return -1;
 			}
 			return info.queueCount++;
