@@ -403,11 +403,15 @@ void wivrn_session::resume_session()
 
 		if (target_fps != current_fps)
 		{
-			auto s = settings.lock();
-			(*this)(from_headset::refresh_rate_changed{
-			        .from = current_fps * s->fps_divider,
-			        .to = target_fps * s->fps_divider,
-			});
+			compositor.set_framerate(target_fps);
+			push_event(
+			        {
+			                .display = {
+			                        .type = XRT_SESSION_EVENT_DISPLAY_REFRESH_RATE_CHANGE,
+			                        .from_display_refresh_rate_hz = current_fps,
+			                        .to_display_refresh_rate_hz = target_fps,
+			                },
+			        });
 		}
 	}
 
