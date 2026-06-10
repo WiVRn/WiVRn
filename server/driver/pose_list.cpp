@@ -166,19 +166,19 @@ void pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const 
 	// TODO keep the tracked flag
 
 	polynomial_interpolator<3>::sample position{production_timestamp, timestamp};
-	if (pose.flags & from_headset::tracking::position_valid)
+	if (pose.flags & from_headset::pose_flags::position_valid)
 		position.y.emplace(
 		        pose.pose.position.x,
 		        pose.pose.position.y,
 		        pose.pose.position.z);
-	if (pose.flags & from_headset::tracking::linear_velocity_valid)
+	if (pose.flags & from_headset::pose_flags::linear_velocity_valid)
 		position.dy.emplace(
 		        pose.linear_velocity.x,
 		        pose.linear_velocity.y,
 		        pose.linear_velocity.z);
 
 	polynomial_interpolator<4, true>::sample orientation{production_timestamp, timestamp};
-	if (pose.flags & from_headset::tracking::orientation_valid)
+	if (pose.flags & from_headset::pose_flags::orientation_valid)
 	{
 		orientation.y.emplace(
 		        pose.pose.orientation.w,
@@ -186,7 +186,7 @@ void pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const 
 		        pose.pose.orientation.y,
 		        pose.pose.orientation.z);
 
-		if (pose.flags & from_headset::tracking::angular_velocity_valid)
+		if (pose.flags & from_headset::pose_flags::angular_velocity_valid)
 		{
 			Eigen::Quaternionf q{
 			        pose.pose.orientation.w,
