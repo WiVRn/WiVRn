@@ -437,7 +437,8 @@ std::vector<wivrn::steam::application> wivrn::steam::list_applications()
 	else
 	{
 		// Is it a good idea to just iterate over all users?
-		for (auto const & entry: std::filesystem::directory_iterator{root / "userdata"})
+		std::error_code ec;
+		for (auto const & entry: std::filesystem::directory_iterator{root / "userdata", ec})
 			try
 			{
 				read_steam_shortcuts(entry.path() / "config/shortcuts.vdf", res, shortcut_icons);
