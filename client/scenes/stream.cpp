@@ -1147,6 +1147,7 @@ void scenes::stream::exit()
 
 void scenes::stream::setup(const to_headset::video_stream_description & description)
 {
+	spdlog::info("setup, refresh rate {}", description.refresh_rate);
 	session.set_refresh_rate(description.refresh_rate);
 
 	std::unique_lock lock(decoder_mutex);
@@ -1171,6 +1172,7 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 	assert(swapchain_width);
 	assert(swapchain_height);
 	device.waitIdle();
+	spdlog::info("swapchain setup, refresh rate {}", video_stream_description->refresh_rate);
 	session.set_refresh_rate(video_stream_description->refresh_rate);
 
 	auto views = system.view_configuration_views(viewconfig);

@@ -561,6 +561,7 @@ xrt_result_t compositor::request_display_refresh_rate(float hz)
 	try
 	{
 		requested_refresh_rate = hz;
+		U_LOG_I("request refresh rate: %fHz", hz);
 		session.send_control(to_headset::refresh_rate_change{.hz = hz});
 	}
 	catch (std::exception & e)

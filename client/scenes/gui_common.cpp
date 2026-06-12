@@ -84,6 +84,7 @@ bool refresh_rate(
 				            rate == config.preferred_refresh_rate and divider == config.fps_divider,
 				            ImGuiSelectableFlags_SelectOnRelease))
 				{
+					spdlog::info("configured refresh rate: {}", rate);
 					session.set_refresh_rate(rate);
 					config.preferred_refresh_rate = rate;
 					config.fps_divider = divider;
