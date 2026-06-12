@@ -304,6 +304,7 @@ void xr::session::set_refresh_rate(float refresh_rate)
 {
 	if (xrRequestDisplayRefreshRateFB)
 	{
+		spdlog::info("set refresh rate to {}Hz", refresh_rate);
 		if (auto res = xrRequestDisplayRefreshRateFB(id, refresh_rate); res != XR_SUCCESS)
 			spdlog::warn("Refresh rate change failed: {}", xr::to_string(res));
 	}
