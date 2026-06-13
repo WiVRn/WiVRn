@@ -174,8 +174,11 @@ active_runtime::active_runtime() :
 	try
 	{
 		auto ovr_compat = openvr_compat_path();
-		if (not ovr_compat.empty())
+		if (ovr_compat.empty())
+			std::cerr << "Not setting an OpenVR compatibility library" << std::endl;
+		else
 		{
+			std::cerr << "Setting the OpenVR compatibility library to " << ovr_compat.native() << std::endl;
 			if (not wivrn::is_flatpak())
 			{
 				auto vrclient = ovr_compat / "bin"
