@@ -52,6 +52,19 @@ void row_separator();
 // enough for a multi-line label.
 float setting_label(const std::string & title, const std::string & description, float control_width);
 
+// "<icon>  <label>" with the standard two-space gap, for chips and text buttons that
+// take a single label string with an embedded glyph.
+std::string icon_label(const char * icon, const std::string & label);
+
+// Auto-fit width of a button, matching what button() lays out when size.x is left at 0.
+// Use to reserve/right-align a button before drawing it. The icon overload accounts for
+// the leading glyph drawn at metrics::button_label_glyph.
+float button_width(const std::string & label);
+float button_width(const char * icon, const std::string & label);
+
+// Footprint of a chip() with standard padding (no dot, no height override).
+ImVec2 chip_size(const std::string & label);
+
 bool button(const std::string & label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
 // Same, with a larger leading icon glyph drawn before the label
 bool button(const char * icon, const std::string & label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
@@ -135,6 +148,13 @@ struct list_row_result
 {
 	ImVec2 min, max; // row rect (screen) for right-aligning trailing controls
 	bool clicked;    // the row body was clicked
+
+	// Screen position for a trailing control of the given size, right-aligned to right_x
+	// and vertically centred in the row. Feed to ImGui::SetCursorScreenPos.
+	ImVec2 trailing(float right_x, const ImVec2 & size) const
+	{
+		return {right_x - size.x, min.y + (max.y - min.y - size.y) * 0.5f};
+	}
 };
 
 // List row: leading thumbnail (image, if non-zero) or icon box, title and muted subtitle.

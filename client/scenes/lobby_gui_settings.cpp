@@ -56,7 +56,7 @@ namespace ui = wivrn::ui;
 
 namespace
 {
-constexpr float control_w = 480;
+constexpr float control_w = ui::metrics::setting_control_width;
 
 enum class ui_kind
 {
@@ -95,7 +95,7 @@ struct setting
 
 void render_settings(const char * card_id, const std::vector<setting> & list)
 {
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
 	ui::begin_card(card_id);
 
 	for (const auto & s: list)

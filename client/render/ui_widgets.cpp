@@ -224,6 +224,31 @@ button_colors colors_for(button_style s, const theme & t)
 }
 } // namespace
 
+std::string icon_label(const char * icon, const std::string & label)
+{
+	return std::string(icon) + "  " + label;
+}
+
+float button_width(const std::string & label)
+{
+	return ImGui::CalcTextSize(label.c_str()).x + metrics::button_padding.x * 2;
+}
+
+float button_width(const char * icon, const std::string & label)
+{
+	ImGui::PushFont(nullptr, ImGui::GetFontSize() * metrics::button_label_glyph);
+	const float icon_w = ImGui::CalcTextSize(icon).x;
+	ImGui::PopFont();
+	const float gap = ImGui::GetFontSize() * 0.4f;
+	return icon_w + gap + ImGui::CalcTextSize(label.c_str()).x + metrics::button_padding.x * 2;
+}
+
+ImVec2 chip_size(const std::string & label)
+{
+	const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
+	return {ts.x + metrics::chip_padding.x * 2, ts.y + metrics::chip_padding.y * 2};
+}
+
 bool button(const std::string & label, button_style s, const ImVec2 & size)
 {
 	const theme & t = current();
@@ -866,7 +891,10 @@ bool nav_item(const char * icon, const std::string & label, bool selected)
 	hover_haptic();
 
 	ImDrawList * draw = window->DrawList;
-	const ImVec4 bg = selected ? t.control : (hovered ? t.control_hovered : ImVec4{0, 0, 0, 0});
+	// Subtle accent tint at a fixed alpha so the highlight reads the same in every
+	// theme, instead of the per-theme control surface whose contrast varies.
+	ImVec4 bg = t.accent;
+	bg.w = selected ? 0.16f : (hovered ? 0.08f : 0);
 	if (bg.w > 0)
 		draw->AddRectFilled(bb.Min, bb.Max, t.col(bg), t.rounding);
 
