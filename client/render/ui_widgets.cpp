@@ -27,6 +27,8 @@
 
 #include "IconsFontAwesome6.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <functional>
 #include <unordered_map>
@@ -94,12 +96,12 @@ struct card_frame
 	float width;
 	float content_max_x_backup;
 	float work_max_x_backup;
+	ImVec2 padding;
 };
 std::vector<card_frame> card_stack;
 std::unordered_map<ImGuiID, float> card_heights;
-} // namespace
 
-bool begin_card(const char * id, const ImVec2 &)
+bool begin_card_impl(const char * id, ImVec2 padding)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	const theme & t = current();
@@ -109,7 +111,8 @@ bool begin_card(const char * id, const ImVec2 &)
 	                      window->DC.CursorPos,
 	                      ImGui::GetContentRegionAvail().x,
 	                      window->ContentRegionRect.Max.x,
-	                      window->WorkRect.Max.x});
+	                      window->WorkRect.Max.x,
+	                      padding});
 	const card_frame & cf = card_stack.back();
 
 	if (const float h = card_heights[gid]; h > 0)
@@ -121,12 +124,23 @@ bool begin_card(const char * id, const ImVec2 &)
 	}
 
 	ImGui::PushID(id);
-	window->ContentRegionRect.Max.x -= metrics::card_padding.x;
-	window->WorkRect.Max.x -= metrics::card_padding.x;
-	ImGui::Indent(metrics::card_padding.x);
-	ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, cf.origin.y + metrics::card_padding.y});
+	window->ContentRegionRect.Max.x -= padding.x;
+	window->WorkRect.Max.x -= padding.x;
+	ImGui::Indent(padding.x);
+	ImGui::SetCursorScreenPos({ImGui::GetCursorScreenPos().x, cf.origin.y + padding.y});
 	ImGui::BeginGroup();
 	return true;
+}
+} // namespace
+
+bool begin_card(const char * id, const ImVec2 &)
+{
+	return begin_card_impl(id, metrics::card_padding);
+}
+
+bool begin_list_card(const char * id)
+{
+	return begin_card_impl(id, metrics::list_card_padding);
 }
 
 void end_card()
@@ -136,12 +150,12 @@ void end_card()
 	card_stack.pop_back();
 
 	ImGui::EndGroup();
-	ImGui::Unindent(metrics::card_padding.x);
+	ImGui::Unindent(cf.padding.x);
 	window->ContentRegionRect.Max.x = cf.content_max_x_backup;
 	window->WorkRect.Max.x = cf.work_max_x_backup;
 	ImGui::PopID();
 
-	const float height = ImGui::GetItemRectMax().y + metrics::card_padding.y - cf.origin.y;
+	const float height = ImGui::GetItemRectMax().y + cf.padding.y - cf.origin.y;
 	card_heights[cf.id] = height;
 
 	// reserve the full card extent so layout and scrolling account for it
@@ -152,7 +166,9 @@ void end_card()
 void row_separator()
 {
 	const theme & t = current();
-	ImGui::PushStyleColor(ImGuiCol_Separator, t.border);
+	ImVec4 edge = t.border;
+	edge.w *= t.background_alpha; // match the panel/card opacity
+	ImGui::PushStyleColor(ImGuiCol_Separator, edge);
 	ImGui::Separator();
 	ImGui::PopStyleColor();
 }
@@ -386,6 +402,70 @@ bool icon_button(const char * icon, const ImVec2 & size_arg, bool active, const 
 		const ImVec2 ts = ImGui::CalcTextSize(icon);
 		draw->AddText({center.x - ts.x * 0.5f, center.y - ts.y * 0.5f}, col, icon);
 	}
+	ImGui::PopFont();
+
+	return pressed;
+}
+
+bool cancel_progress_button(const char * id, float fraction, const ImVec2 & size_arg, const std::string & tooltip)
+{
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
+	if (window->SkipItems)
+		return false;
+
+	ImGuiContext & g = *GImGui;
+	const theme & t = current();
+
+	const float side = ImGui::GetFrameHeight() * metrics::control_height;
+	const ImVec2 size = size_arg.x > 0 ? size_arg : ImVec2{side, side};
+
+	const ImVec2 pos = window->DC.CursorPos;
+	const ImRect bb(pos, pos + size);
+	ImGui::ItemSize(bb, g.Style.FramePadding.y);
+	const ImGuiID gid = window->GetID(id);
+	if (not ImGui::ItemAdd(bb, gid))
+		return false;
+
+	bool hovered, held;
+	const bool pressed = ImGui::ButtonBehavior(bb, gid, &hovered, &held);
+	hover_haptic();
+	if (hovered)
+		show_tooltip(tooltip);
+
+	ImDrawList * draw = window->DrawList;
+	const ImVec2 center = bb.GetCenter();
+	const float thickness = ImMax(2.f, size.y * 0.09f);
+	const float radius = ImMin(size.x, size.y) * 0.5f - thickness;
+
+	// faint full ring as the track
+	draw->PathArcTo(center, radius, 0, 2 * IM_PI, 48);
+	draw->PathStroke(t.col(t.control), ImDrawFlags_None, thickness);
+
+	const ImU32 accent = t.col(t.accent);
+	if (fraction >= 0)
+	{
+		// determinate arc, clockwise from the top
+		const float a0 = -IM_PI * 0.5f;
+		draw->PathArcTo(center, radius, a0, a0 + ImClamp(fraction, 0.f, 1.f) * 2 * IM_PI, 48);
+		draw->PathStroke(accent, ImDrawFlags_None, thickness);
+	}
+	else
+	{
+		// indeterminate: a rotating quarter arc
+		const float a0 = (float)g.Time * 3.5f;
+		draw->PathArcTo(center, radius, a0, a0 + IM_PI * 0.5f, 24);
+		draw->PathStroke(accent, ImDrawFlags_None, thickness);
+	}
+
+	// stop glyph in the centre, brightening on hover to read as a cancel target
+	const float glyph_size = size.y * metrics::icon_button_glyph * 0.7f;
+	ImGui::PushFont(nullptr, glyph_size);
+	const ImU32 col = t.col(hovered or held ? t.text : t.text_muted);
+	unsigned int codepoint = 0;
+	ImTextCharFromUtf8(&codepoint, ICON_FA_STOP, nullptr);
+	const ImFontGlyph * glyph = ImGui::GetFontBaked()->FindGlyph((ImWchar)codepoint);
+	if (glyph)
+		draw->AddText({center.x - (glyph->X0 + glyph->X1) * 0.5f, center.y - (glyph->Y0 + glyph->Y1) * 0.5f}, col, ICON_FA_STOP);
 	ImGui::PopFont();
 
 	return pressed;
@@ -891,21 +971,35 @@ bool nav_item(const char * icon, const std::string & label, bool selected)
 	hover_haptic();
 
 	ImDrawList * draw = window->DrawList;
-	// Subtle accent tint at a fixed alpha so the highlight reads the same in every
-	// theme, instead of the per-theme control surface whose contrast varies.
-	ImVec4 bg = t.accent;
-	bg.w = selected ? 0.16f : (hovered ? 0.08f : 0);
-	if (bg.w > 0)
-		draw->AddRectFilled(bb.Min, bb.Max, t.col(bg), t.rounding);
+	const float lum = t.background.x * 0.299f + t.background.y * 0.587f + t.background.z * 0.114f;
+	if (selected)
+	{
+		// Pure accent fill for the active tab.
+		draw->AddRectFilled(bb.Min, bb.Max, t.col(t.accent), t.rounding);
+	}
+	else if (hovered)
+	{
+		// Subtle lighten on dark themes, darken on light ones. The framebuffer
+		// blends in linear light, so a fixed alpha would look far stronger on a
+		// dark surface than a light one. Solve for the alpha that yields a constant
+		// *perceived* (gamma-space) step instead.
+		const float step = lum < 0.5f ? 0.10f : 0.06f; // perceptual lightness delta; stronger on dark
+		auto to_linear = [](float c) { return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f); };
+		const float overlay = lum < 0.5f ? 1.f : 0.f; // lighten vs darken
+		const float ys = to_linear(lum);
+		const float yt = to_linear(std::clamp(lum + (overlay - lum) / std::abs(overlay - lum) * step, 0.f, 1.f));
+		const float a = (yt - ys) / (overlay - ys);
+		draw->AddRectFilled(bb.Min, bb.Max, t.col({overlay, overlay, overlay, a}), t.rounding);
+	}
 
 	const float pad = metrics::combo_padding.x;
 	const float icon_w = ImGui::GetFontSize() * 1.5f; // icon column
 
 	const ImVec2 its = ImGui::CalcTextSize(icon);
-	draw->AddText({bb.Min.x + pad + (icon_w - its.x) * 0.5f, bb.Min.y + (h - its.y) * 0.5f}, t.col(selected ? t.accent : t.text_muted), icon);
+	draw->AddText({bb.Min.x + pad + (icon_w - its.x) * 0.5f, bb.Min.y + (h - its.y) * 0.5f}, t.col(selected ? t.on_accent : t.text_muted), icon);
 
 	const ImVec2 ls = ImGui::CalcTextSize(label.c_str());
-	draw->AddText({bb.Min.x + pad + icon_w + pad * 0.5f, bb.Min.y + (h - ls.y) * 0.5f}, t.col(t.text), label.c_str());
+	draw->AddText({bb.Min.x + pad + icon_w + pad * 0.5f, bb.Min.y + (h - ls.y) * 0.5f}, t.col(selected ? t.on_accent : t.text), label.c_str());
 
 	return pressed;
 }
@@ -1070,7 +1164,7 @@ namespace
 std::vector<ImVec2> list_row_after; // cursor to restore at end_list_row
 }
 
-list_row_result begin_list_row(const char * id, const char * icon, ImTextureID image, const std::string & title, const std::string & subtitle, bool selected, float trailing_width, float height)
+list_row_result begin_list_row(const char * id, const char * icon, ImTextureID image, const std::string & title, const std::string & subtitle, bool selected, float trailing_width, float height, bool large_thumb, bool interactive)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	const theme & t = current();
@@ -1078,7 +1172,7 @@ list_row_result begin_list_row(const char * id, const char * icon, ImTextureID i
 
 	// measure title + (possibly multi-line) subtitle so the row can auto-size
 	const float pad = metrics::list_row_pad;
-	const float box = metrics::list_row_box;
+	const float box = large_thumb ? metrics::list_row_box_large : metrics::list_row_box;
 	const ImVec2 ts = ImGui::CalcTextSize(title.c_str());
 	ImVec2 sub_sz{0, 0};
 	if (not subtitle.empty())
@@ -1092,23 +1186,32 @@ list_row_result begin_list_row(const char * id, const char * icon, ImTextureID i
 	const ImVec2 p0 = window->DC.CursorPos;
 	const float avail = ImGui::GetContentRegionAvail().x;
 
-	// the click area excludes the trailing controls so they receive their own clicks
-	ImGui::SetNextItemAllowOverlap();
-	const bool clicked = ImGui::InvisibleButton(id, {ImMax(avail - trailing_width, 1.f), row_h});
-	const bool hovered = ImGui::IsItemHovered();
-	hover_haptic();
+	// non-interactive rows (the body does nothing, only trailing controls act) just reserve
+	// layout space -- no click area and no hover highlight on the row itself
+	bool clicked = false;
+	if (interactive)
+	{
+		// the click area excludes the trailing controls so they receive their own clicks
+		ImGui::SetNextItemAllowOverlap();
+		clicked = ImGui::InvisibleButton(id, {ImMax(avail - trailing_width, 1.f), row_h});
+		hover_haptic();
+	}
+	else
+		ImGui::Dummy({avail, row_h});
+	const bool hovered = interactive and ImGui::IsItemHovered();
 	list_row_after.push_back(window->DC.CursorPos);
 
 	ImDrawList * draw = window->DrawList;
 	const ImRect bb(p0, p0 + ImVec2(avail, row_h));
-	if (selected)
-		draw->AddRectFilled(bb.Min, bb.Max, t.col({t.accent.x, t.accent.y, t.accent.z, 0.16f}), t.card_rounding);
-	else if (hovered)
+	// No tinted background for the selected row -- callers indicate the active item with a
+	// chip instead. Still show the hover highlight.
+	if (hovered)
 		draw->AddRectFilled(bb.Min, bb.Max, t.col(t.control), t.card_rounding);
 
-	// leading thumbnail or icon box
-	const ImVec2 box_min = {p0.x + pad, p0.y + (row_h - box) * 0.5f};
-	const ImVec2 box_max = box_min + ImVec2(box, box);
+	// leading thumbnail or icon box; large_thumb spans the full row height
+	const float thumb = large_thumb ? row_h - 2 * pad : box;
+	const ImVec2 box_min = {p0.x + pad, p0.y + (row_h - thumb) * 0.5f};
+	const ImVec2 box_max = box_min + ImVec2(thumb, thumb);
 	if (image)
 		draw->AddImageRounded(image, box_min, box_max, {0, 0}, {1, 1}, IM_COL32_WHITE, t.rounding);
 	else
@@ -1117,7 +1220,7 @@ list_row_result begin_list_row(const char * id, const char * icon, ImTextureID i
 		if (icon and icon[0])
 		{
 			const ImVec2 is = ImGui::CalcTextSize(icon);
-			draw->AddText(box_min + (ImVec2(box, box) - is) * 0.5f, t.col(selected ? t.on_accent : t.text_muted), icon);
+			draw->AddText(box_min + (ImVec2(thumb, thumb) - is) * 0.5f, t.col(selected ? t.on_accent : t.text_muted), icon);
 		}
 	}
 

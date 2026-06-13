@@ -430,7 +430,7 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 	else if (transferring or (local and not model.builtin))
 		trailing = bh + ui::metrics::list_row_pad;
 
-	const auto row = ui::begin_list_row("##env", icon, model.screenshot, title, subtitle, selected, trailing);
+	const auto row = ui::begin_list_row("##env", icon, model.screenshot, title, subtitle, selected, trailing, 0, true);
 	if (row.clicked and not selected)
 		action = local ? environment_item_action::use_model : environment_item_action::download_model;
 
@@ -443,8 +443,10 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 	}
 	else if (transferring)
 	{
+		const int64_t total = handle->get_content_length() > 0 ? handle->get_content_length() : model.size;
+		const float fraction = total > 0 ? float(handle->get_progress()) / float(total) : -1.f;
 		ImGui::SetCursorScreenPos(row.trailing(x, {bh, bh}));
-		if (ui::icon_button(ICON_FA_STOP, {bh, bh}, false, _S("Cancel")))
+		if (ui::cancel_progress_button("##cancel", fraction, {bh, bh}, _S("Cancel")))
 			handle->cancel();
 	}
 	else if (local and not model.builtin)
@@ -650,40 +652,42 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
 
-	ui::begin_card("##environments");
+	ui::begin_list_card("##environments");
 	environment_list(local_environments, false);
 	ui::end_card();
 
 	// Get more environments
-	ui::begin_card("##get_more");
+	bool open_download_popup = false;
+	ui::begin_list_card("##get_more");
 	{
 		const float bh = ImGui::GetFrameHeight() * ui::metrics::control_height;
 		const std::string browse = ui::icon_label(ICON_FA_UP_RIGHT_FROM_SQUARE, _("Browse"));
 		const float bw = ui::button_width(browse);
-		const auto row = ui::begin_list_row("##getmore", ICON_FA_IMAGES, 0, _S("Get more environments"), _S("Download community-made spaces from the WiVRn dashboard on your PC."), false, bw + ui::metrics::list_row_pad);
+		const auto row = ui::begin_list_row("##getmore", ICON_FA_IMAGES, 0, _S("Get more environments"), _S("Download community-made spaces from the WiVRn dashboard on your PC."), false, bw + ui::metrics::list_row_pad, 0, false, false);
 		ImGui::SetCursorScreenPos(row.trailing(row.max.x, {bw, bh}));
 		if (ui::button(browse, ui::button_style::secondary, {bw, 0}))
 		{
 			download_environment_list();
-			ImGui::OpenPopup("download environment model");
+			open_download_popup = true;
 		}
 		ui::end_list_row();
 		ui::end_card();
 	}
 
+	// OpenPopup must run at the same ID-stack level as BeginPopupModal below;
+	// begin_card pushes an ID, so defer the call until after end_card.
+	if (open_download_popup)
+		ImGui::OpenPopup("download environment model");
+
 	if (ui::button(_S("Open local glTF model"), ui::button_style::secondary))
 		lobby_file_picker_future = lobby_file_picker.open();
 
-	ImGui::SetNextWindowPos(imgui_ctx->layers()[1].vp_center(), ImGuiCond_Always, {0.5f, 0.5f});
-	ImGui::SetNextWindowSize({1200, 900});
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
-	if (ImGui::BeginPopupModal("download environment model", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	if (ui::begin_modal("download environment model", _S("Browse environments"), 1200))
 	{
-		auto close = _("Close");
-		auto close_size = ImGui::CalcTextSize(close.c_str());
+		const float side = ImGui::GetFrameHeight() * ui::metrics::control_height;
+		const float list_h = 760;
 
-		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, close_size.y + 80) /*, ImGuiChildFlags_AlwaysUseWindowPadding*/);
+		ImGui::BeginChild("Main", {0, list_h});
 
 		auto index_transfer = parse_environment_list();
 		switch (index_transfer ? index_transfer->get_state() : libcurl::state::reset)
@@ -718,38 +722,30 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 					CenterTextHV(downloadable_environment_list_status);
 
 					ImGui::Dummy({0, constants::gui::font_size_large});
-					ImGui::PushFont(nullptr, constants::gui::font_size_large);
-					ImGui::PushStyleColor(ImGuiCol_Button, 0);
-					ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize(ICON_FA_ROTATE).x) / 2 - ImGui::GetStyle().FramePadding.x);
-					if (ImGui::Button(ICON_FA_ROTATE))
+					ImGui::SetCursorPosX((ImGui::GetWindowSize().x - side) / 2);
+					if (ui::icon_button(ICON_FA_ROTATE, {side, side}, false, _("Refresh")))
 						download_environment_list();
-					imgui_ctx->vibrate_on_hover();
-					ImGui::PopStyleColor(); // ImGuiCol_Button
-					ImGui::PopFont();
 				}
 		}
 
 		ScrollWhenDragging();
 		ImGui::EndChild();
 
-		ImGui::SetCursorPos(ImGui::GetWindowSize() - close_size - ImVec2{50, 50});
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-		if (ImGui::Button(_S("Close")))
+		ImGui::Dummy({0, ImGui::GetStyle().ItemSpacing.y});
+		const std::string close = _S("Close");
+		const float cw = ui::button_width(close);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - cw);
+		if (ui::button(close, ui::button_style::secondary, {cw, 0}))
 			ImGui::CloseCurrentPopup();
-		imgui_ctx->vibrate_on_hover();
-		ImGui::PopStyleColor(3); // ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive
 
 		popup_load_environment(predicted_display_time);
 
-		ImGui::EndPopup();
+		ui::end_modal();
 	}
 	else
 	{
 		popup_load_environment(predicted_display_time);
 	}
-	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize
 
 	// if (ImGui::RadioButton(_S("Custom environment"), not config.passthrough_enabled and config.environment_model_uri != ""))
 	// 	lobby_file_picker_future = lobby_file_picker.open();

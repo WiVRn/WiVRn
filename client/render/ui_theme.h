@@ -84,7 +84,8 @@ constexpr float font_title = 1.7;        // page header, x base font size
 constexpr float font_description = 0.82; // muted secondary text, x base font size
 
 constexpr ImVec2 button_padding = {26, 14};
-constexpr ImVec2 card_padding = {28, 22};
+constexpr ImVec2 card_padding = {28, 22};      // regular cards (settings, etc.)
+constexpr ImVec2 list_card_padding = {18, 18}; // cards holding a list of rows (server list)
 
 // Shared height of every full-width control (slider, segmented, combo, input)
 // so they line up in a setting row, in multiples of ImGui::GetFrameHeight()
@@ -106,6 +107,7 @@ constexpr float combo_modal_min_width = 460; // popup never narrower than this
 constexpr ImVec2 combo_padding = {16, 0};    // horizontal inner padding of box and rows
 
 constexpr float list_row_box = 52;        // leading icon/thumbnail size in a list row
+constexpr float list_row_box_large = 80;  // min thumbnail size for full-height list rows
 constexpr float list_row_pad = 12;        // inner padding of a list row, both axes
 constexpr ImVec2 chip_padding = {12, 6};  // inner padding of a chip/badge
 constexpr float chip_pill_padding_x = 18; // roomier horizontal padding for height-override pill chips (top bar)

@@ -390,7 +390,7 @@ void scenes::lobby::gui_server_list()
 	bool open_delete = false;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
-	ui::begin_card("##servers");
+	ui::begin_list_card("##servers");
 	{
 		if (sorted_cookies.empty())
 		{
@@ -471,7 +471,8 @@ void scenes::lobby::gui_server_list()
 			if (ui::button(c_label, reachable ? ui::button_style::primary : ui::button_style::secondary, {cw, 0}))
 			{
 				connect(data);
-				ImGui::OpenPopup("connecting");
+				// connecting popup is opened at window scope below (NOT here:
+				// inside begin_card PushID the id would not match BeginPopupModal -> orphaned popup)
 			}
 			if (not c_tooltip.empty() and ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 				imgui_ctx->tooltip(c_tooltip);
@@ -1376,8 +1377,11 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		}
 		ImGui::PopStyleColor(); // ImGuiCol_ChildBg
 
-		// hairline dividers separating the top bar, sidebar and main panel
-		const ImU32 divider = ImGui::GetColorU32(wivrn::ui::current().border);
+		// hairline dividers separating the top bar, sidebar and main panel,
+		// following the panel opacity so they dim with the background
+		ImVec4 divider_col = wivrn::ui::current().border;
+		divider_col.w *= wivrn::ui::current().background_alpha;
+		const ImU32 divider = ImGui::GetColorU32(divider_col);
 		const ImVec2 win_pos = ImGui::GetWindowPos();
 		const ImVec2 win_size = ImGui::GetWindowSize();
 		ImDrawList * dl = ImGui::GetWindowDrawList();
