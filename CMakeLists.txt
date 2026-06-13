@@ -23,6 +23,9 @@ include(FetchContent)
 include(ExternalProject)
 include(GNUInstallDirs)
 
+set(GIT_DESC "" CACHE STRING "Version to show in UI (from git if empty)")
+set(GIT_COMMIT "" CACHE STRING "Git SHA used to fetch client APK (from git if empty)")
+
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" ON)
 option(WIVRN_USE_SYSTEM_OPENXR "Use system OpenXR headers" ON)
