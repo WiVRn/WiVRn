@@ -59,36 +59,32 @@ static void hover_haptic()
 		hover_haptic_hook();
 }
 
-// Show a tooltip for the last submitted item; caller ensures it is hovered.
-static void show_tooltip(const char * text)
+// Show a tooltip for the last item; caller ensures it is hovered
+static void show_tooltip(const std::string & text)
 {
-	if (text and text[0] and tooltip_hook)
-		tooltip_hook(text);
+	if (not text.empty() and tooltip_hook)
+		tooltip_hook(text.c_str());
 }
 
-void page_header(const char * title, const char * subtitle)
+void page_header(const std::string & title, const std::string & subtitle)
 {
 	const theme & t = current();
 
 	ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * metrics::font_title);
-	ImGui::TextUnformatted(title);
+	ImGui::TextUnformatted(title.c_str());
 	ImGui::PopFont();
 
-	if (subtitle and subtitle[0])
+	if (not subtitle.empty())
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
-		ImGui::TextUnformatted(subtitle);
+		ImGui::TextUnformatted(subtitle.c_str());
 		ImGui::PopStyleColor();
 	}
 	ImGui::Dummy({0, ImGui::GetStyle().ItemSpacing.y});
 }
 
-// A card is purely a visual rounded panel, NOT a child window: its content is
-// laid out directly in the parent window so the page stays a single scroll
-// surface (drag-to-scroll and clicks behave uniformly everywhere). The panel is
-// drawn behind the upcoming content using the height measured last frame, then
-// the full extent is reserved so layout and scrolling account for it.
-// Always pair begin_card with end_card.
+// A card is a visual rounded panel, not a child window, so the page stays one scroll
+// surface. Drawn behind the content using last frame's height; pair with end_card.
 namespace
 {
 struct card_frame
@@ -161,7 +157,7 @@ void row_separator()
 	ImGui::PopStyleColor();
 }
 
-void setting_label(const char * title, const char * description, float control_width)
+float setting_label(const std::string & title, const std::string & description, float control_width)
 {
 	const theme & t = current();
 	const ImGuiStyle & style = ImGui::GetStyle();
@@ -174,31 +170,31 @@ void setting_label(const char * title, const char * description, float control_w
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {style.ItemSpacing.x, metrics::label_line_gap});
 	ImGui::PushTextWrapPos(start.x + text_w);
-	ImGui::TextUnformatted(title);
-	if (description and description[0])
+	ImGui::TextUnformatted(title.c_str());
+	if (not description.empty())
 	{
-		ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * metrics::font_description);
+		ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_description);
 		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
-		ImGui::TextUnformatted(description);
+		ImGui::TextUnformatted(description.c_str());
 		ImGui::PopStyleColor();
 		ImGui::PopFont();
 	}
 	ImGui::PopTextWrapPos();
 	ImGui::PopStyleVar();
 
-	// right-aligned control slot, vertically centered against the label block.
-	// Controls are control_height x frame height, so centre against that.
+	// right-aligned control slot, vertically centered against the label block
 	const float label_h = ImGui::GetCursorPos().y - start.y;
 	const float ctrl_h = ImGui::GetFrameHeight() * metrics::control_height;
 	const float ctrl_y = start.y + ImMax(0.f, (label_h - ctrl_h) * 0.5f);
 	ImGui::SetCursorPos({start.x + avail - control_width, ctrl_y});
+	return start.y + label_h;
 }
 
-bool button(const char * label, button_style s, const ImVec2 & size)
+bool button(const std::string & label, button_style s, const ImVec2 & size)
 {
 	const theme & t = current();
 
-	// default to the shared control height; width still auto-fits the label
+	// control height by default, width auto-fits the label
 	const float h = size.y > 0 ? size.y : ImGui::GetFrameHeight() * metrics::control_height;
 
 	switch (s)
@@ -231,14 +227,14 @@ bool button(const char * label, button_style s, const ImVec2 & size)
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, t.rounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, metrics::button_padding);
-	const bool pressed = ImGui::Button(label, {size.x, h});
+	const bool pressed = ImGui::Button(label.c_str(), {size.x, h});
 	ImGui::PopStyleVar(2);
 	ImGui::PopStyleColor(4);
 	hover_haptic();
 	return pressed;
 }
 
-bool icon_button(const char * icon, const ImVec2 & size_arg, bool active, const char * tooltip)
+bool icon_button(const char * icon, const ImVec2 & size_arg, bool active, const std::string & tooltip)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	if (window->SkipItems)
@@ -274,9 +270,7 @@ bool icon_button(const char * icon, const ImVec2 & size_arg, bool active, const 
 	ImDrawList * draw = window->DrawList;
 	draw->AddRectFilled(bb.Min, bb.Max, t.col(bg), t.rounding);
 
-	// glyph drawn manually so it scales with the button. Centre on the glyph's real
-	// ink box (X0..X1, Y0..Y1) rather than CalcTextSize, which returns the advance
-	// width and line height and leaves the glyph up-and-left of true centre.
+	// centre the glyph on its ink box, not CalcTextSize (which includes bearing/leading)
 	const float glyph_size = size.y * metrics::icon_button_glyph;
 	ImGui::PushFont(nullptr, glyph_size);
 	const ImU32 col = t.col(active ? t.on_accent : t.text);
@@ -298,15 +292,13 @@ bool icon_button(const char * icon, const ImVec2 & size_arg, bool active, const 
 }
 
 // Horizontal space a trailing reset slot consumes, gap included
-static float reset_slot_width()
+float reset_slot_width()
 {
 	return ImGui::GetFrameHeight() * metrics::control_height + ImGui::GetStyle().ItemSpacing.x;
 }
 
-// Trailing reset affordance placed on the same row as a value control, right after
-// it (the control should have shrunk its width by reset_slot_width() to make room).
-// Draws a reset icon button when show is true, or an empty slot when false so the
-// right edge stays put. Returns true when the user taps reset.
+// Trailing reset button on a value control's row; empty slot when show is false so the
+// right edge stays put. Returns true when tapped.
 static bool reset_slot(const char * id, bool show)
 {
 	const float side = ImGui::GetFrameHeight() * metrics::control_height;
@@ -567,7 +559,7 @@ void set_popup_center(const ImVec2 & center)
 	popup_center = center;
 }
 
-bool combo(const char * id, const char * title, const std::vector<combo_item> & items, int * selected, float width, const int * default_value)
+bool combo(const char * id, const std::string & title, const std::vector<combo_item> & items, int * selected, float width, const int * default_value)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	if (window->SkipItems or items.empty())
@@ -636,10 +628,10 @@ bool combo(const char * id, const char * title, const std::vector<combo_item> & 
 	bool changed = false;
 	if (ImGui::BeginPopupModal(popup_id, nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		if (title and title[0])
+		if (not title.empty())
 		{
 			ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
-			ImGui::TextUnformatted(title);
+			ImGui::TextUnformatted(title.c_str());
 			ImGui::PopStyleColor();
 			ImGui::Dummy({0, style.ItemSpacing.y});
 		}
@@ -654,10 +646,7 @@ bool combo(const char * id, const char * title, const std::vector<combo_item> & 
 			}
 		}
 
-		// tapping outside the list dismisses without changing the selection.
-		// AllowWhenBlockedByActiveItem is required: pressing a row sets it as the active
-		// item, which would otherwise make IsWindowHovered return false on the press
-		// frame and close the modal before the row's release registers the selection.
+		// click outside dismisses; AllowWhenBlockedByActiveItem so pressing a row still counts as inside
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) and not ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
 			ImGui::CloseCurrentPopup();
 
@@ -676,7 +665,7 @@ bool combo(const char * id, const char * title, const std::vector<combo_item> & 
 	return changed;
 }
 
-void chip(const char * label, chip_style style, bool dot)
+void chip(const std::string & label, chip_style style, bool dot, float height)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	if (window->SkipItems)
@@ -712,11 +701,11 @@ void chip(const char * label, chip_style style, bool dot)
 			break;
 	}
 
-	const ImVec2 ts = ImGui::CalcTextSize(label);
+	const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
 	const ImVec2 pad = metrics::chip_padding;
 	const float dot_r = ts.y * 0.26f;
 	const float dot_gap = dot ? dot_r * 2 + pad.x * 0.55f : 0;
-	const ImVec2 size = {ts.x + pad.x * 2 + dot_gap, ts.y + pad.y * 2};
+	const ImVec2 size = {ts.x + pad.x * 2 + dot_gap, height > 0 ? height : ts.y + pad.y * 2};
 
 	const ImVec2 pos = window->DC.CursorPos;
 	const ImRect bb(pos, pos + size);
@@ -733,24 +722,26 @@ void chip(const char * label, chip_style style, bool dot)
 		draw->AddCircleFilled({tx + dot_r, bb.Min.y + size.y * 0.5f}, dot_r, t.col(fg));
 		tx += dot_r * 2 + pad.x * 0.55f;
 	}
-	draw->AddText({tx, bb.Min.y + pad.y}, t.col(fg), label);
+	draw->AddText({tx, bb.Min.y + (size.y - ts.y) * 0.5f}, t.col(fg), label.c_str());
 }
 
-void nav_section(const char * label)
+void nav_section(const std::string & label)
 {
 	const theme & t = current();
 	const ImGuiStyle & style = ImGui::GetStyle();
 
-	ImGui::Dummy({0, style.ItemSpacing.y * 0.5f});
+	ImGui::Dummy({0, metrics::nav_section_gap}); // gap above the section
+	ImGui::Indent(metrics::combo_padding.x);     // align with the nav_item icons
 	ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_description);
 	ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
-	ImGui::TextUnformatted(label);
+	ImGui::TextUnformatted(label.c_str());
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
-	ImGui::Dummy({0, 2});
+	ImGui::Unindent(metrics::combo_padding.x);
+	ImGui::Dummy({0, 4});
 }
 
-bool nav_item(const char * icon, const char * label, bool selected)
+bool nav_item(const char * icon, const std::string & label, bool selected)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	if (window->SkipItems)
@@ -764,7 +755,7 @@ bool nav_item(const char * icon, const char * label, bool selected)
 	const ImVec2 pos = window->DC.CursorPos;
 	const ImRect bb(pos, pos + ImVec2(w, h));
 	ImGui::ItemSize(bb, style.FramePadding.y);
-	const ImGuiID gid = window->GetID(label);
+	const ImGuiID gid = window->GetID(label.c_str());
 	if (not ImGui::ItemAdd(bb, gid))
 		return false;
 
@@ -783,8 +774,8 @@ bool nav_item(const char * icon, const char * label, bool selected)
 	const ImVec2 its = ImGui::CalcTextSize(icon);
 	draw->AddText({bb.Min.x + pad + (icon_w - its.x) * 0.5f, bb.Min.y + (h - its.y) * 0.5f}, t.col(selected ? t.accent : t.text_muted), icon);
 
-	const ImVec2 ls = ImGui::CalcTextSize(label);
-	draw->AddText({bb.Min.x + pad + icon_w + pad * 0.5f, bb.Min.y + (h - ls.y) * 0.5f}, t.col(t.text), label);
+	const ImVec2 ls = ImGui::CalcTextSize(label.c_str());
+	draw->AddText({bb.Min.x + pad + icon_w + pad * 0.5f, bb.Min.y + (h - ls.y) * 0.5f}, t.col(t.text), label.c_str());
 
 	return pressed;
 }
@@ -867,7 +858,7 @@ bool input_int(const char * id, int * v, int step, int v_min, int v_max, float w
 	return changed;
 }
 
-bool begin_modal(const char * id, const char * title, float width)
+bool begin_modal(const char * id, const std::string & title, float width)
 {
 	const theme & t = current();
 	const ImGuiStyle & style = ImGui::GetStyle();
@@ -890,10 +881,10 @@ bool begin_modal(const char * id, const char * title, float width)
 	const bool open = ImGui::BeginPopupModal(id, nullptr, flags);
 	if (open)
 	{
-		if (title and title[0])
+		if (not title.empty())
 		{
 			ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_modal_title);
-			ImGui::TextUnformatted(title);
+			ImGui::TextUnformatted(title.c_str());
 			ImGui::PopFont();
 			ImGui::Dummy({0, style.ItemSpacing.y});
 		}
@@ -911,6 +902,195 @@ void end_modal()
 	ImGui::EndPopup();
 	ImGui::PopStyleVar(3);
 	ImGui::PopStyleColor(3);
+}
+
+int confirm_modal(const char * id, const std::string & title, const std::string & message, const std::string & confirm_label, const std::string & cancel_label, bool danger)
+{
+	int result = 0;
+	if (begin_modal(id, title, 520))
+	{
+		const theme & t = current();
+		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
+		ImGui::TextWrapped("%s", message.c_str());
+		ImGui::PopStyleColor();
+		ImGui::Dummy({0, 12});
+
+		const float gap = ImGui::GetStyle().ItemSpacing.x;
+		const float cancel_w = ImGui::CalcTextSize(cancel_label.c_str()).x + metrics::button_padding.x * 2;
+		const float confirm_w = ImGui::CalcTextSize(confirm_label.c_str()).x + metrics::button_padding.x * 2;
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - cancel_w - confirm_w - gap);
+		if (button(cancel_label, button_style::secondary, {cancel_w, 0}))
+		{
+			result = -1;
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (button(confirm_label, danger ? button_style::danger : button_style::primary, {confirm_w, 0}))
+		{
+			result = 1;
+			ImGui::CloseCurrentPopup();
+		}
+		end_modal();
+	}
+	return result;
+}
+
+namespace
+{
+std::vector<ImVec2> list_row_after; // cursor to restore at end_list_row
+}
+
+list_row_result begin_list_row(const char * id, const char * icon, ImTextureID image, const std::string & title, const std::string & subtitle, bool selected, float trailing_width, float height)
+{
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
+	const theme & t = current();
+	const ImGuiStyle & style = ImGui::GetStyle();
+
+	// measure title + (possibly multi-line) subtitle so the row can auto-size
+	const float pad = metrics::list_row_pad;
+	const float box = metrics::list_row_box;
+	const ImVec2 ts = ImGui::CalcTextSize(title.c_str());
+	ImVec2 sub_sz{0, 0};
+	if (not subtitle.empty())
+	{
+		ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_description);
+		sub_sz = ImGui::CalcTextSize(subtitle.c_str());
+		ImGui::PopFont();
+	}
+	const float text_h = ts.y + (subtitle.empty() ? 0 : metrics::label_line_gap + sub_sz.y);
+	const float row_h = height > 0 ? height : ImMax(box, text_h) + 2 * pad;
+	const ImVec2 p0 = window->DC.CursorPos;
+	const float avail = ImGui::GetContentRegionAvail().x;
+
+	// the click area excludes the trailing controls so they receive their own clicks
+	ImGui::SetNextItemAllowOverlap();
+	const bool clicked = ImGui::InvisibleButton(id, {ImMax(avail - trailing_width, 1.f), row_h});
+	const bool hovered = ImGui::IsItemHovered();
+	hover_haptic();
+	list_row_after.push_back(window->DC.CursorPos);
+
+	ImDrawList * draw = window->DrawList;
+	const ImRect bb(p0, p0 + ImVec2(avail, row_h));
+	if (selected)
+		draw->AddRectFilled(bb.Min, bb.Max, t.col({t.accent.x, t.accent.y, t.accent.z, 0.16f}), t.card_rounding);
+	else if (hovered)
+		draw->AddRectFilled(bb.Min, bb.Max, t.col(t.control), t.card_rounding);
+
+	// leading thumbnail or icon box
+	const ImVec2 box_min = {p0.x + pad, p0.y + (row_h - box) * 0.5f};
+	const ImVec2 box_max = box_min + ImVec2(box, box);
+	if (image)
+		draw->AddImageRounded(image, box_min, box_max, {0, 0}, {1, 1}, IM_COL32_WHITE, t.rounding);
+	else
+	{
+		draw->AddRectFilled(box_min, box_max, t.col(selected ? t.accent : t.control), t.rounding);
+		if (icon and icon[0])
+		{
+			const ImVec2 is = ImGui::CalcTextSize(icon);
+			draw->AddText(box_min + (ImVec2(box, box) - is) * 0.5f, t.col(selected ? t.on_accent : t.text_muted), icon);
+		}
+	}
+
+	// title + subtitle
+	const float tx = box_max.x + pad;
+	const float total = subtitle.empty() ? ts.y : ts.y + metrics::label_line_gap + sub_sz.y;
+	const float ty = p0.y + (row_h - total) * 0.5f;
+	draw->AddText({tx, ty}, t.col(t.text), title.c_str());
+	if (not subtitle.empty())
+	{
+		ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_description);
+		draw->AddText({tx, ty + ts.y + metrics::label_line_gap}, t.col(t.text_muted), subtitle.c_str());
+		ImGui::PopFont();
+	}
+
+	// trailing controls right-align against the inner padding
+	return {bb.Min, {bb.Max.x - pad, bb.Max.y}, clicked};
+}
+
+void end_list_row()
+{
+	ImGui::GetCurrentWindow()->DC.CursorPos = list_row_after.back();
+	list_row_after.pop_back();
+}
+
+int action_menu(const char * id, const char * icon, const std::vector<action_item> & items)
+{
+	const theme & t = current();
+
+	if (icon_button(icon, {}, false))
+		ImGui::OpenPopup(id);
+
+	int chosen = -1;
+
+	const float pad = metrics::combo_padding.x;
+	const float icon_w = ImGui::GetFontSize() * 1.5f;
+	float content_w = 0;
+	for (const auto & it: items)
+		content_w = ImMax(content_w, icon_w + pad + ImGui::CalcTextSize(it.label).x + pad * 2 + ImGui::GetFontSize());
+
+	// centred modal on the popup layer, like combo()
+	ImGui::SetNextWindowPos(popup_center, ImGuiCond_Always, {0.5f, 0.5f});
+	ImGui::SetNextWindowSize({ImMax(content_w, metrics::combo_modal_min_width), 0});
+
+	ImGui::PushStyleColor(ImGuiCol_PopupBg, t.card);
+	ImGui::PushStyleColor(ImGuiCol_Border, t.border);
+	ImGui::PushStyleColor(ImGuiCol_Text, t.text);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, t.card_rounding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, metrics::card_padding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, t.border_size > 0 ? t.border_size : 1);
+
+	if (ImGui::BeginPopupModal(id, nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGuiWindow * window = ImGui::GetCurrentWindow();
+		const float row_h = ImGui::GetFrameHeight() * metrics::control_height;
+
+		for (int i = 0; i < int(items.size()); ++i)
+		{
+			const action_item & it = items[i];
+			ImGui::PushID(i);
+			const float row_w = ImGui::GetContentRegionAvail().x;
+			const ImVec2 pos = window->DC.CursorPos;
+			const ImRect bb(pos, pos + ImVec2(row_w, row_h));
+			ImGui::ItemSize(bb, 0);
+			const ImGuiID gid = window->GetID("##row");
+			if (ImGui::ItemAdd(bb, gid))
+			{
+				bool hovered, held;
+				if (ImGui::ButtonBehavior(bb, gid, &hovered, &held))
+				{
+					chosen = i;
+					ImGui::CloseCurrentPopup();
+				}
+				hover_haptic();
+
+				ImDrawList * draw = window->DrawList;
+				if (hovered)
+					draw->AddRectFilled(bb.Min, bb.Max, t.col(t.control_hovered), t.rounding);
+
+				const ImU32 fg = t.col(it.danger ? t.danger : t.text);
+				const ImVec2 its = ImGui::CalcTextSize(it.icon);
+				draw->AddText({bb.Min.x + pad + (icon_w - its.x) * 0.5f, bb.Min.y + (row_h - its.y) * 0.5f}, fg, it.icon);
+				const ImVec2 ls = ImGui::CalcTextSize(it.label);
+				draw->AddText({bb.Min.x + pad + icon_w, bb.Min.y + (row_h - ls.y) * 0.5f}, fg, it.label);
+				if (it.checked)
+				{
+					const ImVec2 cs = ImGui::CalcTextSize(ICON_FA_CHECK);
+					draw->AddText({bb.Max.x - pad - cs.x, bb.Min.y + (row_h - cs.y) * 0.5f}, t.col(t.accent), ICON_FA_CHECK);
+				}
+			}
+			ImGui::PopID();
+		}
+
+		// click outside dismisses; AllowWhenBlockedByActiveItem so pressing a row still counts as inside
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) and not ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+			ImGui::CloseCurrentPopup();
+
+		ImGui::EndPopup();
+	}
+
+	ImGui::PopStyleVar(3);
+	ImGui::PopStyleColor(3);
+	return chosen;
 }
 
 } // namespace wivrn::ui

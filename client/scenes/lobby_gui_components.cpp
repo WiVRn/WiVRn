@@ -21,6 +21,8 @@
 
 #include "lobby.h"
 
+#if WIVRN_CLIENT_DEBUG_MENU
+
 #include "render/ui_theme.h"
 #include "render/ui_widgets.h"
 
@@ -357,3 +359,5 @@ void scenes::lobby::gui_components()
 
 	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
 }
+
+#endif // WIVRN_CLIENT_DEBUG_MENU

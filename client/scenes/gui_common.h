@@ -50,5 +50,7 @@ bool post_processing(
         imgui_context & imgui_ctx,
         configuration & config);
 
+float toggle_width();
+
 } // namespace gui
 } // namespace wivrn

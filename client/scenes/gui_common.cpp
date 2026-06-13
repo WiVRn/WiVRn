@@ -23,6 +23,8 @@
 #include "configuration.h"
 #include "constants.h"
 #include "render/imgui_impl.h"
+#include "render/ui_theme.h"
+#include "render/ui_widgets.h"
 #include "utils/i18n.h"
 
 #include "wivrn_packets.h"
@@ -35,6 +37,10 @@
 
 namespace wivrn::gui
 {
+float toggle_width()
+{
+	return ImGui::GetFrameHeight() * ui::metrics::control_height * ui::metrics::toggle_aspect;
+}
 
 std::string rate_label(float rate, uint32_t divider)
 {
@@ -130,71 +136,49 @@ bool body_tracking_parts(
 		return false;
 
 	const std::array body_parts{
-	        std::make_pair(from_headset::body_part_mask::chest, _C("virtual body tracker selection", "Chest")),
-	        std::make_pair(from_headset::body_part_mask::left_elbow, _C("virtual body tracker selection", "Left elbow")),
-	        std::make_pair(from_headset::body_part_mask::right_elbow, _C("virtual body tracker selection", "Right elbow")),
-	        std::make_pair(from_headset::body_part_mask::hip, _C("virtual body tracker selection", "Hip")),
-	        std::make_pair(from_headset::body_part_mask::left_knee, _C("virtual body tracker selection", "Left knee")),
-	        std::make_pair(from_headset::body_part_mask::right_knee, _C("virtual body tracker selection", "Right knee")),
-	        std::make_pair(from_headset::body_part_mask::left_foot, _C("virtual body tracker selection", "Left foot")),
-	        std::make_pair(from_headset::body_part_mask::right_foot, _C("virtual body tracker selection", "Right foot")),
+	        std::make_tuple(from_headset::body_part_mask::chest, "##chest", _C("virtual body tracker selection", "Chest")),
+	        std::make_tuple(from_headset::body_part_mask::left_elbow, "##left_elbow", _C("virtual body tracker selection", "Left elbow")),
+	        std::make_tuple(from_headset::body_part_mask::right_elbow, "##right_elbow", _C("virtual body tracker selection", "Right elbow")),
+	        std::make_tuple(from_headset::body_part_mask::hip, "##hip", _C("virtual body tracker selection", "Hip")),
+	        std::make_tuple(from_headset::body_part_mask::left_knee, "##left_knee", _C("virtual body tracker selection", "Left knee")),
+	        std::make_tuple(from_headset::body_part_mask::right_knee, "##right_knee", _C("virtual body tracker selection", "Right knee")),
+	        std::make_tuple(from_headset::body_part_mask::left_foot, "##left_foot", _C("virtual body tracker selection", "Left foot")),
+	        std::make_tuple(from_headset::body_part_mask::right_foot, "##right_foot", _C("virtual body tracker selection", "Right foot")),
 	};
 
 	bool changed = false;
-	bool button_pressed = ImGui::ArrowButton("##OpenBodyPartMenu", ImGuiDir_Down);
-	ImGui::SameLine(0.f, ImGui::GetStyle().ItemInnerSpacing.x);
-	ImGui::Text("%s", _S("Virtual body trackers"));
 
-	if (button_pressed)
-		ImGui::OpenPopup("body part menu");
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
+	ui::begin_card("##body_tracking_parts");
 
-	const auto & popup_layer = imgui_ctx.layers()[1];
-	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
-	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
-
-	if (ImGui::BeginPopupModal("body part menu", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	for (const auto & [bit, id, name]: body_parts)
 	{
-		const float height = ImGui::GetFrameHeight();
-		const ImVec2 size(height, height);
+		if (body_tracker == xr::body_tracker_type::fb and bit > from_headset::body_part_mask::hip)
+			continue;
 
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-		ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - size.x);
-		if (ImGui::Button("X", size))
-			ImGui::CloseCurrentPopup();
-		imgui_ctx.vibrate_on_hover();
-		ImGui::PopStyleColor(3); // ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive
+		const auto underlying = std::to_underlying(bit);
+		bool enabled = config.body_part_mask & underlying;
 
-		for (const auto & [bit, name]: body_parts)
+		const float label_bottom = ui::setting_label(name, "", toggle_width());
+		if (ui::toggle(id, &enabled))
 		{
-			if (body_tracker == xr::body_tracker_type::fb and bit > from_headset::body_part_mask::hip)
-				continue;
+			if (enabled)
+				config.body_part_mask |= underlying;
+			else
+				config.body_part_mask &= ~underlying;
 
-			const auto underlying = std::to_underlying(bit);
-			bool enabled = config.body_part_mask & underlying;
-			if (ImGui::Checkbox(name.c_str(), &enabled))
-			{
-				if (enabled)
-				{
-					config.body_part_mask |= underlying;
-				}
-				else
-				{
-					config.body_part_mask &= ~underlying;
-				}
-				config.save();
-				changed = true;
-				imgui_ctx.vibrate_on_hover();
-			}
+			config.save();
+			changed = true;
 		}
 
-		ImGui::EndPopup();
+		// keep the row tall enough for a multi-line description and add breathing room
+		// below. Reserve with Dummy (SetCursorPos would not grow the content size).
+		const float pad = std::max(label_bottom - ImGui::GetCursorPosY(), 0.f) + ui::metrics::label_bottom_pad;
+		ImGui::Dummy({0, pad});
 	}
-	ImGui::PopStyleVar(3); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize
+
+	ui::end_card();
+	ImGui::PopStyleVar();
 
 	return changed;
 }

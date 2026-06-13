@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 
-// Themed, reusable UI widgets matching the WiVRn dashboard design.
-// All widgets read colors and metrics from wivrn::ui::current().
+// Themed, reusable UI widgets. Colors and metrics come from wivrn::ui::current().
+// Display text is taken by const std::string &; ids and icon glyphs stay const char *.
 namespace wivrn::ui
 {
 
@@ -38,62 +38,54 @@ enum class button_style
 };
 
 // Page title with an optional muted subtitle
-void page_header(const char * title, const char * subtitle = nullptr);
+void page_header(const std::string & title, const std::string & subtitle = {});
 
-// Rounded panel, pair with end_card. Returns false when fully clipped
+// Rounded panel, pair with end_card
 bool begin_card(const char * id, const ImVec2 & size = {0, 0});
 void end_card();
 
 // Full-width divider between rows of a card
 void row_separator();
 
-// Bold title + wrapped muted description in a left column,
-// leaving control_width on the right for a right-aligned control
-void setting_label(const char * title, const char * description, float control_width);
+// Title and wrapped muted description on the left, control_width reserved on the right.
+// Returns the window-local y of the label bottom, so the caller can keep the row tall
+// enough for a multi-line label.
+float setting_label(const std::string & title, const std::string & description, float control_width);
 
-bool button(const char * label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
-// tooltip, if given, is shown while the button is hovered
-bool icon_button(const char * icon, const ImVec2 & size = {0, 0}, bool active = false, const char * tooltip = nullptr);
+bool button(const std::string & label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
+// tooltip, if not empty, is shown while hovered
+bool icon_button(const char * icon, const ImVec2 & size = {0, 0}, bool active = false, const std::string & tooltip = {});
 
 bool toggle(const char * id, bool * v, const bool * default_value = nullptr);
 
-// Value controls below take an optional default_value. When given and the current
-// value differs from it, a reset icon button is drawn in a trailing slot; tapping it
-// restores the default. When the value matches (or no default is given) the slot is
-// left empty so the control's right edge stays put.
+// Width a trailing reset slot consumes (gap + square), for laying out toggles
+float reset_slot_width();
 
-// Filled bar slider with the value centered on the rail
+// The value controls below draw a reset button when the value differs from default_value
 bool slider_int(const char * id, int * v, int v_min, int v_max, const char * format, const ImVec2 & size = {0, 0}, const int * default_value = nullptr);
 
 // Pill group, *selected is the index of the active option
 bool segmented(const char * id, const std::vector<std::string> & options, int * selected, const ImVec2 & size = {0, 0}, const int * default_value = nullptr);
 
-// One option of a combo: a label and an optional muted description
 struct combo_item
 {
 	const char * name;
 	const char * description = nullptr;
 };
 
-// Combo box whose options open in a modal list centred on the popup layer,
-// instead of an inline dropdown. *selected is the chosen index, title labels
-// the modal. Returns true when the selection changes.
-bool combo(const char * id, const char * title, const std::vector<combo_item> & items, int * selected, float width = 0, const int * default_value = nullptr);
+// Combo box whose options open in a modal list on the popup layer. *selected is the
+// chosen index, title labels the modal. Returns true when the selection changes.
+bool combo(const char * id, const std::string & title, const std::vector<combo_item> & items, int * selected, float width = 0, const int * default_value = nullptr);
 
-// Centre (in imgui display coords) where combo modals open. Set once per frame
-// from the lobby's popup layer before any combo() is drawn.
+// Centre (display coords) where combo and begin_modal popups open. Set once per frame.
 void set_popup_center(const ImVec2 & center);
 
-// Hook the widgets call after submitting an interactive item so it can fire a hover
-// haptic (e.g. imgui_context::vibrate_on_hover). Install once from the lobby.
+// Hook fired after an interactive item, for a hover haptic. Install once.
 void set_hover_haptic(std::function<void()> hook);
 
-// Hook a widget calls to show a tooltip for the last submitted item (e.g.
-// imgui_context::tooltip). Only called while the item is hovered. Install once.
+// Hook to show a tooltip for the last item. Install once.
 void set_tooltip_hook(std::function<void(const char *)> hook);
 
-// Small status badge. The label may include a leading icon glyph; pass dot=true for
-// a leading status dot in the style colour. Non-interactive.
 enum class chip_style
 {
 	neutral, // control fill, normal text
@@ -103,26 +95,53 @@ enum class chip_style
 	warning,
 	danger,
 };
-void chip(const char * label, chip_style style = chip_style::neutral, bool dot = false);
+// Status badge. label may include a leading icon glyph; dot draws a status dot.
+// height overrides the pill height (default sizes to the text + padding)
+void chip(const std::string & label, chip_style style = chip_style::neutral, bool dot = false, float height = 0);
 
-// Muted sidebar group header (e.g. "SETTINGS")
-void nav_section(const char * label);
+// Muted sidebar group header
+void nav_section(const std::string & label);
 
-// Sidebar entry: icon + label across the full width, highlighted when selected.
-// Returns true when clicked.
-bool nav_item(const char * icon, const char * label, bool selected);
+// Sidebar entry: icon + label, highlighted when selected. Returns true when clicked
+bool nav_item(const char * icon, const std::string & label, bool selected);
 
-// Themed single-line text field, control height. hint is optional placeholder text.
-// Returns true while the text is being edited.
+// Single-line text field at control height; hint is optional placeholder text
 bool input_text(const char * id, std::string & text, const char * hint = nullptr, float width = 0);
 
-// Number field with - / + stepper buttons. Returns true when the value changes.
+// Number field with - / + stepper buttons. Returns true when the value changes
 bool input_int(const char * id, int * v, int step = 1, int v_min = 0, int v_max = 0, float width = 0);
 
-// Centered modal dialog on the popup layer, themed like a card with a title. Open it
-// with ImGui::OpenPopup(id); call ImGui::CloseCurrentPopup() to dismiss. Pair with
-// end_modal only when this returns true, exactly like ImGui::BeginPopupModal.
-bool begin_modal(const char * id, const char * title, float width = 0);
+// Centred modal on the popup layer. Open with ImGui::OpenPopup(id), dismiss with
+// ImGui::CloseCurrentPopup(); pair with end_modal only when this returns true.
+bool begin_modal(const char * id, const std::string & title, float width = 0);
 void end_modal();
+
+struct action_item
+{
+	const char * icon;
+	const char * label;
+	bool danger = false;
+	bool checked = false;
+};
+
+// Overflow button: an icon button opening a popup of actions. Returns the picked index, or -1
+int action_menu(const char * id, const char * icon, const std::vector<action_item> & items);
+
+struct list_row_result
+{
+	ImVec2 min, max; // row rect (screen) for right-aligning trailing controls
+	bool clicked;    // the row body was clicked
+};
+
+// List row: leading thumbnail (image, if non-zero) or icon box, title and muted subtitle.
+// trailing_width reserves space on the right for trailing controls and excludes it from
+// the row's click area. Place controls right-aligned at .max with SetCursorScreenPos,
+// then call end_list_row().
+list_row_result begin_list_row(const char * id, const char * icon, ImTextureID image, const std::string & title, const std::string & subtitle, bool selected = false, float trailing_width = 0, float height = 0);
+void end_list_row();
+
+// Confirmation dialog (open with ImGui::OpenPopup(id)). Returns 1 if confirmed, -1 if
+// cancelled or dismissed, 0 otherwise. danger styles the confirm button as destructive.
+int confirm_modal(const char * id, const std::string & title, const std::string & message, const std::string & confirm_label, const std::string & cancel_label, bool danger = false);
 
 } // namespace wivrn::ui
