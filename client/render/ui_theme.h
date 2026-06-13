@@ -97,18 +97,20 @@ constexpr float slider_grab_width = 14;
 
 constexpr float segmented_inset = 3; // gap around the active segment
 
-constexpr float icon_button_glyph = 0.5; // glyph height as a fraction of the button side
+constexpr float icon_button_glyph = 0.58;  // glyph height as a fraction of the button side
+constexpr float button_label_glyph = 1.35; // leading icon size in a labeled button, x base text size
 
 constexpr float combo_row_height = 2.2;      // x frame height, big touch rows in the modal
 constexpr float combo_chevron = 12;          // chevron size in the closed box
 constexpr float combo_modal_min_width = 460; // popup never narrower than this
 constexpr ImVec2 combo_padding = {16, 0};    // horizontal inner padding of box and rows
 
-constexpr float list_row_box = 52;       // leading icon/thumbnail size in a list row
-constexpr float list_row_pad = 16;       // inner padding of a list row, both axes
-constexpr ImVec2 chip_padding = {12, 6}; // inner padding of a chip/badge
-constexpr float input_padding_x = 14;    // horizontal text padding inside inputs
-constexpr float font_modal_title = 1.2;  // modal heading, x base font size
+constexpr float list_row_box = 52;        // leading icon/thumbnail size in a list row
+constexpr float list_row_pad = 12;        // inner padding of a list row, both axes
+constexpr ImVec2 chip_padding = {12, 6};  // inner padding of a chip/badge
+constexpr float chip_pill_padding_x = 18; // roomier horizontal padding for height-override pill chips (top bar)
+constexpr float input_padding_x = 14;     // horizontal text padding inside inputs
+constexpr float font_modal_title = 1.2;   // modal heading, x base font size
 
 constexpr float label_line_gap = 5;   // title to description
 constexpr float label_bottom_pad = 6; // breathing room below the description

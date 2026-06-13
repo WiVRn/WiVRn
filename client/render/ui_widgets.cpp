@@ -171,15 +171,25 @@ float setting_label(const std::string & title, const std::string & description, 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {style.ItemSpacing.x, metrics::label_line_gap});
 	ImGui::PushTextWrapPos(start.x + text_w);
 	ImGui::TextUnformatted(title.c_str());
+	ImGui::PopTextWrapPos();
 	if (not description.empty())
 	{
 		ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_description);
 		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
-		ImGui::TextUnformatted(description.c_str());
+		// single line, capped at half the row width and ellipsized so it never wraps or crowds the control
+		const float desc_w = ImMin(text_w, avail * 0.5f);
+		std::string text = description;
+		if (ImGui::CalcTextSize(text.c_str()).x > desc_w)
+		{
+			const float ell_w = ImGui::CalcTextSize("...").x;
+			while (not text.empty() and ImGui::CalcTextSize(text.c_str()).x + ell_w > desc_w)
+				text.pop_back();
+			text += "...";
+		}
+		ImGui::TextUnformatted(text.c_str());
 		ImGui::PopStyleColor();
 		ImGui::PopFont();
 	}
-	ImGui::PopTextWrapPos();
 	ImGui::PopStyleVar();
 
 	// right-aligned control slot, vertically centered against the label block
@@ -190,6 +200,30 @@ float setting_label(const std::string & title, const std::string & description, 
 	return start.y + label_h;
 }
 
+namespace
+{
+struct button_colors
+{
+	ImVec4 bg, bg_hovered, bg_active, text;
+};
+
+button_colors colors_for(button_style s, const theme & t)
+{
+	switch (s)
+	{
+		case button_style::primary:
+			return {t.accent, t.accent_hovered, t.accent_active, t.on_accent};
+		case button_style::secondary:
+			return {t.control, t.control_hovered, t.control_active, t.text};
+		case button_style::danger:
+			return {t.danger, t.danger_hovered, t.danger, t.on_accent};
+		case button_style::ghost:
+			return {{0, 0, 0, 0}, t.control, t.control_active, t.text};
+	}
+	return {};
+}
+} // namespace
+
 bool button(const std::string & label, button_style s, const ImVec2 & size)
 {
 	const theme & t = current();
@@ -197,33 +231,11 @@ bool button(const std::string & label, button_style s, const ImVec2 & size)
 	// control height by default, width auto-fits the label
 	const float h = size.y > 0 ? size.y : ImGui::GetFrameHeight() * metrics::control_height;
 
-	switch (s)
-	{
-		case button_style::primary:
-			ImGui::PushStyleColor(ImGuiCol_Button, t.accent);
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, t.accent_hovered);
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, t.accent_active);
-			ImGui::PushStyleColor(ImGuiCol_Text, t.on_accent);
-			break;
-		case button_style::secondary:
-			ImGui::PushStyleColor(ImGuiCol_Button, t.control);
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, t.control_hovered);
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, t.control_active);
-			ImGui::PushStyleColor(ImGuiCol_Text, t.text);
-			break;
-		case button_style::danger:
-			ImGui::PushStyleColor(ImGuiCol_Button, t.danger);
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, t.danger_hovered);
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, t.danger);
-			ImGui::PushStyleColor(ImGuiCol_Text, t.on_accent);
-			break;
-		case button_style::ghost:
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0, 0, 0, 0});
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, t.control);
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, t.control_active);
-			ImGui::PushStyleColor(ImGuiCol_Text, t.text);
-			break;
-	}
+	const button_colors c = colors_for(s, t);
+	ImGui::PushStyleColor(ImGuiCol_Button, c.bg);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, c.bg_hovered);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, c.bg_active);
+	ImGui::PushStyleColor(ImGuiCol_Text, c.text);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, t.rounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, metrics::button_padding);
@@ -231,6 +243,69 @@ bool button(const std::string & label, button_style s, const ImVec2 & size)
 	ImGui::PopStyleVar(2);
 	ImGui::PopStyleColor(4);
 	hover_haptic();
+	return pressed;
+}
+
+bool button(const char * icon, const std::string & label, button_style s, const ImVec2 & size)
+{
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
+	if (window->SkipItems)
+		return false;
+
+	ImGuiContext & g = *GImGui;
+	const ImGuiStyle & style = g.Style;
+	const theme & t = current();
+
+	const float h = size.y > 0 ? size.y : ImGui::GetFrameHeight() * metrics::control_height;
+	const float glyph_size = ImGui::GetFontSize() * metrics::button_label_glyph;
+	const float gap = ImGui::GetFontSize() * 0.4f;
+
+	ImGui::PushFont(nullptr, glyph_size);
+	const float icon_w = ImGui::CalcTextSize(icon).x;
+	ImGui::PopFont();
+	const ImVec2 label_size = ImGui::CalcTextSize(label.c_str());
+	const float content_w = icon_w + gap + label_size.x;
+	const float w = size.x > 0 ? size.x : content_w + metrics::button_padding.x * 2;
+
+	const ImVec2 pos = window->DC.CursorPos;
+	const ImRect bb(pos, pos + ImVec2{w, h});
+	ImGui::ItemSize(bb, style.FramePadding.y);
+	const ImGuiID id = window->GetID(label.c_str());
+	if (not ImGui::ItemAdd(bb, id))
+		return false;
+
+	bool hovered, held;
+	const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+	hover_haptic();
+
+	const button_colors c = colors_for(s, t);
+	ImVec4 bg = c.bg;
+	if (held)
+		bg = c.bg_active;
+	else if (hovered)
+		bg = c.bg_hovered;
+
+	ImDrawList * draw = window->DrawList;
+	draw->AddRectFilled(bb.Min, bb.Max, t.col(bg), t.rounding);
+
+	const ImU32 col = t.col(c.text);
+	const ImVec2 center = bb.GetCenter();
+	float x = center.x - content_w * 0.5f;
+
+	// icon centred vertically on its ink box, like icon_button
+	ImGui::PushFont(nullptr, glyph_size);
+	unsigned int codepoint = 0;
+	ImTextCharFromUtf8(&codepoint, icon, nullptr);
+	const ImFontGlyph * glyph = ImGui::GetFontBaked()->FindGlyph((ImWchar)codepoint);
+	if (glyph)
+		draw->AddText({x, center.y - (glyph->Y0 + glyph->Y1) * 0.5f}, col, icon);
+	else
+		draw->AddText({x, center.y - glyph_size * 0.5f}, col, icon);
+	ImGui::PopFont();
+
+	x += icon_w + gap;
+	draw->AddText({x, center.y - label_size.y * 0.5f}, col, label.c_str());
+
 	return pressed;
 }
 
@@ -404,7 +479,11 @@ bool slider_int(const char * id, int * v, int v_min, int v_max, const char * for
 	ImDrawList * draw = window->DrawList;
 	draw->AddRectFilled(bb.Min, bb.Max, t.col(t.control), t.rounding);
 	if (fraction > 0)
-		draw->AddRectFilled(bb.Min, {fill_x, bb.Max.y}, t.col(t.accent_active), t.rounding, ImDrawFlags_RoundCornersLeft);
+	{
+		// round the right corners too once the fill reaches the box edge, else they stay sharp over the rounded background
+		const ImDrawFlags fill_flags = fill_x >= bb.Max.x - t.rounding ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersLeft;
+		draw->AddRectFilled(bb.Min, {fill_x, bb.Max.y}, t.col(t.accent_active), t.rounding, fill_flags);
+	}
 	// bright grab at the fill edge
 	const float grab_w = metrics::slider_grab_width;
 	const float gx = ImClamp(fill_x, bb.Min.x + grab_w * 0.5f, bb.Max.x - grab_w * 0.5f);
@@ -498,6 +577,8 @@ namespace
 {
 // Where combo modals open, in imgui display coords. Set each frame by the lobby.
 ImVec2 popup_center = {0, 0};
+// Height of the popup layer; caps tall combo lists so they scroll. 0 = unbounded.
+float popup_available_height = 0;
 
 // One selectable option inside the combo modal. A tall, full-width touch target
 // with the name (accent when selected) and an optional muted description.
@@ -554,9 +635,10 @@ bool combo_row(const combo_item & item, bool selected)
 }
 } // namespace
 
-void set_popup_center(const ImVec2 & center)
+void set_popup_center(const ImVec2 & center, float available_height)
 {
 	popup_center = center;
+	popup_available_height = available_height;
 }
 
 bool combo(const char * id, const std::string & title, const std::vector<combo_item> & items, int * selected, float width, const int * default_value)
@@ -636,15 +718,33 @@ bool combo(const char * id, const std::string & title, const std::vector<combo_i
 			ImGui::Dummy({0, style.ItemSpacing.y});
 		}
 
+		// cap the list height so a long list scrolls inside the modal rather than
+		// overflowing the popup layer, which would clip the top and bottom rows
+		const float row_h = ImGui::GetFrameHeight() * metrics::combo_row_height;
+		float list_h = int(items.size()) * row_h;
+		if (popup_available_height > 0)
+		{
+			const float title_h = title.empty() ? 0 : ImGui::GetTextLineHeight() + style.ItemSpacing.y;
+			const float max_list = popup_available_height * 0.9f - 2 * metrics::card_padding.y - title_h;
+			list_h = ImMin(list_h, ImMax(max_list, row_h));
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+		ImGui::BeginChild("##list", {0, list_h});
 		for (int i = 0; i < int(items.size()); ++i)
 		{
-			if (combo_row(items[i], i == sel))
+			const bool is_sel = i == sel;
+			if (combo_row(items[i], is_sel))
 			{
 				*selected = i;
 				changed = true;
 				ImGui::CloseCurrentPopup();
 			}
+			if (is_sel and ImGui::IsWindowAppearing())
+				ImGui::SetScrollHereY(0.5f); // reveal the current value when opening
 		}
+		ImGui::EndChild();
+		ImGui::PopStyleVar();
 
 		// click outside dismisses; AllowWhenBlockedByActiveItem so pressing a row still counts as inside
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) and not ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
@@ -703,9 +803,11 @@ void chip(const std::string & label, chip_style style, bool dot, float height)
 
 	const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
 	const ImVec2 pad = metrics::chip_padding;
+	// tall pill chips (height override, e.g. the top bar) get roomier sides
+	const float pad_x = height > 0 ? metrics::chip_pill_padding_x : pad.x;
 	const float dot_r = ts.y * 0.26f;
-	const float dot_gap = dot ? dot_r * 2 + pad.x * 0.55f : 0;
-	const ImVec2 size = {ts.x + pad.x * 2 + dot_gap, height > 0 ? height : ts.y + pad.y * 2};
+	const float dot_gap = dot ? dot_r * 2 + pad_x * 0.55f : 0;
+	const ImVec2 size = {ts.x + pad_x * 2 + dot_gap, height > 0 ? height : ts.y + pad.y * 2};
 
 	const ImVec2 pos = window->DC.CursorPos;
 	const ImRect bb(pos, pos + size);
@@ -716,11 +818,11 @@ void chip(const std::string & label, chip_style style, bool dot, float height)
 	ImDrawList * draw = window->DrawList;
 	draw->AddRectFilled(bb.Min, bb.Max, t.col(bg), size.y * 0.5f);
 
-	float tx = bb.Min.x + pad.x;
+	float tx = bb.Min.x + pad_x;
 	if (dot)
 	{
 		draw->AddCircleFilled({tx + dot_r, bb.Min.y + size.y * 0.5f}, dot_r, t.col(fg));
-		tx += dot_r * 2 + pad.x * 0.55f;
+		tx += dot_r * 2 + pad_x * 0.55f;
 	}
 	draw->AddText({tx, bb.Min.y + (size.y - ts.y) * 0.5f}, t.col(fg), label.c_str());
 }

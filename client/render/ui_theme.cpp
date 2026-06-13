@@ -56,8 +56,8 @@ static theme dark_default()
 	t.rounding = 8;
 	t.card_rounding = 14;
 	t.border_size = 1;
-	t.font_scale = 1.0;         // user multiplier; 100% maps to metrics::font_base
-	t.background_alpha = 0.88f; // ~ the previous hardcoded 224/255
+	t.font_scale = 1.0;        // user multiplier; 100% maps to metrics::font_base
+	t.background_alpha = 1.0f; // fully opaque panel by default
 	return t;
 }
 
@@ -128,7 +128,7 @@ static theme light()
 {
 	theme t = dark_default();
 	t.name = "Light";
-	t.background = rgb(236, 238, 242);
+	t.background = rgb(221, 224, 230);
 	t.card = rgb(255, 255, 255);
 	t.card_hovered = rgb(246, 247, 250);
 	t.control = rgb(212, 216, 224);
@@ -136,7 +136,7 @@ static theme light()
 	t.control_active = rgb(184, 190, 201);
 	t.text = rgb(22, 24, 30);
 	t.text_muted = rgb(108, 114, 126);
-	t.border = rgb(205, 209, 217);
+	t.border = rgb(176, 182, 194);
 	return t;
 }
 

@@ -53,6 +53,8 @@ void row_separator();
 float setting_label(const std::string & title, const std::string & description, float control_width);
 
 bool button(const std::string & label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
+// Same, with a larger leading icon glyph drawn before the label
+bool button(const char * icon, const std::string & label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
 // tooltip, if not empty, is shown while hovered
 bool icon_button(const char * icon, const ImVec2 & size = {0, 0}, bool active = false, const std::string & tooltip = {});
 
@@ -77,8 +79,10 @@ struct combo_item
 // chosen index, title labels the modal. Returns true when the selection changes.
 bool combo(const char * id, const std::string & title, const std::vector<combo_item> & items, int * selected, float width = 0, const int * default_value = nullptr);
 
-// Centre (display coords) where combo and begin_modal popups open. Set once per frame.
-void set_popup_center(const ImVec2 & center);
+// Centre (display coords) where combo and begin_modal popups open, plus the height
+// available on the popup layer so tall combo lists cap and scroll instead of being
+// clipped. available_height of 0 leaves the list unbounded. Set once per frame.
+void set_popup_center(const ImVec2 & center, float available_height = 0);
 
 // Hook fired after an interactive item, for a hover haptic. Install once.
 void set_hover_haptic(std::function<void()> hook);
