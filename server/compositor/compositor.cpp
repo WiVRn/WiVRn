@@ -558,15 +558,18 @@ xrt_result_t compositor::get_display_refresh_rate(float * hz)
 
 xrt_result_t compositor::request_display_refresh_rate(float hz)
 {
-	try
+	requested_refresh_rate = hz;
+	U_LOG_I("request refresh rate: %fHz", hz);
+	if (hz > 0)
 	{
-		requested_refresh_rate = hz;
-		U_LOG_I("request refresh rate: %fHz", hz);
-		session.send_control(to_headset::refresh_rate_change{.hz = hz});
-	}
-	catch (std::exception & e)
-	{
-		U_LOG_W("refresh rate change failed: %s", e.what());
+		try
+		{
+			session.send_control(to_headset::refresh_rate_change{.hz = hz});
+		}
+		catch (std::exception & e)
+		{
+			U_LOG_W("refresh rate change failed: %s", e.what());
+		}
 	}
 	return XRT_SUCCESS;
 }
