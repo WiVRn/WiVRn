@@ -366,10 +366,14 @@ void scenes::lobby::gui_server_list()
 	ui::page_header(_S("Computers"), _S("Pick a PC running the WiVRn server to stream from."));
 	const ImVec2 hend = ImGui::GetCursorPos();
 
-	const std::string add_label = std::string(ICON_FA_PLUS "  ") + _("Add server");
-	const float add_w = ImGui::CalcTextSize(add_label.c_str()).x + ui::metrics::button_padding.x * 2;
+	const std::string add_label = _("Add server");
+	const float font = ImGui::GetFontSize();
+	ImGui::PushFont(nullptr, font * ui::metrics::button_label_glyph);
+	const float glyph_w = ImGui::CalcTextSize(ICON_FA_PLUS).x;
+	ImGui::PopFont();
+	const float add_w = glyph_w + font * 0.4f + ImGui::CalcTextSize(add_label.c_str()).x + ui::metrics::button_padding.x * 2;
 	ImGui::SetCursorPos({hstart.x + header_avail - add_w, hstart.y});
-	if (ui::button(add_label, ui::button_style::primary))
+	if (ui::button(ICON_FA_PLUS, add_label, ui::button_style::primary))
 	{
 		add_server_cookie = "";
 		add_server_window_prettyname = "";
@@ -384,10 +388,10 @@ void scenes::lobby::gui_server_list()
 	for (auto && [cookie, data]: config.servers)
 		sorted_cookies.emplace(data.service.name, cookie);
 
-	std::string cookie_to_remove;
-	// deferred: the action menu runs inside the per-row id stack, but the popup is
+	// deferred: the action menu runs inside the per-row id stack, but the popups are
 	// opened below in this scope so OpenPopup and begin_modal hash to the same id
 	bool open_add_edit = false;
+	bool open_delete = false;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
 	ui::begin_card("##servers");
@@ -408,14 +412,22 @@ void scenes::lobby::gui_server_list()
 				ui::row_separator();
 			first = false;
 
-			const bool available = (data.visible and data.compatible) or data.manual;
+			// Connect button reflects the real reachability state so a momentary
+			// discovery delay doesn't read as a hard failure:
+			//  - reachable:    manual server, or one discovered with a matching protocol
+			//  - incompatible: discovered and resolved, but the protocol version differs
+			//  - searching:    not seen on the network yet (or still resolving its records)
+			const bool reachable = (data.visible and data.compatible) or data.manual;
+			const bool incompatible = data.visible and data.service.txt.contains("protocol") and not data.compatible;
 			const float gap = ImGui::GetStyle().ItemSpacing.x;
 			const float bh = ImGui::GetFrameHeight() * ui::metrics::control_height;
 			const std::string sub = fmt::format("{} : {}", data.service.hostname, data.service.port);
 
 			// trailing controls: [Auto chip] [Connect] [menu], measured up front so the
 			// row body click area can exclude them
-			const std::string c_label = available ? std::string(ICON_FA_PLAY "  ") + _("Connect") : _("Unavailable");
+			const char * c_icon = reachable ? ICON_FA_PLAY : (incompatible ? ICON_FA_TRIANGLE_EXCLAMATION : ICON_FA_MAGNIFYING_GLASS);
+			const std::string c_label = std::string(c_icon) + "  " + (reachable ? _("Connect") : (incompatible ? _("Incompatible") : _("Searching…")));
+			const std::string c_tooltip = reachable ? std::string{} : (incompatible ? _("Incompatible server version") : _("Looking for this server on your network"));
 			const float cw = ImGui::CalcTextSize(c_label.c_str()).x + ui::metrics::button_padding.x * 2;
 			const std::string chip_label = std::string(ICON_FA_BOLT "  ") + _("Auto");
 			const ImVec2 chip_ts = ImGui::CalcTextSize(chip_label.c_str());
@@ -453,19 +465,22 @@ void scenes::lobby::gui_server_list()
 					open_add_edit = true;
 					break;
 				case 2:
-					cookie_to_remove = cookie;
+					delete_server_cookie = cookie;
+					open_delete = true;
 					break;
 			}
 			x -= bh + gap;
 
-			// connect / unavailable
+			// connect / searching / incompatible
 			ImGui::SetCursorScreenPos({x - cw, row.min.y + (row_h - bh) * 0.5f});
-			ImGui::BeginDisabled(not available);
-			if (ui::button(c_label, available ? ui::button_style::primary : ui::button_style::secondary, {cw, 0}))
+			ImGui::BeginDisabled(not reachable);
+			if (ui::button(c_label, reachable ? ui::button_style::primary : ui::button_style::secondary, {cw, 0}))
 			{
 				connect(data);
 				ImGui::OpenPopup("connecting");
 			}
+			if (not c_tooltip.empty() and ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+				imgui_ctx->tooltip(c_tooltip);
 			ImGui::EndDisabled();
 			x -= cw + gap;
 
@@ -485,14 +500,11 @@ void scenes::lobby::gui_server_list()
 	}
 	ImGui::PopStyleVar();
 
-	if (cookie_to_remove != "")
-	{
-		config.servers.erase(cookie_to_remove);
-		config.save();
-	}
-
 	if (open_add_edit)
 		ImGui::OpenPopup("add or edit server");
+
+	if (open_delete)
+		ImGui::OpenPopup("delete server");
 
 	// Check if we need to report errors after a disconnect
 	if (next_scene and next_scene->current_state() == scenes::stream::state::shutdown and not ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
@@ -529,6 +541,25 @@ void scenes::lobby::gui_server_list()
 	{
 		gui_new_server();
 		wivrn::ui::end_modal();
+	}
+
+	if (not delete_server_cookie.empty())
+	{
+		std::string name;
+		if (auto it = config.servers.find(delete_server_cookie); it != config.servers.end())
+			name = it->second.service.name;
+
+		switch (wivrn::ui::confirm_modal("delete server", _("Delete server"), fmt::format(_F("Remove \"{}\" from your saved computers?"), name), _("Delete"), _("Cancel"), true))
+		{
+			case 1:
+				config.servers.erase(delete_server_cookie);
+				config.save();
+				delete_server_cookie = "";
+				break;
+			case -1:
+				delete_server_cookie = "";
+				break;
+		}
 	}
 	ImGui::PopStyleVar(3);
 }
@@ -866,46 +897,69 @@ void scenes::lobby::gui_first_run()
 
 void scenes::lobby::gui_licenses()
 {
-	ImGui::PushFont(nullptr, constants::gui::font_size_large);
-	ImGui::Text("%s", _("Licenses").c_str());
-	ImGui::PopFont();
+	namespace ui = wivrn::ui;
+	const auto & t = ui::current();
 
-	const auto components = {"WiVRn", "FontAwesome", "openxr-loader", "simdjson"};
-	if (not license)
+	ui::page_header(_S("Licenses"), _S("Open-source components bundled with WiVRn."));
+
+	// Components shipping a license file, probed once
+	static const std::vector<std::string> components = [] {
+		std::vector<std::string> v;
+		for (const char * c: {"WiVRn", "FontAwesome", "openxr-loader", "simdjson"})
+		{
+			try
+			{
+				utils::mapped_file probe(std::filesystem::path("assets://licenses") / c);
+				v.emplace_back(c);
+			}
+			catch (...)
+			{
+				spdlog::debug("No license file for {}", c);
+			}
+		}
+		return v;
+	}();
+
+	if (components.empty())
+		return;
+
+	if (selected_item.empty())
+		selected_item = components.front();
+
+	int selected = 0;
+	for (size_t i = 0; i < components.size(); ++i)
+		if (components[i] == selected_item)
+			selected = int(i);
+
+	std::vector<ui::combo_item> items;
+	for (const auto & c: components)
+		items.push_back({c.c_str()});
+
+	const float control_w = 480;
+	if (ui::combo("##component", _("Component"), items, &selected, control_w) or not license)
 	{
-		selected_item = *components.begin();
+		selected_item = components[selected];
 		try
 		{
 			license = std::make_unique<utils::mapped_file>(std::filesystem::path("assets://licenses") / selected_item);
 		}
 		catch (...)
 		{
+			license.reset();
 			spdlog::warn("No license file for {}", selected_item);
 		}
 	}
-	if (ImGui::BeginCombo("##component", selected_item.c_str()))
-	{
-		for (const auto & component: components)
-		{
-			try
-			{
-				auto current = std::make_unique<utils::mapped_file>(std::filesystem::path("assets://licenses") / component);
-				if (ImGui::Selectable(component, component == selected_item, ImGuiSelectableFlags_SelectOnRelease))
-				{
-					selected_item = component;
-					license = std::move(current);
-				}
-			}
-			catch (...)
-			{
-				spdlog::debug("No license file for {}", component);
-			}
-		}
-		ImGui::EndCombo();
-	}
-	imgui_ctx->vibrate_on_hover();
+
 	if (license)
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
+		ui::begin_card("##license_text");
+		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
 		ImGui::TextUnformatted((const char *)license->data(), (const char *)license->data() + license->size());
+		ImGui::PopStyleColor();
+		ui::end_card();
+		ImGui::PopStyleVar();
+	}
 }
 
 void scenes::lobby::gui_keyboard()
@@ -989,6 +1043,15 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	ImGuiStyle & style = ImGui::GetStyle();
 	style.FontScaleMain = wivrn::ui::current().font_scale * wivrn::ui::metrics::font_base;
 
+	// rounding follows the theme so every window/popup gets rounded corners
+	// (theme::apply() is never called; the widgets theme colours themselves but nothing sets rounding)
+	style.WindowRounding = wivrn::ui::current().card_rounding;
+	style.ChildRounding = wivrn::ui::current().card_rounding;
+	style.PopupRounding = wivrn::ui::current().card_rounding;
+	style.FrameRounding = wivrn::ui::current().rounding;
+	style.GrabRounding = wivrn::ui::current().rounding;
+	style.TabRounding = wivrn::ui::current().rounding;
+
 	// base text colour follows the theme so plain ImGui text is legible on light themes
 	style.Colors[ImGuiCol_Text] = wivrn::ui::current().text;
 	style.Colors[ImGuiCol_TextDisabled] = wivrn::ui::current().text_muted;
@@ -996,7 +1059,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	// combo modals open centred on the popup layer
 	const auto & ui_popup_layer = imgui_ctx->layers()[1];
 	const glm::vec2 ui_popup_center = ui_popup_layer.vp_origin + ui_popup_layer.vp_size / 2;
-	wivrn::ui::set_popup_center({ui_popup_center.x, ui_popup_center.y});
+	wivrn::ui::set_popup_center({ui_popup_center.x, ui_popup_center.y}, float(ui_popup_layer.vp_size.y));
 
 	// let the themed widgets fire the hover haptic and show tooltips
 	wivrn::ui::set_hover_haptic([this] { imgui_ctx->vibrate_on_hover(); });
@@ -1048,21 +1111,23 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		auto & config = application::get_config();
 		const float TopBarH = 72;
 
-		// Top bar: logo on the left, status controls on the right
+		// Top bar: logo on the left, status controls on the right.
+		// Transparent child bg so the alpha-blended window background shows through.
 		ImGui::SetCursorPos({0, 0});
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, wivrn::ui::current().background);
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0, 0, 0, 0});
 		ImGui::BeginChild("TopBar", {ImGui::GetWindowSize().x, TopBarH}, 0, ImGuiWindowFlags_NoScrollbar);
 		{
 			const float side = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
 			const float gap = 8;
 
-			// logo
+			// logo: WiVRn mascot followed by the wordmark
+			const float logo_size = 44;
+			ImGui::SetCursorPos({24, (TopBarH - logo_size) * 0.5f});
+			if (about_picture)
+				ImGui::Image(about_picture, {logo_size, logo_size});
+			ImGui::SameLine(0, 12);
 			ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.3f);
-			ImGui::SetCursorPos({24, (TopBarH - ImGui::GetFontSize()) * 0.5f});
-			ImGui::PushStyleColor(ImGuiCol_Text, wivrn::ui::current().accent);
-			ImGui::TextUnformatted(ICON_FA_EYE);
-			ImGui::PopStyleColor();
-			ImGui::SameLine(0, 10);
+			ImGui::SetCursorPosY((TopBarH - ImGui::GetFontSize()) * 0.5f);
 			ImGui::TextUnformatted("WiVRn");
 			ImGui::PopFont();
 
@@ -1070,7 +1135,8 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 			const std::string conn = _("Not connected");
 			const ImVec2 cts = ImGui::CalcTextSize(conn.c_str());
 			const float dot_r = cts.y * 0.26f;
-			const float chip_w = cts.x + wivrn::ui::metrics::chip_padding.x * 2.5f + dot_r * 2;
+			// pill: pad_x on each side + dot + 0.55 pad_x gap before the text (see ui::chip)
+			const float chip_w = cts.x + wivrn::ui::metrics::chip_pill_padding_x * 2.55f + dot_r * 2;
 
 			// feature toggles available on this headset (mic + passthrough are always shown)
 			const bool has_hand = system.hand_tracking_supported();
@@ -1116,7 +1182,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				if (*battery.charge < 0.2)
 					battery_style = wivrn::ui::chip_style::danger;
 			}
-			const float battery_w = battery_label.empty() ? 0 : gap + ImGui::CalcTextSize(battery_label.c_str()).x + wivrn::ui::metrics::chip_padding.x * 2;
+			const float battery_w = battery_label.empty() ? 0 : gap + ImGui::CalcTextSize(battery_label.c_str()).x + wivrn::ui::metrics::chip_pill_padding_x * 2;
 #else
 			const float battery_w = 0;
 #endif
@@ -1230,11 +1296,11 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				gui_customize(predicted_display_time);
 				break;
 
-#if WIVRN_CLIENT_DEBUG_MENU
-			case tab::components:
-				gui_components();
+			case tab::theme:
+				gui_theme();
 				break;
 
+#if WIVRN_CLIENT_DEBUG_MENU
 			case tab::debug:
 				gui_debug();
 				break;
@@ -1265,7 +1331,9 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::EndChild();
 		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
 
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, wivrn::ui::current().card);
+		// Sidebar shares the same transparent background as the rest of the window;
+		// the sections are separated by hairline dividers drawn below.
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0, 0, 0, 0});
 		ImGui::SetCursorPos({0, TopBarH});
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {16, 16});
@@ -1293,11 +1361,11 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				current_tab = tab::system;
 
 			wivrn::ui::nav_section(_S("PERSONALIZE"));
-			if (wivrn::ui::nav_item(ICON_FA_IMAGE, _S("Customize"), current_tab == tab::customize))
+			if (wivrn::ui::nav_item(ICON_FA_IMAGE, _S("Environment"), current_tab == tab::customize))
 				current_tab = tab::customize;
+			if (wivrn::ui::nav_item(ICON_FA_PALETTE, _S("Theme"), current_tab == tab::theme))
+				current_tab = tab::theme;
 #if WIVRN_CLIENT_DEBUG_MENU
-			if (wivrn::ui::nav_item(ICON_FA_PALETTE, "Components", current_tab == tab::components))
-				current_tab = tab::components;
 			if (wivrn::ui::nav_item(ICON_FA_BUG_SLASH, _S("Debug"), current_tab == tab::debug))
 				current_tab = tab::debug;
 #endif
@@ -1317,6 +1385,15 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 			ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding (Tabs)
 		}
 		ImGui::PopStyleColor(); // ImGuiCol_ChildBg
+
+		// hairline dividers separating the top bar, sidebar and main panel
+		const ImU32 divider = ImGui::GetColorU32(wivrn::ui::current().border);
+		const ImVec2 win_pos = ImGui::GetWindowPos();
+		const ImVec2 win_size = ImGui::GetWindowSize();
+		ImDrawList * dl = ImGui::GetWindowDrawList();
+		dl->AddLine({win_pos.x, win_pos.y + TopBarH}, {win_pos.x + win_size.x, win_pos.y + TopBarH}, divider);
+		dl->AddLine({win_pos.x + TabWidth, win_pos.y + TopBarH}, {win_pos.x + TabWidth, win_pos.y + win_size.y}, divider);
+
 		ImGui::End();
 		ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
 	}

@@ -651,7 +651,7 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 
 	namespace ui = wivrn::ui;
 
-	ui::page_header(_S("Customize"), _S("Choose the environment your panels float in."));
+	ui::page_header(_S("Environment"), _S("Choose the environment your panels float in."));
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
 

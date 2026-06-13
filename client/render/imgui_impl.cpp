@@ -24,6 +24,7 @@
 #include "constants.h"
 #include "image_loader.h"
 #include "openxr/openxr.h"
+#include "ui_theme.h"
 #include "utils/mapped_file.h"
 #include "utils/ranges.h"
 #include "utils/strings.h"
@@ -1280,10 +1281,14 @@ void imgui_context::tooltip(std::string_view text)
 	viewport->Pos = ImVec2(tooltip_layer.vp_origin.x, tooltip_layer.vp_origin.y);
 	viewport->Size = ImVec2(tooltip_layer.vp_size.x, tooltip_layer.vp_size.y);
 
-	// Draw the tooltip in the tooltip layer
+	// Draw the tooltip in the tooltip layer, styled to match the active theme
 	// Clamp position to avoid overflowing on the left or the right
+	const wivrn::ui::theme & t = wivrn::ui::current();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::tooltip_rounding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, t.card_rounding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, t.border_size);
+	ImGui::PushStyleColor(ImGuiCol_PopupBg, t.card);
+	ImGui::PushStyleColor(ImGuiCol_Border, t.border);
 
 	auto & style = ImGui::GetStyle();
 	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
@@ -1293,12 +1298,13 @@ void imgui_context::tooltip(std::string_view text)
 	ImGui::SetNextWindowSizeConstraints({0, 0}, viewport->Size);
 	if (ImGui::BeginTooltip())
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
+		ImGui::PushStyleColor(ImGuiCol_Text, t.col(t.text));
 		ImGui::TextUnformatted(text.data(), text.data() + text.size());
 		ImGui::PopStyleColor();
 		ImGui::EndTooltip();
 	}
-	ImGui::PopStyleVar(2);
+	ImGui::PopStyleColor(2);
+	ImGui::PopStyleVar(3);
 
 	viewport->Pos = pos_backup;
 	viewport->Size = size_backup;

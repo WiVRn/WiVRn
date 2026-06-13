@@ -143,7 +143,7 @@ constexpr ImVec2 window_padding = {20, 20};
 constexpr float window_border_size = 2;
 constexpr float window_rounding = 10;
 
-constexpr ImVec2 tooltip_padding = {5, 5};
+constexpr ImVec2 tooltip_padding = {16, 12};
 constexpr float tooltip_rounding = 0;
 constexpr glm::vec3 tooltip_distance = {0, 0.004, 0.005};
 
