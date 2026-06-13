@@ -51,6 +51,8 @@ option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" ON)
 option(WIVRN_USE_VULKAN_ENCODE "Enable vulkan video encoder" ON)
 option(WIVRN_USE_X264 "Enable x264 software encoder" ON)
 
+option(WIVRN_USE_PERFETTO "Enable Perfetto tracing via Percetto (server only)" OFF)
+
 option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" ON)
 option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" OFF)
 
