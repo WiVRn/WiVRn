@@ -736,6 +736,59 @@ void chip(const char * label, chip_style style, bool dot)
 	draw->AddText({tx, bb.Min.y + pad.y}, t.col(fg), label);
 }
 
+void nav_section(const char * label)
+{
+	const theme & t = current();
+	const ImGuiStyle & style = ImGui::GetStyle();
+
+	ImGui::Dummy({0, style.ItemSpacing.y * 0.5f});
+	ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_description);
+	ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
+	ImGui::TextUnformatted(label);
+	ImGui::PopStyleColor();
+	ImGui::PopFont();
+	ImGui::Dummy({0, 2});
+}
+
+bool nav_item(const char * icon, const char * label, bool selected)
+{
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
+	if (window->SkipItems)
+		return false;
+
+	const theme & t = current();
+	const ImGuiStyle & style = ImGui::GetStyle();
+
+	const float h = ImGui::GetFrameHeight() * metrics::control_height;
+	const float w = ImGui::GetContentRegionAvail().x;
+	const ImVec2 pos = window->DC.CursorPos;
+	const ImRect bb(pos, pos + ImVec2(w, h));
+	ImGui::ItemSize(bb, style.FramePadding.y);
+	const ImGuiID gid = window->GetID(label);
+	if (not ImGui::ItemAdd(bb, gid))
+		return false;
+
+	bool hovered, held;
+	const bool pressed = ImGui::ButtonBehavior(bb, gid, &hovered, &held);
+	hover_haptic();
+
+	ImDrawList * draw = window->DrawList;
+	const ImVec4 bg = selected ? t.control : (hovered ? t.control_hovered : ImVec4{0, 0, 0, 0});
+	if (bg.w > 0)
+		draw->AddRectFilled(bb.Min, bb.Max, t.col(bg), t.rounding);
+
+	const float pad = metrics::combo_padding.x;
+	const float icon_w = ImGui::GetFontSize() * 1.5f; // icon column
+
+	const ImVec2 its = ImGui::CalcTextSize(icon);
+	draw->AddText({bb.Min.x + pad + (icon_w - its.x) * 0.5f, bb.Min.y + (h - its.y) * 0.5f}, t.col(selected ? t.accent : t.text_muted), icon);
+
+	const ImVec2 ls = ImGui::CalcTextSize(label);
+	draw->AddText({bb.Min.x + pad + icon_w + pad * 0.5f, bb.Min.y + (h - ls.y) * 0.5f}, t.col(t.text), label);
+
+	return pressed;
+}
+
 static int input_text_resize(ImGuiInputTextCallbackData * data)
 {
 	if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)

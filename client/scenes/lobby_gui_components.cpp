@@ -234,6 +234,41 @@ void scenes::lobby::gui_components()
 		ui::end_card();
 	}
 
+	// Navigation (sidebar styling)
+	ui::begin_card("##nav");
+	{
+		card_title("NAVIGATION");
+
+		static int nav = 2;
+		int row = 0;
+
+		if (ui::nav_item(ICON_FA_COMPUTER, "Computers", nav == row))
+			nav = row;
+		++row;
+
+		ui::nav_section("SETTINGS");
+		for (const auto & [icon, label]: {
+		             std::pair{ICON_FA_GAUGE_HIGH, "Performance"},
+		             std::pair{ICON_FA_TOWER_BROADCAST, "Streaming"},
+		             std::pair{ICON_FA_CROP, "Field of view"},
+		             std::pair{ICON_FA_VOLUME_HIGH, "Audio"},
+		             std::pair{ICON_FA_LOCATION_CROSSHAIRS, "Tracking"},
+		             std::pair{ICON_FA_GEARS, "System"},
+		     })
+		{
+			if (ui::nav_item(icon, label, nav == row))
+				nav = row;
+			++row;
+		}
+
+		ui::nav_section("PERSONALIZE");
+		if (ui::nav_item(ICON_FA_IMAGE, "Customize", nav == row))
+			nav = row;
+		++row;
+
+		ui::end_card();
+	}
+
 	// Chips
 	ui::begin_card("##chips");
 	{
