@@ -284,79 +284,58 @@ void scenes::lobby::gui_disconnected()
 
 void scenes::lobby::gui_new_server()
 {
-	using constants::style::button_size;
+	namespace ui = wivrn::ui;
 
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
-	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {10, 10});
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
-	ImGui::Dummy({1000, 1});
-
-	if (ImGui::BeginTable("table", 2))
-	{
-		ImGui::TableSetupColumn("Field name", ImGuiTableColumnFlags_WidthFixed);
-		ImGui::TableSetupColumn("Field value", ImGuiTableColumnFlags_WidthStretch);
-
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		// Make sure the label is vertically centered wrt the text input
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-		ImGui::Text("%s", _S("Name"));
-
-		ImGui::TableNextColumn();
-		if (ImGui::IsWindowAppearing())
-			ImGui::SetKeyboardFocusHere();
-		InputText("##Name", add_server_window_prettyname, {ImGui::GetContentRegionAvail().x, 0}, 0);
-		imgui_ctx->vibrate_on_hover();
-
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-		ImGui::Text("%s", _S("Address"));
-
-		ImGui::TableNextColumn();
-		InputText("##Hostname", add_server_window_hostname, {ImGui::GetContentRegionAvail().x, 0}, 0);
-		imgui_ctx->vibrate_on_hover();
-
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-		ImGui::Text("%s", _S("Port"));
-
-		ImGui::TableNextColumn();
-		ImGui::InputInt("##Port", &add_server_window_port, 1, 1, ImGuiInputTextFlags_CharsDecimal);
-		imgui_ctx->vibrate_on_hover();
-
-		ImGui::EndTable();
-	}
-	ImGui::Checkbox(_S("TCP only"), &add_server_tcp_only);
-	imgui_ctx->vibrate_on_hover();
-
-	auto top_left = ImGui::GetWindowContentRegionMin();
-	auto bottom_right = ImGui::GetWindowContentRegionMax();
-
-	ImGui::SetCursorPosX(top_left.x);
-	if (ImGui::Button(_S("Cancel"), button_size))
-	{
-		current_tab = tab::server_list;
+	auto reset = [&] {
 		add_server_window_prettyname = "";
 		add_server_window_hostname = "";
 		add_server_window_port = wivrn::default_port;
 		add_server_tcp_only = false;
 		add_server_cookie = "";
+	};
+
+	const float w = ImGui::GetContentRegionAvail().x;
+
+	ImGui::TextUnformatted(_S("Name"));
+	if (ImGui::IsWindowAppearing())
+		ImGui::SetKeyboardFocusHere();
+	ui::input_text("##name", add_server_window_prettyname, _S("My gaming PC"), w);
+	ImGui::Dummy({0, 6});
+
+	ImGui::TextUnformatted(_S("Address"));
+	ui::input_text("##hostname", add_server_window_hostname, _S("192.168.1.10 or host.local"), w);
+	ImGui::Dummy({0, 6});
+
+	ImGui::TextUnformatted(_S("Port"));
+	ui::input_int("##port", &add_server_window_port, 1, 1, 65535, w);
+	ImGui::Dummy({0, 6});
+
+	ImGui::TextUnformatted(_S("TCP only"));
+	ImGui::SameLine();
+	ui::toggle("##tcp", &add_server_tcp_only);
+
+	ImGui::Dummy({0, 12});
+
+	const float gap = ImGui::GetStyle().ItemSpacing.x;
+	const std::string cancel_l = _("Cancel");
+	const std::string save_l = _("Save");
+	const float cancel_w = ImGui::CalcTextSize(cancel_l.c_str()).x + ui::metrics::button_padding.x * 2;
+	const float save_w = ImGui::CalcTextSize(save_l.c_str()).x + ui::metrics::button_padding.x * 2;
+	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - cancel_w - save_w - gap);
+
+	if (ui::button(cancel_l, ui::button_style::secondary, {cancel_w, 0}))
+	{
+		reset();
 		ImGui::CloseCurrentPopup();
 	}
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SameLine(bottom_right.x - button_size.x);
-
-	if (ImGui::Button(_S("Save"), button_size))
+	ImGui::SameLine();
+	ImGui::BeginDisabled(add_server_window_hostname.empty());
+	if (ui::button(save_l, ui::button_style::primary, {save_w, 0}))
 	{
-		current_tab = tab::server_list;
 		configuration::server_data data{
 		        .manual = true,
 		        .service = {
-		                .name = add_server_window_prettyname,
+		                .name = add_server_window_prettyname.empty() ? add_server_window_hostname : add_server_window_prettyname,
 		                .hostname = add_server_window_hostname,
 		                .port = add_server_window_port,
 		                .tcp_only = add_server_tcp_only,
@@ -366,155 +345,154 @@ void scenes::lobby::gui_new_server()
 		auto & config = application::get_config();
 		if (add_server_cookie != "")
 			config.servers.erase(add_server_cookie);
-
 		config.servers.emplace("manual-" + data.service.name, data);
 		config.save();
 
-		add_server_window_prettyname = "";
-		add_server_window_hostname = "";
-		add_server_window_port = wivrn::default_port;
-		add_server_tcp_only = false;
-		add_server_cookie = "";
+		reset();
 		ImGui::CloseCurrentPopup();
 	}
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::PopStyleVar(4); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_CellPadding, ImGuiStyleVar_FramePadding
+	ImGui::EndDisabled();
 }
 
 void scenes::lobby::gui_server_list()
 {
-	using constants::style::button_size;
-	using constants::style::icon_button_size;
-
+	namespace ui = wivrn::ui;
 	auto & config = application::get_config();
-	// Build an index of the cookies sorted by server name
+	const auto & t = ui::current();
+
+	// header with an Add server button on the right
+	const ImVec2 hstart = ImGui::GetCursorPos();
+	const float header_avail = ImGui::GetContentRegionAvail().x;
+	ui::page_header(_S("Computers"), _S("Pick a PC running the WiVRn server to stream from."));
+	const ImVec2 hend = ImGui::GetCursorPos();
+
+	const std::string add_label = std::string(ICON_FA_PLUS "  ") + _("Add server");
+	const float add_w = ImGui::CalcTextSize(add_label.c_str()).x + ui::metrics::button_padding.x * 2;
+	ImGui::SetCursorPos({hstart.x + header_avail - add_w, hstart.y});
+	if (ui::button(add_label, ui::button_style::primary))
+	{
+		add_server_cookie = "";
+		add_server_window_prettyname = "";
+		add_server_window_hostname = "";
+		add_server_window_port = wivrn::default_port;
+		add_server_tcp_only = false;
+		ImGui::OpenPopup("add or edit server");
+	}
+	ImGui::SetCursorPos(hend);
+
 	std::multimap<std::string, std::string> sorted_cookies;
 	for (auto && [cookie, data]: config.servers)
-	{
 		sorted_cookies.emplace(data.service.name, cookie);
-	}
-
-	const float list_item_height = 100;
-	auto & style = ImGui::GetStyle();
 
 	std::string cookie_to_remove;
-	if (sorted_cookies.empty())
+	// deferred: the action menu runs inside the per-row id stack, but the popup is
+	// opened below in this scope so OpenPopup and begin_modal hash to the same id
+	bool open_add_edit = false;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
+	ui::begin_card("##servers");
 	{
-		ImGui::PushFont(nullptr, constants::gui::font_size_large);
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 0.5));
-		CenterTextHV(_("Start a WiVRn server on your\nlocal network"));
-		ImGui::PopStyleColor();
-		ImGui::PopFont();
-	}
-
-	auto pos = ImGui::GetCursorPos();
-
-	ImGui::PushStyleColor(ImGuiCol_Header, 0);
-	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0);
-	ImGui::PushStyleColor(ImGuiCol_HeaderActive, 0);
-	for (const auto & [name, cookie]: sorted_cookies)
-	{
-		configuration::server_data & data = config.servers.at(cookie);
-		// bool is_selected = (cookie == selected_item);
-
-		ImGui::SetCursorPos(pos);
-
-		// ImGui::SetNextItemAllowOverlap();
-
-		// TODO custom widget
-		// if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
-		// 	selected_item = cookie;
-
-		if (data.manual)
-			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 25)); // FIXME compute the position correctly
-		else
-			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
-		ImGui::Text("%s", name.c_str());
-
-		if (!data.manual)
+		if (sorted_cookies.empty())
 		{
-			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
-			std::string label = _("Autoconnect") + "##" + cookie;
-			if (ImGui::Checkbox(label.c_str(), &data.autoconnect))
-				config.save();
-			imgui_ctx->vibrate_on_hover();
+			ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
+			ImGui::TextUnformatted(_S("Start a WiVRn server on your local network."));
+			ImGui::PopStyleColor();
 		}
 
-		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x, pos.y + (list_item_height - button_size.y) / 2);
-
-		button_position.x -= button_size.x + style.WindowPadding.x;
-		ImGui::SetCursorPos(button_position);
-
-		bool enable_connect_button = (data.visible and data.compatible) or data.manual;
-		ImGui::BeginDisabled(!enable_connect_button);
-		if (enable_connect_button)
+		bool first = true;
+		for (const auto & [name, cookie]: sorted_cookies)
 		{
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.8f, 0.3f, 0.40f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.3f, 1.00f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 1.0f, 0.2f, 1.00f));
-		}
-		else
-		{
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.4f, 0.3f, 0.40f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
-		}
+			configuration::server_data & data = config.servers.at(cookie);
+			ImGui::PushID(cookie.c_str());
+			if (not first)
+				ui::row_separator();
+			first = false;
 
-		if (ImGui::Button((_("Connect") + "##" + cookie).c_str(), button_size))
-		{
-			connect(data);
-			ImGui::OpenPopup("connecting");
-		}
-		imgui_ctx->vibrate_on_hover();
+			const bool available = (data.visible and data.compatible) or data.manual;
+			const float gap = ImGui::GetStyle().ItemSpacing.x;
+			const float bh = ImGui::GetFrameHeight() * ui::metrics::control_height;
+			const std::string sub = fmt::format("{} : {}", data.service.hostname, data.service.port);
 
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-		{
-			if (!data.compatible && !data.manual)
-				imgui_ctx->tooltip(_("Incompatible server version"));
-			else if (!data.visible && !data.manual)
-				imgui_ctx->tooltip(_("Server not available"));
-		}
+			// trailing controls: [Auto chip] [Connect] [menu], measured up front so the
+			// row body click area can exclude them
+			const std::string c_label = available ? std::string(ICON_FA_PLAY "  ") + _("Connect") : _("Unavailable");
+			const float cw = ImGui::CalcTextSize(c_label.c_str()).x + ui::metrics::button_padding.x * 2;
+			const std::string chip_label = std::string(ICON_FA_BOLT "  ") + _("Auto");
+			const ImVec2 chip_ts = ImGui::CalcTextSize(chip_label.c_str());
+			const float chip_w = chip_ts.x + ui::metrics::chip_padding.x * 2;
+			float trailing = bh + gap + cw + (data.autoconnect ? gap + chip_w : 0) + ui::metrics::list_row_pad;
 
-		ImGui::PopStyleColor(3);
-		ImGui::EndDisabled();
+			const auto row = ui::begin_list_row("##row", ICON_FA_SERVER, 0, name, sub, false, trailing);
+			const float row_h = row.max.y - row.min.y;
+			float x = row.max.x;
 
-		if (data.manual)
-		{
-			button_position.x -= icon_button_size.x + style.WindowPadding.x + 10;
-			ImGui::SetCursorPos(button_position);
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-
-			if (ImGui::Button((ICON_FA_TRASH_CAN "##remove-" + cookie).c_str(), icon_button_size))
-				cookie_to_remove = cookie;
-			imgui_ctx->vibrate_on_hover();
-			ImGui::PopStyleColor(3);
-
-			button_position.x -= icon_button_size.x + style.WindowPadding.x + 10;
-			ImGui::SetCursorPos(button_position);
-			if (ImGui::Button((ICON_FA_PENCIL "##edit-" + cookie).c_str(), icon_button_size))
+			// overflow menu
+			const std::string auto_l = _("Autoconnect");
+			const std::string edit_l = _("Edit server");
+			const std::string del_l = _("Delete server");
+			std::vector<ui::action_item> actions;
+			actions.push_back({ICON_FA_BOLT, auto_l.c_str(), false, data.autoconnect});
+			if (data.manual)
 			{
-				add_server_cookie = cookie;
-				add_server_window_prettyname = data.service.name;
-				add_server_window_hostname = data.service.hostname;
-				add_server_window_port = data.service.port;
-				add_server_tcp_only = data.service.tcp_only;
-				ImGui::OpenPopup("add or edit server");
+				actions.push_back({ICON_FA_PEN, edit_l.c_str(), false, false});
+				actions.push_back({ICON_FA_TRASH, del_l.c_str(), true, false});
 			}
-			imgui_ctx->vibrate_on_hover();
+			ImGui::SetCursorScreenPos({x - bh, row.min.y + (row_h - bh) * 0.5f});
+			switch (ui::action_menu("##menu", ICON_FA_ELLIPSIS_VERTICAL, actions))
+			{
+				case 0:
+					data.autoconnect = not data.autoconnect;
+					config.save();
+					break;
+				case 1:
+					add_server_cookie = cookie;
+					add_server_window_prettyname = data.service.name;
+					add_server_window_hostname = data.service.hostname;
+					add_server_window_port = data.service.port;
+					add_server_tcp_only = data.service.tcp_only;
+					open_add_edit = true;
+					break;
+				case 2:
+					cookie_to_remove = cookie;
+					break;
+			}
+			x -= bh + gap;
+
+			// connect / unavailable
+			ImGui::SetCursorScreenPos({x - cw, row.min.y + (row_h - bh) * 0.5f});
+			ImGui::BeginDisabled(not available);
+			if (ui::button(c_label, available ? ui::button_style::primary : ui::button_style::secondary, {cw, 0}))
+			{
+				connect(data);
+				ImGui::OpenPopup("connecting");
+			}
+			ImGui::EndDisabled();
+			x -= cw + gap;
+
+			// Auto chip
+			if (data.autoconnect)
+			{
+				const float chip_h = chip_ts.y + ui::metrics::chip_padding.y * 2;
+				ImGui::SetCursorScreenPos({x - chip_w, row.min.y + (row_h - chip_h) * 0.5f});
+				ui::chip(chip_label, ui::chip_style::accent);
+			}
+
+			ui::end_list_row();
+			ImGui::PopID();
 		}
 
-		pos.y += 120;
+		ui::end_card();
 	}
-	ImGui::PopStyleColor(3);
+	ImGui::PopStyleVar();
 
 	if (cookie_to_remove != "")
 	{
 		config.servers.erase(cookie_to_remove);
 		config.save();
 	}
+
+	if (open_add_edit)
+		ImGui::OpenPopup("add or edit server");
 
 	// Check if we need to report errors after a disconnect
 	if (next_scene and next_scene->current_state() == scenes::stream::state::shutdown and not ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
@@ -547,360 +525,12 @@ void scenes::lobby::gui_server_list()
 		ImGui::EndPopup();
 	}
 
-	ImGui::SetNextWindowSize({800, 0});
-	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
-	if (ImGui::BeginPopupModal("add or edit server", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	if (wivrn::ui::begin_modal("add or edit server", add_server_cookie.empty() ? _("Add server") : _("Edit server"), 620))
 	{
 		gui_new_server();
-		ImGui::EndPopup();
+		wivrn::ui::end_modal();
 	}
 	ImGui::PopStyleVar(3);
-}
-
-void scenes::lobby::gui_settings()
-{
-	auto & config = application::get_config();
-	ImGuiStyle & style = ImGui::GetStyle();
-
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
-
-	{
-		auto language_name = [&](const std::locale & loc = std::locale()) {
-			return boost::locale::pgettext("language selection, replace with the name of the language", "English", loc);
-		};
-		std::vector<std::tuple<std::string, std::locale, std::string>> languages;
-		for (const auto & msg_info: get_locales())
-		{
-			std::string code = msg_info.language;
-			if (not msg_info.country.empty())
-				code += "_" + msg_info.country;
-			std::locale loc(std::locale(), boost::locale::gnu_gettext::create_messages_facet<char>(msg_info));
-			languages.emplace_back(language_name(loc), loc, std::move(code));
-		}
-		std::ranges::sort(languages, [](auto & l, auto & r) {
-			return una::casesens::collate_utf8(std::get<0>(l), std::get<0>(r)) < 0;
-		});
-		if (ImGui::BeginCombo(_S("Language"), config.locale.empty() ? _S("System language") : language_name().c_str()))
-		{
-			if (ImGui::Selectable(_S("System language"), config.locale.empty(), ImGuiSelectableFlags_SelectOnRelease))
-			{
-				config.locale.clear();
-				config.save();
-				application::instance().load_locale();
-			}
-			for (const auto & [lang, locale, code]: languages)
-			{
-				if (ImGui::Selectable(lang.c_str(), code == config.locale, ImGuiSelectableFlags_SelectOnRelease))
-				{
-					config.locale = code;
-					config.save();
-					application::instance().load_locale();
-				}
-			}
-			ImGui::EndCombo();
-		}
-		imgui_ctx->vibrate_on_hover();
-	}
-
-	gui::refresh_rate(instance, session, *imgui_ctx, config);
-
-	// Render resolution
-	{
-		const auto current = config.resolution_scale;
-		const auto width = stream_view.recommendedImageRectWidth;
-		const auto height = stream_view.recommendedImageRectHeight;
-		auto intScale = int(current * 10);
-		const auto slider = ImGui::SliderInt(
-		        _("Render resolution").append("##resolution_scale").c_str(),
-		        &intScale,
-		        5,
-		        config.extended_config ? 35 : 15,
-		        fmt::format(_F("{}%% - {}x{} per eye"), intScale * 10, int(width * current), int(height * current)).c_str());
-		if (slider)
-		{
-			config.resolution_scale = intScale * 0.1;
-			config.save();
-		}
-		imgui_ctx->vibrate_on_hover();
-		if (width * config.resolution_scale > stream_view.maxImageRectWidth or height * config.resolution_scale > stream_view.maxImageRectHeight)
-		{
-			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
-			ImGui::SameLine();
-			ImGui::Text("%s", fmt::format(_F("Resolution larger than {}x{} may not be supported by the headset"), stream_view.maxImageRectWidth, stream_view.maxImageRectHeight).c_str());
-		}
-		if (intScale > 15)
-		{
-			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
-			ImGui::SameLine();
-			ImGui::Text("%s", fmt::format(_cF("resolution is higher than recommended", "Recommended maximum is {}%"), 150).c_str());
-		}
-	}
-
-	// foveation
-	{
-		const int step = 5;
-		const auto current = config.get_stream_scale();
-		int intval = round((1 - current) * 100 / step);
-		const auto slider = ImGui::SliderInt(
-		        _("Foveated encoding").append("##stream_scale").c_str(),
-		        &intval,
-		        0,
-		        100 / step,
-		        fmt::format(_F("{}%%"), intval * step).c_str());
-		if (slider)
-		{
-			// clamp out of the slider to have the 50% value centered
-			intval = std::clamp(intval,
-			                    config.extended_config ? 0 : 30 / step,
-			                    80 / step);
-			config.set_stream_scale(1 - intval * step * 0.01);
-			config.save();
-		}
-		if (ImGui::IsItemHovered())
-		{
-			if (config.check_feature(feature::eye_gaze))
-				imgui_ctx->tooltip(_("Higher values focus image quality where you look at,\n"
-				                     "improving latency, power efficiency and quality."));
-			else
-				imgui_ctx->tooltip(_("Higher values focus image quality at the center,\n"
-				                     "improving latency, power efficiency and quality."));
-		}
-		imgui_ctx->vibrate_on_hover();
-		if (intval < 30 / step)
-		{
-			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
-			ImGui::SameLine();
-			ImGui::Text("%s", fmt::format(_cF("foveation is lower than recommended", "Recommended minimum is {}%"), 30).c_str());
-		}
-	}
-
-	{
-		auto codec_name = [](const std::optional<wivrn::video_codec> codec) {
-			if (not codec)
-				return _C("Codec", "Automatic");
-			switch (*codec)
-			{
-				case wivrn::h264:
-					return _C("Codec", "H.264");
-				case wivrn::h265:
-					return _C("Codec", "H.265");
-				case wivrn::av1:
-					return _C("Codec", "AV1");
-				case wivrn::raw:
-					break;
-			}
-			assert(false);
-			__builtin_unreachable();
-		};
-
-		if (ImGui::BeginCombo(_S("Codec"), codec_name(config.codec).c_str()))
-		{
-			if (ImGui::Selectable(codec_name({}).c_str(), not config.codec))
-			{
-				config.codec = std::nullopt;
-				config.save();
-			}
-			for (auto codec: decoder::supported_codecs())
-			{
-				// don't show raw in GUI
-				if (codec == wivrn::raw)
-					continue;
-
-				if (ImGui::Selectable(codec_name(codec).c_str(), config.codec == codec))
-				{
-					config.codec = codec;
-					config.save();
-				}
-			}
-
-			ImGui::EndCombo();
-		}
-		imgui_ctx->vibrate_on_hover();
-
-		if (config.codec == wivrn::video_codec::av1 or config.codec == wivrn::video_codec::h265)
-		{
-			ImGui::SameLine(0.f, 10.f);
-			bool ten_bit = config.bit_depth == 10;
-			if (ImGui::Checkbox(_S("10-bit"), &ten_bit))
-			{
-				config.bit_depth = ten_bit ? 10 : 8;
-				config.save();
-			}
-			imgui_ctx->vibrate_on_hover();
-		}
-	}
-
-	// Bitrate
-	{
-		const int step = 5;
-		const int mb = 1'000'000;
-		const auto current = config.bitrate_bps;
-		auto val = int(current / mb / step);
-		const auto slider = ImGui::SliderInt(
-		        _("Bitrate").append("##bitrate").c_str(),
-		        &val,
-		        1,
-		        config.max_bitrate() / mb / step,
-		        fmt::format(_F("{}Mbit/s"), val * step).c_str());
-		if (slider)
-		{
-			config.bitrate_bps = val * mb * step;
-			config.save();
-		}
-		imgui_ctx->vibrate_on_hover();
-		if (config.bitrate_bps > config.max_bitrate(false))
-		{
-			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
-			ImGui::SameLine();
-			ImGui::Text("%s", fmt::format(_cF("bitrate value is higher than recommended", "Recommended maximum is {}Mbit/s"), config.max_bitrate(false) / mb).c_str());
-		}
-	}
-
-	if (instance.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))
-	{
-		if (ImGui::Checkbox(_S("High power mode"), &config.high_power_mode))
-			config.save();
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(_("Increase power usage to allow higher resolution and refresh rate"));
-		imgui_ctx->vibrate_on_hover();
-	}
-
-	{
-		bool enabled = config.check_feature(feature::microphone);
-		if (ImGui::Checkbox(_S("Enable microphone"), &enabled))
-		{
-			config.set_feature(feature::microphone, enabled);
-		}
-		imgui_ctx->vibrate_on_hover();
-	}
-	{
-		ImGui::BeginDisabled(not config.check_feature(feature::microphone));
-		ImGui::Indent();
-		if (ImGui::Checkbox(_S("Unprocessed Microphone Audio"), &config.mic_unprocessed_audio))
-		{
-			config.save();
-		}
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(_("Force disable audio filters, such as noise cancellation"));
-		ImGui::Unindent();
-		ImGui::EndDisabled();
-	}
-	{
-		// Virtual devices: a keyboard, mouse or gamepad connected to the headset is
-		// replicated on the server through uinput. The gamepad is also exposed through
-		// OpenXR, whether or not it is mirrored to a virtual device.
-		ImGui::Text("%s", _S("Virtual devices"));
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(_("Input devices connected to the headset are replicated as virtual devices on the PC.\nThe server must allow forwarded input devices; this is not available when the server runs as Flatpak.\nA gamepad is also usable without a virtual device by applications that read it through OpenXR."));
-		ImGui::Indent();
-		if (ImGui::Checkbox(_S("Keyboard"), &config.forward_keyboard))
-			config.save();
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::Checkbox(_S("Mouse"), &config.forward_mouse))
-			config.save();
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::Checkbox(_S("Gamepad"), &config.forward_gamepad))
-			config.save();
-		imgui_ctx->vibrate_on_hover();
-		ImGui::Unindent();
-
-		if (server_hid_forwarding == false and (config.forward_keyboard or config.forward_mouse or config.forward_gamepad))
-		{
-			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
-			ImGui::SameLine();
-			ImGui::Text("%s", _S("The server does not allow forwarded input devices"));
-		}
-	}
-	if (system.hand_tracking_supported())
-	{
-		bool enabled = config.check_feature(feature::hand_tracking);
-		if (ImGui::Checkbox(_S("Enable hand tracking"), &enabled))
-		{
-			config.set_feature(feature::hand_tracking, enabled);
-		}
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
-	}
-	if (application::get_eye_gaze_supported())
-	{
-		bool enabled = config.check_feature(feature::eye_gaze);
-		if (ImGui::Checkbox(_S("Enable eye tracking"), &enabled))
-		{
-			config.set_feature(feature::eye_gaze, enabled);
-		}
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
-	}
-	if (system.face_tracker_supported() != xr::face_tracker_type::none)
-	{
-		bool enabled = config.check_feature(feature::face_tracking);
-		if (ImGui::Checkbox(_S("Enable face tracking"), &enabled))
-		{
-			config.set_feature(feature::face_tracking, enabled);
-		}
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
-		imgui_ctx->vibrate_on_hover();
-	}
-
-	if (auto body_tracker = system.body_tracker_supported(); body_tracker != xr::body_tracker_type::none)
-	{
-		bool enabled = config.check_feature(feature::body_tracking);
-		if (ImGui::Checkbox(_S("Enable body tracking"), &enabled))
-		{
-			config.set_feature(feature::body_tracking, enabled);
-		}
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-		{
-			if (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)
-			{
-				imgui_ctx->tooltip(_("This feature is not supported by your headset"));
-			}
-			else
-			{
-				if (body_tracker == xr::body_tracker_type::fb or body_tracker == xr::body_tracker_type::meta)
-					imgui_ctx->tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
-			}
-		}
-
-		imgui_ctx->vibrate_on_hover();
-
-		{
-			ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
-			ImGui::Indent();
-			{
-				gui::body_tracking_parts(system, *imgui_ctx, config);
-			}
-			ImGui::Unindent();
-			ImGui::EndDisabled();
-		}
-	}
-
-	{
-		ImGui::Checkbox(_S("Enable in-stream window"), &config.enable_stream_gui);
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(_("Enables the configuration window to be shown while the game is streaming.\nIf enabled, the window is activated by pressing both thumbsticks."));
-	}
-
-	{
-		ImGui::Checkbox(_S("Extended configuration values"), &config.extended_config);
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(_("Allows unsafe configuration values, use at your own risk."));
-	}
-
-	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
-}
-
-void scenes::lobby::gui_post_processing()
-{
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
-	gui::post_processing(*imgui_ctx, application::get_config());
-	ImGui::PopStyleVar();
 }
 
 #if WIVRN_CLIENT_DEBUG_MENU
@@ -1278,400 +908,6 @@ void scenes::lobby::gui_licenses()
 		ImGui::TextUnformatted((const char *)license->data(), (const char *)license->data() + license->size());
 }
 
-static auto face_weights()
-{
-	using weights = decltype(wivrn::from_headset::tracking::fb_face2{}.weights);
-	using item = std::pair<const char *, std::array<float, XR_FACE_EXPRESSION2_COUNT_FB>>;
-	std::vector<item> res;
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_PULLER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_PULLER_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_SMILE, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_DEPRESSOR_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_DEPRESSOR_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_TIRED, face);
-	}
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_JAW_DROP_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_SURPRISE, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_EYES_CLOSED_L_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_SMILE_WINK, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_EYES_CLOSED_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_SMILE_WINK, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_PULLER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_PULLER_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_SMILE_BEAM, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_DEPRESSOR_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_DEPRESSOR_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_EYES_LOOK_DOWN_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_EYES_LOOK_DOWN_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_SAD_CRY, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_EYES_LOOK_UP_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_EYES_LOOK_UP_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_ROLLING_EYES, face);
-	}
-
-	{
-		weights face{};
-		res.emplace_back(ICON_FA_FACE_MEH, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_EYES_CLOSED_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_JAW_DROP_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_LAUGH_WINK, face);
-	}
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_EYES_CLOSED_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_JAW_DROP_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_LAUGH_WINK, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_JAW_DROP_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_LAUGH_SQUINT, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_PULLER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_PULLER_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_JAW_DROP_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_LAUGH, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_INNER_BROW_RAISER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_INNER_BROW_RAISER_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_GRIN_WIDE, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_EYES_CLOSED_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_TONGUE_OUT_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_GRIN_TONGUE_WINK, face);
-	}
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_EYES_CLOSED_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_TONGUE_OUT_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_GRIN_TONGUE_WINK, face);
-	}
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LID_TIGHTENER_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_TONGUE_OUT_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_GRIN_TONGUE_SQUINT, face);
-	}
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_TONGUE_OUT_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_GRIN_TONGUE, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_PULLER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_PULLER_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_JAW_DROP_FB] = 0.5;
-		res.emplace_back(ICON_FA_FACE_GRIN, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_CHIN_RAISER_T_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_STRETCHER_L_FB] = 0.5;
-		face[XR_FACE_EXPRESSION2_LIP_STRETCHER_R_FB] = 0.5;
-		res.emplace_back(ICON_FA_FACE_GRIMACE, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_DEPRESSOR_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_DEPRESSOR_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_JAW_DROP_FB] = 0.5;
-		res.emplace_back(ICON_FA_FACE_FROWN_OPEN, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_DEPRESSOR_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_CORNER_DEPRESSOR_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_FROWN, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_UPPER_LID_RAISER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_UPPER_LID_RAISER_R_FB] = 1;
-		face[XR_FACE_EXPRESSION2_LIP_TIGHTENER_L_FB] = 0.5;
-		face[XR_FACE_EXPRESSION2_LIP_TIGHTENER_R_FB] = 0.5;
-		res.emplace_back(ICON_FA_FACE_FLUSHED, face);
-	}
-
-	{
-		weights face{};
-		face[XR_FACE_EXPRESSION2_BROW_LOWERER_L_FB] = 1;
-		face[XR_FACE_EXPRESSION2_BROW_LOWERER_R_FB] = 1;
-		res.emplace_back(ICON_FA_FACE_ANGRY, face);
-	}
-
-	return res;
-}
-
-static const char * get_face_icon(XrTime predicted_display_time, xr::face_tracker & face_tracker)
-{
-	static const auto w = face_weights();
-	wivrn::from_headset::tracking::fb_face2 expression;
-	const char * result = nullptr;
-	std::visit(utils::overloaded{
-	                   [](std::monostate &) {},
-	                   [&](xr::android_face_tracker &) { result = ICON_FA_FACE_SMILE_WINK; },
-	                   [&](xr::htc_face_tracker &) { result = ICON_FA_FACE_SMILE_WINK; },
-	                   [&](auto & ft) {
-		                   ft.get_weights(predicted_display_time, expression);
-	                   },
-	           },
-	           face_tracker);
-
-	if (result)
-		return result;
-
-	if (not expression.is_valid)
-		return ICON_FA_FACE_MEH;
-
-	return std::ranges::min_element(w, std::ranges::less(), [&](const auto & p) {
-		       float res = 0;
-		       for (size_t i = 0; i < XR_FACE_EXPRESSION2_COUNT_FB; ++i)
-		       {
-			       float d = expression.weights[i] - p.second[i];
-			       res += d * d;
-		       }
-		       return res;
-	       })
-	        ->first;
-}
-
-void scenes::lobby::draw_features_status(XrTime predicted_display_time)
-{
-	const float win_width = ImGui::GetContentRegionAvail().x;
-	float text_width = 0;
-	auto & config = application::get_config();
-
-	struct item
-	{
-		feature f;
-		std::string tooltip_enabled;
-		std::string tooltip_disabled;
-		const char * icon_enabled;
-		const char * icon_disabled = ICON_FA_SLASH;
-		bool enabled;
-		float w;
-	};
-	std::vector<item> items;
-
-	items.push_back({
-	        .f = feature::microphone,
-	        .tooltip_enabled = _("Microphone is enabled"),
-	        .tooltip_disabled = _("Microphone is disabled"),
-	        .icon_enabled = ICON_FA_MICROPHONE,
-	        .icon_disabled = ICON_FA_MICROPHONE_SLASH,
-	});
-
-	if (system.hand_tracking_supported())
-	{
-		items.push_back({
-		        .f = feature::hand_tracking,
-		        .tooltip_enabled = _("Hand tracking is enabled"),
-		        .tooltip_disabled = _("Hand tracking is disabled"),
-		        .icon_enabled = ICON_FA_HAND,
-		});
-	}
-
-	if (application::get_eye_gaze_supported())
-	{
-		items.push_back({
-		        .f = feature::eye_gaze,
-		        .tooltip_enabled = _("Eye tracking is enabled"),
-		        .tooltip_disabled = _("Eye tracking is disabled"),
-		        .icon_enabled = ICON_FA_EYE,
-		        .icon_disabled = ICON_FA_EYE_SLASH,
-		});
-	}
-
-	if (not std::holds_alternative<std::monostate>(face_tracker))
-	{
-		items.push_back({
-		        .f = feature::face_tracking,
-		        .tooltip_enabled = _("Face tracking is enabled"),
-		        .tooltip_disabled = _("Face tracking is disabled"),
-		        .icon_enabled = get_face_icon(predicted_display_time, face_tracker),
-		        .icon_disabled = ICON_FA_FACE_MEH_BLANK,
-		});
-	}
-	else if (system.face_tracker_supported() != xr::face_tracker_type::none and config.check_feature(feature::face_tracking))
-	{
-		face_tracker = xr::make_face_tracker(instance, system, session);
-	}
-
-	if (system.body_tracker_supported() != xr::body_tracker_type::none)
-	{
-		items.push_back({
-		        .f = feature::body_tracking,
-		        .tooltip_enabled = _("Body tracking is enabled"),
-		        .tooltip_disabled = _("Body tracking is disabled"),
-		        .icon_enabled = ICON_FA_PERSON,
-		});
-	}
-
-	// Get statuses
-	for (auto & i: items)
-	{
-		i.enabled = config.check_feature(i.f);
-		i.w = ImGui::CalcTextSize(i.enabled ? i.icon_enabled : i.icon_disabled).x;
-		text_width += i.w;
-	}
-	const ImGuiStyle & style = ImGui::GetStyle();
-	text_width += items.size() * style.FramePadding.x * 2;
-
-	// New server button
-	if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add or edit server"))
-		ImGui::OpenPopup("add or edit server");
-	imgui_ctx->vibrate_on_hover();
-	ImGui::SameLine();
-
-	// Enabled features
-	ImGui::SetCursorPosX((win_width - text_width) / 2);
-	for (auto & i: items)
-	{
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, i.w / 2);
-		ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32_BLACK_TRANS);
-		ImGui::PushStyleColor(ImGuiCol_Text, i.enabled ? ImGui::GetColorU32(ImGuiCol_Text) : IM_COL32(255, 0, 0, 255));
-		if (&i != &items.front())
-			ImGui::SameLine();
-		auto pos = ImGui::GetCursorPos();
-		if (ImGui::Button(fmt::format("{}##{}", i.enabled ? i.icon_enabled : i.icon_disabled, i.icon_enabled).c_str()))
-		{
-			// button doesn't alter the bool
-			config.set_feature(i.f, not i.enabled);
-		}
-
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(i.enabled ? i.tooltip_enabled : i.tooltip_disabled);
-
-		if (i.icon_disabled == std::string_view(ICON_FA_SLASH) and not i.enabled)
-		{
-			auto save = ImGui::GetCurrentWindow()->DC;
-			ImGui::SetCursorPos(pos + ImGui::GetStyle().FramePadding);
-			ImGui::Text("%s", i.icon_enabled);
-			ImGui::GetCurrentWindow()->DC = save;
-		}
-		ImGui::PopStyleColor(2);
-		ImGui::PopStyleVar();
-	}
-
-	float PrevLineSize = ImGui::GetCurrentWindow()->DC.PrevLineSize.y;
-	float PrevLineTextBaseOffset = ImGui::GetCurrentWindow()->DC.PrevLineTextBaseOffset;
-
-#ifdef __ANDROID__
-	// Battery status
-	auto status = get_battery_status();
-
-	const char * battery_icon = nullptr;
-	if (status.charge)
-	{
-		int icon_nr;
-
-		if (status.charging)
-		{
-			if (*status.charge > 0.995)
-				icon_nr = 5;
-			else
-				icon_nr = instance.now() / 500'000'000 % 5;
-		}
-		else
-			icon_nr = std::round((*status.charge) * 4);
-
-		switch (icon_nr)
-		{
-			case 0:
-				battery_icon = ICON_FA_BATTERY_EMPTY;
-				break;
-			case 1:
-				battery_icon = ICON_FA_BATTERY_QUARTER;
-				break;
-			case 2:
-				battery_icon = ICON_FA_BATTERY_HALF;
-				break;
-			case 3:
-				battery_icon = ICON_FA_BATTERY_THREE_QUARTERS;
-				break;
-			case 4:
-				battery_icon = ICON_FA_BATTERY_FULL;
-				break;
-			case 5:
-				battery_icon = ICON_FA_PLUG;
-		}
-
-		ImGui::SameLine();
-
-		// Always use the longest width for layout
-		float max_battery_width = ImGui::CalcTextSize(ICON_FA_BATTERY_FULL "100%").x;
-		ImVec4 battery_color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-
-		if (*status.charge < 0.2)
-			battery_color = ImVec4(1, 0, 0, 1);
-
-		ImGui::SetCursorPosX(win_width - max_battery_width - style.WindowPadding.x);
-		ImGui::TextColored(battery_color, "%s %d%%", battery_icon, (int)std::round(*status.charge * 100));
-	}
-#endif
-
-	ImGui::Dummy({0, 15});
-}
-
 void scenes::lobby::gui_keyboard()
 {
 	keyboard.display(*imgui_ctx);
@@ -1808,11 +1044,148 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 		ImGui::SetNextWindowSize({1400, 900});
 		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-		ImGui::SetCursorPos({TabWidth + 20, 0});
+
+		auto & config = application::get_config();
+		const float TopBarH = 72;
+
+		// Top bar: logo on the left, status controls on the right
+		ImGui::SetCursorPos({0, 0});
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, wivrn::ui::current().background);
+		ImGui::BeginChild("TopBar", {ImGui::GetWindowSize().x, TopBarH}, 0, ImGuiWindowFlags_NoScrollbar);
+		{
+			const float side = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
+			const float gap = 8;
+
+			// logo
+			ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.3f);
+			ImGui::SetCursorPos({24, (TopBarH - ImGui::GetFontSize()) * 0.5f});
+			ImGui::PushStyleColor(ImGuiCol_Text, wivrn::ui::current().accent);
+			ImGui::TextUnformatted(ICON_FA_EYE);
+			ImGui::PopStyleColor();
+			ImGui::SameLine(0, 10);
+			ImGui::TextUnformatted("WiVRn");
+			ImGui::PopFont();
+
+			// right cluster: feature toggles + battery + connection status
+			const std::string conn = _("Not connected");
+			const ImVec2 cts = ImGui::CalcTextSize(conn.c_str());
+			const float dot_r = cts.y * 0.26f;
+			const float chip_w = cts.x + wivrn::ui::metrics::chip_padding.x * 2.5f + dot_r * 2;
+
+			// feature toggles available on this headset (mic + passthrough are always shown)
+			const bool has_hand = system.hand_tracking_supported();
+			const bool has_eye = application::get_eye_gaze_supported();
+			const bool has_face = system.face_tracker_supported() != xr::face_tracker_type::none;
+			const bool has_body = system.body_tracker_supported() != xr::body_tracker_type::none;
+			const int n_toggles = 2 + has_hand + has_eye + has_face + has_body;
+
+#ifdef __ANDROID__
+			const auto battery = get_battery_status();
+			std::string battery_label;
+			wivrn::ui::chip_style battery_style = wivrn::ui::chip_style::neutral;
+			if (battery.charge)
+			{
+				const char * battery_icon = ICON_FA_BATTERY_FULL;
+				int icon_nr;
+				if (battery.charging)
+					icon_nr = *battery.charge > 0.995 ? 5 : instance.now() / 500'000'000 % 5;
+				else
+					icon_nr = std::round((*battery.charge) * 4);
+				switch (icon_nr)
+				{
+					case 0:
+						battery_icon = ICON_FA_BATTERY_EMPTY;
+						break;
+					case 1:
+						battery_icon = ICON_FA_BATTERY_QUARTER;
+						break;
+					case 2:
+						battery_icon = ICON_FA_BATTERY_HALF;
+						break;
+					case 3:
+						battery_icon = ICON_FA_BATTERY_THREE_QUARTERS;
+						break;
+					case 4:
+						battery_icon = ICON_FA_BATTERY_FULL;
+						break;
+					case 5:
+						battery_icon = ICON_FA_PLUG;
+						break;
+				}
+				battery_label = fmt::format("{} {}%", battery_icon, (int)std::round(*battery.charge * 100));
+				if (*battery.charge < 0.2)
+					battery_style = wivrn::ui::chip_style::danger;
+			}
+			const float battery_w = battery_label.empty() ? 0 : gap + ImGui::CalcTextSize(battery_label.c_str()).x + wivrn::ui::metrics::chip_padding.x * 2;
+#else
+			const float battery_w = 0;
+#endif
+			const float cluster_w = n_toggles * side + n_toggles * gap + battery_w + chip_w;
+			ImGui::SetCursorPos({ImGui::GetWindowSize().x - 24 - cluster_w, (TopBarH - side) * 0.5f});
+
+			bool mic = config.check_feature(feature::microphone);
+			if (wivrn::ui::icon_button(ICON_FA_MICROPHONE, {side, side}, mic, _S("Microphone")))
+				config.set_feature(feature::microphone, not mic);
+			ImGui::SameLine(0, gap);
+			if (wivrn::ui::icon_button(ICON_FA_EYE_SLASH, {side, side}, config.passthrough_enabled, _S("Passthrough")))
+			{
+				config.passthrough_enabled = not config.passthrough_enabled;
+				setup_passthrough();
+				config.save();
+			}
+			if (has_hand)
+			{
+				ImGui::SameLine(0, gap);
+				bool hand = config.check_feature(feature::hand_tracking);
+				if (wivrn::ui::icon_button(ICON_FA_HAND, {side, side}, hand, _S("Hand tracking")))
+					config.set_feature(feature::hand_tracking, not hand);
+			}
+			if (has_eye)
+			{
+				ImGui::SameLine(0, gap);
+				bool eye = config.check_feature(feature::eye_gaze);
+				if (wivrn::ui::icon_button(ICON_FA_EYE, {side, side}, eye, _S("Eye tracking")))
+					config.set_feature(feature::eye_gaze, not eye);
+			}
+			if (has_face)
+			{
+				ImGui::SameLine(0, gap);
+				bool face = config.check_feature(feature::face_tracking);
+				if (wivrn::ui::icon_button(ICON_FA_FACE_SMILE, {side, side}, face, _S("Face tracking")))
+					config.set_feature(feature::face_tracking, not face);
+			}
+			if (has_body)
+			{
+				ImGui::SameLine(0, gap);
+				bool body = config.check_feature(feature::body_tracking);
+				if (wivrn::ui::icon_button(ICON_FA_PERSON, {side, side}, body, _S("Body tracking")))
+					config.set_feature(feature::body_tracking, not body);
+			}
+
+#ifdef __ANDROID__
+			// battery status, as a pill like the connection chip
+			if (not battery_label.empty())
+			{
+				ImGui::SameLine(0, gap);
+				ImGui::SetCursorPosY((TopBarH - side) * 0.5f);
+				wivrn::ui::chip(battery_label, battery_style, false, side);
+			}
+#endif
+
+			ImGui::SameLine(0, gap);
+			ImGui::SetCursorPosY((TopBarH - side) * 0.5f);
+			wivrn::ui::chip(conn.c_str(), wivrn::ui::chip_style::muted, true, side);
+		}
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
+
+		// content area, with an equal margin on both sides of the panel
+		const float content_margin = 20;
+		ImGui::SetCursorPos({TabWidth + content_margin, TopBarH});
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
-		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0), 0);
+		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - content_margin, 0), 0);
 		ImGui::SetCursorPosY(20);
 
 		switch (current_tab)
@@ -1822,15 +1195,31 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				__builtin_unreachable();
 
 			case tab::server_list:
-				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
-				draw_features_status(predicted_display_time);
-				ImGui::PopStyleVar();
-
 				gui_server_list();
 				break;
 
-			case tab::settings:
-				gui_settings();
+			case tab::performance:
+				gui_performance();
+				break;
+
+			case tab::streaming:
+				gui_streaming();
+				break;
+
+			case tab::audio:
+				gui_audio();
+				break;
+
+			case tab::devices:
+				gui_devices();
+				break;
+
+			case tab::tracking:
+				gui_tracking();
+				break;
+
+			case tab::system:
+				gui_system();
 				break;
 
 			case tab::post_processing:
@@ -1841,11 +1230,11 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				gui_customize(predicted_display_time);
 				break;
 
+#if WIVRN_CLIENT_DEBUG_MENU
 			case tab::components:
 				gui_components();
 				break;
 
-#if WIVRN_CLIENT_DEBUG_MENU
 			case tab::debug:
 				gui_debug();
 				break;
@@ -1876,44 +1265,56 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::EndChild();
 		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
 
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(0, 0, 0, 255));
-		ImGui::SetCursorPos(style.WindowPadding);
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, wivrn::ui::current().card);
+		ImGui::SetCursorPos({0, TopBarH});
 		{
-			ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {16, 16});
+			ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetWindowSize().y - TopBarH}, ImGuiChildFlags_AlwaysUseWindowPadding);
 
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list"), current_tab, tab::server_list, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 4});
 
-			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), current_tab, tab::settings, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
+			if (wivrn::ui::nav_item(ICON_FA_COMPUTER, _S("Computers"), current_tab == tab::server_list))
+				current_tab = tab::server_list;
 
-			RadioButtonWithoutCheckBox(ICON_FA_WAND_MAGIC_SPARKLES "  " + _("Post-processing"), current_tab, tab::post_processing, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
+			wivrn::ui::nav_section(_S("SETTINGS"));
+			if (wivrn::ui::nav_item(ICON_FA_GAUGE_HIGH, _S("Performance"), current_tab == tab::performance))
+				current_tab = tab::performance;
+			if (wivrn::ui::nav_item(ICON_FA_TOWER_BROADCAST, _S("Streaming"), current_tab == tab::streaming))
+				current_tab = tab::streaming;
+			if (wivrn::ui::nav_item(ICON_FA_WAND_MAGIC_SPARKLES, _S("Post-processing"), current_tab == tab::post_processing))
+				current_tab = tab::post_processing;
+			if (wivrn::ui::nav_item(ICON_FA_VOLUME_HIGH, _S("Audio"), current_tab == tab::audio))
+				current_tab = tab::audio;
+			if (wivrn::ui::nav_item(ICON_FA_KEYBOARD, _S("Devices"), current_tab == tab::devices))
+				current_tab = tab::devices;
+			if (wivrn::ui::nav_item(ICON_FA_LOCATION_CROSSHAIRS, _S("Tracking"), current_tab == tab::tracking))
+				current_tab = tab::tracking;
+			if (wivrn::ui::nav_item(ICON_FA_GEARS, _S("System"), current_tab == tab::system))
+				current_tab = tab::system;
 
-			RadioButtonWithoutCheckBox(ICON_FA_PANORAMA "  " + _("Customize"), current_tab, tab::customize, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
-
-			RadioButtonWithoutCheckBox(ICON_FA_PALETTE "  Components", current_tab, tab::components, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
-
+			wivrn::ui::nav_section(_S("PERSONALIZE"));
+			if (wivrn::ui::nav_item(ICON_FA_IMAGE, _S("Customize"), current_tab == tab::customize))
+				current_tab = tab::customize;
 #if WIVRN_CLIENT_DEBUG_MENU
-			RadioButtonWithoutCheckBox(ICON_FA_BUG_SLASH "  " + _("Debug"), current_tab, tab::debug, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
+			if (wivrn::ui::nav_item(ICON_FA_PALETTE, "Components", current_tab == tab::components))
+				current_tab = tab::components;
+			if (wivrn::ui::nav_item(ICON_FA_BUG_SLASH, _S("Debug"), current_tab == tab::debug))
+				current_tab = tab::debug;
 #endif
 
-			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 3 * ImGui::GetCurrentContext()->FontSize - 6 * style.FramePadding.y - 2 * style.ItemSpacing.y - style.WindowPadding.y);
-			RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About"), current_tab, tab::about, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
+			// pinned to the bottom
+			const float item_h = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height + ImGui::GetStyle().ItemSpacing.y;
+			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 3 * item_h - ImGui::GetStyle().WindowPadding.y);
+			if (wivrn::ui::nav_item(ICON_FA_CIRCLE_INFO, _S("About"), current_tab == tab::about))
+				current_tab = tab::about;
+			if (wivrn::ui::nav_item(ICON_FA_SCALE_BALANCED, _S("Licenses"), current_tab == tab::licenses))
+				current_tab = tab::licenses;
+			if (wivrn::ui::nav_item(ICON_FA_DOOR_OPEN, _S("Exit"), current_tab == tab::exit))
+				current_tab = tab::exit;
 
-			RadioButtonWithoutCheckBox(ICON_FA_SCALE_BALANCED "  " + _("Licenses"), current_tab, tab::licenses, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
-
-			RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Exit"), current_tab, tab::exit, {TabWidth, 0});
-			imgui_ctx->vibrate_on_hover();
-
-			ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
+			ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
 			ImGui::EndChild();
+			ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding (Tabs)
 		}
 		ImGui::PopStyleColor(); // ImGuiCol_ChildBg
 		ImGui::End();

@@ -28,6 +28,8 @@
 #include "imspinner.h"
 #include "render/image_writer.h"
 #include "render/scene_renderer.h"
+#include "render/ui_theme.h"
+#include "render/ui_widgets.h"
 #include "utils/files.h"
 #include "utils/i18n.h"
 #include "utils/json_string.h"
@@ -337,278 +339,141 @@ void scenes::lobby::download_environment_list()
 
 scenes::lobby::environment_item_action scenes::lobby::environment_item(environment_model & model, bool download_screenshot)
 {
+	namespace ui = wivrn::ui;
 	environment_item_action action = environment_item_action::none;
-	ImGuiWindow * window = ImGui::GetCurrentWindow();
-	const ImGuiStyle & style = ImGui::GetStyle();
-	bool local = std::ranges::contains(local_environments, model.name, &environment_model::name);
+	const bool local = std::ranges::contains(local_environments, model.name, &environment_model::name);
 
-	static std::unordered_map<std::string, float> expanded_height;
-
-	float width = ImGui::GetWindowSize().x - ImGui::GetCurrentWindow()->ScrollbarSizes.x - 2 * ImGui::GetCurrentWindow()->WindowPadding.x;
-	ImVec2 screenshot_size{256, 256};
-	ImVec2 default_selectable_size{
-	        width,
-	        screenshot_size.y + 2 * style.FramePadding.y // Screenshot size including padding
-	                                                     // + style.ItemSpacing.y                             // Spacing
-	                                                     // + ImGui::GetFontSize() + 2 * style.FramePadding.y // Progress bar height
-	};
-	ImVec2 selectable_size = default_selectable_size;
-
-	bool expanded = false;
-	if (auto iter = expanded_height.find(model.gltf_url); iter != expanded_height.end())
+	// lazily load the screenshot texture
+	if (model.screenshot == 0)
 	{
-		selectable_size.y = std::max(selectable_size.y, iter->second);
-		expanded = true;
-	}
-
-	ImTextureID screenshot = model.screenshot;
-	if (ImRect{window->DC.CursorPos, window->DC.CursorPos + selectable_size}.Overlaps(window->ClipRect))
-	{
-		if (screenshot == 0)
+		if (download_screenshot)
 		{
-			if (download_screenshot)
+			if (model.screenshot_url != "" and not try_get_download_handle(model.screenshot_url))
 			{
-				if (model.screenshot_url != "" and not try_get_download_handle(model.screenshot_url))
-				{
-					spdlog::info("Downloading {}", model.screenshot_url);
-
-					download(model.screenshot_url,
-					         [this, url = model.screenshot_url](libcurl::curl_handle & handle) {
-						         try
-						         {
-							         auto png = handle.get_response_bytes();
-							         auto screenshot = imgui_ctx->load_texture(png);
-
-							         for (auto & model: downloadable_environments)
-							         {
-								         if (model.screenshot_url == url)
-								         {
-									         model.screenshot = screenshot;
-									         model.screenshot_png = std::vector<std::byte>{png.begin(), png.end()};
-								         }
-							         }
-						         }
-						         catch (std::exception & e)
-						         {
-							         spdlog::warn("Cannot load image from {}: {}", handle.get_url(), e.what());
-							         for (auto & model: downloadable_environments)
-							         {
-								         if (model.screenshot_url == url)
-								         {
-									         model.screenshot_url = "";
-									         model.screenshot = default_environment_screenshot;
-								         }
-							         }
-						         }
-					         });
-				}
+				spdlog::info("Downloading {}", model.screenshot_url);
+				download(model.screenshot_url, [this, url = model.screenshot_url](libcurl::curl_handle & handle) {
+					try
+					{
+						auto png = handle.get_response_bytes();
+						auto tex = imgui_ctx->load_texture(png);
+						for (auto & m: downloadable_environments)
+							if (m.screenshot_url == url)
+							{
+								m.screenshot = tex;
+								m.screenshot_png = std::vector<std::byte>{png.begin(), png.end()};
+							}
+					}
+					catch (std::exception & e)
+					{
+						spdlog::warn("Cannot load image from {}: {}", handle.get_url(), e.what());
+						for (auto & m: downloadable_environments)
+							if (m.screenshot_url == url)
+							{
+								m.screenshot_url = "";
+								m.screenshot = default_environment_screenshot;
+							}
+					}
+				});
 			}
-			else if (model.local_screenshot_path != "" and std::filesystem::exists(model.local_screenshot_path))
+		}
+		else if (model.local_screenshot_path != "" and std::filesystem::exists(model.local_screenshot_path))
+		{
+			try
 			{
-				try
-				{
-					spdlog::info("Loading {}", model.local_screenshot_path.native());
-					screenshot = model.screenshot = imgui_ctx->load_texture(utils::mapped_file{model.local_screenshot_path});
-				}
-				catch (std::exception & e)
-				{
-					spdlog::warn("Cannot load screenshot {}: {}", model.local_screenshot_path.native(), e.what());
-					std::error_code ec;
-					std::filesystem::remove(model.local_screenshot_path, ec); // Ignore errors
-					model.local_screenshot_path = "";                         // Avoid subsequent loading errors
-					model.screenshot = default_environment_screenshot;
-				}
+				model.screenshot = imgui_ctx->load_texture(utils::mapped_file{model.local_screenshot_path});
+			}
+			catch (std::exception & e)
+			{
+				spdlog::warn("Cannot load screenshot {}: {}", model.local_screenshot_path.native(), e.what());
+				std::error_code ec;
+				std::filesystem::remove(model.local_screenshot_path, ec);
+				model.local_screenshot_path = "";
+				model.screenshot = default_environment_screenshot;
 			}
 		}
 	}
 
-	auto backup_cursor = ImGui::GetCursorScreenPos();
 	const auto & config = application::get_config();
-	bool selected = (config.passthrough_enabled and model.local_gltf_path == "") or
-	                (not config.passthrough_enabled and config.environment_model == model.local_gltf_path);
+	const bool selected = (config.passthrough_enabled and model.local_gltf_path == "") or
+	                      (not config.passthrough_enabled and config.environment_model == model.local_gltf_path);
 
-	ImGui::SetNextItemAllowOverlap();
-	// Use ImGuiSelectableFlags_AllowDoubleClick to have ImGuiButtonFlags_PressedOnClickRelease in ImGui::Selectable
-	if (ImGui::Selectable(("##" + model.gltf_url).c_str(), &selected, ImGuiSelectableFlags_AllowDoubleClick, selectable_size))
-	{
-		if (local)
-			action = environment_item_action::use_model;
-		else
-			action = environment_item_action::download_model;
-	}
-	imgui_ctx->vibrate_on_hover();
-	auto end_cursor = ImGui::GetCursorScreenPos();
-
-	// Remove the height of the progress bar if a transfer is in progress
-	float text_clip_height = selectable_size.y + style.FramePadding.y;
-	if (auto handle = try_get_download_handle(model.gltf_url); handle and handle->get_state() == libcurl::state::transferring)
-		text_clip_height -= ImGui::GetFontSize() + 2 * style.FramePadding.y + style.ItemSpacing.y;
-
-	// Display the screenshot
-	ImGui::SetCursorScreenPos(backup_cursor + ImVec2(style.FramePadding.x, 0));
-	ImGui::Image(screenshot ? screenshot : default_environment_screenshot, screenshot_size);
-
-	ImGui::PushClipRect(backup_cursor, backup_cursor + ImVec2(selectable_size.x, text_clip_height), true);
-	float indent = screenshot_size.x + style.FramePadding.x + 2 * style.ImageBorderSize + style.ItemSpacing.x;
-
-	// Display the text
-	std::pair<std::string, ImVec2> text_name;
-	std::pair<std::string, ImVec2> text_author;
-	std::pair<std::string, ImVec2> text_description;
-	std::pair<std::string, ImVec2> text_filesize;
-
-	text_name.first = model.builtin ? _(model.name.c_str()) : model.name;
+	// subtitle: author / description / size, one per line
+	std::string subtitle;
+	auto add_line = [&](const std::string & s) {
+		if (s.empty())
+			return;
+		if (not subtitle.empty())
+			subtitle += "\n";
+		subtitle += s;
+	};
 	if (model.author != "")
-		text_author.first = fmt::format(_F("Author: {}"), model.author);
+		add_line(fmt::format(_F("Author: {}"), model.author));
 	if (model.description != "")
-		text_description.first = model.description;
+		add_line(model.builtin ? std::string(_(model.description.c_str())) : model.description);
 	if (not model.builtin)
-		text_filesize.first = fmt::format(_F("Size: {:.1f} MB"), model.size * 1.0e-6);
+		add_line(fmt::format(_F("Size: {:.1f} MB"), model.size * 1.0e-6));
 
-	const float wrap_width = selectable_size.x - indent - style.FramePadding.x;
+	const char * icon = model.local_gltf_path == "" ? ICON_FA_VIDEO : (model.builtin ? ICON_FA_TABLE_CELLS : ICON_FA_IMAGE);
+	const std::string title = model.builtin ? std::string(_(model.name.c_str())) : model.name;
 
-	// clang-format off
-	text_name.second        = ImGui::CalcTextSize(text_name.first.data(),        text_name.first.data()        + text_name.first.size(),        false, wrap_width);
-	text_author.second      = ImGui::CalcTextSize(text_author.first.data(),      text_author.first.data()      + text_author.first.size(),      false, wrap_width);
-	text_description.second = ImGui::CalcTextSize(text_description.first.data(), text_description.first.data() + text_description.first.size(), false, wrap_width);
-	text_filesize.second    = ImGui::CalcTextSize(text_filesize.first.data(),    text_filesize.first.data()    + text_filesize.first.size(),    false, wrap_width);
-	// clang-format on
+	ImGui::PushID(model.gltf_url.c_str());
+	const float bh = ImGui::GetFrameHeight() * ui::metrics::control_height;
+	auto handle = try_get_download_handle(model.gltf_url);
+	const bool transferring = handle and handle->get_state() == libcurl::state::transferring;
 
-	ImGui::SetCursorScreenPos(backup_cursor);
+	// measure the trailing control so the row body click area can exclude it
+	const std::string active_l = std::string(ICON_FA_CHECK "  ") + _("Active");
+	const ImVec2 active_ts = ImGui::CalcTextSize(active_l.c_str());
+	const float active_w = active_ts.x + ui::metrics::chip_padding.x * 2;
+	float trailing = 0;
+	if (selected)
+		trailing = active_w + ui::metrics::list_row_pad;
+	else if (transferring or (local and not model.builtin))
+		trailing = bh + ui::metrics::list_row_pad;
 
-	ImVec2 text_pos = backup_cursor + ImVec2(indent, 0);
-	float text_height = 0;
+	const auto row = ui::begin_list_row("##env", icon, model.screenshot, title, subtitle, selected, trailing);
+	const float row_h = row.max.y - row.min.y;
+	if (row.clicked and not selected)
+		action = local ? environment_item_action::use_model : environment_item_action::download_model;
 
-	ImGui::RenderTextWrapped(text_pos, text_name.first.data(), text_name.first.data() + text_name.first.size(), wrap_width);
-	text_height += text_name.second.y + style.ItemSpacing.y;
+	const float x = row.max.x;
 
-	if (text_author.first != "")
+	if (selected)
 	{
-		ImGui::RenderTextWrapped(text_pos + ImVec2(0, text_height), text_author.first.data(), text_author.first.data() + text_author.first.size(), wrap_width);
-		text_height += text_author.second.y + style.ItemSpacing.y;
+		const float ch = active_ts.y + ui::metrics::chip_padding.y * 2;
+		ImGui::SetCursorScreenPos({x - active_w, row.min.y + (row_h - ch) * 0.5f});
+		ui::chip(active_l, ui::chip_style::success);
 	}
-
-	if (text_description.first != "")
+	else if (transferring)
 	{
-		ImGui::RenderTextWrapped(text_pos + ImVec2(0, text_height), text_description.first.data(), text_description.first.data() + text_description.first.size(), wrap_width);
-		text_height += text_description.second.y + style.ItemSpacing.y;
+		ImGui::SetCursorScreenPos({x - bh, row.min.y + (row_h - bh) * 0.5f});
+		if (ui::icon_button(ICON_FA_STOP, {bh, bh}, false, _S("Cancel")))
+			handle->cancel();
 	}
-
-	if (text_filesize.first != "")
+	else if (local and not model.builtin)
 	{
-		ImGui::RenderTextWrapped(text_pos + ImVec2(0, text_height), text_filesize.first.data(), text_filesize.first.data() + text_filesize.first.size(), wrap_width);
-		text_height += text_filesize.second.y + style.ItemSpacing.y;
-	}
-
-	ImGui::PopClipRect();
-
-	// Display the expand/collapse button
-	if (text_height > default_selectable_size.y - 2 * style.FramePadding.y)
-	{
-		const char * button_text = expanded ? ICON_FA_CHEVRON_UP : ICON_FA_CHEVRON_DOWN;
-		auto expand_size = ImGui::CalcTextSize(button_text) + style.FramePadding * 2.0f;
-		float radius = std::max(expand_size.x, expand_size.y) / 2;
-
-		ImGui::SetCursorScreenPos(ImVec2(
-		        backup_cursor.x + selectable_size.x / 2 - radius,
-		        backup_cursor.y + selectable_size.y + style.FramePadding.y - radius));
-
-		// Triple hash so that the button text is not used to compute the button ID and
-		// avoid vibrating the controller when the text changes
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, radius);
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-		if (ImGui::Button((button_text + ("###expand-" + model.gltf_url)).c_str(), ImVec2(radius * 2, radius * 2)))
-		{
-			if (expanded)
-				expanded_height.erase(model.gltf_url);
-			else
-				expanded_height[model.gltf_url] = text_height + 2 * style.FramePadding.y;
-		}
-		imgui_ctx->vibrate_on_hover();
-		ImGui::PopStyleColor();
-		ImGui::PopStyleVar(); // ImGuiStyleVar_FrameRounding
-	}
-
-	// Display the delete button
-	if (local and not model.builtin)
-	{
-		auto delete_size = ImGui::CalcTextSize(ICON_FA_TRASH) + style.FramePadding * 2;
-		ImGui::SetCursorScreenPos(ImVec2(
-		        backup_cursor.x + width - style.FramePadding.x - delete_size.x,
-		        backup_cursor.y));
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-		if (ImGui::Button((ICON_FA_TRASH "##delete-" + model.name).c_str()))
+		ImGui::SetCursorScreenPos({x - bh, row.min.y + (row_h - bh) * 0.5f});
+		if (ui::icon_button(ICON_FA_TRASH, {bh, bh}, false, _S("Delete this model")))
 			action = environment_item_action::delete_model;
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(_("Delete this model"));
-		imgui_ctx->vibrate_on_hover();
-		ImGui::PopStyleColor(3);
 	}
-	// Display the download progress
-	else if (auto handle = try_get_download_handle(model.gltf_url))
+
+	// surface download errors the way the original did
+	if (handle)
 	{
-		switch (handle->get_state())
+		if (handle->get_state() == libcurl::state::error)
 		{
-			case libcurl::state::transferring: {
-				ImVec2 cancel_size = ImGui::CalcTextSize(ICON_FA_STOP) + style.FramePadding * 2;
-
-				ImGui::SetCursorScreenPos(ImVec2(
-				        backup_cursor.x + screenshot_size.x + style.FramePadding.x + style.ItemSpacing.x,
-				        backup_cursor.y + selectable_size.y - (ImGui::GetFontSize() + 2 * style.FramePadding.y)));
-
-				float progress_width = width - cancel_size.x - screenshot_size.x - 2 * style.FramePadding.x - 2 * style.ItemSpacing.x;
-
-				if (handle->get_content_length() > 0)
-					ImGui::ProgressBar(handle->get_progress() / (float)handle->get_content_length(), {progress_width, 0});
-				else
-					ImGui::ProgressBar(-ImGui::GetTime(), {progress_width, 0}); // Indeterminate progress bar
-
-				ImGui::SameLine();
-				if (ImGui::Button((ICON_FA_STOP "##" + model.name).c_str()))
-					handle->cancel();
-
-				imgui_ctx->vibrate_on_hover();
-				break;
-			}
-
-			case libcurl::state::error:
-				if (handle->get_curl_code() == CURLE_HTTP_RETURNED_ERROR)
-				{
-					spdlog::error("HTTP error {} when downloading {}", handle->get_response_code(), handle->get_url());
-					load_environment_status = fmt::format(
-					        _F("HTTP error {} when downloading {}"),
-					        handle->get_response_code(),
-					        handle->get_url());
-				}
-				else
-				{
-					spdlog::error("Curl error when downloading {}: {}", handle->get_url(), curl_easy_strerror(handle->get_curl_code()));
-					load_environment_status = fmt::format(
-					        _F("Curl error when downloading {}\n{}: {}"),
-					        handle->get_url(),
-					        magic_enum::enum_name(handle->get_curl_code()),
-					        curl_easy_strerror(handle->get_curl_code()));
-				}
-
-				handle->reset();
-				break;
-
-			case libcurl::state::cancelled:
-				handle->reset();
-				break;
-
-			case libcurl::state::cancelling:
-			case libcurl::state::reset:
-			case libcurl::state::done:
-				break;
+			if (handle->get_curl_code() == CURLE_HTTP_RETURNED_ERROR)
+				load_environment_status = fmt::format(_F("HTTP error {} when downloading {}"), handle->get_response_code(), handle->get_url());
+			else
+				load_environment_status = fmt::format(_F("Curl error when downloading {}\n{}: {}"), handle->get_url(), magic_enum::enum_name(handle->get_curl_code()), curl_easy_strerror(handle->get_curl_code()));
+			handle->reset();
 		}
+		else if (handle->get_state() == libcurl::state::cancelled)
+			handle->reset();
 	}
 
-	ImGui::SetCursorScreenPos(end_cursor);
-	ImGui::Dummy({});
+	ui::end_list_row();
+	ImGui::PopID();
 	return action;
 }
 
@@ -640,46 +505,20 @@ void scenes::lobby::environment_list(std::vector<environment_model> & models, bo
 		ImGui::EndDisabled();
 	}
 
-	const auto & popup_layer = imgui_ctx->layers()[1];
-	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
-	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
-	if (ImGui::BeginPopupModal("confirm delete model", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	if (environment_to_be_deleted)
 	{
-		ImGui::Text("%s", fmt::format(_F("Really delete {}?"), environment_to_be_deleted->name).c_str());
-
-		const auto & style = ImGui::GetStyle();
-		auto cancel_text = _("Cancel");
-		auto delete_text = _("Delete");
-		auto cancel_size = ImGui::CalcTextSize(cancel_text.c_str()) + style.FramePadding * 2.0f;
-		auto delete_size = ImGui::CalcTextSize(delete_text.c_str()) + style.FramePadding * 2.0f;
-
-		ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - cancel_size.x - style.ItemSpacing.x - delete_size.x);
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-		if (ImGui::Button(delete_text.c_str()))
+		const std::string msg = fmt::format(_F("Permanently delete {}?"), environment_to_be_deleted->name);
+		switch (wivrn::ui::confirm_modal("confirm delete model", _("Delete environment"), msg, _("Delete"), _("Cancel"), true))
 		{
-			delete_environment(*environment_to_be_deleted);
-			environment_to_be_deleted = nullptr;
-			ImGui::CloseCurrentPopup();
+			case 1:
+				delete_environment(*environment_to_be_deleted);
+				environment_to_be_deleted = nullptr;
+				break;
+			case -1:
+				environment_to_be_deleted = nullptr;
+				break;
 		}
-		imgui_ctx->vibrate_on_hover();
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-		if (ImGui::Button(cancel_text.c_str()))
-		{
-			environment_to_be_deleted = nullptr;
-			ImGui::CloseCurrentPopup();
-		}
-		imgui_ctx->vibrate_on_hover();
-
-		ImGui::EndPopup();
 	}
-	ImGui::PopStyleVar(3); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize
 }
 
 void scenes::lobby::popup_load_environment(XrTime predicted_display_time)
@@ -810,27 +649,36 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 {
 	auto & config = application::get_config();
 
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
+	namespace ui = wivrn::ui;
 
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
-	ImGui::BeginChild("environment list", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, ImGui::GetFontSize() + 80));
+	ui::page_header(_S("Customize"), _S("Choose the environment your panels float in."));
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
+
+	ui::begin_card("##environments");
 	environment_list(local_environments, false);
-	ScrollWhenDragging();
-	ImGui::EndChild();
-	ImGui::PopStyleVar();
+	ui::end_card();
 
-	if (ImGui::Button(_S("Download more environments")))
+	// Get more environments
+	ui::begin_card("##get_more");
 	{
-		download_environment_list();
-		ImGui::OpenPopup("download environment model");
+		const float bh = ImGui::GetFrameHeight() * ui::metrics::control_height;
+		const std::string browse = std::string(ICON_FA_UP_RIGHT_FROM_SQUARE "  ") + _("Browse");
+		const float bw = ImGui::CalcTextSize(browse.c_str()).x + ui::metrics::button_padding.x * 2;
+		const auto row = ui::begin_list_row("##getmore", ICON_FA_IMAGES, 0, _S("Get more environments"), _S("Download community-made spaces from the WiVRn dashboard on your PC."), false, bw + ui::metrics::list_row_pad);
+		const float row_h = row.max.y - row.min.y;
+		ImGui::SetCursorScreenPos({row.max.x - bw, row.min.y + (row_h - bh) * 0.5f});
+		if (ui::button(browse, ui::button_style::secondary, {bw, 0}))
+		{
+			download_environment_list();
+			ImGui::OpenPopup("download environment model");
+		}
+		ui::end_list_row();
+		ui::end_card();
 	}
-	imgui_ctx->vibrate_on_hover();
 
-	ImGui::SameLine();
-	if (ImGui::Button(_S("Open local glTF model")))
+	if (ui::button(_S("Open local glTF model"), ui::button_style::secondary))
 		lobby_file_picker_future = lobby_file_picker.open();
-	imgui_ctx->vibrate_on_hover();
 
 	const auto & popup_layer = imgui_ctx->layers()[1];
 	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
@@ -952,5 +800,5 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 	// ImGui::SliderFloat("Environment elevation", &lobby_node.position.y, -3, 3, "%.3f");
 	// imgui_ctx->vibrate_on_hover();
 
-	ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_FramePadding
+	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
 }

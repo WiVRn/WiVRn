@@ -118,11 +118,16 @@ class lobby : public scene_impl<lobby>
 	{
 		first_run,
 		server_list,
-		settings,
+		performance,
+		streaming,
 		post_processing,
+		audio,
+		devices,
+		tracking,
+		system,
 		customize,
-		components,
 #if WIVRN_CLIENT_DEBUG_MENU
+		components,
 		debug,
 #endif
 		about,
@@ -218,14 +223,18 @@ class lobby : public scene_impl<lobby>
 	std::pair<entt::entity, int> debug_primitive_to_highlight = {entt::null, 0};
 #endif
 
-	void draw_features_status(XrTime predicted_display_time);
 	void gui_connecting(locked_notifiable<pin_request_data> & request);
 	void gui_enter_pin(locked_notifiable<pin_request_data> & request);
 	void gui_connected(XrTime predicted_display_time);
 	void gui_disconnected();
 	void gui_server_list();
 	void gui_new_server();
-	void gui_settings();
+	void gui_performance();
+	void gui_streaming();
+	void gui_audio();
+	void gui_devices();
+	void gui_tracking();
+	void gui_system();
 	void gui_post_processing();
 	void gui_customize(XrTime predicted_display_time);
 	void gui_components();

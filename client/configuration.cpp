@@ -25,6 +25,10 @@
 
 #include <fstream>
 #include <magic_enum.hpp>
+#include <string_view>
+#include <type_traits>
+#include <variant>
+#include <vector>
 
 #ifdef __ANDROID__
 #include "android/permissions.h"
@@ -32,6 +36,99 @@
 
 // If no refresh rate is configured, don't select a too high one
 static const float max_default_rate = 100;
+
+namespace
+{
+// Plain scalar settings whose JSON load/save is purely mechanical (key <-> member).
+// Settings needing validation, optionals, enums, nested objects or maps are handled
+// explicitly in the constructor and save() below.
+using config_member = std::variant<
+        bool configuration::*,
+        float configuration::*,
+        uint32_t configuration::*,
+        std::string configuration::*>;
+
+struct config_field
+{
+	const char * key;
+	config_member member;
+};
+
+const std::vector<config_field> & scalar_fields()
+{
+	static const std::vector<config_field> fields = {
+	        {"resolution_scale", &configuration::resolution_scale},
+	        {"bitrate_bps", &configuration::bitrate_bps},
+	        {"enable_stream_gui", &configuration::enable_stream_gui},
+	        {"passthrough_enabled", &configuration::passthrough_enabled},
+	        {"mic_unprocessed_audio", &configuration::mic_unprocessed_audio},
+	        {"forward_keyboard", &configuration::forward_keyboard},
+	        {"forward_mouse", &configuration::forward_mouse},
+	        {"forward_gamepad", &configuration::forward_gamepad},
+	        {"virtual_keyboard_layout", &configuration::virtual_keyboard_layout},
+	        {"override_foveation_enable", &configuration::override_foveation_enable},
+	        {"override_foveation_pitch", &configuration::override_foveation_pitch},
+	        {"override_foveation_distance", &configuration::override_foveation_distance},
+	        {"first_run", &configuration::first_run},
+	        {"locale", &configuration::locale},
+	        {"environment_model", &configuration::environment_model},
+	        {"high_power_mode", &configuration::high_power_mode},
+	        {"fps_divider", &configuration::fps_divider},
+	        {"extended_config", &configuration::extended_config},
+	};
+	return fields;
+}
+
+void load_field(simdjson::dom::element root, configuration & c, const config_field & f)
+{
+	auto val = root[f.key];
+	std::visit([&](auto mp) {
+		using T = std::remove_cvref_t<decltype(c.*mp)>;
+		if constexpr (std::is_same_v<T, bool>)
+		{
+			if (val.is_bool())
+				c.*mp = val.get_bool();
+		}
+		else if constexpr (std::is_same_v<T, std::string>)
+		{
+			if (val.is_string())
+				c.*mp = std::string(std::string_view(val.get_string().value()));
+		}
+		else if constexpr (std::is_same_v<T, uint32_t>)
+		{
+			if (val.is_uint64())
+				c.*mp = uint32_t(uint64_t(val.get_uint64()));
+			else if (val.is_int64() and int64_t(val.get_int64()) >= 0)
+				c.*mp = uint32_t(int64_t(val.get_int64()));
+		}
+		else // float
+		{
+			if (val.is_double())
+				c.*mp = float(double(val.get_double()));
+			else if (val.is_int64())
+				c.*mp = float(int64_t(val.get_int64()));
+			else if (val.is_uint64())
+				c.*mp = float(uint64_t(val.get_uint64()));
+		}
+	},
+	           f.member);
+}
+
+void save_field(std::ostream & json, const configuration & c, const config_field & f)
+{
+	std::visit([&](auto mp) {
+		using T = std::remove_cvref_t<decltype(c.*mp)>;
+		json << ",\"" << f.key << "\":";
+		if constexpr (std::is_same_v<T, bool>)
+			json << std::boolalpha << (c.*mp);
+		else if constexpr (std::is_same_v<T, std::string>)
+			json << json_string(c.*mp);
+		else
+			json << (c.*mp);
+	},
+	           f.member);
+}
+} // namespace
 
 bool configuration::check_feature(feature f) const
 {
@@ -134,6 +231,11 @@ configuration::configuration(xr::system & system, xr::session & session)
 			servers.emplace(data.service.txt["cookie"], data);
 		}
 
+		// plain scalar settings
+		for (const auto & f: scalar_fields())
+			load_field(root, *this, f);
+
+		// settings that need more than a mechanical key <-> member mapping
 		if (auto val = root["preferred_refresh_rate"]; val.is_double())
 		{
 			float f = val.get_double();
@@ -143,9 +245,6 @@ configuration::configuration(xr::system & system, xr::session & session)
 
 		if (auto val = root["minimum_refresh_rate"]; val.is_double())
 			minimum_refresh_rate = val.get_double();
-
-		if (auto val = root["resolution_scale"]; val.is_double())
-			resolution_scale = val.get_double();
 
 		if (auto val = root["stream_scale"]; val.is_double())
 			stream_scale = val.get_double();
@@ -165,29 +264,8 @@ configuration::configuration(xr::system & system, xr::session & session)
 		if (auto val = root["bit_depth"]; val.is_uint64())
 			bit_depth = val.get_uint64();
 
-		if (auto val = root["bitrate_bps"]; val.is_number())
-			bitrate_bps = val.get_uint64();
-
-		if (auto val = root["enable_stream_gui"]; val.is_bool())
-			enable_stream_gui = val.get_bool();
-
 		if (auto val = root["openxr_post_processing"]; val.is_object())
 			parse_openxr_post_processing_options(val.get_object());
-
-		if (auto val = root["passthrough_enabled"]; val.is_bool())
-			passthrough_enabled = val.get_bool();
-
-		if (auto val = root["mic_unprocessed_audio"]; val.is_bool())
-			mic_unprocessed_audio = val.get_bool();
-
-		if (auto val = root["forward_keyboard"]; val.is_bool())
-			forward_keyboard = val.get_bool();
-
-		if (auto val = root["forward_mouse"]; val.is_bool())
-			forward_mouse = val.get_bool();
-
-		if (auto val = root["forward_gamepad"]; val.is_bool())
-			forward_gamepad = val.get_bool();
 
 		if (auto val = root["body_parts"]; val.is_object())
 		{
@@ -208,9 +286,6 @@ configuration::configuration(xr::system & system, xr::session & session)
 			}
 		}
 
-		if (auto val = root["virtual_keyboard_layout"]; val.is_string())
-			virtual_keyboard_layout = val.get_string().value();
-
 		for (const auto & [i, name]: magic_enum::enum_entries<feature>())
 		{
 			if (auto val = root[name]; val.is_bool())
@@ -219,33 +294,6 @@ configuration::configuration(xr::system & system, xr::session & session)
 
 		if (system.passthrough_supported() == xr::passthrough_type::none)
 			passthrough_enabled = false;
-
-		if (auto val = root["override_foveation_enable"]; val.is_bool())
-			override_foveation_enable = val.get_bool();
-
-		if (auto val = root["override_foveation_pitch"]; val.is_double())
-			override_foveation_pitch = val.get_double();
-
-		if (auto val = root["override_foveation_distance"]; val.is_double())
-			override_foveation_distance = val.get_double();
-
-		if (auto val = root["first_run"]; val.is_bool())
-			first_run = val.get_bool();
-
-		if (auto val = root["locale"]; val.is_string())
-			locale = val.get_string().value();
-
-		if (auto val = root["environment_model"]; val.is_string())
-			environment_model = (std::string_view)val.get_string();
-
-		if (auto val = root["high_power_mode"]; val.is_bool())
-			high_power_mode = val.get_bool();
-
-		if (auto val = root["fps_divider"]; val.is_uint64())
-			fps_divider = (uint32_t)val.get_uint64();
-
-		if (auto val = root["extended_config"]; val.is_bool())
-			extended_config = val.get_bool();
 	}
 	catch (std::exception & e)
 	{
@@ -305,23 +353,22 @@ void configuration::save()
 	std::ofstream json(application::get_config_path() / "client.json");
 
 	json << "{\"servers\":[" << servers_str << "]";
+
+	// plain scalar settings
+	for (const auto & f: scalar_fields())
+		save_field(json, *this, f);
+
+	// settings with non-mechanical encoding
 	json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate;
 	if (minimum_refresh_rate)
 		json << ",\"minimum_refresh_rate\":" << *minimum_refresh_rate;
-	json << ",\"resolution_scale\":" << resolution_scale;
 	if (stream_scale)
 		json << ",\"stream_scale\":" << *stream_scale;
 	if (codec)
 		json << ",\"codec\":" << json_string(magic_enum::enum_name(*codec));
 	json << ",\"bit_depth\":" << (uint64_t)bit_depth;
-	json << ",\"bitrate_bps\":" << bitrate_bps;
 	json << ",\"openxr_post_processing\":";
 	write_openxr_post_processing(json, openxr_post_processing);
-	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
-	json << ",\"mic_unprocessed_audio\":" << std::boolalpha << mic_unprocessed_audio;
-	json << ",\"forward_keyboard\":" << std::boolalpha << forward_keyboard;
-	json << ",\"forward_mouse\":" << std::boolalpha << forward_mouse;
-	json << ",\"forward_gamepad\":" << std::boolalpha << forward_gamepad;
 
 	std::stringstream body_part_ss;
 	for (const auto & [b, name]: magic_enum::enum_entries<wivrn::from_headset::body_part_mask>())
@@ -337,19 +384,8 @@ void configuration::save()
 		json << ",\"body_parts\":{" << body_parts_str << "}";
 	}
 
-	json << ",\"enable_stream_gui\":" << std::boolalpha << enable_stream_gui;
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
-	json << ",\"virtual_keyboard_layout\":" << json_string(virtual_keyboard_layout);
-	json << ",\"override_foveation_enable\":" << std::boolalpha << override_foveation_enable;
-	json << ",\"override_foveation_pitch\":" << override_foveation_pitch;
-	json << ",\"override_foveation_distance\":" << override_foveation_distance;
-	json << ",\"first_run\":" << std::boolalpha << first_run;
-	json << ",\"locale\":" << json_string(locale);
-	json << ",\"environment_model\":" << json_string(environment_model);
-	json << ",\"high_power_mode\":" << std::boolalpha << high_power_mode;
-	json << ",\"fps_divider\":" << fps_divider;
-	json << ",\"extended_config\":" << std::boolalpha << extended_config;
 	json << "}";
 }
 

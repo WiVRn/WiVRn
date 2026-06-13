@@ -63,9 +63,13 @@ struct theme
 	float font_scale;       // global text size multiplier
 	float background_alpha; // opacity of the main panel background, 0..1
 
+	// Convert to packed color, applying the current global alpha so widgets drawn
+	// through the draw list dim with ImGui::BeginDisabled() (and any pushed alpha).
 	ImU32 col(const ImVec4 & c) const
 	{
-		return ImGui::ColorConvertFloat4ToU32(c);
+		ImVec4 v = c;
+		v.w *= ImGui::GetStyle().Alpha;
+		return ImGui::ColorConvertFloat4ToU32(v);
 	}
 
 	// Push colors and metrics into the global ImGui style
@@ -100,11 +104,15 @@ constexpr float combo_chevron = 12;          // chevron size in the closed box
 constexpr float combo_modal_min_width = 460; // popup never narrower than this
 constexpr ImVec2 combo_padding = {16, 0};    // horizontal inner padding of box and rows
 
+constexpr float list_row_box = 52;       // leading icon/thumbnail size in a list row
+constexpr float list_row_pad = 16;       // inner padding of a list row, both axes
 constexpr ImVec2 chip_padding = {12, 6}; // inner padding of a chip/badge
 constexpr float input_padding_x = 14;    // horizontal text padding inside inputs
 constexpr float font_modal_title = 1.2;  // modal heading, x base font size
 
-constexpr float label_line_gap = 5; // title to description
+constexpr float label_line_gap = 5;   // title to description
+constexpr float label_bottom_pad = 6; // breathing room below the description
+constexpr float nav_section_gap = 18; // space above a sidebar section header
 } // namespace metrics
 
 // Theme in effect, call current().apply() after mutating
