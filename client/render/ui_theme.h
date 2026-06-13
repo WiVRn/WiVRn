@@ -115,6 +115,9 @@ constexpr float font_modal_title = 1.2;   // modal heading, x base font size
 constexpr float label_line_gap = 5;   // title to description
 constexpr float label_bottom_pad = 6; // breathing room below the description
 constexpr float nav_section_gap = 18; // space above a sidebar section header
+
+constexpr ImVec2 card_item_spacing = {12, 10}; // ItemSpacing pushed around a card section
+constexpr float setting_control_width = 480;   // width of the control in a setting row
 } // namespace metrics
 
 // Theme in effect, call current().apply() after mutating

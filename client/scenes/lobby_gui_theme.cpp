@@ -38,8 +38,8 @@ void scenes::lobby::gui_theme()
 
 	ui::page_header(_S("Theme"), _S("Accent color, palette and sizing of the interface."));
 
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
-	const float control_w = 480;
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
+	const float control_w = ui::metrics::setting_control_width;
 
 	ui::begin_card("##theme");
 	{

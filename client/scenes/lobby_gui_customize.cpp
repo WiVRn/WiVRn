@@ -422,17 +422,15 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 	const bool transferring = handle and handle->get_state() == libcurl::state::transferring;
 
 	// measure the trailing control so the row body click area can exclude it
-	const std::string active_l = std::string(ICON_FA_CHECK "  ") + _("Active");
-	const ImVec2 active_ts = ImGui::CalcTextSize(active_l.c_str());
-	const float active_w = active_ts.x + ui::metrics::chip_padding.x * 2;
+	const std::string active_l = ui::icon_label(ICON_FA_CHECK, _("Active"));
+	const ImVec2 active_sz = ui::chip_size(active_l);
 	float trailing = 0;
 	if (selected)
-		trailing = active_w + ui::metrics::list_row_pad;
+		trailing = active_sz.x + ui::metrics::list_row_pad;
 	else if (transferring or (local and not model.builtin))
 		trailing = bh + ui::metrics::list_row_pad;
 
 	const auto row = ui::begin_list_row("##env", icon, model.screenshot, title, subtitle, selected, trailing);
-	const float row_h = row.max.y - row.min.y;
 	if (row.clicked and not selected)
 		action = local ? environment_item_action::use_model : environment_item_action::download_model;
 
@@ -440,19 +438,18 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 
 	if (selected)
 	{
-		const float ch = active_ts.y + ui::metrics::chip_padding.y * 2;
-		ImGui::SetCursorScreenPos({x - active_w, row.min.y + (row_h - ch) * 0.5f});
+		ImGui::SetCursorScreenPos(row.trailing(x, active_sz));
 		ui::chip(active_l, ui::chip_style::success);
 	}
 	else if (transferring)
 	{
-		ImGui::SetCursorScreenPos({x - bh, row.min.y + (row_h - bh) * 0.5f});
+		ImGui::SetCursorScreenPos(row.trailing(x, {bh, bh}));
 		if (ui::icon_button(ICON_FA_STOP, {bh, bh}, false, _S("Cancel")))
 			handle->cancel();
 	}
 	else if (local and not model.builtin)
 	{
-		ImGui::SetCursorScreenPos({x - bh, row.min.y + (row_h - bh) * 0.5f});
+		ImGui::SetCursorScreenPos(row.trailing(x, {bh, bh}));
 		if (ui::icon_button(ICON_FA_TRASH, {bh, bh}, false, _S("Delete this model")))
 			action = environment_item_action::delete_model;
 	}
@@ -533,9 +530,7 @@ void scenes::lobby::popup_load_environment(XrTime predicted_display_time)
 				ImGui::OpenPopup("loading environment model");
 		}
 
-		const auto & popup_layer = imgui_ctx->layers()[1];
-		const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
-		ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+		ImGui::SetNextWindowPos(imgui_ctx->layers()[1].vp_center(), ImGuiCond_Always, {0.5f, 0.5f});
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
@@ -653,7 +648,7 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 
 	ui::page_header(_S("Environment"), _S("Choose the environment your panels float in."));
 
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
 
 	ui::begin_card("##environments");
 	environment_list(local_environments, false);
@@ -663,11 +658,10 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 	ui::begin_card("##get_more");
 	{
 		const float bh = ImGui::GetFrameHeight() * ui::metrics::control_height;
-		const std::string browse = std::string(ICON_FA_UP_RIGHT_FROM_SQUARE "  ") + _("Browse");
-		const float bw = ImGui::CalcTextSize(browse.c_str()).x + ui::metrics::button_padding.x * 2;
+		const std::string browse = ui::icon_label(ICON_FA_UP_RIGHT_FROM_SQUARE, _("Browse"));
+		const float bw = ui::button_width(browse);
 		const auto row = ui::begin_list_row("##getmore", ICON_FA_IMAGES, 0, _S("Get more environments"), _S("Download community-made spaces from the WiVRn dashboard on your PC."), false, bw + ui::metrics::list_row_pad);
-		const float row_h = row.max.y - row.min.y;
-		ImGui::SetCursorScreenPos({row.max.x - bw, row.min.y + (row_h - bh) * 0.5f});
+		ImGui::SetCursorScreenPos(row.trailing(row.max.x, {bw, bh}));
 		if (ui::button(browse, ui::button_style::secondary, {bw, 0}))
 		{
 			download_environment_list();
@@ -680,9 +674,7 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 	if (ui::button(_S("Open local glTF model"), ui::button_style::secondary))
 		lobby_file_picker_future = lobby_file_picker.open();
 
-	const auto & popup_layer = imgui_ctx->layers()[1];
-	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
-	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowPos(imgui_ctx->layers()[1].vp_center(), ImGuiCond_Always, {0.5f, 0.5f});
 	ImGui::SetNextWindowSize({1200, 900});
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);

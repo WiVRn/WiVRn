@@ -319,8 +319,8 @@ void scenes::lobby::gui_new_server()
 	const float gap = ImGui::GetStyle().ItemSpacing.x;
 	const std::string cancel_l = _("Cancel");
 	const std::string save_l = _("Save");
-	const float cancel_w = ImGui::CalcTextSize(cancel_l.c_str()).x + ui::metrics::button_padding.x * 2;
-	const float save_w = ImGui::CalcTextSize(save_l.c_str()).x + ui::metrics::button_padding.x * 2;
+	const float cancel_w = ui::button_width(cancel_l);
+	const float save_w = ui::button_width(save_l);
 	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - cancel_w - save_w - gap);
 
 	if (ui::button(cancel_l, ui::button_style::secondary, {cancel_w, 0}))
@@ -367,11 +367,7 @@ void scenes::lobby::gui_server_list()
 	const ImVec2 hend = ImGui::GetCursorPos();
 
 	const std::string add_label = _("Add server");
-	const float font = ImGui::GetFontSize();
-	ImGui::PushFont(nullptr, font * ui::metrics::button_label_glyph);
-	const float glyph_w = ImGui::CalcTextSize(ICON_FA_PLUS).x;
-	ImGui::PopFont();
-	const float add_w = glyph_w + font * 0.4f + ImGui::CalcTextSize(add_label.c_str()).x + ui::metrics::button_padding.x * 2;
+	const float add_w = ui::button_width(ICON_FA_PLUS, add_label);
 	ImGui::SetCursorPos({hstart.x + header_avail - add_w, hstart.y});
 	if (ui::button(ICON_FA_PLUS, add_label, ui::button_style::primary))
 	{
@@ -393,7 +389,7 @@ void scenes::lobby::gui_server_list()
 	bool open_add_edit = false;
 	bool open_delete = false;
 
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
 	ui::begin_card("##servers");
 	{
 		if (sorted_cookies.empty())
@@ -426,16 +422,14 @@ void scenes::lobby::gui_server_list()
 			// trailing controls: [Auto chip] [Connect] [menu], measured up front so the
 			// row body click area can exclude them
 			const char * c_icon = reachable ? ICON_FA_PLAY : (incompatible ? ICON_FA_TRIANGLE_EXCLAMATION : ICON_FA_MAGNIFYING_GLASS);
-			const std::string c_label = std::string(c_icon) + "  " + (reachable ? _("Connect") : (incompatible ? _("Incompatible") : _("Searching…")));
+			const std::string c_label = ui::icon_label(c_icon, reachable ? _("Connect") : (incompatible ? _("Incompatible") : _("Searching…")));
 			const std::string c_tooltip = reachable ? std::string{} : (incompatible ? _("Incompatible server version") : _("Looking for this server on your network"));
-			const float cw = ImGui::CalcTextSize(c_label.c_str()).x + ui::metrics::button_padding.x * 2;
-			const std::string chip_label = std::string(ICON_FA_BOLT "  ") + _("Auto");
-			const ImVec2 chip_ts = ImGui::CalcTextSize(chip_label.c_str());
-			const float chip_w = chip_ts.x + ui::metrics::chip_padding.x * 2;
-			float trailing = bh + gap + cw + (data.autoconnect ? gap + chip_w : 0) + ui::metrics::list_row_pad;
+			const float cw = ui::button_width(c_label);
+			const std::string chip_label = ui::icon_label(ICON_FA_BOLT, _("Auto"));
+			const ImVec2 chip_sz = ui::chip_size(chip_label);
+			float trailing = bh + gap + cw + (data.autoconnect ? gap + chip_sz.x : 0) + ui::metrics::list_row_pad;
 
 			const auto row = ui::begin_list_row("##row", ICON_FA_SERVER, 0, name, sub, false, trailing);
-			const float row_h = row.max.y - row.min.y;
 			float x = row.max.x;
 
 			// overflow menu
@@ -449,7 +443,7 @@ void scenes::lobby::gui_server_list()
 				actions.push_back({ICON_FA_PEN, edit_l.c_str(), false, false});
 				actions.push_back({ICON_FA_TRASH, del_l.c_str(), true, false});
 			}
-			ImGui::SetCursorScreenPos({x - bh, row.min.y + (row_h - bh) * 0.5f});
+			ImGui::SetCursorScreenPos(row.trailing(x, {bh, bh}));
 			switch (ui::action_menu("##menu", ICON_FA_ELLIPSIS_VERTICAL, actions))
 			{
 				case 0:
@@ -472,7 +466,7 @@ void scenes::lobby::gui_server_list()
 			x -= bh + gap;
 
 			// connect / searching / incompatible
-			ImGui::SetCursorScreenPos({x - cw, row.min.y + (row_h - bh) * 0.5f});
+			ImGui::SetCursorScreenPos(row.trailing(x, {cw, bh}));
 			ImGui::BeginDisabled(not reachable);
 			if (ui::button(c_label, reachable ? ui::button_style::primary : ui::button_style::secondary, {cw, 0}))
 			{
@@ -487,8 +481,7 @@ void scenes::lobby::gui_server_list()
 			// Auto chip
 			if (data.autoconnect)
 			{
-				const float chip_h = chip_ts.y + ui::metrics::chip_padding.y * 2;
-				ImGui::SetCursorScreenPos({x - chip_w, row.min.y + (row_h - chip_h) * 0.5f});
+				ImGui::SetCursorScreenPos(row.trailing(x, chip_sz));
 				ui::chip(chip_label, ui::chip_style::accent);
 			}
 
@@ -514,9 +507,8 @@ void scenes::lobby::gui_server_list()
 	if ((async_session.valid() || next_scene) and not ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 		ImGui::OpenPopup("connecting");
 
-	const auto & popup_layer = imgui_ctx->layers()[1];
-	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
-	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	const ImVec2 popup_center = imgui_ctx->layers()[1].vp_center();
+	ImGui::SetNextWindowPos(popup_center, ImGuiCond_Always, {0.5f, 0.5f});
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
@@ -530,7 +522,7 @@ void scenes::lobby::gui_server_list()
 		ImGui::EndPopup();
 	}
 
-	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowPos(popup_center, ImGuiCond_Always, {0.5f, 0.5f});
 	if (ImGui::BeginPopupModal("disconnected", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		gui_disconnected();
@@ -935,8 +927,7 @@ void scenes::lobby::gui_licenses()
 	for (const auto & c: components)
 		items.push_back({c.c_str()});
 
-	const float control_w = 480;
-	if (ui::combo("##component", _("Component"), items, &selected, control_w) or not license)
+	if (ui::combo("##component", _("Component"), items, &selected, ui::metrics::setting_control_width) or not license)
 	{
 		selected_item = components[selected];
 		try
@@ -952,7 +943,7 @@ void scenes::lobby::gui_licenses()
 
 	if (license)
 	{
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {12, 10});
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
 		ui::begin_card("##license_text");
 		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
 		ImGui::TextUnformatted((const char *)license->data(), (const char *)license->data() + license->size());
@@ -1058,8 +1049,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 	// combo modals open centred on the popup layer
 	const auto & ui_popup_layer = imgui_ctx->layers()[1];
-	const glm::vec2 ui_popup_center = ui_popup_layer.vp_origin + ui_popup_layer.vp_size / 2;
-	wivrn::ui::set_popup_center({ui_popup_center.x, ui_popup_center.y}, float(ui_popup_layer.vp_size.y));
+	wivrn::ui::set_popup_center(ui_popup_layer.vp_center(), float(ui_popup_layer.vp_size.y));
 
 	// let the themed widgets fire the hover haptic and show tooltips
 	wivrn::ui::set_hover_haptic([this] { imgui_ctx->vibrate_on_hover(); });
