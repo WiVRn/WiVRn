@@ -105,6 +105,13 @@ enum class chip_style
 };
 void chip(const char * label, chip_style style = chip_style::neutral, bool dot = false);
 
+// Muted sidebar group header (e.g. "SETTINGS")
+void nav_section(const char * label);
+
+// Sidebar entry: icon + label across the full width, highlighted when selected.
+// Returns true when clicked.
+bool nav_item(const char * icon, const char * label, bool selected);
+
 // Themed single-line text field, control height. hint is optional placeholder text.
 // Returns true while the text is being edited.
 bool input_text(const char * id, std::string & text, const char * hint = nullptr, float width = 0);
