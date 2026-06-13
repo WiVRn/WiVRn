@@ -32,9 +32,9 @@ static theme dark_default()
 	theme t;
 	t.name = "Dark";
 
-	t.accent = rgb(59, 130, 246);
-	t.accent_hovered = rgb(82, 146, 247);
-	t.accent_active = rgb(43, 110, 222);
+	t.accent = rgb(30, 115, 255);
+	t.accent_hovered = rgb(64, 140, 255);
+	t.accent_active = rgb(18, 95, 228);
 	t.on_accent = rgb(255, 255, 255);
 
 	t.background = rgb(10, 11, 13);
@@ -128,14 +128,14 @@ static theme light()
 {
 	theme t = dark_default();
 	t.name = "Light";
-	t.background = rgb(221, 224, 230);
-	t.card = rgb(255, 255, 255);
-	t.card_hovered = rgb(246, 247, 250);
-	t.control = rgb(212, 216, 224);
-	t.control_hovered = rgb(199, 204, 213);
-	t.control_active = rgb(184, 190, 201);
-	t.text = rgb(22, 24, 30);
-	t.text_muted = rgb(108, 114, 126);
+	t.background = rgb(188, 193, 202);
+	t.card = rgb(252, 252, 253);
+	t.card_hovered = rgb(242, 243, 246);
+	t.control = rgb(206, 210, 219);
+	t.control_hovered = rgb(193, 198, 208);
+	t.control_active = rgb(178, 184, 196);
+	t.text = rgb(14, 16, 20);
+	t.text_muted = rgb(66, 72, 84);
 	t.border = rgb(176, 182, 194);
 	return t;
 }
@@ -148,12 +148,12 @@ std::vector<theme> presets()
 std::vector<accent_swatch> accent_swatches()
 {
 	return {
-	        {"Blue", rgb(59, 130, 246), rgb(82, 146, 247), rgb(43, 110, 222)},
-	        {"Violet", rgb(139, 92, 246), rgb(157, 116, 247), rgb(120, 72, 226)},
-	        {"Emerald", rgb(16, 185, 129), rgb(34, 200, 145), rgb(8, 160, 110)},
-	        {"Amber", rgb(245, 158, 11), rgb(248, 173, 40), rgb(220, 138, 6)},
-	        {"Rose", rgb(244, 63, 94), rgb(247, 90, 117), rgb(222, 48, 78)},
-	        {"Cyan", rgb(6, 182, 212), rgb(34, 197, 224), rgb(6, 158, 184)},
+	        {"Blue", rgb(30, 115, 255), rgb(64, 140, 255), rgb(18, 95, 228)},
+	        {"Violet", rgb(132, 72, 255), rgb(152, 98, 255), rgb(112, 52, 232)},
+	        {"Emerald", rgb(0, 200, 132), rgb(28, 214, 150), rgb(0, 172, 112)},
+	        {"Amber", rgb(255, 160, 0), rgb(255, 176, 36), rgb(228, 140, 0)},
+	        {"Rose", rgb(255, 40, 82), rgb(255, 74, 108), rgb(230, 28, 68)},
+	        {"Cyan", rgb(0, 190, 225), rgb(34, 205, 236), rgb(0, 168, 200)},
 	};
 }
 

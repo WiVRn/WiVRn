@@ -42,6 +42,8 @@ void page_header(const std::string & title, const std::string & subtitle = {});
 
 // Rounded panel, pair with end_card
 bool begin_card(const char * id, const ImVec2 & size = {0, 0});
+// Same, but with tighter padding for cards that hold a list of rows
+bool begin_list_card(const char * id);
 void end_card();
 
 // Full-width divider between rows of a card
@@ -70,6 +72,11 @@ bool button(const std::string & label, button_style style = button_style::primar
 bool button(const char * icon, const std::string & label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
 // tooltip, if not empty, is shown while hovered
 bool icon_button(const char * icon, const ImVec2 & size = {0, 0}, bool active = false, const std::string & tooltip = {});
+
+// Circular download-progress indicator with a cancel (stop) glyph in the centre.
+// fraction in [0,1] draws a determinate ring; < 0 draws an indeterminate spinner.
+// Returns true when clicked (i.e. cancel requested). Sized like icon_button by default.
+bool cancel_progress_button(const char * id, float fraction, const ImVec2 & size = {0, 0}, const std::string & tooltip = {});
 
 bool toggle(const char * id, bool * v, const bool * default_value = nullptr);
 
@@ -161,7 +168,11 @@ struct list_row_result
 // trailing_width reserves space on the right for trailing controls and excludes it from
 // the row's click area. Place controls right-aligned at .max with SetCursorScreenPos,
 // then call end_list_row().
-list_row_result begin_list_row(const char * id, const char * icon, ImTextureID image, const std::string & title, const std::string & subtitle, bool selected = false, float trailing_width = 0, float height = 0);
+// large_thumb makes the leading thumbnail/icon box span the full row height (icon boxes
+// keep their background at that same size).
+// interactive=false reserves layout only -- no row-body click area and no hover highlight,
+// for rows whose body does nothing (only trailing controls act).
+list_row_result begin_list_row(const char * id, const char * icon, ImTextureID image, const std::string & title, const std::string & subtitle, bool selected = false, float trailing_width = 0, float height = 0, bool large_thumb = false, bool interactive = true);
 void end_list_row();
 
 // Confirmation dialog (open with ImGui::OpenPopup(id)). Returns 1 if confirmed, -1 if
