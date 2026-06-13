@@ -28,6 +28,8 @@
 #include "gui_common.h"
 #include "imgui.h"
 #include "lobby.h"
+#include "render/ui_theme.h"
+#include "render/ui_widgets.h"
 #include "scenes/stream.h" // IWYU pragma: keep
 #include "utils/async.h"
 #include "utils/i18n.h"
@@ -1749,6 +1751,20 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	update_file_picker();
 
 	ImGuiStyle & style = ImGui::GetStyle();
+	style.FontScaleMain = wivrn::ui::current().font_scale * wivrn::ui::metrics::font_base;
+
+	// base text colour follows the theme so plain ImGui text is legible on light themes
+	style.Colors[ImGuiCol_Text] = wivrn::ui::current().text;
+	style.Colors[ImGuiCol_TextDisabled] = wivrn::ui::current().text_muted;
+
+	// combo modals open centred on the popup layer
+	const auto & ui_popup_layer = imgui_ctx->layers()[1];
+	const glm::vec2 ui_popup_center = ui_popup_layer.vp_origin + ui_popup_layer.vp_size / 2;
+	wivrn::ui::set_popup_center({ui_popup_center.x, ui_popup_center.y});
+
+	// let the themed widgets fire the hover haptic and show tooltips
+	wivrn::ui::set_hover_haptic([this] { imgui_ctx->vibrate_on_hover(); });
+	wivrn::ui::set_tooltip_hook([this](const char * text) { imgui_ctx->tooltip(text); });
 
 	const float TabWidth = 300;
 
@@ -1759,7 +1775,9 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 30);
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
+	// window background follows the theme, with a user-controlled opacity
+	const wivrn::ui::theme & th = wivrn::ui::current();
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{th.background.x, th.background.y, th.background.z, th.background_alpha});
 
 	ImGui::SetNextWindowPos(imgui_ctx->layers()[0].vp_center(), ImGuiCond_Always, {0.5, 0.5});
 
@@ -1823,6 +1841,10 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				gui_customize(predicted_display_time);
 				break;
 
+			case tab::components:
+				gui_components();
+				break;
+
 #if WIVRN_CLIENT_DEBUG_MENU
 			case tab::debug:
 				gui_debug();
@@ -1870,6 +1892,9 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 			imgui_ctx->vibrate_on_hover();
 
 			RadioButtonWithoutCheckBox(ICON_FA_PANORAMA "  " + _("Customize"), current_tab, tab::customize, {TabWidth, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			RadioButtonWithoutCheckBox(ICON_FA_PALETTE "  Components", current_tab, tab::components, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
 #if WIVRN_CLIENT_DEBUG_MENU

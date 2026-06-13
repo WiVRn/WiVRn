@@ -1329,9 +1329,22 @@ void ScrollWhenDragging()
 	static int active_id;
 	static ImVec2 cumulated_delta;
 
+	// Suppress drag-scroll while a popup is open and for the frame one closes: in VR
+	// the ray snaps from the popup layer back to this window when the popup dismisses,
+	// which can synthesise a spurious click (see the focused-controller handling) that
+	// would otherwise start a scroll right after picking a combo value.
+	static bool popup_was_open;
+	const bool popup_open = ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+
 	bool HoveredIdAllowOverlap_backup = std::exchange(g.HoveredIdAllowOverlap, true);
 	bool ActiveIdAllowOverlap_backup = std::exchange(g.ActiveIdAllowOverlap, true);
-	if (active_id == 0 and ImGui::ItemHoverable(window->Rect(), 0, g.CurrentItemFlags) and ImGui::IsMouseClicked(mouse_button, ImGuiInputFlags_None, /*id*/ ImGuiKeyOwner_Any))
+	// Begin a drag-scroll only when the press lands on this window or one of its
+	// child panels and no widget grabbed it. IsWindowHovered(ChildWindows) lets the
+	// drag work over card child windows (ItemHoverable would fail there), and the
+	// g.ActiveId guard keeps manipulating a control (slider, toggle, combo...) from
+	// scrolling the page. Controls must claim the active id on press for this to hold.
+	const bool over = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
+	if (active_id == 0 and g.ActiveId == 0 and not popup_open and not popup_was_open and over and ImGui::IsMouseClicked(mouse_button, ImGuiInputFlags_None, /*id*/ ImGuiKeyOwner_Any))
 	{
 		active_id = id;
 
@@ -1357,6 +1370,8 @@ void ScrollWhenDragging()
 
 	g.HoveredIdAllowOverlap = HoveredIdAllowOverlap_backup;
 	g.ActiveIdAllowOverlap = ActiveIdAllowOverlap_backup;
+
+	popup_was_open = popup_open;
 }
 
 void CenterTextH(const std::string & text)

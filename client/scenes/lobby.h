@@ -121,6 +121,7 @@ class lobby : public scene_impl<lobby>
 		settings,
 		post_processing,
 		customize,
+		components,
 #if WIVRN_CLIENT_DEBUG_MENU
 		debug,
 #endif
@@ -227,6 +228,7 @@ class lobby : public scene_impl<lobby>
 	void gui_settings();
 	void gui_post_processing();
 	void gui_customize(XrTime predicted_display_time);
+	void gui_components();
 	void gui_debug_node_hierarchy(entt::entity root = entt::null);
 	void gui_debug();
 	void gui_about();
