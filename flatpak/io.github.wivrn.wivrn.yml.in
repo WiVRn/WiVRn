@@ -73,7 +73,7 @@ modules:
     sources:
     - type: git
       url: https://github.com/crosstool-ng/crosstool-ng.git
-      tag: 620b909cd0713f68084378b63cf61b5232757b90
+      commit: 620b909cd0713f68084378b63cf61b5232757b90
     - type: shell
       commands:
        # Make the build lighter:
@@ -96,7 +96,7 @@ modules:
     sources:
     - type: git
       url: https://github.com/RsyncProject/rsync.git
-      tag: 3305a7a063ab0167cab5bf7029da53abaa9fdb6e
+      commit: 3305a7a063ab0167cab5bf7029da53abaa9fdb6e
     cleanup:
       - '*'
 
@@ -180,6 +180,7 @@ modules:
     - type: git
       url: https://github.com/avahi/avahi.git
       tag: v0.8
+      commit: f060abee2807c943821d88839c013ce15db17b58
     cleanup:
       - /share/locale
       - /share/runtime/locale
@@ -192,7 +193,7 @@ modules:
     sources:
     - type: git
       url: https://code.videolan.org/videolan/x264.git
-      tag: 31e19f92f00c7003fa115047ce50978bc98c3a0d
+      commit: 31e19f92f00c7003fa115047ce50978bc98c3a0d
     cleanup:
       - /bin/x264
 
@@ -220,7 +221,8 @@ modules:
     sources:
     - type: git
       url: https://gitlab.com/freedesktop-sdk/mirrors/ffmpeg/ffmpeg.git
-      tag: n7.0.1
+      tag: n7.1.4
+      commit: 9abe92e3af7fa7becc8f7f742b1457b4c28220a6
 
   - name: eigen3
     buildsystem: cmake-ninja
@@ -231,6 +233,7 @@ modules:
     - type: git
       url: https://gitlab.com/libeigen/eigen.git
       tag: 5.0.1
+      commit: bc3b39870ecb690a623a3f49149a358b95c5781d
     cleanup:
       - '*'
 
@@ -241,7 +244,8 @@ modules:
     sources:
     - type: git
       url: https://github.com/nlohmann/json.git
-      tag: v3.11.3
+      tag: v3.12.0
+      commit: 55f93686c01528224f448c19128836e7df245f72
 
   - name: cli11
     buildsystem: cmake-ninja
@@ -253,7 +257,8 @@ modules:
     sources:
     - type: git
       url: https://github.com/CLIUtils/CLI11
-      tag: v2.4.2
+      tag: v2.6.2
+      commit: 37bb6edc5317e99af72ef48405e65d9ca5218861
     cleanup:
       - '*'
 
@@ -279,7 +284,7 @@ modules:
     sources:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
-        tag: cff07db75c4823afe93ed7027b03d5f7bc86f164
+        commit: cff07db75c4823afe93ed7027b03d5f7bc86f164
 
   - name: xrizer
     buildsystem: simple
@@ -310,7 +315,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/Supreeeme/xrizer.git
-        tag: be664bb93eebdd82336d00230154bacc6f8b9765
+        commit: be664bb93eebdd82336d00230154bacc6f8b9765
       - xrizer-gen-src.json
 
   - name: wivrn-library
@@ -353,7 +358,7 @@ modules:
         WIVRN_SRC3
       - type: git
         url: https://gitlab.freedesktop.org/monado/monado
-        tag: MONADO_COMMIT
+        commit: MONADO_COMMIT
         dest: deps/monado-src
       - type: shell
         commands:
@@ -393,7 +398,7 @@ modules:
         sha256: BOOST_SHA256
       - type: git
         url: https://gitlab.freedesktop.org/monado/monado
-        tag: MONADO_COMMIT
+        commit: MONADO_COMMIT
         dest: deps/monado-src
       - type: shell
         commands:

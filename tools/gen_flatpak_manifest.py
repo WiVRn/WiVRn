@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     # Get dependencies for xrizer
     xrizer_repo = "https://github.com/Supreeeme/xrizer"
-    xrizer_commit = re.findall(f"url: {xrizer_repo}.git[ \n]*tag: ([a-f0-9]*)", template)[0]
+    xrizer_commit = re.findall(f"url: {xrizer_repo}.git[ \n]*commit: ([a-f0-9]*)", template)[0]
     lock = urlopen(f"{xrizer_repo}/raw/{xrizer_commit}/Cargo.lock")
     gen_src = asyncio.run(flatpakcargogenerator.generate_sources(
             toml.loads(lock.read().decode())))
