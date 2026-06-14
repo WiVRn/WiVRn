@@ -23,8 +23,13 @@ include(FetchContent)
 include(ExternalProject)
 include(GNUInstallDirs)
 
-set(GIT_DESC "" CACHE STRING "Version to show in UI (from git if empty)")
-set(GIT_COMMIT "" CACHE STRING "Git SHA used to fetch client APK (from git if empty)")
+set(GIT_TAG "" CACHE STRING "Build for a tag (from git if empty)")
+set(GIT_DESC "" CACHE STRING "Version to show in UI (from git if empty, exclusive with GIT_TAG)")
+set(GIT_COMMIT "" CACHE STRING "Git SHA used to fetch client APK (from git if empty, exclusive with GIT_TAG)")
+
+if (GIT_TAG AND (GIT_DESC OR GIT_COMMIT))
+	message(FATAL_ERROR "cannot use GIT_DESC or GIT_COMMIT when using GIT_TAG")
+endif()
 
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" ON)
@@ -288,6 +293,7 @@ add_custom_target(wivrn-version ALL
         -D OUTPUT_FILE=${CMAKE_BINARY_DIR}/version.cpp
         -D INPUT_FILE_1=${CMAKE_CURRENT_SOURCE_DIR}/server/u_git_tag.cpp.in
         -D OUTPUT_FILE_1=${CMAKE_BINARY_DIR}/u_git_tag.cpp
+        -D GIT_TAG="${GIT_TAG}"
         -D GIT_DESC="${GIT_DESC}"
         -D GIT_COMMIT="${GIT_COMMIT}"
         -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake

@@ -23,21 +23,17 @@
 #include <QCoroNetworkReply>
 #include <QCoroProcess>
 #include <nlohmann/json.hpp>
-#include <regex>
 
 using namespace std::chrono_literals;
 
 apk_installer::apk_installer()
 {
-	if (isTagged())
-		m_apkFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/wivrn-" + QString::fromStdString(wivrn::git_version) + ".apk");
-	else
-		m_apkFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/wivrn-" + QString::fromStdString(wivrn::git_commit) + ".apk");
+	m_apkFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/wivrn-" + QString::fromStdString(wivrn::git_commit) + ".apk");
 }
 
 bool apk_installer::isTagged() const
 {
-	return not std::regex_match(wivrn::git_version, std::regex(".*-g[0-9a-f]+"));
+	return wivrn::is_tag;
 }
 
 QString apk_installer::currentVersion() const
@@ -74,7 +70,7 @@ QCoro::Task<> apk_installer::doRefreshLatestVersion()
 
 	QUrl metadata_url;
 	if (isTagged())
-		metadata_url = QString{"https://api.github.com/repos/WiVRn/WiVRn/releases/tags/"} + wivrn::git_version;
+		metadata_url = QString{"https://api.github.com/repos/WiVRn/WiVRn/releases/tags/"} + wivrn::git_commit;
 	else
 		metadata_url = QString{"https://api.github.com/repos/WiVRn/WiVRn-APK/releases/tags/apk-"} + wivrn::git_commit;
 

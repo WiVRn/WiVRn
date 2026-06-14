@@ -20,19 +20,22 @@
 #include <cctype>
 #include <iterator>
 
+static const char git_desc[] = "@GIT_DESC@";
+
 namespace wivrn
 {
-	extern const char git_version[];
-	const char git_version[] = "@GIT_DESC@";
 
-	extern const char git_commit[];
-	const char git_commit[] = "@GIT_COMMIT@";
+extern const char git_commit[];
+const char git_commit[] = "@GIT_COMMIT@";
 
-const char* display_version()
+extern const bool is_tag;
+const bool is_tag = @GIT_TAG@;
+
+const char * display_version()
 {
-	if (std::size(git_version) > 2 and git_version[0] == 'v' and isdigit(git_version[1]))
-		return git_version + 1;
+	if (std::size(git_desc) > 2 and git_desc[0] == 'v' and isdigit(git_desc[1]))
+		return git_desc + 1;
 	else
-		return git_version;
+		return git_desc;
 }
-}
+} // namespace wivrn
