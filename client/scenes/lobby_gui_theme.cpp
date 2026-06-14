@@ -21,6 +21,8 @@
 
 #include "lobby.h"
 
+#include "application.h"
+#include "configuration.h"
 #include "render/ui_theme.h"
 #include "render/ui_widgets.h"
 #include "utils/i18n.h"
@@ -32,9 +34,40 @@
 
 namespace ui = wivrn::ui;
 
+void scenes::lobby::apply_theme_settings()
+{
+	auto & config = application::get_config();
+
+	// preset by name; surfaces only, the accent is applied separately below
+	for (const auto & p: ui::presets())
+	{
+		if (p.name == config.theme_preset)
+		{
+			ui::set_theme(p);
+			break;
+		}
+	}
+
+	for (const auto & swatch: ui::accent_swatches())
+	{
+		if (swatch.name == config.theme_accent)
+		{
+			ui::set_accent(swatch);
+			break;
+		}
+	}
+
+	ui::theme & theme = ui::current();
+	theme.rounding = config.theme_rounding;
+	theme.card_rounding = config.theme_card_rounding;
+	theme.font_scale = config.theme_font_scale;
+	ui::background_alpha() = config.theme_background_alpha;
+}
+
 void scenes::lobby::gui_theme()
 {
 	ui::theme & theme = ui::current();
+	auto & config = application::get_config();
 
 	ui::page_header(_S("Theme"), _S("Accent color, palette and sizing of the interface."));
 
@@ -51,7 +84,11 @@ void scenes::lobby::gui_theme()
 			const bool selected = theme.accent.x == swatch.base.x and theme.accent.y == swatch.base.y and theme.accent.z == swatch.base.z;
 			const auto flags = ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder | (selected ? 0 : ImGuiColorEditFlags_NoDragDrop);
 			if (ImGui::ColorButton(swatch.name, swatch.base, flags, {ImGui::GetFrameHeight() * 1.4f, ImGui::GetFrameHeight() * 1.4f}))
+			{
 				ui::set_accent(swatch);
+				config.theme_accent = swatch.name;
+				config.save();
+			}
 			ImGui::SameLine();
 		}
 		ImGui::NewLine();
@@ -59,11 +96,18 @@ void scenes::lobby::gui_theme()
 		ui::row_separator();
 
 		// Preset
-		static int preset = 1; // dark_default
 		const auto preset_list = ui::presets();
 		std::vector<ui::combo_item> preset_items;
 		for (const auto & p: preset_list)
 			preset_items.push_back({p.name.c_str()});
+
+		// seed the selection from the saved preset so the box matches what is applied
+		static int preset = [&] {
+			for (int i = 0; i < int(preset_list.size()); ++i)
+				if (preset_list[i].name == config.theme_preset)
+					return i;
+			return 1; // dark_default
+		}();
 
 		static const int preset_default = 1;
 		ui::setting_label(_S("Preset"), _S("Surface and background palette"), control_w);
@@ -77,6 +121,8 @@ void scenes::lobby::gui_theme()
 			theme.accent = keep_accent;
 			theme.accent_hovered = keep_hover;
 			theme.accent_active = keep_active;
+			config.theme_preset = preset_list[preset].name;
+			config.save();
 		}
 
 		ui::row_separator();
@@ -86,7 +132,11 @@ void scenes::lobby::gui_theme()
 		int rounding = int(theme.rounding);
 		ui::setting_label(_S("Rounding"), _S("Corner radius of controls"), control_w);
 		if (ui::slider_int("##rounding", &rounding, 0, 20, "%d px", {control_w, 0}, &rounding_default))
+		{
 			theme.rounding = float(rounding);
+			config.theme_rounding = theme.rounding;
+			config.save();
+		}
 
 		ui::row_separator();
 
@@ -94,7 +144,11 @@ void scenes::lobby::gui_theme()
 		int card_rounding = int(theme.card_rounding);
 		ui::setting_label(_S("Card rounding"), _S("Corner radius of panels"), control_w);
 		if (ui::slider_int("##card_rounding", &card_rounding, 0, 28, "%d px", {control_w, 0}, &card_rounding_default))
+		{
 			theme.card_rounding = float(card_rounding);
+			config.theme_card_rounding = theme.card_rounding;
+			config.save();
+		}
 
 		ui::row_separator();
 
@@ -104,16 +158,24 @@ void scenes::lobby::gui_theme()
 		int font_scale = int(theme.font_scale * 100);
 		ui::setting_label(_S("Text size"), _S("Global font scale"), control_w);
 		if (ui::slider_int("##font_scale", &font_scale, 60, 140, "%d%%", {control_w, 0}, &font_scale_default))
+		{
 			theme.font_scale = float(font_scale) / 100.f;
+			config.theme_font_scale = theme.font_scale;
+			config.save();
+		}
 
 		ui::row_separator();
 
-		// Panel transparency
-		static const int opacity_default = 100;
-		int opacity = int(theme.background_alpha * 100);
+		// Panel transparency, independent of the selected preset
+		static const int opacity_default = 90;
+		int opacity = int(ui::background_alpha() * 100);
 		ui::setting_label(_S("Panel opacity"), _S("Opacity of the panel and card backgrounds"), control_w);
 		if (ui::slider_int("##opacity", &opacity, 20, 100, "%d%%", {control_w, 0}, &opacity_default))
-			theme.background_alpha = float(opacity) / 100.f;
+		{
+			ui::background_alpha() = float(opacity) / 100.f;
+			config.theme_background_alpha = ui::background_alpha();
+			config.save();
+		}
 
 		ui::end_card();
 	}

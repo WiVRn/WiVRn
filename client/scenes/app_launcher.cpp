@@ -20,74 +20,82 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "app_launcher.h"
 
-#include "constants.h"
+#include "application.h"
+#include "configuration.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "render/ui_theme.h"
+#include "render/ui_widgets.h"
 #include "scenes/stream.h"
 #include "utils/i18n.h"
 #include "utils/ranges.h"
 
+#include <IconsFontAwesome6.h>
+#include <algorithm>
 #include <imspinner.h>
 #include <spdlog/fmt/fmt.h>
 #include <uni_algo/case.h>
 
 using namespace std::chrono_literals;
 
-// Display a button with an image and a text centred horizontally
-static bool icon(
-        const std::string & text,
-        ImTextureRef tex_ref,
-        const ImVec2 & image_size,
-        ImGuiButtonFlags flags = 0,
-        const ImVec2 & size_arg = ImVec2(0, 0),
-        const ImVec2 & uv0 = ImVec2(0, 0),
-        const ImVec2 & uv1 = ImVec2(1, 1),
-        const ImVec4 & tint_col = ImVec4(1, 1, 1, 1))
+namespace ui = wivrn::ui;
+
+namespace
 {
-	// Based on ImGui::ButtonEx and ImGui::ImageButtonEx
-	ImGuiWindow * window = ImGui::GetCurrentWindow();
+// grid icon image size for the small/medium/large setting
+float grid_image_size(uint32_t size)
+{
+	switch (size)
+	{
+		case 0:
+			return ui::metrics::app_icon_small;
+		case 2:
+			return ui::metrics::app_icon_large;
+		default:
+			return ui::metrics::app_icon_medium;
+	}
+}
+
+// Themed grid tile: image with a centred label below, control surface, accent on hover
+bool app_tile(const std::string & id, const std::string & name, ImTextureID texture, float tile_w, float image_size)
+{
+	const ui::theme & t = ui::current();
 	const ImGuiStyle & style = ImGui::GetStyle();
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
 
 	if (window->SkipItems)
 		return false;
 
-	const ImVec2 label_size = ImGui::CalcTextSize(text.c_str(), nullptr, true);
-
-	ImVec2 size = ImGui::CalcItemSize(
-	        size_arg,
-	        std::max(image_size.x, label_size.x) + style.FramePadding.x * 2.0f,
-	        image_size.y + style.ItemInnerSpacing.y + label_size.y + style.FramePadding.y * 2.0f);
-
+	const float pad = ui::metrics::list_row_pad;
+	const ImVec2 size{tile_w, image_size + pad * 2 + style.ItemInnerSpacing.y + ImGui::GetTextLineHeight()};
 	const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size);
 
-	ImRect image_pos(
-	        {(bb.Min.x + bb.Max.x - image_size.x) / 2, bb.Min.y + style.FramePadding.y},
-	        {(bb.Min.x + bb.Max.x + image_size.x) / 2, bb.Min.y + style.FramePadding.y + image_size.y});
-
-	ImRect label_pos(
-	        {bb.Min.x + style.FramePadding.x, image_pos.Max.y + style.ItemInnerSpacing.y},
-	        {bb.Max.x - style.FramePadding.x, bb.Max.y - style.FramePadding.y});
-
 	ImGui::ItemSize(bb);
-
-	ImGuiID id = window->GetID(text.c_str());
-	if (!ImGui::ItemAdd(bb, id))
+	const ImGuiID iid = window->GetID(id.c_str());
+	if (not ImGui::ItemAdd(bb, iid))
 		return false;
 
 	bool hovered, held;
-	bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
+	const bool pressed = ImGui::ButtonBehavior(bb, iid, &hovered, &held, ImGuiButtonFlags_PressedOnClickRelease);
 
-	// Render
-	const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered
-	                                                                                         : ImGuiCol_Button);
-	ImGui::RenderNavCursor(bb, id);
-	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+	ImDrawList * dl = window->DrawList;
+	dl->AddRectFilled(bb.Min, bb.Max, t.col(held and hovered ? t.control_active : hovered ? t.card_hovered
+	                                                                                      : t.control),
+	                  t.card_rounding);
+	if (hovered)
+		dl->AddRect(bb.Min, bb.Max, t.col(t.accent), t.card_rounding, 0, t.border_size * 2);
 
-	window->DrawList->AddImage(tex_ref, image_pos.Min, image_pos.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
-	ImGui::RenderTextClipped(label_pos.Min, label_pos.Max, text.c_str(), NULL, &label_size, style.ButtonTextAlign, &bb);
+	const ImVec2 image_min{(bb.Min.x + bb.Max.x - image_size) / 2, bb.Min.y + pad};
+	dl->AddImage(texture, image_min, image_min + ImVec2{image_size, image_size});
+
+	const ImVec2 label_min{bb.Min.x + pad, image_min.y + image_size + style.ItemInnerSpacing.y};
+	const ImVec2 label_max{bb.Max.x - pad, bb.Max.y - pad};
+	const ImVec2 label_size = ImGui::CalcTextSize(name.c_str(), nullptr, true);
+	ImGui::RenderTextClipped(label_min, label_max, name.c_str(), nullptr, &label_size, {0.5f, 0.5f}, &bb);
 
 	return pressed;
 }
+} // namespace
 
 app_launcher::app_launcher(
         scenes::stream & stream,
@@ -105,139 +113,154 @@ app_launcher::app_launcher(
 
 app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const std::string & cancel)
 {
+	auto & config = application::get_config();
+
 	auto res = clicked::None;
 	auto t0 = std::chrono::steady_clock::now();
 	bool app_starting = start_time != std::chrono::steady_clock::time_point{} and
 	                    t0 - start_time < 10s;
 
-	auto cancel_size = ImGui::CalcTextSize(cancel.c_str());
-
 	auto apps = applications.lock();
 
-	ImGui::PushFont(nullptr, constants::gui::font_size_large);
-	if (server_name.empty())
-		CenterTextH(_("Connected to WiVRn server"));
-	else
-		CenterTextH(fmt::format(_F("Connected to {}"), server_name));
-	ImGui::PopFont();
+	// resolve an app's icon, uploading lazily and capped per frame to stay responsive
+	auto texture_for = [&](app & a) -> ImTextureID {
+		if (a.image.empty())
+			return default_icon;
+		auto it = app_icons.find(a.id);
+		if (it == app_icons.end())
+		{
+			if (std::chrono::steady_clock::now() - t0 > 10ms)
+				return default_icon;
+			try
+			{
+				it = app_icons.emplace(a.id, textures.load_texture(a.image)).first;
+			}
+			catch (std::exception & e)
+			{
+				spdlog::warn("Unable to load icon for \"{}\": {}", a.id, e.what());
+				a.image.clear();
+				return default_icon;
+			}
+		}
+		return it->second;
+	};
 
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
+	auto launch = [&](const std::string & id) {
+		res = clicked::Start;
+		start_time = t0;
+		stream.start_application(id);
+	};
+
+	const float margin = ui::metrics::card_padding.x;
+	const float button_h = ImGui::GetFrameHeight() * ui::metrics::control_height;
+	const float footer_h = button_h + margin * 2;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ui::metrics::card_padding);
+	ImGui::BeginChild("launcher", {0, ImGui::GetContentRegionAvail().y - footer_h}, ImGuiChildFlags_AlwaysUseWindowPadding);
+	ImGui::BeginDisabled(app_starting);
+
+	const float header_top = ImGui::GetCursorPosY();
+	const std::string subtitle = _S("Pick an application to start streaming, or start one on the PC.");
+	if (server_name.empty())
+		ui::page_header(_S("Connected"), subtitle);
+	else
+		ui::page_header(fmt::format(_F("Connected to {}"), server_name), subtitle);
+
 	if (apps->empty())
 	{
-		CenterTextHV(_("Start an application on the server to start streaming."));
+		ImGui::Spacing();
+		ImGui::TextUnformatted(_S("Waiting for an application on the server"));
 	}
 	else
 	{
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 0});
-		ImGui::BeginDisabled(app_starting);
-		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, cancel_size.y + 80), 0, app_starting ? ImGuiWindowFlags_NoScrollWithMouse : 0);
+		const float content_y = ImGui::GetCursorPosY();
 
-		ImGui::Indent(20);
-		if (server_name.empty())
-			ImGui::Text("%s", _S("Start an application on your computer or select one to start streaming."));
-		else
-			ImGui::Text("%s", fmt::format(_F("Start an application on {} or select one to start streaming."), server_name).c_str());
-		ImGui::Unindent();
+		int view = config.app_list_view ? 1 : 0;
+		int size_idx = std::clamp<int>(config.app_icon_size, 0, 2);
+		const std::vector<std::string> size_opts = {_S("Small"), _S("Medium"), _S("Large")};
+		const std::vector<std::string> view_opts = {ICON_FA_TABLE_CELLS_LARGE, ICON_FA_LIST};
+		const float gap = ImGui::GetStyle().ItemSpacing.x;
+		const float view_w = ui::metrics::app_view_toggle_width;
+		const float size_w = ui::metrics::app_size_toggle_width;
+		const float cluster = view_w + (view == 0 ? size_w + gap : 0);
 
-		float icon_width = 400;
-		float icon_spacing = ImGui::GetStyle().ItemSpacing.x;
-		float usable_window_width = ImGui::GetWindowSize().x - ImGui::GetCurrentWindow()->ScrollbarSizes.x;
-
-		int icons_per_line = (usable_window_width + icon_spacing) / (icon_width + icon_spacing);
-		float icon_line_width = icons_per_line * icon_width + (icons_per_line - 1) * icon_spacing;
-
-		ImGui::Indent((usable_window_width - icon_line_width) / 2);
-
-		for (const auto [index, app]: utils::enumerate(*apps))
+		// grid/list and icon size on the title row, right-aligned and centred against the title
+		ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * ui::metrics::font_title);
+		const float title_h = ImGui::GetFontSize();
+		ImGui::PopFont();
+		const float toggle_h = ImGui::GetFrameHeight() * ui::metrics::control_height;
+		ImGui::SetCursorPos({ImGui::GetContentRegionMax().x - cluster, header_top + (title_h - toggle_h) / 2});
+		if (view == 0)
 		{
-			ImTextureID texture = [&]() -> ImTextureID {
-				if (app.image.empty())
-					return default_icon;
-				else
-				{
-					auto it = app_icons.find(app.id);
-					if (it == app_icons.end())
-					{
-						// Don't load too many textures at the same time to keep the GUI responsive
-						if (std::chrono::steady_clock::now() - t0 > 10ms)
-							return default_icon;
-
-						try
-						{
-							it = app_icons.emplace(app.id, textures.load_texture(app.image)).first;
-						}
-						catch (std::exception & e)
-						{
-							spdlog::warn("Unable to load icon for \"{}\": {}", app.id, e.what());
-
-							app.image.clear();
-							return default_icon;
-						}
-					}
-					return it->second;
-				}
-			}();
-
-			ImGui::PushStyleColor(ImGuiCol_Button, 0);
-			if (icon(app.name + "##" + app.id, texture, {256, 256}, ImGuiButtonFlags_PressedOnClickRelease, {icon_width, 0}))
+			if (ui::segmented("##icon_size", size_opts, &size_idx, {size_w, 0}))
 			{
-				res = clicked::Start;
-				start_time = t0;
-				stream.start_application(app.id);
+				config.app_icon_size = size_idx;
+				config.save();
 			}
-			imgui_ctx.vibrate_on_hover();
-			ImGui::PopStyleColor(); // ImGuiCol_Button
-
-			if ((index + 1) % icons_per_line)
-				ImGui::SameLine();
+			ImGui::SameLine(0, gap);
 		}
-		ImGui::Unindent();
+		if (ui::segmented("##view_mode", view_opts, &view, {view_w, 0}))
+		{
+			config.app_list_view = view == 1;
+			config.save();
+		}
+		ImGui::SetCursorPos({ImGui::GetCursorStartPos().x, content_y});
 
-		std::vector<std::pair<std::string, ImTextureID>> to_be_removed;
+		if (config.app_list_view)
+		{
+			ui::begin_list_card("##apps");
+			for (auto & app: *apps)
+			{
+				if (ui::begin_list_row(app.id.c_str(), nullptr, texture_for(app), app.name, "").clicked)
+					launch(app.id);
+				ui::end_list_row();
+			}
+			ui::end_card();
+		}
+		else
+		{
+			const float image_size = grid_image_size(config.app_icon_size);
+			const float tile_w = image_size + ui::metrics::app_tile_margin * 2;
+			const int per_line = std::max(1, int((ImGui::GetContentRegionAvail().x + gap) / (tile_w + gap)));
+			for (const auto [index, app]: utils::enumerate(*apps))
+			{
+				if (app_tile(app.id, app.name, texture_for(app), tile_w, image_size))
+					launch(app.id);
+				imgui_ctx.vibrate_on_hover();
+				if ((index + 1) % per_line)
+					ImGui::SameLine();
+			}
+		}
+
+		// drop textures for apps no longer listed
+		std::vector<std::string> stale;
 		for (const auto & [app_id, app_icon]: app_icons)
-		{
 			if (not std::ranges::contains(*apps, app_id, &app::id))
-				to_be_removed.emplace_back(app_id, app_icon);
-		}
-		for (const auto & [app_id, app_icon]: to_be_removed)
+				stale.push_back(app_id);
+		for (const auto & app_id: stale)
 		{
-			imgui_ctx.free_texture(app_icon);
+			imgui_ctx.free_texture(app_icons.at(app_id));
 			app_icons.erase(app_id);
 		}
-
-		ScrollWhenDragging();
-		ImGui::EndChild();
-		ImGui::EndDisabled();
-
-		if (app_starting)
-		{
-			ImGui::SetCursorPos(ImGui::GetWindowSize() / 2 - ImVec2{200, 200} - ImGui::GetStyle().FramePadding);
-			ImSpinner::SpinnerAng("App starting spinner",
-			                      200,                         // Radius
-			                      40,                          // Thickness
-			                      ImColor{1.f, 1.f, 1.f, 1.f}, // Colour
-			                      ImColor{1.f, 1.f, 1.f, 0.f}, // Background
-			                      6,                           // Velocity
-			                      0.75f * 2 * M_PI             // Angle
-			);
-		}
-
-		ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
 	}
+
+	ScrollWhenDragging();
+	ImGui::EndDisabled();
+	ImGui::EndChild();
 	ImGui::PopStyleVar();
 
-	ImGui::SetCursorPos(ImGui::GetWindowSize() - cancel_size - ImVec2{50, 50});
+	if (app_starting)
+	{
+		const float r = ui::metrics::app_spinner_radius;
+		ImGui::SetCursorPos(ImGui::GetWindowSize() / 2 - ImVec2{r, r});
+		ImSpinner::SpinnerAng("starting", r, ui::metrics::app_spinner_thickness, ImColor{ui::current().accent}, ImColor{ui::current().card}, 6, 0.75f * 2 * M_PI);
+	}
 
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-	if (ImGui::Button(cancel.c_str()))
+	// footer: disconnect / cancel, bottom-right
+	ImGui::SetCursorPos({ImGui::GetWindowSize().x - ui::button_width(cancel) - margin, ImGui::GetWindowSize().y - button_h - margin});
+	if (ui::button(cancel, ui::button_style::danger))
 		res = clicked::Cancel;
-	imgui_ctx.vibrate_on_hover();
-	ImGui::PopStyleColor(3); // ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive
-	ImGui::PopStyleVar(2);
+
 	return res;
 }
 

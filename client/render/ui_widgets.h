@@ -67,6 +67,10 @@ float button_width(const char * icon, const std::string & label);
 // Footprint of a chip() with standard padding (no dot, no height override).
 ImVec2 chip_size(const std::string & label);
 
+// Exact layout width of a chip(), accounting for the optional status dot and the roomier
+// padding used when height > 0 (the tall pill chips in the top bar).
+float chip_width(const std::string & label, bool dot = false, float height = 0);
+
 bool button(const std::string & label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
 // Same, with a larger leading icon glyph drawn before the label
 bool button(const char * icon, const std::string & label, button_style style = button_style::primary, const ImVec2 & size = {0, 0});
@@ -178,5 +182,29 @@ void end_list_row();
 // Confirmation dialog (open with ImGui::OpenPopup(id)). Returns 1 if confirmed, -1 if
 // cancelled or dismissed, 0 otherwise. danger styles the confirm button as destructive.
 int confirm_modal(const char * id, const std::string & title, const std::string & message, const std::string & confirm_label, const std::string & cancel_label, bool danger = false);
+
+// --- Shared window shell: top bar, sidebar and dividers used by the lobby and the
+// in-stream GUI so the two screens stay identical. Call inside the main window.
+
+// One slot in the top bar's right-aligned cluster. width is the slot's layout width
+// (use chip_width() for chips, the control side for icon buttons); draw() renders it at
+// the cursor, vertically centred, at the standard control height.
+struct top_bar_item
+{
+	float width;
+	std::function<void()> draw;
+};
+
+// Top bar: WiVRn logo + wordmark on the left, right_items right-aligned. Manages its own
+// child window; height is the bar height in pixels.
+void top_bar(float height, ImTextureID logo, const std::vector<top_bar_item> & right_items);
+
+// Sidebar nav frame at the standard width/offset. Fill with nav_section()/nav_item()
+// between the calls; pair begin_sidebar with end_sidebar.
+void begin_sidebar(float top_bar_h, float tab_width);
+void end_sidebar();
+
+// Hairline dividers separating the top bar, sidebar and content, dimmed with the panel.
+void shell_dividers(float top_bar_h, float tab_width);
 
 } // namespace wivrn::ui

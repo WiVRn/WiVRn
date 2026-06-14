@@ -78,6 +78,18 @@ public:
 
 	bool enable_stream_gui = true;
 
+	// application launcher: list vs grid, and grid icon size, 0 small 1 medium 2 large
+	bool app_list_view = false;
+	uint32_t app_icon_size = 1;
+
+	// Interface theme; defaults match the built-in "Dark" preset / "Blue" accent
+	std::string theme_preset = "Dark";
+	std::string theme_accent = "Blue";
+	float theme_rounding = 8;
+	float theme_card_rounding = 14;
+	float theme_font_scale = 1.0;
+	float theme_background_alpha = 0.75;
+
 	// XR_FB_composition_layer_settings extension flags
 	struct openxr_post_processing_settings
 	{

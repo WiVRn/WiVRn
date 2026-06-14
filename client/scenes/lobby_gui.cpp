@@ -19,9 +19,6 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
-#ifdef __ANDROID__
-#include "android/battery.h"
-#endif
 #include "application.h"
 #include "configuration.h"
 #include "constants.h"
@@ -1058,7 +1055,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	wivrn::ui::set_hover_haptic([this] { imgui_ctx->vibrate_on_hover(); });
 	wivrn::ui::set_tooltip_hook([this](const char * text) { imgui_ctx->tooltip(text); });
 
-	const float TabWidth = 300;
+	const float TabWidth = wivrn::ui::metrics::sidebar_width;
 
 	if (ImGui::GetIO().WantTextInput)
 	{
@@ -1069,7 +1066,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 30);
 	// window background follows the theme, with a user-controlled opacity
 	const wivrn::ui::theme & th = wivrn::ui::current();
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{th.background.x, th.background.y, th.background.z, th.background_alpha});
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{th.background.x, th.background.y, th.background.z, wivrn::ui::background_alpha()});
 
 	ImGui::SetNextWindowPos(imgui_ctx->layers()[0].vp_center(), ImGuiCond_Always, {0.5, 0.5});
 
@@ -1102,148 +1099,55 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
 		auto & config = application::get_config();
-		const float TopBarH = 72;
+		const float TopBarH = wivrn::ui::metrics::top_bar_height;
 
-		// Top bar: logo on the left, status controls on the right.
-		// Transparent child bg so the alpha-blended window background shows through.
-		ImGui::SetCursorPos({0, 0});
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0, 0, 0, 0});
-		ImGui::BeginChild("TopBar", {ImGui::GetWindowSize().x, TopBarH}, 0, ImGuiWindowFlags_NoScrollbar);
-		{
-			const float side = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
-			const float gap = 8;
+		// Top bar: logo left; feature toggles, battery and connection status right.
+		const float side = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
+		std::vector<wivrn::ui::top_bar_item> top_items;
 
-			// logo: WiVRn mascot followed by the wordmark
-			const float logo_size = 44;
-			ImGui::SetCursorPos({24, (TopBarH - logo_size) * 0.5f});
-			if (about_picture)
-				ImGui::Image(about_picture, {logo_size, logo_size});
-			ImGui::SameLine(0, 12);
-			ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.3f);
-			ImGui::SetCursorPosY((TopBarH - ImGui::GetFontSize()) * 0.5f);
-			ImGui::TextUnformatted("WiVRn");
-			ImGui::PopFont();
+		// feature toggle slot: reads its state and toggles on click (mic + passthrough always shown)
+		auto toggle_item = [&](const char * icon, const std::string & label, feature f) {
+			top_items.push_back({side, [icon, label, f] {
+				                     const float s = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
+				                     auto & config = application::get_config();
+				                     const bool on = config.check_feature(f);
+				                     if (wivrn::ui::icon_button(icon, {s, s}, on, label))
+					                     config.set_feature(f, not on);
+			                     }});
+		};
 
-			// right cluster: feature toggles + battery + connection status
-			const std::string conn = _("Not connected");
-			const ImVec2 cts = ImGui::CalcTextSize(conn.c_str());
-			const float dot_r = cts.y * 0.26f;
-			// pill: pad_x on each side + dot + 0.55 pad_x gap before the text (see ui::chip)
-			const float chip_w = cts.x + wivrn::ui::metrics::chip_pill_padding_x * 2.55f + dot_r * 2;
+		toggle_item(ICON_FA_MICROPHONE, _S("Microphone"), feature::microphone);
+		top_items.push_back({side, [this] {
+			                     const float s = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
+			                     auto & config = application::get_config();
+			                     if (wivrn::ui::icon_button(ICON_FA_EYE_SLASH, {s, s}, config.passthrough_enabled, _S("Passthrough")))
+			                     {
+				                     config.passthrough_enabled = not config.passthrough_enabled;
+				                     setup_passthrough();
+				                     config.save();
+			                     }
+		                     }});
+		if (system.hand_tracking_supported())
+			toggle_item(ICON_FA_HAND, _S("Hand tracking"), feature::hand_tracking);
+		if (application::get_eye_gaze_supported())
+			toggle_item(ICON_FA_EYE, _S("Eye tracking"), feature::eye_gaze);
+		if (system.face_tracker_supported() != xr::face_tracker_type::none)
+			toggle_item(ICON_FA_FACE_SMILE, _S("Face tracking"), feature::face_tracking);
+		if (system.body_tracker_supported() != xr::body_tracker_type::none)
+			toggle_item(ICON_FA_PERSON, _S("Body tracking"), feature::body_tracking);
 
-			// feature toggles available on this headset (mic + passthrough are always shown)
-			const bool has_hand = system.hand_tracking_supported();
-			const bool has_eye = application::get_eye_gaze_supported();
-			const bool has_face = system.face_tracker_supported() != xr::face_tracker_type::none;
-			const bool has_body = system.body_tracker_supported() != xr::body_tracker_type::none;
-			const int n_toggles = 2 + has_hand + has_eye + has_face + has_body;
+		if (auto bat = wivrn::gui::battery_status_indicator(instance.now()))
+			top_items.push_back({wivrn::ui::chip_width(bat->label, false, side),
+			                     [bat = *bat, side] { wivrn::ui::chip(bat.label, bat.style, false, side); }});
 
-#ifdef __ANDROID__
-			const auto battery = get_battery_status();
-			std::string battery_label;
-			wivrn::ui::chip_style battery_style = wivrn::ui::chip_style::neutral;
-			if (battery.charge)
-			{
-				const char * battery_icon = ICON_FA_BATTERY_FULL;
-				int icon_nr;
-				if (battery.charging)
-					icon_nr = *battery.charge > 0.995 ? 5 : instance.now() / 500'000'000 % 5;
-				else
-					icon_nr = std::round((*battery.charge) * 4);
-				switch (icon_nr)
-				{
-					case 0:
-						battery_icon = ICON_FA_BATTERY_EMPTY;
-						break;
-					case 1:
-						battery_icon = ICON_FA_BATTERY_QUARTER;
-						break;
-					case 2:
-						battery_icon = ICON_FA_BATTERY_HALF;
-						break;
-					case 3:
-						battery_icon = ICON_FA_BATTERY_THREE_QUARTERS;
-						break;
-					case 4:
-						battery_icon = ICON_FA_BATTERY_FULL;
-						break;
-					case 5:
-						battery_icon = ICON_FA_PLUG;
-						break;
-				}
-				battery_label = fmt::format("{} {}%", battery_icon, (int)std::round(*battery.charge * 100));
-				if (*battery.charge < 0.2)
-					battery_style = wivrn::ui::chip_style::danger;
-				else if (*battery.charge < 0.5)
-					battery_style = wivrn::ui::chip_style::warning;
-				else
-					battery_style = wivrn::ui::chip_style::success;
-			}
-			const float battery_w = battery_label.empty() ? 0 : gap + ImGui::CalcTextSize(battery_label.c_str()).x + wivrn::ui::metrics::chip_pill_padding_x * 2;
-#else
-			const float battery_w = 0;
-#endif
-			const float cluster_w = n_toggles * side + n_toggles * gap + battery_w + chip_w;
-			ImGui::SetCursorPos({ImGui::GetWindowSize().x - 24 - cluster_w, (TopBarH - side) * 0.5f});
+		const std::string conn = _("Not connected");
+		top_items.push_back({wivrn::ui::chip_width(conn, true, side),
+		                     [conn, side] { wivrn::ui::chip(conn, wivrn::ui::chip_style::muted, true, side); }});
 
-			bool mic = config.check_feature(feature::microphone);
-			if (wivrn::ui::icon_button(ICON_FA_MICROPHONE, {side, side}, mic, _S("Microphone")))
-				config.set_feature(feature::microphone, not mic);
-			ImGui::SameLine(0, gap);
-			if (wivrn::ui::icon_button(ICON_FA_EYE_SLASH, {side, side}, config.passthrough_enabled, _S("Passthrough")))
-			{
-				config.passthrough_enabled = not config.passthrough_enabled;
-				setup_passthrough();
-				config.save();
-			}
-			if (has_hand)
-			{
-				ImGui::SameLine(0, gap);
-				bool hand = config.check_feature(feature::hand_tracking);
-				if (wivrn::ui::icon_button(ICON_FA_HAND, {side, side}, hand, _S("Hand tracking")))
-					config.set_feature(feature::hand_tracking, not hand);
-			}
-			if (has_eye)
-			{
-				ImGui::SameLine(0, gap);
-				bool eye = config.check_feature(feature::eye_gaze);
-				if (wivrn::ui::icon_button(ICON_FA_EYE, {side, side}, eye, _S("Eye tracking")))
-					config.set_feature(feature::eye_gaze, not eye);
-			}
-			if (has_face)
-			{
-				ImGui::SameLine(0, gap);
-				bool face = config.check_feature(feature::face_tracking);
-				if (wivrn::ui::icon_button(ICON_FA_FACE_SMILE, {side, side}, face, _S("Face tracking")))
-					config.set_feature(feature::face_tracking, not face);
-			}
-			if (has_body)
-			{
-				ImGui::SameLine(0, gap);
-				bool body = config.check_feature(feature::body_tracking);
-				if (wivrn::ui::icon_button(ICON_FA_PERSON, {side, side}, body, _S("Body tracking")))
-					config.set_feature(feature::body_tracking, not body);
-			}
-
-#ifdef __ANDROID__
-			// battery status, as a pill like the connection chip
-			if (not battery_label.empty())
-			{
-				ImGui::SameLine(0, gap);
-				ImGui::SetCursorPosY((TopBarH - side) * 0.5f);
-				wivrn::ui::chip(battery_label, battery_style, false, side);
-			}
-#endif
-
-			ImGui::SameLine(0, gap);
-			ImGui::SetCursorPosY((TopBarH - side) * 0.5f);
-			wivrn::ui::chip(conn.c_str(), wivrn::ui::chip_style::muted, true, side);
-		}
-		ImGui::EndChild();
-		ImGui::PopStyleColor();
+		wivrn::ui::top_bar(TopBarH, about_picture, top_items);
 
 		// content area, with an equal margin on both sides of the panel
-		const float content_margin = 20;
+		const float content_margin = wivrn::ui::metrics::content_margin;
 		ImGui::SetCursorPos({TabWidth + content_margin, TopBarH});
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
@@ -1328,16 +1232,8 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::EndChild();
 		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
 
-		// Sidebar shares the same transparent background as the rest of the window;
-		// the sections are separated by hairline dividers drawn below.
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0, 0, 0, 0});
-		ImGui::SetCursorPos({0, TopBarH});
+		wivrn::ui::begin_sidebar(TopBarH, TabWidth);
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {16, 16});
-			ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetWindowSize().y - TopBarH}, ImGuiChildFlags_AlwaysUseWindowPadding);
-
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 4});
-
 			if (wivrn::ui::nav_item(ICON_FA_COMPUTER, _S("Computers"), current_tab == tab::server_list))
 				current_tab = tab::server_list;
 
@@ -1376,23 +1272,10 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				current_tab = tab::licenses;
 			if (wivrn::ui::nav_item(ICON_FA_DOOR_OPEN, _S("Exit"), current_tab == tab::exit))
 				current_tab = tab::exit;
-
-			ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
-			ImGui::EndChild();
-			ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding (Tabs)
 		}
-		ImGui::PopStyleColor(); // ImGuiCol_ChildBg
+		wivrn::ui::end_sidebar();
 
-		// hairline dividers separating the top bar, sidebar and main panel,
-		// following the panel opacity so they dim with the background
-		ImVec4 divider_col = wivrn::ui::current().border;
-		divider_col.w *= wivrn::ui::current().background_alpha;
-		const ImU32 divider = ImGui::GetColorU32(divider_col);
-		const ImVec2 win_pos = ImGui::GetWindowPos();
-		const ImVec2 win_size = ImGui::GetWindowSize();
-		ImDrawList * dl = ImGui::GetWindowDrawList();
-		dl->AddLine({win_pos.x, win_pos.y + TopBarH}, {win_pos.x + win_size.x, win_pos.y + TopBarH}, divider);
-		dl->AddLine({win_pos.x + TabWidth, win_pos.y + TopBarH}, {win_pos.x + TabWidth, win_pos.y + win_size.y}, divider);
+		wivrn::ui::shell_dividers(TopBarH, TabWidth);
 
 		ImGui::End();
 		ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding

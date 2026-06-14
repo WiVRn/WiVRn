@@ -239,6 +239,7 @@ class lobby : public scene_impl<lobby>
 	void gui_post_processing();
 	void gui_customize(XrTime predicted_display_time);
 	void gui_theme();
+	void apply_theme_settings(); // push the saved theme config into the global theme
 	void gui_debug_node_hierarchy(entt::entity root = entt::null);
 	void gui_debug();
 	void gui_about();

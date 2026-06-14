@@ -1261,20 +1261,20 @@ imgui_context::viewport & imgui_context::layer(ImVec2 position)
 	return layers_.front();
 }
 
-void imgui_context::tooltip(std::string_view text)
+void imgui_context::tooltip(std::string_view text, std::optional<ImVec2> anchor)
 {
 	// FIXME: this is incorrect if we use the docking branch of imgui
 	ImGuiViewport * viewport = ImGui::GetMainViewport();
-	auto & current_layer = layer(ImGui::GetMousePos());
+	auto & current_layer = layer(anchor.value_or(ImGui::GetMousePos()));
 
 	assert(std::ranges::contains(layers_, true, &viewport::tooltip_viewport));
 	auto & tooltip_layer = *std::ranges::find(layers_, true, &viewport::tooltip_viewport);
 
-	// Get the item position before drawing the tooltip (top center)
-	ImVec2 item_position{
+	// Anchor above the given display point, or above the last item's rect (top center)
+	ImVec2 item_position = anchor.value_or(ImVec2{
 	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
 	        ImGui::GetItemRectMin().y,
-	};
+	});
 
 	auto pos_backup = viewport->Pos;
 	auto size_backup = viewport->Size;
