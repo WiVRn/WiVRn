@@ -540,6 +540,24 @@ void scenes::stream::on_focused()
 	                  std::move(vps),
 	                  image_cache);
 
+	// match the lobby's seasonal wordmark logo
+	{
+		auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		auto tm = std::localtime(&t);
+		switch (tm->tm_mon)
+		{
+			case 5:
+				wivrn_logo = imgui_ctx->load_texture("assets://wivrn-pride.ktx2");
+				break;
+			case 11:
+				wivrn_logo = imgui_ctx->load_texture("assets://wivrn-christmas.ktx2");
+				break;
+			default:
+				wivrn_logo = imgui_ctx->load_texture("assets://wivrn.ktx2");
+				break;
+		}
+	}
+
 	if (application::get_config().enable_stream_gui)
 	{
 		plots_toggle_1 = get_action("plots_toggle_1").first;

@@ -251,7 +251,9 @@ public:
 	void vibrate_on_hover();
 	void set_hovered_item();
 	void set_controllers_enabled(bool value);
-	void tooltip(std::string_view text);
+	// anchor, if set, positions the tooltip above that display point (e.g. the mouse)
+	// instead of above the last item's rect
+	void tooltip(std::string_view text, std::optional<ImVec2> anchor = std::nullopt);
 	std::array<bool, 2> is_aim_interaction() const
 	{
 		return {aim_interaction[0] == 1, aim_interaction[1] == 1};

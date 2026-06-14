@@ -56,8 +56,7 @@ static theme dark_default()
 	t.rounding = 8;
 	t.card_rounding = 14;
 	t.border_size = 1;
-	t.font_scale = 1.0;        // user multiplier; 100% maps to metrics::font_base
-	t.background_alpha = 1.0f; // fully opaque panel by default
+	t.font_scale = 1.0; // user multiplier; 100% maps to metrics::font_base
 	return t;
 }
 
@@ -174,6 +173,12 @@ theme & current()
 void set_theme(const theme & t)
 {
 	current() = t;
+}
+
+float & background_alpha()
+{
+	static float alpha = 0.90f; // translucent panels by default
+	return alpha;
 }
 
 void theme::apply() const

@@ -60,8 +60,7 @@ struct theme
 	float card_rounding; // cards
 	float border_size;
 
-	float font_scale;       // global text size multiplier
-	float background_alpha; // opacity of the main panel background, 0..1
+	float font_scale; // global text size multiplier
 
 	// Convert to packed color, applying the current global alpha so widgets drawn
 	// through the draw list dim with ImGui::BeginDisabled() (and any pushed alpha).
@@ -120,11 +119,31 @@ constexpr float nav_section_gap = 18; // space above a sidebar section header
 
 constexpr ImVec2 card_item_spacing = {12, 10}; // ItemSpacing pushed around a card section
 constexpr float setting_control_width = 480;   // width of the control in a setting row
+
+// Application shell (top bar + navigation sidebar + content panel), shared by the lobby
+// and the in-stream window
+constexpr float sidebar_width = 300;
+constexpr float top_bar_height = 72;
+constexpr float content_margin = 20; // gap around the main content panel
+
+// Application launcher grid
+constexpr float app_icon_small = 120;
+constexpr float app_icon_medium = 176;
+constexpr float app_icon_large = 240;
+constexpr float app_tile_margin = 24;        // horizontal slack each side of the icon in a tile
+constexpr float app_view_toggle_width = 150; // grid/list segmented control
+constexpr float app_size_toggle_width = 300; // small/medium/large segmented control
+constexpr float app_spinner_radius = 110;    // app-starting spinner
+constexpr float app_spinner_thickness = 22;
 } // namespace metrics
 
 // Theme in effect, call current().apply() after mutating
 theme & current();
 void set_theme(const theme & t);
+
+// Opacity of the panel and card backgrounds, 0..1. Kept separate from the theme
+// presets so switching palette never resets the user's transparency.
+float & background_alpha();
 
 std::vector<theme> presets();
 

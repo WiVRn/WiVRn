@@ -119,7 +119,7 @@ bool begin_card_impl(const char * id, ImVec2 padding)
 	{
 		const ImVec2 bb_max = {cf.origin.x + cf.width, cf.origin.y + h};
 		ImVec4 card = t.card;
-		card.w *= t.background_alpha; // card fill follows the panel opacity
+		card.w *= background_alpha(); // card fill follows the panel opacity
 		window->DrawList->AddRectFilled(cf.origin, bb_max, t.col(card), t.card_rounding);
 		if (t.border_size > 0)
 			window->DrawList->AddRect(cf.origin, bb_max, t.col(t.border), t.card_rounding, 0, t.border_size);
@@ -169,7 +169,7 @@ void row_separator()
 {
 	const theme & t = current();
 	ImVec4 edge = t.border;
-	edge.w *= t.background_alpha; // match the panel/card opacity
+	edge.w *= background_alpha(); // match the panel/card opacity
 	ImGui::PushStyleColor(ImGuiCol_Separator, edge);
 	ImGui::Separator();
 	ImGui::PopStyleColor();
@@ -265,6 +265,16 @@ ImVec2 chip_size(const std::string & label)
 {
 	const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
 	return {ts.x + metrics::chip_padding.x * 2, ts.y + metrics::chip_padding.y * 2};
+}
+
+float chip_width(const std::string & label, bool dot, float height)
+{
+	// mirrors the footprint computed in chip()
+	const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
+	const float pad_x = height > 0 ? metrics::chip_pill_padding_x : metrics::chip_padding.x;
+	const float dot_r = ts.y * 0.26f;
+	const float dot_gap = dot ? dot_r * 2 + pad_x * 0.55f : 0;
+	return ts.x + pad_x * 2 + dot_gap;
 }
 
 bool button(const std::string & label, button_style s, const ImVec2 & size)
@@ -688,7 +698,7 @@ ImVec2 popup_center = {0, 0};
 float popup_available_height = 0;
 
 // One selectable option inside the combo modal. A tall, full-width touch target
-// with the name (accent when selected) and an optional muted description.
+// with the name and an optional muted description.
 bool combo_row(const combo_item & item, bool selected)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
@@ -719,7 +729,7 @@ bool combo_row(const combo_item & item, bool selected)
 		draw->AddRectFilled(bb.Min, {bb.Min.x + metrics::combo_padding.x * 0.25f, bb.Max.y}, t.col(t.accent), t.rounding, ImDrawFlags_RoundCornersLeft);
 
 	const float tx = bb.Min.x + metrics::combo_padding.x;
-	const ImU32 name_col = t.col(selected ? t.accent : t.text);
+	const ImU32 name_col = t.col(t.text);
 	const ImVec2 nts = ImGui::CalcTextSize(item.name);
 
 	if (item.description and item.description[0])
@@ -1328,6 +1338,78 @@ int action_menu(const char * id, const char * icon, const std::vector<action_ite
 	ImGui::PopStyleVar(3);
 	ImGui::PopStyleColor(3);
 	return chosen;
+}
+
+void top_bar(float height, ImTextureID logo, const std::vector<top_bar_item> & right_items)
+{
+	const float side = ImGui::GetFrameHeight() * metrics::control_height;
+	const float gap = 8;
+	const float margin = 24;
+
+	// transparent child bg so the alpha-blended window background shows through
+	ImGui::SetCursorPos({0, 0});
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0, 0, 0, 0});
+	ImGui::BeginChild("TopBar", {ImGui::GetWindowSize().x, height}, 0, ImGuiWindowFlags_NoScrollbar);
+	{
+		// logo: WiVRn mascot followed by the wordmark
+		const float logo_size = 44;
+		ImGui::SetCursorPos({margin, (height - logo_size) * 0.5f});
+		if (logo)
+			ImGui::Image(logo, {logo_size, logo_size});
+		ImGui::SameLine(0, 12);
+		ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.3f);
+		ImGui::SetCursorPosY((height - ImGui::GetFontSize()) * 0.5f);
+		ImGui::TextUnformatted("WiVRn");
+		ImGui::PopFont();
+
+		// right-aligned cluster
+		float cluster_w = 0;
+		for (const auto & it: right_items)
+			cluster_w += it.width;
+		if (not right_items.empty())
+			cluster_w += gap * (right_items.size() - 1);
+
+		ImGui::SetCursorPos({ImGui::GetWindowSize().x - margin - cluster_w, (height - side) * 0.5f});
+		for (size_t i = 0; i < right_items.size(); ++i)
+		{
+			ImGui::SetCursorPosY((height - side) * 0.5f);
+			right_items[i].draw();
+			if (i + 1 < right_items.size())
+				ImGui::SameLine(0, gap);
+		}
+	}
+	ImGui::EndChild();
+	ImGui::PopStyleColor();
+}
+
+void begin_sidebar(float top_bar_h, float tab_width)
+{
+	// shares the transparent window background; sections separated by shell_dividers
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0, 0, 0, 0});
+	ImGui::SetCursorPos({0, top_bar_h});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {16, 16});
+	ImGui::BeginChild("Tabs", {tab_width, ImGui::GetWindowSize().y - top_bar_h}, ImGuiChildFlags_AlwaysUseWindowPadding);
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 4});
+}
+
+void end_sidebar()
+{
+	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
+	ImGui::EndChild();
+	ImGui::PopStyleVar();   // ImGuiStyleVar_WindowPadding
+	ImGui::PopStyleColor(); // ImGuiCol_ChildBg
+}
+
+void shell_dividers(float top_bar_h, float tab_width)
+{
+	ImVec4 divider_col = current().border;
+	divider_col.w *= background_alpha(); // follow the panel opacity
+	const ImU32 divider = ImGui::GetColorU32(divider_col);
+	const ImVec2 win_pos = ImGui::GetWindowPos();
+	const ImVec2 win_size = ImGui::GetWindowSize();
+	ImDrawList * dl = ImGui::GetWindowDrawList();
+	dl->AddLine({win_pos.x, win_pos.y + top_bar_h}, {win_pos.x + win_size.x, win_pos.y + top_bar_h}, divider);
+	dl->AddLine({win_pos.x + tab_width, win_pos.y + top_bar_h}, {win_pos.x + tab_width, win_pos.y + win_size.y}, divider);
 }
 
 } // namespace wivrn::ui

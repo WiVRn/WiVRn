@@ -170,6 +170,8 @@ scenes::lobby::lobby() :
 
 	keyboard.set_layout(config.virtual_keyboard_layout);
 
+	apply_theme_settings();
+
 	if (config.first_run)
 		current_tab = tab::first_run;
 

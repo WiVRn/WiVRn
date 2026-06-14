@@ -132,6 +132,7 @@ private:
 	uint32_t height;
 
 	std::optional<imgui_context> imgui_ctx;
+	ImTextureID wivrn_logo = 0; // wordmark logo shown in the top bar, like the lobby
 	struct gui_toast
 	{
 		std::string content;
@@ -140,6 +141,18 @@ private:
 
 	static bool is_interactable(stream_tab);
 	bool is_gui_interactable() const;
+
+	// settings sub-page, client-only: the wire stream_tab stays `settings`
+	enum class settings_page
+	{
+		performance,
+		streaming,
+		post_processing,
+		audio,
+		tracking,
+		system,
+	};
+	settings_page current_settings_page = settings_page::performance;
 
 	// Tab currently being displayed
 	stream_tab gui_status = stream_tab::hidden;
