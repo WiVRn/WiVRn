@@ -111,7 +111,7 @@ void scenes::lobby::gui_theme()
 		// Panel transparency
 		static const int opacity_default = 100;
 		int opacity = int(theme.background_alpha * 100);
-		ui::setting_label(_S("Panel opacity"), _S("Opacity of the main panel background"), control_w);
+		ui::setting_label(_S("Panel opacity"), _S("Opacity of the panel and card backgrounds"), control_w);
 		if (ui::slider_int("##opacity", &opacity, 20, 100, "%d%%", {control_w, 0}, &opacity_default))
 			theme.background_alpha = float(opacity) / 100.f;
 
