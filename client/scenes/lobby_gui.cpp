@@ -1146,13 +1146,22 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 		wivrn::ui::top_bar(TopBarH, about_picture, top_items);
 
-		// content area, with an equal margin on both sides of the panel
+		// content area: content_margin from the sidebar on the left; the panel runs all the way
+		// to the window's right edge so the scrollbar sits at the edge (no margin beside it).
 		const float content_margin = wivrn::ui::metrics::content_margin;
 		ImGui::SetCursorPos({TabWidth + content_margin, TopBarH});
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
-		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - content_margin, 0), 0);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {content_margin, 20});
+		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0), 0);
+
+		// The scrollbar is wide (30px); WindowPadding alone leaves the content cramped against it.
+		// Pull the work area in on the right so the content keeps a clear gap from the scrollbar.
+		{
+			ImGuiWindow * main_child = ImGui::GetCurrentWindow();
+			main_child->WorkRect.Max.x -= content_margin;
+			main_child->ContentRegionRect.Max.x -= content_margin;
+		}
 		ImGui::SetCursorPosY(20);
 
 		switch (current_tab)
