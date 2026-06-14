@@ -194,17 +194,11 @@ float setting_label(const std::string & title, const std::string & description, 
 	{
 		ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_description);
 		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
-		// single line, capped at half the row width and ellipsized so it never wraps or crowds the control
+		// never wider than half the row; wrap to as many lines as needed so it shows in full
 		const float desc_w = ImMin(text_w, avail * 0.5f);
-		std::string text = description;
-		if (ImGui::CalcTextSize(text.c_str()).x > desc_w)
-		{
-			const float ell_w = ImGui::CalcTextSize("...").x;
-			while (not text.empty() and ImGui::CalcTextSize(text.c_str()).x + ell_w > desc_w)
-				text.pop_back();
-			text += "...";
-		}
-		ImGui::TextUnformatted(text.c_str());
+		ImGui::PushTextWrapPos(start.x + desc_w);
+		ImGui::TextUnformatted(description.c_str());
+		ImGui::PopTextWrapPos();
 		ImGui::PopStyleColor();
 		ImGui::PopFont();
 	}

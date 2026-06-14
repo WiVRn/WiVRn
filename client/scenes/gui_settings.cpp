@@ -202,7 +202,7 @@ void settings_performance(const settings_context & ctx)
 		list.push_back({
 		        .id = "##refresh",
 		        .label = _("Refresh rate"),
-		        .description = _("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."),
+		        .description = _("Select refresh rate based on measured application performance. May cause flicker when a change happens."),
 		        .ui = ui_kind::segmented,
 		        .get_int = [&config, rates] {
 			        for (size_t i = 0; i < rates.size(); ++i)
@@ -430,7 +430,7 @@ void settings_streaming(const settings_context & ctx)
 	list.push_back({
 	        .id = "##stream_gui",
 	        .label = _("In-stream window"),
-	        .description = _("Enables the configuration window to be shown while the game is streaming.\nIf enabled, the window is activated by pressing both thumbsticks."),
+	        .description = _("Enables the configuration window to be shown while the game is streaming. If enabled, the window is activated by pressing both thumbsticks."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.enable_stream_gui; },
 	        .set_bool = [&config](bool v) { config.enable_stream_gui = v; config.save(); },
@@ -487,8 +487,8 @@ void settings_post_processing(const settings_context & ctx)
 			});
 		};
 
-		flag_combo("##supersampling", _("Supersampling"), _("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display."), {0, XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB, XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB}, &configuration::openxr_post_processing_settings::super_sampling);
-		flag_combo("##sharpening", _("Sharpening"), _("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display."), {0, XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB, XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB}, &configuration::openxr_post_processing_settings::sharpening);
+		flag_combo("##supersampling", _("Supersampling"), _("Reduce flicker for high contrast edges. Useful when the input resolution is high compared to the headset display."), {0, XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB, XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB}, &configuration::openxr_post_processing_settings::super_sampling);
+		flag_combo("##sharpening", _("Sharpening"), _("Improve clarity of high contrast edges and counteract blur. Useful when the input resolution is low compared to the headset display."), {0, XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB, XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB}, &configuration::openxr_post_processing_settings::sharpening);
 	}
 
 	ui::page_header(_S("Post-processing"), _S("OpenXR layer supersampling and sharpening."));
