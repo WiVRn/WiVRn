@@ -118,7 +118,9 @@ bool begin_card_impl(const char * id, ImVec2 padding)
 	if (const float h = card_heights[gid]; h > 0)
 	{
 		const ImVec2 bb_max = {cf.origin.x + cf.width, cf.origin.y + h};
-		window->DrawList->AddRectFilled(cf.origin, bb_max, t.col(t.card), t.card_rounding);
+		ImVec4 card = t.card;
+		card.w *= t.background_alpha; // card fill follows the panel opacity
+		window->DrawList->AddRectFilled(cf.origin, bb_max, t.col(card), t.card_rounding);
 		if (t.border_size > 0)
 			window->DrawList->AddRect(cf.origin, bb_max, t.col(t.border), t.card_rounding, 0, t.border_size);
 	}
@@ -826,7 +828,9 @@ bool combo(const char * id, const std::string & title, const std::vector<combo_i
 		// cap the list height so a long list scrolls inside the modal rather than
 		// overflowing the popup layer, which would clip the top and bottom rows
 		const float row_h = ImGui::GetFrameHeight() * metrics::combo_row_height;
-		float list_h = int(items.size()) * row_h;
+		// rows are separated by ItemSpacing.y, so the real content is taller than the
+		// row heights alone; include the gaps or a scrollbar shows even when it all fits
+		float list_h = int(items.size()) * row_h + ImMax(0, int(items.size()) - 1) * style.ItemSpacing.y;
 		if (popup_available_height > 0)
 		{
 			const float title_h = title.empty() ? 0 : ImGui::GetTextLineHeight() + style.ItemSpacing.y;

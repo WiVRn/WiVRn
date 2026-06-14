@@ -97,7 +97,9 @@ static void display_recentering_tip(imgui_context & ctx, const std::string & tip
 
 void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_request)
 {
-	using constants::style::button_size;
+	namespace ui = wivrn::ui;
+	const ImGuiStyle & style = ImGui::GetStyle();
+	const auto & t = ui::current();
 
 	std::string close_button_label = _("Disconnect");
 
@@ -121,21 +123,25 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 	if (async_error)
 		close_button_label = _("Close");
 
-	ImGui::Dummy({1000, 1});
+	// keep a sensible minimum width as the status text changes between stages
+	ImGui::Dummy({420, 0});
 
-	ImGui::PushFont(nullptr, constants::gui::font_size_large);
+	ImGui::PushFont(nullptr, style.FontSizeBase * ui::metrics::font_modal_title);
 	if (server_name == "")
-		CenterTextH(fmt::format(_F("Connection")));
+		ImGui::TextUnformatted(_S("Connection"));
 	else
-		CenterTextH(fmt::format(_F("Connection to {}"), server_name));
+		ImGui::TextUnformatted(fmt::format(_F("Connection to {}"), server_name).c_str());
 	ImGui::PopFont();
+	ImGui::Dummy({0, style.ItemSpacing.y});
 
-	// ImGui::TextWrapped("%s", status.first.c_str());
-	ImGui::Text("%s", status.c_str());
+	ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
+	ImGui::TextWrapped("%s", status.c_str());
+	ImGui::PopStyleColor();
+	ImGui::Dummy({0, 12});
 
-	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
-
-	if (ImGui::Button(close_button_label.c_str(), button_size))
+	const float bw = ui::button_width(close_button_label);
+	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - bw);
+	if (ui::button(close_button_label, ui::button_style::secondary, {bw, 0}))
 	{
 		async_session.cancel();
 		next_scene.reset();
@@ -144,42 +150,50 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 
 		ImGui::CloseCurrentPopup();
 	}
-	imgui_ctx->vibrate_on_hover();
 }
 
 void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_request)
 {
+	namespace ui = wivrn::ui;
 	const int pin_size = 6;
 
+	const ImGuiStyle & style = ImGui::GetStyle();
+	const auto & t = ui::current();
+
+	// modal heading, matching begin_modal's title style
+	ImGui::PushFont(nullptr, style.FontSizeBase * ui::metrics::font_modal_title);
+	ImGui::TextUnformatted(_S("Enter PIN"));
+	ImGui::PopFont();
+	ImGui::Dummy({0, style.ItemSpacing.y});
+
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, constants::style::pin_entry_item_spacing);
-	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 
-	const auto & style = ImGui::GetStyle();
-	const auto window = ImGui::GetCurrentWindow();
-
+	// PIN display: big digits, muted placeholder while empty
 	const std::string displayed_text = pin_buffer == "" ? _("PIN") : pin_buffer;
-
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
+	const auto window = ImGui::GetCurrentWindow();
 	const ImGuiID id = window->GetID("PIN");
 	const ImVec2 label_size = ImGui::CalcTextSize(displayed_text.c_str(), nullptr, true);
 	const ImVec2 size = {constants::style::pin_entry_popup_width, label_size.y + style.FramePadding.y * 2.0f};
-
 	const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size);
-
 	ImGui::ItemSize(size, style.FramePadding.y);
 	if (!ImGui::ItemAdd(bb, id))
+	{
+		ImGui::PopFont();
+		ImGui::PopStyleVar();
 		return;
+	}
 
-	const ImU32 col = ImGui::GetColorU32(ImGuiCol_FrameBg);
-	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
-
-	ImGui::BeginDisabled(pin_buffer == "");
+	ImGui::RenderFrame(bb.Min, bb.Max, t.col(t.control), true, t.rounding);
 	const ImVec2 alignment = pin_buffer == "" ? ImVec2{0.5, 0.5} : ImVec2{0, 0.5};
+	ImGui::PushStyleColor(ImGuiCol_Text, pin_buffer == "" ? t.text_muted : t.text);
 	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, displayed_text.c_str(), nullptr, &label_size, alignment, &bb);
-	ImGui::EndDisabled();
-
+	ImGui::PopStyleColor();
 	ImGui::PopFont();
 	if (ImGui::IsItemHovered())
 		imgui_ctx->tooltip(_("Input the PIN displayed on the dashboard"));
+
+	using constants::style::pin_entry_key_size;
 
 	ImGui::BeginDisabled(pin_buffer.size() == pin_size);
 	for (int i = 1; i <= 9;)
@@ -187,19 +201,15 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 		for (int j = 0; j < 3; j++, i++)
 		{
 			char button_text[] = {char('0' + i), 0};
-			if (ImGui::Button(button_text, constants::style::pin_entry_key_size))
+			if (ui::button(button_text, ui::button_style::secondary, pin_entry_key_size))
 				pin_buffer += button_text;
-			imgui_ctx->vibrate_on_hover();
 
 			if (j < 2)
 				ImGui::SameLine();
 		}
 	}
 
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-	if (ImGui::Button(ICON_FA_RECTANGLE_XMARK, constants::style::pin_entry_key_size))
+	if (ui::button(ICON_FA_RECTANGLE_XMARK, ui::button_style::danger, pin_entry_key_size))
 	{
 		async_session.cancel();
 		next_scene.reset();
@@ -208,20 +218,16 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 
 		ImGui::CloseCurrentPopup();
 	}
-	imgui_ctx->vibrate_on_hover();
-	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	if (ImGui::Button("0", constants::style::pin_entry_key_size))
+	if (ui::button("0", ui::button_style::secondary, pin_entry_key_size))
 		pin_buffer += "0";
-	imgui_ctx->vibrate_on_hover();
 	ImGui::EndDisabled();
 
 	ImGui::SameLine();
 	ImGui::BeginDisabled(pin_buffer.size() == 0);
-	if (ImGui::Button(ICON_FA_DELETE_LEFT, constants::style::pin_entry_key_size))
+	if (ui::button(ICON_FA_DELETE_LEFT, ui::button_style::secondary, pin_entry_key_size))
 		pin_buffer.resize(pin_buffer.size() - 1);
-	imgui_ctx->vibrate_on_hover();
 	ImGui::EndDisabled();
 
 	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
@@ -232,7 +238,6 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 		pin_request->pin_requested = false;
 		pin_request.notify_one();
 	}
-	imgui_ctx->vibrate_on_hover();
 }
 
 void scenes::lobby::gui_connected(XrTime predicted_display_time)
@@ -248,8 +253,9 @@ void scenes::lobby::gui_connected(XrTime predicted_display_time)
 
 void scenes::lobby::gui_disconnected()
 {
-	using constants::style::button_size;
-	std::string close_button_label = _("Close");
+	namespace ui = wivrn::ui;
+	const ImGuiStyle & style = ImGui::GetStyle();
+	const auto & t = ui::current();
 
 	if (!async_error)
 	{
@@ -263,23 +269,26 @@ void scenes::lobby::gui_disconnected()
 		}
 	}
 
-	ImGui::Dummy({1000, 1});
+	ImGui::Dummy({420, 0});
 
-	ImGui::PushFont(nullptr, constants::gui::font_size_large);
+	ImGui::PushFont(nullptr, style.FontSizeBase * ui::metrics::font_modal_title);
 	if (server_name == "")
-		CenterTextH(fmt::format(_F("Disconnected")));
+		ImGui::TextUnformatted(_S("Disconnected"));
 	else
-		CenterTextH(fmt::format(_F("Disconnected from {}"), server_name));
+		ImGui::TextUnformatted(fmt::format(_F("Disconnected from {}"), server_name).c_str());
 	ImGui::PopFont();
+	ImGui::Dummy({0, style.ItemSpacing.y});
 
-	ImGui::Text("%s", async_error->c_str());
-	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
+	ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
+	ImGui::TextWrapped("%s", async_error->c_str());
+	ImGui::PopStyleColor();
+	ImGui::Dummy({0, 12});
 
-	if (ImGui::Button(close_button_label.c_str(), button_size))
-	{
+	const std::string close_button_label = _("Close");
+	const float bw = ui::button_width(close_button_label);
+	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - bw);
+	if (ui::button(close_button_label, ui::button_style::primary, {bw, 0}))
 		async_error.reset();
-	}
-	imgui_ctx->vibrate_on_hover();
 }
 
 void scenes::lobby::gui_new_server()
@@ -508,26 +517,20 @@ void scenes::lobby::gui_server_list()
 	if ((async_session.valid() || next_scene) and not ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 		ImGui::OpenPopup("connecting");
 
-	const ImVec2 popup_center = imgui_ctx->layers()[1].vp_center();
-	ImGui::SetNextWindowPos(popup_center, ImGuiCond_Always, {0.5f, 0.5f});
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
-	if (ImGui::BeginPopupModal("connecting", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	if (wivrn::ui::begin_modal("connecting", ""))
 	{
 		auto pin_request = this->pin_request.lock();
 		if (pin_request->pin_requested)
 			gui_enter_pin(pin_request);
 		else
 			gui_connecting(pin_request);
-		ImGui::EndPopup();
+		wivrn::ui::end_modal();
 	}
 
-	ImGui::SetNextWindowPos(popup_center, ImGuiCond_Always, {0.5f, 0.5f});
-	if (ImGui::BeginPopupModal("disconnected", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	if (wivrn::ui::begin_modal("disconnected", ""))
 	{
 		gui_disconnected();
-		ImGui::EndPopup();
+		wivrn::ui::end_modal();
 	}
 
 	if (wivrn::ui::begin_modal("add or edit server", add_server_cookie.empty() ? _("Add server") : _("Edit server"), 620))
@@ -554,7 +557,6 @@ void scenes::lobby::gui_server_list()
 				break;
 		}
 	}
-	ImGui::PopStyleVar(3);
 }
 
 #if WIVRN_CLIENT_DEBUG_MENU
@@ -1172,6 +1174,10 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				battery_label = fmt::format("{} {}%", battery_icon, (int)std::round(*battery.charge * 100));
 				if (*battery.charge < 0.2)
 					battery_style = wivrn::ui::chip_style::danger;
+				else if (*battery.charge < 0.5)
+					battery_style = wivrn::ui::chip_style::warning;
+				else
+					battery_style = wivrn::ui::chip_style::success;
 			}
 			const float battery_w = battery_label.empty() ? 0 : gap + ImGui::CalcTextSize(battery_label.c_str()).x + wivrn::ui::metrics::chip_pill_padding_x * 2;
 #else
