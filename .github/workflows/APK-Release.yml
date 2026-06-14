@@ -18,7 +18,7 @@ jobs:
         buildtype: ['Release', 'Debug', 'DebugWithValidationLayer']
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         # Checkout from upstream instead of WiVRn-APK to ensure the GIT_DESC variable is set correctly
         repository: 'WiVRn/WiVRn'
@@ -26,7 +26,7 @@ jobs:
         fetch-depth: 0
 
     - name: Prepare Vulkan SDK
-      uses: humbletim/setup-vulkan-sdk@286ed76c72de45dbf50c515779cf4ca2f6aa3944
+      uses: humbletim/setup-vulkan-sdk@v1.2.1
       with:
         vulkan-query-version: 1.3.296.0
         vulkan-components: Glslang, SPIRV-Tools
@@ -72,7 +72,7 @@ jobs:
         find debug -name libopenxr_loader.so -delete
 
     - name: Archive APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: apk-${{ (github.event_name == 'pull_request' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
         path: apk/*.apk
@@ -80,7 +80,7 @@ jobs:
 
     - name: Archive debug symbols
       if: ${{ matrix.buildtype != 'Release' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: symbols-${{ matrix.buildtype }}
         path: debug/**/*.so
@@ -94,7 +94,7 @@ jobs:
 
     steps:
     - name: Download APK artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: apk
         pattern: 'apk-*'
@@ -109,7 +109,7 @@ jobs:
         done
 
     - name: Download APK debug artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: symbols
         pattern: 'symbols-*'
@@ -121,7 +121,7 @@ jobs:
         zip -r ../debug-symbols.zip .
 
     - name: APK Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         token: ${{ secrets.DOWNSTREAM_GITHUB_TOKEN }}
         tag_name: "apk-${{ github.sha }}"

@@ -31,21 +31,21 @@ jobs:
             packages: libsystemd-dev
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Apt dependencies
-      uses: awalsh128/cache-apt-pkgs-action@v1.6.0
+      uses: awalsh128/cache-apt-pkgs-action@v1.6.1
       with:
         packages: ccache ${{matrix.config.packages}} ${{ startsWith(matrix.config.preset, 'server') && env.SERVER_DEPS || ''}}
 
     - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2
+      uses: hendrikmuhs/ccache-action@v1.2.23
       with:
         key: linux-${{matrix.config.preset}}
         job-summary: ""
         restore-keys: linux-
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       with:
         key: cmake-linux-${{matrix.config.preset}}
         path: |
@@ -93,7 +93,7 @@ jobs:
 
     - name: Publish build dependencies
       if: ${{ matrix.config.preset == 'server' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: server-build-deps
         path: server-build-deps.tar.xz
@@ -115,14 +115,14 @@ jobs:
     if: ${{ vars.APK_ONLY == '' }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Prepare
       run: |
         apt-get update
         apt-get install --yes curl wget sudo jq cmake gcc g++ git pkgconf libboost-all-dev libkirigami-dev gettext libarchive-dev nlohmann-json3-dev qcoro-qt6-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev libvulkan-dev libssl-dev librsvg2-dev extra-cmake-modules qml6-module-org-kde-kirigamiaddons-formcard
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       with:
         key: cmake-linux-dashboard
         path: |
@@ -157,7 +157,7 @@ jobs:
       options: --privileged
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -168,22 +168,13 @@ jobs:
         tools/gen_flatpak_manifest.py --gitlocal --out flatpak
         cat flatpak/io.github.wivrn.wivrn.yml
 
-    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.4
+    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
       with:
         manifest-path: flatpak/io.github.wivrn.wivrn.yml
         bundle: wivrn-server.flatpak
-        upload-artifact: false
-
-    # Upload manually instead of using flatpak/flatpak-github-actions/flatpak-builder because
-    # it uses upload-artifact@v3
-    - name: Publish artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: wivrn-flatpak-x86_64
-        path: wivrn-server.flatpak
 
     - name: Debug bundle
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: failure()
       with:
         name: flatpak-debug
@@ -197,7 +188,7 @@ jobs:
     if: ${{ vars.APK_ONLY == '' }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -215,7 +206,7 @@ jobs:
         buildtype: ['Release', 'Debug', 'DebugWithValidationLayer', 'Oculus']
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -226,7 +217,7 @@ jobs:
         vulkan-components: Glslang, SPIRV-Tools
         vulkan-use-cache: true
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       with:
         key: cmake-android-${{matrix.buildtype}}
         path: |
@@ -316,7 +307,7 @@ jobs:
           assemble${{ matrix.buildtype }}
 
     - name: Upload build dir
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: failure()
       with:
         name: android-cxx-debug-${{ matrix.buildtype }}
@@ -333,7 +324,7 @@ jobs:
         find debug -name libopenxr_loader.so -delete
 
     - name: Archive APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: ${{ matrix.buildtype != 'Oculus' }}
       with:
         name: apk-${{ (steps.secret-check.outputs.available == 'false' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
@@ -341,7 +332,7 @@ jobs:
         retention-days: 30
 
     - name: Archive debug symbols
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: symbols-${{ matrix.buildtype }}
         path: debug/**/*.so
@@ -385,7 +376,7 @@ jobs:
         sudo dpkg --install KTX-Software-4.3.2-Linux-x86_64.deb
         npm install --global @gltf-transform/cli
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         path: wivrn
@@ -427,7 +418,7 @@ jobs:
       run: dpkg-buildpackage --build=binary --no-sign
 
     - name: Publish package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: wivrn-${{ matrix.distro }}
         path: |
@@ -445,7 +436,7 @@ jobs:
     if: success() && startsWith(github.ref, 'refs/tags/')
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         path: wivrn
@@ -460,7 +451,7 @@ jobs:
           echo "available=false" >> $GITHUB_OUTPUT;
         fi
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       if: ${{ steps.flathub-token-check.outputs.available == 'true' }}
       with:
         fetch-depth: 0
@@ -469,19 +460,19 @@ jobs:
         token: ${{ secrets.FLATHUB_TOKEN }}
 
     - name: Download artifacts (APK)
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: apk-Release
         path: apk
 
     - name: Download artifacts (flatpak)
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
-        name: wivrn-flatpak-x86_64
+        name: wivrn-server-x86_64.flatpak
         path: flatpak
 
     - name: Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ inputs.ref }}
         generate_release_notes: true
