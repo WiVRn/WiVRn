@@ -62,8 +62,7 @@ struct theme
 
 	float font_scale; // global text size multiplier
 
-	// Convert to packed color, applying the current global alpha so widgets drawn
-	// through the draw list dim with ImGui::BeginDisabled() (and any pushed alpha).
+	// packed color with the current global alpha applied, so draw-list widgets dim with BeginDisabled()
 	ImU32 col(const ImVec4 & c) const
 	{
 		ImVec4 v = c;
@@ -71,23 +70,22 @@ struct theme
 		return ImGui::ColorConvertFloat4ToU32(v);
 	}
 
-	// Push colors and metrics into the global ImGui style
+	// push colors and metrics into the global ImGui style
 	void apply() const;
 };
 
-// Fixed design tokens shared by the widgets
+// fixed design tokens shared by the widgets
 namespace metrics
 {
-constexpr float font_base = 0.765;       // design default text scale, i.e. what the user-facing 100% maps to
+constexpr float font_base = 0.765;       // user-facing 100% text scale
 constexpr float font_title = 1.7;        // page header, x base font size
 constexpr float font_description = 0.82; // muted secondary text, x base font size
 
 constexpr ImVec2 button_padding = {26, 14};
-constexpr ImVec2 card_padding = {28, 22};      // regular cards (settings, etc.)
-constexpr ImVec2 list_card_padding = {18, 18}; // cards holding a list of rows (server list)
+constexpr ImVec2 card_padding = {28, 22};      // regular cards
+constexpr ImVec2 list_card_padding = {18, 18}; // cards holding a list of rows
 
-// Shared height of every full-width control (slider, segmented, combo, input)
-// so they line up in a setting row, in multiples of ImGui::GetFrameHeight()
+// shared height of every full-width control so they line up in a setting row, x frame height
 constexpr float control_height = 1.65;
 
 constexpr float toggle_aspect = 1.9;   // track width / height
@@ -109,7 +107,7 @@ constexpr float list_row_box = 52;        // leading icon/thumbnail size in a li
 constexpr float list_row_box_large = 80;  // min thumbnail size for full-height list rows
 constexpr float list_row_pad = 12;        // inner padding of a list row, both axes
 constexpr ImVec2 chip_padding = {12, 6};  // inner padding of a chip/badge
-constexpr float chip_pill_padding_x = 18; // roomier horizontal padding for height-override pill chips (top bar)
+constexpr float chip_pill_padding_x = 18; // roomier horizontal padding for top-bar pill chips
 constexpr float input_padding_x = 14;     // horizontal text padding inside inputs
 constexpr float font_modal_title = 1.2;   // modal heading, x base font size
 
@@ -120,13 +118,12 @@ constexpr float nav_section_gap = 18; // space above a sidebar section header
 constexpr ImVec2 card_item_spacing = {12, 10}; // ItemSpacing pushed around a card section
 constexpr float setting_control_width = 480;   // width of the control in a setting row
 
-// Application shell (top bar + navigation sidebar + content panel), shared by the lobby
-// and the in-stream window
+// application shell: top bar, sidebar, content panel, shared by lobby and in-stream window
 constexpr float sidebar_width = 300;
 constexpr float top_bar_height = 72;
 constexpr float content_margin = 20; // gap around the main content panel
 
-// Application launcher grid
+// application launcher grid
 constexpr float app_icon_small = 120;
 constexpr float app_icon_medium = 176;
 constexpr float app_icon_large = 240;
@@ -137,12 +134,11 @@ constexpr float app_spinner_radius = 110;    // app-starting spinner
 constexpr float app_spinner_thickness = 22;
 } // namespace metrics
 
-// Theme in effect, call current().apply() after mutating
+// theme in effect, call current().apply() after mutating
 theme & current();
 void set_theme(const theme & t);
 
-// Opacity of the panel and card backgrounds, 0..1. Kept separate from the theme
-// presets so switching palette never resets the user's transparency.
+// panel and card background opacity, 0..1, kept out of the presets so switching palette keeps it
 float & background_alpha();
 
 std::vector<theme> presets();

@@ -120,7 +120,7 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 	if (async_error)
 		close_button_label = _("Close");
 
-	// keep a sensible minimum width as the status text changes between stages
+	// minimum width as the status text changes between stages
 	ImGui::Dummy({420, 0});
 
 	ImGui::PushFont(nullptr, style.FontSizeBase * ui::metrics::font_modal_title);
@@ -390,8 +390,7 @@ void scenes::lobby::gui_server_list()
 	for (auto && [cookie, data]: config.servers)
 		sorted_cookies.emplace(data.service.name, cookie);
 
-	// deferred: the action menu runs inside the per-row id stack, but the popups are
-	// opened below in this scope so OpenPopup and begin_modal hash to the same id
+	// open below at this scope so OpenPopup and begin_modal hash to the same id
 	bool open_add_edit = false;
 	bool open_delete = false;
 
@@ -414,19 +413,15 @@ void scenes::lobby::gui_server_list()
 				ui::row_separator();
 			first = false;
 
-			// Connect button reflects the real reachability state so a momentary
-			// discovery delay doesn't read as a hard failure:
-			//  - reachable:    manual server, or one discovered with a matching protocol
-			//  - incompatible: discovered and resolved, but the protocol version differs
-			//  - searching:    not seen on the network yet (or still resolving its records)
+			// reachable: manual or discovered with matching protocol
+			// incompatible: discovered but protocol version differs, otherwise still searching
 			const bool reachable = (data.visible and data.compatible) or data.manual;
 			const bool incompatible = data.visible and data.service.txt.contains("protocol") and not data.compatible;
 			const float gap = ImGui::GetStyle().ItemSpacing.x;
 			const float bh = ImGui::GetFrameHeight() * ui::metrics::control_height;
 			const std::string sub = fmt::format("{} : {}", data.service.hostname, data.service.port);
 
-			// trailing controls: [Auto chip] [Connect] [menu], measured up front so the
-			// row body click area can exclude them
+			// trailing controls [Auto chip] [Connect] [menu], measured up front to exclude from the row click area
 			const char * c_icon = reachable ? ICON_FA_PLAY : (incompatible ? ICON_FA_TRIANGLE_EXCLAMATION : ICON_FA_MAGNIFYING_GLASS);
 			const std::string c_label = ui::icon_label(c_icon, reachable ? _("Connect") : (incompatible ? _("Incompatible") : _("Searching…")));
 			const std::string c_tooltip = reachable ? std::string{} : (incompatible ? _("Incompatible server version") : _("Looking for this server on your network"));
@@ -477,8 +472,7 @@ void scenes::lobby::gui_server_list()
 			if (ui::button(c_label, reachable ? ui::button_style::primary : ui::button_style::secondary, {cw, 0}))
 			{
 				connect(data);
-				// connecting popup is opened at window scope below (NOT here:
-				// inside begin_card PushID the id would not match BeginPopupModal -> orphaned popup)
+				// popup opened at window scope below, outside begin_card's PushID so the id matches BeginPopupModal
 			}
 			if (not c_tooltip.empty() and ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 				imgui_ctx->tooltip(c_tooltip);
@@ -1035,7 +1029,6 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	style.FontScaleMain = wivrn::ui::current().font_scale * wivrn::ui::metrics::font_base;
 
 	// rounding follows the theme so every window/popup gets rounded corners
-	// (theme::apply() is never called; the widgets theme colours themselves but nothing sets rounding)
 	style.WindowRounding = wivrn::ui::current().card_rounding;
 	style.ChildRounding = wivrn::ui::current().card_rounding;
 	style.PopupRounding = wivrn::ui::current().card_rounding;
@@ -1043,7 +1036,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	style.GrabRounding = wivrn::ui::current().rounding;
 	style.TabRounding = wivrn::ui::current().rounding;
 
-	// base text colour follows the theme so plain ImGui text is legible on light themes
+	// base text colour follows the theme so plain ImGui text stays legible
 	style.Colors[ImGuiCol_Text] = wivrn::ui::current().text;
 	style.Colors[ImGuiCol_TextDisabled] = wivrn::ui::current().text_muted;
 
@@ -1101,11 +1094,11 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		auto & config = application::get_config();
 		const float TopBarH = wivrn::ui::metrics::top_bar_height;
 
-		// Top bar: logo left; feature toggles, battery and connection status right.
+		// Top bar: logo left, feature toggles / battery / connection status right
 		const float side = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
 		std::vector<wivrn::ui::top_bar_item> top_items;
 
-		// feature toggle slot: reads its state and toggles on click (mic + passthrough always shown)
+		// feature toggle slot: reads its state, toggles on click
 		auto toggle_item = [&](const char * icon, const std::string & label, feature f) {
 			top_items.push_back({side, [icon, label, f] {
 				                     const float s = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
@@ -1146,8 +1139,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 		wivrn::ui::top_bar(TopBarH, about_picture, top_items);
 
-		// content area: content_margin from the sidebar on the left; the panel runs all the way
-		// to the window's right edge so the scrollbar sits at the edge (no margin beside it).
+		// content area: content_margin from the sidebar, panel runs to the window's right edge so the scrollbar sits at the edge
 		const float content_margin = wivrn::ui::metrics::content_margin;
 		ImGui::SetCursorPos({TabWidth + content_margin, TopBarH});
 
@@ -1155,8 +1147,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {content_margin, 20});
 		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0), 0);
 
-		// The scrollbar is wide (30px); WindowPadding alone leaves the content cramped against it.
-		// Pull the work area in on the right so the content keeps a clear gap from the scrollbar.
+		// pull the work area in on the right to keep a gap from the wide scrollbar
 		{
 			ImGuiWindow * main_child = ImGui::GetCurrentWindow();
 			main_child->WorkRect.Max.x -= content_margin;
@@ -1241,7 +1232,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::EndChild();
 		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
 
-		wivrn::ui::begin_sidebar(TopBarH, TabWidth);
+		wivrn::ui::begin_sidebar(TopBarH, TabWidth, 3);
 		{
 			if (wivrn::ui::nav_item(ICON_FA_COMPUTER, _S("Computers"), current_tab == tab::server_list))
 				current_tab = tab::server_list;
@@ -1273,8 +1264,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 #endif
 
 			// pinned to the bottom
-			const float item_h = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height + ImGui::GetStyle().ItemSpacing.y;
-			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 3 * item_h - ImGui::GetStyle().WindowPadding.y);
+			wivrn::ui::sidebar_footer();
 			if (wivrn::ui::nav_item(ICON_FA_CIRCLE_INFO, _S("About"), current_tab == tab::about))
 				current_tab = tab::about;
 			if (wivrn::ui::nav_item(ICON_FA_SCALE_BALANCED, _S("Licenses"), current_tab == tab::licenses))

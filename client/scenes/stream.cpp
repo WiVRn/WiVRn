@@ -523,9 +523,7 @@ void scenes::stream::on_focused()
 	                .tooltip_viewport = true,
 	        },
 	        {
-	                // Pop up window: combos and modals float just in front of the main panel.
-	                // Position and orientation track the main panel each frame. Same pixel
-	                // density as the main panel (1500 px/m) so text matches.
+	                // popup window for combos and modals, tracks the main panel each frame at the same pixel density
 	                .space = xr::spaces::world,
 	                .size = {1.2, 0.6666},
 	                .vp_origin = {1800, 0},

@@ -65,10 +65,10 @@ constexpr float pointer_fading_distance = 40;
 constexpr uint32_t pointer_color = 0x40ffffff;
 constexpr uint32_t pointer_color_border = 0xff000000;
 
-// Offset of a popup composition layer in front of its main GUI panel, so combos/modals pop out
+// offset of a popup layer in front of its main GUI panel
 constexpr glm::vec3 popup_position = {0, 0, 0.05};
 
-// Color scale/bias applied to the main GUI panel while a modal popup is shown, so it dims behind the popup
+// scale/bias dimming the main GUI panel behind a popup
 constexpr XrColor4f popup_dimming_scale = {0.5, 0.5, 0.5, 1};
 constexpr XrColor4f popup_dimming_bias = {0.25, 0.25, 0.25, 0};
 } // namespace constants::gui

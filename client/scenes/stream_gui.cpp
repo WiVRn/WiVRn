@@ -574,7 +574,7 @@ void scenes::stream::gui_applications()
 				wivrn::ui::row_separator();
 			first = false;
 
-			// overlays and the active app aren't selectable; only their stop button acts
+			// overlays and the active app aren't selectable, only their stop button acts
 			const bool interactive = not(app.active or app.overlay);
 			const float trailing = stop_w + (app.active ? gap + active_sz.x : 0) + wivrn::ui::metrics::list_row_pad;
 			const auto row = wivrn::ui::begin_list_row("##row", ICON_FA_CUBE, 0, app.name, {}, app.active, trailing, 0, false, interactive);
@@ -748,8 +748,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		}
 	}
 
-	// The popup layer floats just in front of the main panel so combos and modals pop
-	// out as their own quad, like the lobby (see set_popup_center below).
+	// popup layer floats in front of the main panel so combos and modals pop as their own quad
 	imgui_ctx->place_layer_relative(2, 0, constants::gui::popup_position);
 
 	const float tab_width = wivrn::ui::metrics::sidebar_width;
@@ -760,8 +759,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	ImGuiStyle & style = ImGui::GetStyle();
 	imgui_ctx->new_frame(predicted_display_time);
 
-	// theme the shared cards like the lobby
-	// the widget hooks are global, re-point them at this scene's context
+	// theme the shared cards like the lobby, widget hooks are global so re-point at this scene
 	style.FontScaleMain = wivrn::ui::current().font_scale * wivrn::ui::metrics::font_base;
 	style.WindowRounding = wivrn::ui::current().card_rounding;
 	style.ChildRounding = wivrn::ui::current().card_rounding;
@@ -918,8 +916,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 	if (display_tabs)
 	{
-		// top bar: logo left; battery, connection status and window controls right
-		// (close/disconnect have no quick-toggles: those only apply on connection)
+		// top bar: logo left, battery/connection status/window controls right
 		const float side = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
 		std::vector<wivrn::ui::top_bar_item> top_items;
 		if (auto bat = wivrn::gui::battery_status_indicator(instance.now()))
@@ -934,7 +931,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			                     if (wivrn::ui::button(ICON_FA_XMARK, close_label, wivrn::ui::button_style::secondary, {0, side}))
 				                     next_gui_status = stream_tab::hidden;
 		                     }});
-		// disconnect asks for confirmation; OpenPopup/confirm_modal share the window id stack
+		// disconnect asks for confirmation, OpenPopup/confirm_modal share the window id stack
 		bool request_disconnect = false;
 		const std::string disconnect_label = _S("Disconnect");
 		top_items.push_back({wivrn::ui::button_width(ICON_FA_DOOR_OPEN, disconnect_label),
@@ -949,8 +946,8 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		if (wivrn::ui::confirm_modal("confirm disconnect", _("Disconnect"), _("Disconnect from the server and return to the lobby?"), _("Disconnect"), _("Cancel"), true) == 1)
 			exit();
 
-		// navigation sidebar; the settings items swap the page but keep the coarse `settings` tab
-		wivrn::ui::begin_sidebar(top_bar_h, tab_width);
+		// navigation sidebar, the settings items swap the page but keep the coarse settings tab
+		wivrn::ui::begin_sidebar(top_bar_h, tab_width, 2);
 		{
 			wivrn::ui::nav_section(_S("STREAM"));
 			if (wivrn::ui::nav_item(ICON_FA_LIST, _S("Applications"), gui_status == stream_tab::applications))
@@ -984,9 +981,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			settings_item(ICON_FA_GEARS, _S("System"), settings_page::system);
 
 			// pinned to the bottom
-			const float item_h = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height + ImGui::GetStyle().ItemSpacing.y;
-			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 2 * item_h - ImGui::GetStyle().WindowPadding.y);
-
+			wivrn::ui::sidebar_footer();
 			if (wivrn::ui::nav_item(ICON_FA_CHART_LINE, _S("Statistics overlay"), false))
 				next_gui_status = stream_tab::overlay_only;
 			if (wivrn::ui::nav_item(ICON_FA_MINIMIZE, _S("Compact view"), false))
@@ -1081,8 +1076,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		}
 	}
 
-	// Add the layer with the GUI. While a modal popup is shown, dim the main panel (the
-	// first layer) behind it like the lobby; the popup quad itself stays bright.
+	// add the GUI layers, dim the main panel behind a modal popup, popup quad stays bright
 	bool dim_main = imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported;
 	for (auto [_, layer]: layers)
 	{
