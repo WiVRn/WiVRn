@@ -226,8 +226,7 @@ public:
 		return layers_;
 	}
 
-	// Place a satellite layer (popup, keyboard, …) relative to a base layer: same
-	// orientation as the base (optionally post-rotated), offset in the base's local frame.
+	// place a satellite layer at base orientation (optionally post-rotated), offset in the base's local frame
 	void place_layer_relative(size_t layer, size_t base, glm::vec3 offset, glm::quat extra_rotation = glm::quat(1, 0, 0, 0));
 
 	std::vector<window_viewport> windows();
@@ -255,8 +254,7 @@ public:
 	void vibrate_on_hover();
 	void set_hovered_item();
 	void set_controllers_enabled(bool value);
-	// anchor, if set, positions the tooltip above that display point (e.g. the mouse)
-	// instead of above the last item's rect
+	// anchor, if set, positions the tooltip above that display point instead of above the last item's rect
 	void tooltip(std::string_view text, std::optional<ImVec2> anchor = std::nullopt);
 	std::array<bool, 2> is_aim_interaction() const
 	{

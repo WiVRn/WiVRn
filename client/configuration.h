@@ -82,7 +82,7 @@ public:
 	bool app_list_view = false;
 	uint32_t app_icon_size = 0;
 
-	// Interface theme; defaults match the built-in "Dark" preset / "Blue" accent
+	// interface theme, defaults match the built-in "Dark" preset and "Blue" accent
 	std::string theme_preset = "Dark";
 	std::string theme_accent = "Blue";
 	float theme_rounding = 8;

@@ -42,7 +42,7 @@ namespace ui = wivrn::ui;
 
 namespace
 {
-// target grid icon size for the small/medium/large setting; tiles stretch from this to fill the row
+// target grid icon size per small/medium/large setting, tiles stretch from this to fill the row
 float grid_image_size(uint32_t size)
 {
 	switch (size)
@@ -174,8 +174,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 	const float size_w = ui::metrics::app_size_toggle_width;
 	const float disconnect_w = ui::button_width(cancel);
 
-	// title row stays fixed: view/size toggles then disconnect, right-aligned and
-	// top-aligned with the title. Disconnect stays enabled even while an app starts.
+	// title row stays fixed: view/size toggles then disconnect, right-aligned, disconnect stays enabled while an app starts
 	const float right = ImGui::GetContentRegionMax().x;
 	ImGui::SetCursorPos({right - disconnect_w, header_top});
 	if (ui::button(cancel, ui::button_style::danger))
@@ -214,7 +213,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 	}
 	else
 	{
-		// only the grid/list scrolls; flush to the header edge with no extra inset
+		// only the grid/list scrolls, flush to the header edge with no extra inset
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 		ImGui::BeginChild("applist", {0, 0});
 
@@ -231,9 +230,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		}
 		else
 		{
-			// justified grid: as many columns as fit at the chosen icon size, then stretch
-			// every tile to divide the row exactly so there is no trailing gap; rows use the
-			// same gap as columns
+			// justified grid: as many columns as fit, tiles stretched to divide the row exactly so there is no trailing gap
 			const float tile_margin = ui::metrics::app_tile_margin;
 			const float target = grid_image_size(config.app_icon_size) + tile_margin * 2;
 			const float avail = ImGui::GetContentRegionAvail().x;

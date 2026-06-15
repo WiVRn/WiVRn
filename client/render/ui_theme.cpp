@@ -56,7 +56,7 @@ static theme dark_default()
 	t.rounding = 8;
 	t.card_rounding = 14;
 	t.border_size = 1;
-	t.font_scale = 1.0; // user multiplier; 100% maps to metrics::font_base
+	t.font_scale = 1.0; // user multiplier, 100% maps to metrics::font_base
 	return t;
 }
 

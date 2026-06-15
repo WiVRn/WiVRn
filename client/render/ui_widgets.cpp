@@ -34,6 +34,9 @@
 #include <unordered_map>
 #include <vector>
 
+// drag-to-scroll helper, defined in imgui_impl.cpp
+void ScrollWhenDragging();
+
 namespace wivrn::ui
 {
 
@@ -41,6 +44,9 @@ namespace
 {
 std::function<void()> hover_haptic_hook;
 std::function<void(const char *)> tooltip_hook;
+
+// height reserved for the pinned sidebar footer, set by begin_sidebar
+float sidebar_footer_height = 0;
 } // namespace
 
 void set_hover_haptic(std::function<void()> hook)
@@ -53,15 +59,14 @@ void set_tooltip_hook(std::function<void(const char *)> hook)
 	tooltip_hook = std::move(hook);
 }
 
-// Fire the hover haptic for the last submitted item, if a hook is installed.
-// The hook itself checks whether that item is actually hovered.
+// fire the hover haptic for the last submitted item, hook checks if it is hovered
 static void hover_haptic()
 {
 	if (hover_haptic_hook)
 		hover_haptic_hook();
 }
 
-// Show a tooltip for the last item; caller ensures it is hovered
+// show a tooltip for the last item, caller ensures it is hovered
 static void show_tooltip(const std::string & text)
 {
 	if (not text.empty() and tooltip_hook)
@@ -85,8 +90,8 @@ void page_header(const std::string & title, const std::string & subtitle)
 	ImGui::Dummy({0, ImGui::GetStyle().ItemSpacing.y});
 }
 
-// A card is a visual rounded panel, not a child window, so the page stays one scroll
-// surface. Drawn behind the content using last frame's height; pair with end_card.
+// a rounded panel, not a child window, so the page stays one scroll surface, drawn behind
+// the content using last frame's height, pair with end_card
 namespace
 {
 struct card_frame
@@ -194,7 +199,7 @@ float setting_label(const std::string & title, const std::string & description, 
 	{
 		ImGui::PushFont(nullptr, style.FontSizeBase * metrics::font_description);
 		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
-		// never wider than half the row; wrap to as many lines as needed so it shows in full
+		// never wider than half the row, wrap to as many lines as needed
 		const float desc_w = ImMin(text_w, avail * 0.5f);
 		ImGui::PushTextWrapPos(start.x + desc_w);
 		ImGui::TextUnformatted(description.c_str());
@@ -343,7 +348,7 @@ bool button(const char * icon, const std::string & label, button_style s, const 
 	ImGui::PushFont(nullptr, glyph_size);
 	unsigned int codepoint = 0;
 	ImTextCharFromUtf8(&codepoint, icon, nullptr);
-	const ImFontGlyph * glyph = ImGui::GetFontBaked()->FindGlyph((ImWchar)codepoint);
+	const ImFontGlyph * glyph = ImGui::GetFontBaked()->FindGlyph(ImWchar(codepoint));
 	if (glyph)
 		draw->AddText({x, center.y - (glyph->Y0 + glyph->Y1) * 0.5f}, col, icon);
 	else
@@ -392,7 +397,7 @@ bool icon_button(const char * icon, const ImVec2 & size_arg, bool active, const 
 	ImDrawList * draw = window->DrawList;
 	draw->AddRectFilled(bb.Min, bb.Max, t.col(bg), t.rounding);
 
-	// centre the glyph on its ink box, not CalcTextSize (which includes bearing/leading)
+	// centre the glyph on its ink box, not CalcTextSize
 	const float glyph_size = size.y * metrics::icon_button_glyph;
 	ImGui::PushFont(nullptr, glyph_size);
 	const ImU32 col = t.col(active ? t.on_accent : t.text);
@@ -400,7 +405,7 @@ bool icon_button(const char * icon, const ImVec2 & size_arg, bool active, const 
 
 	unsigned int codepoint = 0;
 	ImTextCharFromUtf8(&codepoint, icon, nullptr);
-	const ImFontGlyph * glyph = ImGui::GetFontBaked()->FindGlyph((ImWchar)codepoint);
+	const ImFontGlyph * glyph = ImGui::GetFontBaked()->FindGlyph(ImWchar(codepoint));
 	if (glyph)
 		draw->AddText({center.x - (glyph->X0 + glyph->X1) * 0.5f, center.y - (glyph->Y0 + glyph->Y1) * 0.5f}, col, icon);
 	else
@@ -458,7 +463,7 @@ bool cancel_progress_button(const char * id, float fraction, const ImVec2 & size
 	else
 	{
 		// indeterminate: a rotating quarter arc
-		const float a0 = (float)g.Time * 3.5f;
+		const float a0 = float(g.Time) * 3.5f;
 		draw->PathArcTo(center, radius, a0, a0 + IM_PI * 0.5f, 24);
 		draw->PathStroke(accent, ImDrawFlags_None, thickness);
 	}
@@ -469,7 +474,7 @@ bool cancel_progress_button(const char * id, float fraction, const ImVec2 & size
 	const ImU32 col = t.col(hovered or held ? t.text : t.text_muted);
 	unsigned int codepoint = 0;
 	ImTextCharFromUtf8(&codepoint, ICON_FA_STOP, nullptr);
-	const ImFontGlyph * glyph = ImGui::GetFontBaked()->FindGlyph((ImWchar)codepoint);
+	const ImFontGlyph * glyph = ImGui::GetFontBaked()->FindGlyph(ImWchar(codepoint));
 	if (glyph)
 		draw->AddText({center.x - (glyph->X0 + glyph->X1) * 0.5f, center.y - (glyph->Y0 + glyph->Y1) * 0.5f}, col, ICON_FA_STOP);
 	ImGui::PopFont();
@@ -483,8 +488,7 @@ float reset_slot_width()
 	return ImGui::GetFrameHeight() * metrics::control_height + ImGui::GetStyle().ItemSpacing.x;
 }
 
-// Trailing reset button on a value control's row; empty slot when show is false so the
-// right edge stays put. Returns true when tapped.
+// trailing reset button on a value control's row, empty slot when not shown so the right edge stays put
 static bool reset_slot(const char * id, bool show)
 {
 	const float side = ImGui::GetFrameHeight() * metrics::control_height;
@@ -509,7 +513,7 @@ bool toggle(const char * id, bool * v, const bool * default_value)
 	const theme & t = current();
 	const ImGuiStyle & style = ImGui::GetStyle();
 
-	// match the height of the other controls (sliders, combo, ...)
+	// match the height of the other controls
 	const float height = ImGui::GetFrameHeight() * metrics::control_height;
 	const float width = height * metrics::toggle_aspect;
 	const float radius = height * 0.5f;
@@ -591,7 +595,7 @@ bool slider_int(const char * id, int * v, int v_min, int v_max, const char * for
 	draw->AddRectFilled(bb.Min, bb.Max, t.col(t.control), t.rounding);
 	if (fraction > 0)
 	{
-		// round the right corners too once the fill reaches the box edge, else they stay sharp over the rounded background
+		// round the right corners too once the fill reaches the box edge
 		const ImDrawFlags fill_flags = fill_x >= bb.Max.x - t.rounding ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersLeft;
 		draw->AddRectFilled(bb.Min, {fill_x, bb.Max.y}, t.col(t.accent_active), t.rounding, fill_flags);
 	}
@@ -686,13 +690,12 @@ bool segmented(const char * id, const std::vector<std::string> & options, int * 
 
 namespace
 {
-// Where combo modals open, in imgui display coords. Set each frame by the lobby.
+// where combo modals open, in imgui display coords, set each frame by the lobby
 ImVec2 popup_center = {0, 0};
-// Height of the popup layer; caps tall combo lists so they scroll. 0 = unbounded.
+// height of the popup layer, caps tall combo lists so they scroll, 0 = unbounded
 float popup_available_height = 0;
 
-// One selectable option inside the combo modal. A tall, full-width touch target
-// with the name and an optional muted description.
+// one selectable option inside the combo modal, tall full-width touch target with an optional description
 bool combo_row(const combo_item & item, bool selected)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
@@ -829,11 +832,9 @@ bool combo(const char * id, const std::string & title, const std::vector<combo_i
 			ImGui::Dummy({0, style.ItemSpacing.y});
 		}
 
-		// cap the list height so a long list scrolls inside the modal rather than
-		// overflowing the popup layer, which would clip the top and bottom rows
+		// cap the list height so a long list scrolls inside the modal instead of clipping
 		const float row_h = ImGui::GetFrameHeight() * metrics::combo_row_height;
-		// rows are separated by ItemSpacing.y, so the real content is taller than the
-		// row heights alone; include the gaps or a scrollbar shows even when it all fits
+		// include the inter-row gaps or a scrollbar shows even when it all fits
 		float list_h = int(items.size()) * row_h + ImMax(0, int(items.size()) - 1) * style.ItemSpacing.y;
 		if (popup_available_height > 0)
 		{
@@ -859,7 +860,7 @@ bool combo(const char * id, const std::string & title, const std::vector<combo_i
 		ImGui::EndChild();
 		ImGui::PopStyleVar();
 
-		// click outside dismisses; AllowWhenBlockedByActiveItem so pressing a row still counts as inside
+		// click outside dismisses, AllowWhenBlockedByActiveItem so pressing a row still counts as inside
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) and not ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
 			ImGui::CloseCurrentPopup();
 
@@ -916,7 +917,7 @@ void chip(const std::string & label, chip_style style, bool dot, float height)
 
 	const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
 	const ImVec2 pad = metrics::chip_padding;
-	// tall pill chips (height override, e.g. the top bar) get roomier sides
+	// tall pill chips (height override) get roomier sides
 	const float pad_x = height > 0 ? metrics::chip_pill_padding_x : pad.x;
 	const float dot_r = ts.y * 0.26f;
 	const float dot_gap = dot ? dot_r * 2 + pad_x * 0.55f : 0;
@@ -982,16 +983,14 @@ bool nav_item(const char * icon, const std::string & label, bool selected)
 	const float lum = t.background.x * 0.299f + t.background.y * 0.587f + t.background.z * 0.114f;
 	if (selected)
 	{
-		// Pure accent fill for the active tab.
+		// accent fill for the active tab
 		draw->AddRectFilled(bb.Min, bb.Max, t.col(t.accent), t.rounding);
 	}
 	else if (hovered)
 	{
-		// Subtle lighten on dark themes, darken on light ones. The framebuffer
-		// blends in linear light, so a fixed alpha would look far stronger on a
-		// dark surface than a light one. Solve for the alpha that yields a constant
-		// *perceived* (gamma-space) step instead.
-		const float step = lum < 0.5f ? 0.10f : 0.06f; // perceptual lightness delta; stronger on dark
+		// lighten on dark themes, darken on light ones, the framebuffer blends in linear
+		// light, so solve for the alpha that yields a constant perceived (gamma-space) step
+		const float step = lum < 0.5f ? 0.10f : 0.06f; // perceptual lightness delta, stronger on dark
 		auto to_linear = [](float c) { return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f); };
 		const float overlay = lum < 0.5f ? 1.f : 0.f; // lighten vs darken
 		const float ys = to_linear(lum);
@@ -1023,8 +1022,7 @@ static int input_text_resize(ImGuiInputTextCallbackData * data)
 	return 0;
 }
 
-// Common frame styling for the input widgets, control height. Returns the count of
-// style colors / vars pushed so the caller can pop them.
+// common frame styling for the input widgets, paired with pop_input_style
 static void push_input_style(float height)
 {
 	const theme & t = current();
@@ -1194,8 +1192,7 @@ list_row_result begin_list_row(const char * id, const char * icon, ImTextureID i
 	const ImVec2 p0 = window->DC.CursorPos;
 	const float avail = ImGui::GetContentRegionAvail().x;
 
-	// non-interactive rows (the body does nothing, only trailing controls act) just reserve
-	// layout space -- no click area and no hover highlight on the row itself
+	// non-interactive rows just reserve layout space, no click area and no hover highlight
 	bool clicked = false;
 	if (interactive)
 	{
@@ -1211,12 +1208,11 @@ list_row_result begin_list_row(const char * id, const char * icon, ImTextureID i
 
 	ImDrawList * draw = window->DrawList;
 	const ImRect bb(p0, p0 + ImVec2(avail, row_h));
-	// No tinted background for the selected row -- callers indicate the active item with a
-	// chip instead. Still show the hover highlight.
+	// no tinted background for the selected row, callers mark the active item with a chip
 	if (hovered)
 		draw->AddRectFilled(bb.Min, bb.Max, t.col(t.control), t.card_rounding);
 
-	// leading thumbnail or icon box; large_thumb spans the full row height
+	// leading thumbnail or icon box, large_thumb spans the full row height
 	const float thumb = large_thumb ? row_h - 2 * pad : box;
 	const ImVec2 box_min = {p0.x + pad, p0.y + (row_h - thumb) * 0.5f};
 	const ImVec2 box_max = box_min + ImVec2(thumb, thumb);
@@ -1322,7 +1318,7 @@ int action_menu(const char * id, const char * icon, const std::vector<action_ite
 			ImGui::PopID();
 		}
 
-		// click outside dismisses; AllowWhenBlockedByActiveItem so pressing a row still counts as inside
+		// click outside dismisses, AllowWhenBlockedByActiveItem so pressing a row still counts as inside
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) and not ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
 			ImGui::CloseCurrentPopup();
 
@@ -1376,20 +1372,33 @@ void top_bar(float height, ImTextureID logo, const std::vector<top_bar_item> & r
 	ImGui::PopStyleColor();
 }
 
-void begin_sidebar(float top_bar_h, float tab_width)
+void begin_sidebar(float top_bar_h, float tab_width, int footer_items)
 {
-	// shares the transparent window background; sections separated by shell_dividers
+	// shares the transparent window background, sections separated by shell_dividers
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0, 0, 0, 0});
 	ImGui::SetCursorPos({0, top_bar_h});
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {16, 16});
 	ImGui::BeginChild("Tabs", {tab_width, ImGui::GetWindowSize().y - top_bar_h}, ImGuiChildFlags_AlwaysUseWindowPadding);
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 4});
+
+	// nav list scrolls in a child that fills the rest, footer stays pinned in footer_items rows
+	const float row_h = ImGui::GetFrameHeight() * metrics::control_height + ImGui::GetStyle().ItemSpacing.y;
+	sidebar_footer_height = footer_items > 0 ? footer_items * row_h : 0;
+	ImGui::BeginChild("TabsScroll", {0, ImGui::GetContentRegionAvail().y - sidebar_footer_height});
+}
+
+void sidebar_footer()
+{
+	::ScrollWhenDragging(); // drag to scroll the nav list, like the rest of the GUI
+	ImGui::EndChild();      // TabsScroll
+	// pin the footer to the bottom of the sidebar
+	ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - sidebar_footer_height);
 }
 
 void end_sidebar()
 {
-	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
-	ImGui::EndChild();
+	ImGui::PopStyleVar();   // ImGuiStyleVar_ItemSpacing
+	ImGui::EndChild();      // Tabs
 	ImGui::PopStyleVar();   // ImGuiStyleVar_WindowPadding
 	ImGui::PopStyleColor(); // ImGuiCol_ChildBg
 }

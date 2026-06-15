@@ -456,7 +456,7 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 			action = environment_item_action::delete_model;
 	}
 
-	// surface download errors the way the original did
+	// surface download errors
 	if (handle)
 	{
 		if (handle->get_state() == libcurl::state::error)
@@ -674,8 +674,7 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 		ui::end_card();
 	}
 
-	// OpenPopup must run at the same ID-stack level as BeginPopupModal below;
-	// begin_card pushes an ID, so defer the call until after end_card.
+	// deferred past end_card so OpenPopup hashes at the same id-stack level as BeginPopupModal
 	if (open_download_popup)
 		ImGui::OpenPopup("download environment model");
 

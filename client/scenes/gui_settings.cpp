@@ -17,14 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// The settings screens are drawn procedurally: each page builds a list of `setting`
-// descriptors that reference the existing configuration members, and render_settings()
-// renders the matching ui:: widget for each. Gating is done by conditionally adding a
-// descriptor; the disabled-but-shown case uses the `enabled` predicate. Descriptors are
-// rebuilt every frame, so dynamic options and descriptions just work.
-//
-// The same pages serve the lobby and the in-stream window, where in_game disables the
-// connection-time settings and shows the in-stream controls.
+// each page builds a list of `setting` descriptors, render_settings() draws the matching
+// ui:: widget for each, rebuilt every frame so dynamic options/descriptions just work
+// same pages serve the lobby and the in-stream window, gated by ctx.in_game
 
 #include "scenes/gui_common.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -76,9 +71,7 @@ enum class ui_kind
 	button,
 };
 
-// One declarative setting. Numeric controls (slider/segmented/combo) use get_int/set_int;
-// segmented/combo indices map through `options`. Strings are owned so localized text stays
-// valid. `enabled` greys the row out without hiding it.
+// one declarative setting, `enabled` greys the row out without hiding it
 struct setting
 {
 	const char * id; // stable imgui id
@@ -168,8 +161,7 @@ void render_settings(const wivrn::gui::settings_context & ctx, const char * card
 
 		ImGui::EndDisabled();
 
-		// keep the row tall enough for a multi-line description and add breathing room
-		// below. Reserve with Dummy (SetCursorPos would not grow the content size).
+		// reserve row height for a multi-line description plus padding, Dummy grows content size
 		const float pad = std::max(label_bottom - ImGui::GetCursorPosY(), 0.f) + ui::metrics::label_bottom_pad;
 		ImGui::Dummy({0, pad});
 

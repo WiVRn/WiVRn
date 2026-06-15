@@ -1278,7 +1278,7 @@ void imgui_context::tooltip(std::string_view text, std::optional<ImVec2> anchor)
 	assert(std::ranges::contains(layers_, true, &viewport::tooltip_viewport));
 	auto & tooltip_layer = *std::ranges::find(layers_, true, &viewport::tooltip_viewport);
 
-	// Anchor above the given display point, or above the last item's rect (top center)
+	// anchor above the given display point, or above the last item's rect (top center)
 	ImVec2 item_position = anchor.value_or(ImVec2{
 	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
 	        ImGui::GetItemRectMin().y,
@@ -1289,7 +1289,7 @@ void imgui_context::tooltip(std::string_view text, std::optional<ImVec2> anchor)
 	viewport->Pos = ImVec2(tooltip_layer.vp_origin.x, tooltip_layer.vp_origin.y);
 	viewport->Size = ImVec2(tooltip_layer.vp_size.x, tooltip_layer.vp_size.y);
 
-	// Draw the tooltip in the tooltip layer, styled to match the active theme
+	// Draw the tooltip in the tooltip layer, themed
 	// Clamp position to avoid overflowing on the left or the right
 	const wivrn::ui::theme & t = wivrn::ui::current();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
@@ -1343,15 +1343,13 @@ void ScrollWhenDragging()
 	static int active_id;
 	static ImVec2 cumulated_delta;
 
-	// Don't start a drag while a popup is open or just closed: in VR the ray snaps back
-	// and can synthesise a click that would scroll right after picking a combo value.
+	// don't drag while a popup is open or just closed: the ray snaps back and synthesises a click
 	static bool popup_was_open;
 	const bool popup_open = ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
 
 	bool HoveredIdAllowOverlap_backup = std::exchange(g.HoveredIdAllowOverlap, true);
 	bool ActiveIdAllowOverlap_backup = std::exchange(g.ActiveIdAllowOverlap, true);
-	// Start only over this window or a child panel with no active widget. ChildWindows
-	// lets it work over cards; the ActiveId guard keeps controls from scrolling the page.
+	// start only over this window or a child card, and only with no active widget
 	const bool over = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
 	if (active_id == 0 and g.ActiveId == 0 and not popup_open and not popup_was_open and over and ImGui::IsMouseClicked(mouse_button, ImGuiInputFlags_None, /*id*/ ImGuiKeyOwner_Any))
 	{

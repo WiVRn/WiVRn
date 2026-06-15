@@ -38,7 +38,7 @@ void scenes::lobby::apply_theme_settings()
 {
 	auto & config = application::get_config();
 
-	// preset by name; surfaces only, the accent is applied separately below
+	// preset by name, surfaces only, accent applied separately below
 	for (const auto & p: ui::presets())
 	{
 		if (p.name == config.theme_preset)
@@ -152,8 +152,7 @@ void scenes::lobby::gui_theme()
 
 		ui::row_separator();
 
-		// Text size, applied globally via style.FontScaleMain next frame. 100% is the
-		// design default; the value is a user multiplier on metrics::font_base.
+		// global font scale, 100% is the design default
 		static const int font_scale_default = 100;
 		int font_scale = int(theme.font_scale * 100);
 		ui::setting_label(_S("Text size"), _S("Global font scale"), control_w);

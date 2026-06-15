@@ -39,9 +39,8 @@ static const float max_default_rate = 100;
 
 namespace
 {
-// Plain scalar settings whose JSON load/save is purely mechanical (key <-> member).
-// Settings needing validation, optionals, enums, nested objects or maps are handled
-// explicitly in the constructor and save() below.
+// scalar settings with a mechanical key <-> member mapping
+// everything else is handled explicitly in the constructor and save() below
 using config_member = std::variant<
         bool configuration::*,
         float configuration::*,
@@ -239,11 +238,10 @@ configuration::configuration(xr::system & system, xr::session & session)
 			servers.emplace(data.service.txt["cookie"], data);
 		}
 
-		// plain scalar settings
 		for (const auto & f: scalar_fields())
 			load_field(root, *this, f);
 
-		// settings that need more than a mechanical key <-> member mapping
+		// settings with non-mechanical encoding
 		if (auto val = root["preferred_refresh_rate"]; val.is_double())
 		{
 			float f = val.get_double();
@@ -362,7 +360,6 @@ void configuration::save()
 
 	json << "{\"servers\":[" << servers_str << "]";
 
-	// plain scalar settings
 	for (const auto & f: scalar_fields())
 		save_field(json, *this, f);
 

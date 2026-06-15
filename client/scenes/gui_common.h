@@ -58,15 +58,14 @@ bool post_processing(
 
 float toggle_width();
 
-// Battery pill shown in the top bar: the icon+percent label and the threshold colour.
+// top-bar battery pill: icon+percent label and threshold colour
 struct battery_indicator
 {
 	std::string label;
 	wivrn::ui::chip_style style;
 };
 
-// Current headset battery as a top-bar pill, or nullopt when unavailable (always nullopt
-// off Android). now drives the charging animation. Shared by the lobby and in-stream GUI.
+// headset battery as a top-bar pill, nullopt when unavailable, now drives the charging animation
 std::optional<battery_indicator> battery_status_indicator(XrTime now);
 
 } // namespace gui
