@@ -851,7 +851,11 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	{
 		auto & blit_handle = current_blit_handles[i];
 		if (not blit_handle)
+		{
+			if (i == view_count)
+				use_alpha = false;
 			continue;
+		}
 
 		blit_handle->feedback.blitted = instance.now();
 		if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
