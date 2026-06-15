@@ -566,7 +566,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 			std::swap(handle, decoders[stream].latest_frames[handle->feedback.frame_index % decoders[stream].latest_frames.size()]);
 		}
 
-		if (state_ != state::streaming and not(decoders[0].empty() and decoders[1].empty()))
+		if (state_ != state::streaming and not(decoders[0].empty() or decoders[1].empty()))
 		{
 			set_state(state::streaming);
 			spdlog::info("Stream scene ready at t={}", instance.now());
@@ -777,7 +777,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	last_display_time = frame_state.predictedDisplayTime;
 
 	std::shared_lock lock(decoder_mutex);
-	if (not frame_state.shouldRender or (decoders[0].empty() and decoders[1].empty()) or state_ == state::shutdown)
+	if (not frame_state.shouldRender or decoders[0].empty() or decoders[1].empty() or state_ == state::shutdown)
 	{
 		// TODO: stop/restart video stream
 		session.begin_frame();
