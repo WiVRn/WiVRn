@@ -516,18 +516,20 @@ void scenes::stream::on_focused()
 	                .vp_size = {1800, 1000},
 	        },
 	        {
-	                // Popup window
-	                .space = xr::spaces::world,
-	                .size = {1.2, 0.6666},
-	                .vp_origin = {1800, 0},
-	                .vp_size = {1800, 1000},
-	        },
-	        {
 	                .space = xr::spaces::world,
 	                .size = {1.2, 0.1333},
 	                .vp_origin = {0, 1000},
 	                .vp_size = {1800, 200},
 	                .tooltip_viewport = true,
+	        },
+	        {
+	                // Pop up window: combos and modals float just in front of the main panel.
+	                // Position and orientation track the main panel each frame. Same pixel
+	                // density as the main panel (1500 px/m) so text matches.
+	                .space = xr::spaces::world,
+	                .size = {1.2, 0.6666},
+	                .vp_origin = {1800, 0},
+	                .vp_size = {1800, 1000},
 	        },
 	};
 

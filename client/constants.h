@@ -64,6 +64,13 @@ constexpr float pointer_fading_distance = 40;
 // Pointer color
 constexpr uint32_t pointer_color = 0x40ffffff;
 constexpr uint32_t pointer_color_border = 0xff000000;
+
+// Offset of a popup composition layer in front of its main GUI panel, so combos/modals pop out
+constexpr glm::vec3 popup_position = {0, 0, 0.05};
+
+// Color scale/bias applied to the main GUI panel while a modal popup is shown, so it dims behind the popup
+constexpr XrColor4f popup_dimming_scale = {0.5, 0.5, 0.5, 1};
+constexpr XrColor4f popup_dimming_bias = {0.25, 0.25, 0.25, 0};
 } // namespace constants::gui
 
 namespace constants::lobby
@@ -78,7 +85,6 @@ constexpr auto gui_pitches = std::to_array<std::pair<float, float>>({
         {90, 78},
 });
 constexpr float keyboard_pitch = -0.6;
-constexpr glm::vec3 popup_position = {0, 0, 0.05};
 constexpr glm::vec3 keyboard_position = {0, -0.3, 0.1};
 
 // Position of the near plane
@@ -98,10 +104,6 @@ constexpr float initial_gui_distance = 0.5;
 
 // Skybox color
 constexpr XrColor4f sky_color = {0, 0.25, 0.5, 1};
-
-// Dimming scale/bias when a popup window is shown
-constexpr XrColor4f dimming_scale = {0.5, 0.5, 0.5, 1};
-constexpr XrColor4f dimming_bias = {0.25, 0.25, 0.25, 0};
 
 // Z-indices of composition layers
 constexpr int zindex_passthrough = -2;

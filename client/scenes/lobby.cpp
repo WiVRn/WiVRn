@@ -121,24 +121,19 @@ static glm::quat compute_gui_orientation(glm::vec3 head_position, glm::vec3 new_
 
 void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
+	using constants::gui::popup_position;
 	using constants::lobby::keyboard_pitch;
 	using constants::lobby::keyboard_position;
-	using constants::lobby::popup_position;
 
 	auto q = compute_gui_orientation(head_position, new_gui_position);
-	auto M = glm::mat3_cast(q); // plane-to-world transform
 
 	// Main window
 	imgui_ctx->layers()[0].position = new_gui_position;
 	imgui_ctx->layers()[0].orientation = q;
 
-	// Popup
-	imgui_ctx->layers()[1].position = new_gui_position + M * popup_position;
-	imgui_ctx->layers()[1].orientation = q;
-
-	// Keyboard
-	imgui_ctx->layers()[2].position = new_gui_position + M * keyboard_position;
-	imgui_ctx->layers()[2].orientation = q * glm::quat(cos(keyboard_pitch / 2), sin(keyboard_pitch / 2), 0, 0);
+	// Popup and keyboard track the main window
+	imgui_ctx->place_layer_relative(1, 0, popup_position);
+	imgui_ctx->place_layer_relative(2, 0, keyboard_position, glm::quat(cos(keyboard_pitch / 2), sin(keyboard_pitch / 2), 0, 0));
 }
 
 scenes::lobby::lobby() :
@@ -1076,7 +1071,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 			add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
 
 			if (dim_gui)
-				set_color_scale_bias(constants::lobby::dimming_scale, constants::lobby::dimming_bias);
+				set_color_scale_bias(constants::gui::popup_dimming_scale, constants::gui::popup_dimming_bias);
 
 			if (composition_layer_depth_test_supported)
 				set_depth_test(true, XR_COMPARE_OP_LESS_OR_EQUAL_FB);

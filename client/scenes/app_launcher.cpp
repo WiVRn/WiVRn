@@ -152,13 +152,9 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 	};
 
 	const ImVec2 content_pad = {34, 34}; // symmetric inner padding, both axes equal
-	const float margin = content_pad.x;
-	const float button_h = ImGui::GetFrameHeight() * ui::metrics::control_height;
-	const float footer_h = button_h + margin * 2;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, content_pad);
-	ImGui::BeginChild("launcher", {0, ImGui::GetContentRegionAvail().y - footer_h}, ImGuiChildFlags_AlwaysUseWindowPadding);
-	ImGui::BeginDisabled(app_starting);
+	ImGui::BeginChild("launcher", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding);
 
 	const float header_top = ImGui::GetCursorPosY();
 	const std::string subtitle = _S("Pick an application to start streaming, or start one on the PC.");
@@ -166,27 +162,33 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		ui::page_header(_S("Connected"), subtitle);
 	else
 		ui::page_header(fmt::format(_F("Connected to {}"), server_name), subtitle);
+	const float content_y = ImGui::GetCursorPosY();
 
-	if (apps->empty())
+	const bool has_apps = not apps->empty();
+	int view = config.app_list_view ? 1 : 0;
+	int size_idx = std::clamp<int>(config.app_icon_size, 0, 2);
+	const std::vector<std::string> size_opts = {_S("Small"), _S("Medium"), _S("Large")};
+	const std::vector<std::string> view_opts = {ICON_FA_TABLE_CELLS_LARGE, ICON_FA_LIST};
+	const float gap = ImGui::GetStyle().ItemSpacing.x;
+	const float view_w = ui::metrics::app_view_toggle_width;
+	const float size_w = ui::metrics::app_size_toggle_width;
+	const float disconnect_w = ui::button_width(cancel);
+
+	// title row stays fixed: view/size toggles then disconnect, right-aligned and
+	// top-aligned with the title. Disconnect stays enabled even while an app starts.
+	const float right = ImGui::GetContentRegionMax().x;
+	ImGui::SetCursorPos({right - disconnect_w, header_top});
+	if (ui::button(cancel, ui::button_style::danger))
+		res = clicked::Cancel;
+
+	ImGui::BeginDisabled(app_starting);
+
+	if (has_apps)
 	{
-		ImGui::Spacing();
-		ImGui::TextUnformatted(_S("Waiting for an application on the server"));
-	}
-	else
-	{
-		const float content_y = ImGui::GetCursorPosY();
-
-		int view = config.app_list_view ? 1 : 0;
-		int size_idx = std::clamp<int>(config.app_icon_size, 0, 2);
-		const std::vector<std::string> size_opts = {_S("Small"), _S("Medium"), _S("Large")};
-		const std::vector<std::string> view_opts = {ICON_FA_TABLE_CELLS_LARGE, ICON_FA_LIST};
-		const float gap = ImGui::GetStyle().ItemSpacing.x;
-		const float view_w = ui::metrics::app_view_toggle_width;
-		const float size_w = ui::metrics::app_size_toggle_width;
-		const float cluster = view_w + (view == 0 ? size_w + gap : 0);
-
-		// grid/list and icon size on the title row, right-aligned and top-aligned with the title
-		ImGui::SetCursorPos({ImGui::GetContentRegionMax().x - cluster, header_top});
+		float toggles_x = right - disconnect_w - gap - view_w;
+		if (view == 0)
+			toggles_x -= size_w + gap;
+		ImGui::SetCursorPos({toggles_x, header_top});
 		if (view == 0)
 		{
 			if (ui::segmented("##icon_size", size_opts, &size_idx, {size_w, 0}))
@@ -201,7 +203,20 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 			config.app_list_view = view == 1;
 			config.save();
 		}
-		ImGui::SetCursorPos({ImGui::GetCursorStartPos().x, content_y});
+	}
+
+	ImGui::SetCursorPos({ImGui::GetCursorStartPos().x, content_y});
+
+	if (not has_apps)
+	{
+		ImGui::Spacing();
+		ImGui::TextUnformatted(_S("Waiting for an application on the server"));
+	}
+	else
+	{
+		// only the grid/list scrolls; flush to the header edge with no extra inset
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+		ImGui::BeginChild("applist", {0, 0});
 
 		if (config.app_list_view)
 		{
@@ -217,13 +232,15 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		else
 		{
 			// justified grid: as many columns as fit at the chosen icon size, then stretch
-			// every tile to divide the row exactly so there is no trailing gap
+			// every tile to divide the row exactly so there is no trailing gap; rows use the
+			// same gap as columns
 			const float tile_margin = ui::metrics::app_tile_margin;
 			const float target = grid_image_size(config.app_icon_size) + tile_margin * 2;
 			const float avail = ImGui::GetContentRegionAvail().x;
 			const int per_line = std::max(1, int((avail + gap) / (target + gap)));
 			const float tile_w = int((avail - gap * (per_line - 1)) / per_line);
 			const float image_size = tile_w - tile_margin * 2;
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {gap, gap});
 			for (const auto [index, app]: utils::enumerate(*apps))
 			{
 				if (app_tile(app.id, app.name, texture_for(app), tile_w, image_size))
@@ -232,7 +249,12 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 				if ((index + 1) % per_line)
 					ImGui::SameLine();
 			}
+			ImGui::PopStyleVar();
 		}
+
+		ScrollWhenDragging();
+		ImGui::EndChild();
+		ImGui::PopStyleVar();
 
 		// drop textures for apps no longer listed
 		std::vector<std::string> stale;
@@ -246,7 +268,6 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		}
 	}
 
-	ScrollWhenDragging();
 	ImGui::EndDisabled();
 	ImGui::EndChild();
 	ImGui::PopStyleVar();
@@ -257,11 +278,6 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		ImGui::SetCursorPos(ImGui::GetWindowSize() / 2 - ImVec2{r, r});
 		ImSpinner::SpinnerAng("starting", r, ui::metrics::app_spinner_thickness, ImColor{ui::current().accent}, ImColor{ui::current().card}, 6, 0.75f * 2 * M_PI);
 	}
-
-	// footer: disconnect / cancel, bottom-right
-	ImGui::SetCursorPos({ImGui::GetWindowSize().x - ui::button_width(cancel) - margin, ImGui::GetWindowSize().y - button_h - margin});
-	if (ui::button(cancel, ui::button_style::danger))
-		res = clicked::Cancel;
 
 	return res;
 }
