@@ -1261,6 +1261,14 @@ imgui_context::viewport & imgui_context::layer(ImVec2 position)
 	return layers_.front();
 }
 
+void imgui_context::place_layer_relative(size_t layer, size_t base, glm::vec3 offset, glm::quat extra_rotation)
+{
+	const viewport & b = layers_[base];
+	viewport & l = layers_[layer];
+	l.orientation = b.orientation * extra_rotation;
+	l.position = b.position + glm::mat3_cast(b.orientation) * offset;
+}
+
 void imgui_context::tooltip(std::string_view text, std::optional<ImVec2> anchor)
 {
 	// FIXME: this is incorrect if we use the docking branch of imgui

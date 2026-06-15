@@ -746,11 +746,11 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 				imgui_ctx->layers()[0].position = world_gui_position;
 				break;
 		}
-
-		// Position popup layer
-		imgui_ctx->layers()[1].orientation = imgui_ctx->layers()[0].orientation;
-		imgui_ctx->layers()[1].position = imgui_ctx->layers()[0].position + imgui_ctx->layers()[0].orientation * constants::lobby::popup_position;
 	}
+
+	// The popup layer floats just in front of the main panel so combos and modals pop
+	// out as their own quad, like the lobby (see set_popup_center below).
+	imgui_ctx->place_layer_relative(2, 0, constants::gui::popup_position);
 
 	const float tab_width = wivrn::ui::metrics::sidebar_width;
 	const float top_bar_h = wivrn::ui::metrics::top_bar_height;
@@ -771,7 +771,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	style.TabRounding = wivrn::ui::current().rounding;
 	style.Colors[ImGuiCol_Text] = wivrn::ui::current().text;
 	style.Colors[ImGuiCol_TextDisabled] = wivrn::ui::current().text_muted;
-	wivrn::ui::set_popup_center(imgui_ctx->layers()[0].vp_center(), float(imgui_ctx->layers()[0].vp_size.y));
+	wivrn::ui::set_popup_center(imgui_ctx->layers()[2].vp_center(), float(imgui_ctx->layers()[2].vp_size.y));
 	wivrn::ui::set_hover_haptic([this] { imgui_ctx->vibrate_on_hover(); });
 	wivrn::ui::set_tooltip_hook([this](const char * text) { imgui_ctx->tooltip(text); });
 
@@ -928,16 +928,18 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		const std::string conn = _("Connected");
 		top_items.push_back({wivrn::ui::chip_width(conn, true, side),
 		                     [conn, side] { wivrn::ui::chip(conn, wivrn::ui::chip_style::success, true, side); }});
-		top_items.push_back({side, [this] {
-			                     const float s = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
-			                     if (wivrn::ui::icon_button(ICON_FA_XMARK, {s, s}, false, _S("Close")))
+		const std::string close_label = _S("Close");
+		top_items.push_back({wivrn::ui::button_width(ICON_FA_XMARK, close_label),
+		                     [this, close_label, side] {
+			                     if (wivrn::ui::button(ICON_FA_XMARK, close_label, wivrn::ui::button_style::secondary, {0, side}))
 				                     next_gui_status = stream_tab::hidden;
 		                     }});
 		// disconnect asks for confirmation; OpenPopup/confirm_modal share the window id stack
 		bool request_disconnect = false;
-		top_items.push_back({side, [&request_disconnect] {
-			                     const float s = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
-			                     if (wivrn::ui::icon_button(ICON_FA_DOOR_OPEN, {s, s}, false, _S("Disconnect")))
+		const std::string disconnect_label = _S("Disconnect");
+		top_items.push_back({wivrn::ui::button_width(ICON_FA_DOOR_OPEN, disconnect_label),
+		                     [&request_disconnect, disconnect_label, side] {
+			                     if (wivrn::ui::button(ICON_FA_DOOR_OPEN, disconnect_label, wivrn::ui::button_style::danger, {0, side}))
 				                     request_disconnect = true;
 		                     }});
 		wivrn::ui::top_bar(top_bar_h, wivrn_logo, top_items);
@@ -1079,13 +1081,20 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		}
 	}
 
-	// Add the layer with the GUI
+	// Add the layer with the GUI. While a modal popup is shown, dim the main panel (the
+	// first layer) behind it like the lobby; the popup quad itself stays bright.
+	bool dim_main = imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported;
 	for (auto [_, layer]: layers)
 	{
 		add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
 		if (composition_layer_depth_test_supported)
 			set_depth_test(true, XR_COMPARE_OP_LESS_FB);
-		if (alpha < 1 and composition_layer_color_scale_bias_supported)
+		if (dim_main)
+		{
+			set_color_scale_bias(constants::gui::popup_dimming_scale, constants::gui::popup_dimming_bias);
+			dim_main = false; // only the main window dims, not the popup
+		}
+		else if (alpha < 1 and composition_layer_color_scale_bias_supported)
 			set_color_scale_bias({alpha, alpha, alpha, alpha}, {});
 	}
 

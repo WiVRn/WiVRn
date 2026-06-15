@@ -226,6 +226,10 @@ public:
 		return layers_;
 	}
 
+	// Place a satellite layer (popup, keyboard, …) relative to a base layer: same
+	// orientation as the base (optionally post-rotated), offset in the base's local frame.
+	void place_layer_relative(size_t layer, size_t base, glm::vec3 offset, glm::quat extra_rotation = glm::quat(1, 0, 0, 0));
+
 	std::vector<window_viewport> windows();
 
 	viewport & layer(ImVec2 position);

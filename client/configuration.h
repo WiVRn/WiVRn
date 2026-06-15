@@ -80,7 +80,7 @@ public:
 
 	// application launcher: list vs grid, and grid icon size, 0 small 1 medium 2 large
 	bool app_list_view = false;
-	uint32_t app_icon_size = 1;
+	uint32_t app_icon_size = 0;
 
 	// Interface theme; defaults match the built-in "Dark" preset / "Blue" accent
 	std::string theme_preset = "Dark";
