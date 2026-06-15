@@ -1083,7 +1083,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	}
 	else if (current_tab == tab::connected)
 	{
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 20});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 		ImGui::SetNextWindowSize({1400, 900});
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
