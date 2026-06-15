@@ -42,7 +42,7 @@ namespace ui = wivrn::ui;
 
 namespace
 {
-// grid icon image size for the small/medium/large setting
+// target grid icon size for the small/medium/large setting; tiles stretch from this to fill the row
 float grid_image_size(uint32_t size)
 {
 	switch (size)
@@ -151,11 +151,12 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		stream.start_application(id);
 	};
 
-	const float margin = ui::metrics::card_padding.x;
+	const ImVec2 content_pad = {34, 34}; // symmetric inner padding, both axes equal
+	const float margin = content_pad.x;
 	const float button_h = ImGui::GetFrameHeight() * ui::metrics::control_height;
 	const float footer_h = button_h + margin * 2;
 
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ui::metrics::card_padding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, content_pad);
 	ImGui::BeginChild("launcher", {0, ImGui::GetContentRegionAvail().y - footer_h}, ImGuiChildFlags_AlwaysUseWindowPadding);
 	ImGui::BeginDisabled(app_starting);
 
@@ -184,12 +185,8 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		const float size_w = ui::metrics::app_size_toggle_width;
 		const float cluster = view_w + (view == 0 ? size_w + gap : 0);
 
-		// grid/list and icon size on the title row, right-aligned and centred against the title
-		ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * ui::metrics::font_title);
-		const float title_h = ImGui::GetFontSize();
-		ImGui::PopFont();
-		const float toggle_h = ImGui::GetFrameHeight() * ui::metrics::control_height;
-		ImGui::SetCursorPos({ImGui::GetContentRegionMax().x - cluster, header_top + (title_h - toggle_h) / 2});
+		// grid/list and icon size on the title row, right-aligned and top-aligned with the title
+		ImGui::SetCursorPos({ImGui::GetContentRegionMax().x - cluster, header_top});
 		if (view == 0)
 		{
 			if (ui::segmented("##icon_size", size_opts, &size_idx, {size_w, 0}))
@@ -219,9 +216,14 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		}
 		else
 		{
-			const float image_size = grid_image_size(config.app_icon_size);
-			const float tile_w = image_size + ui::metrics::app_tile_margin * 2;
-			const int per_line = std::max(1, int((ImGui::GetContentRegionAvail().x + gap) / (tile_w + gap)));
+			// justified grid: as many columns as fit at the chosen icon size, then stretch
+			// every tile to divide the row exactly so there is no trailing gap
+			const float tile_margin = ui::metrics::app_tile_margin;
+			const float target = grid_image_size(config.app_icon_size) + tile_margin * 2;
+			const float avail = ImGui::GetContentRegionAvail().x;
+			const int per_line = std::max(1, int((avail + gap) / (target + gap)));
+			const float tile_w = int((avail - gap * (per_line - 1)) / per_line);
+			const float image_size = tile_w - tile_margin * 2;
 			for (const auto [index, app]: utils::enumerate(*apps))
 			{
 				if (app_tile(app.id, app.name, texture_for(app), tile_w, image_size))
