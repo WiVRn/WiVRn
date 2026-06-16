@@ -501,6 +501,7 @@ struct feedback
 	XrTime blitted;
 	XrTime displayed;
 
+	uint32_t data_size;
 	uint8_t times_displayed;
 };
 

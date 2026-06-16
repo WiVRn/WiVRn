@@ -93,6 +93,27 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 {
 	uint64_t rx = network_session->bytes_received();
 	uint64_t tx = network_session->bytes_sent();
+	float cap = 0;
+
+	{
+		auto h0 = blit_handles[0].get();
+		auto h1 = blit_handles[1].get();
+		if (h0 and h1)
+		{
+			const auto & f0 = h0->feedback;
+			const auto & f1 = h1->feedback;
+			if (f0.received_first_packet > f1.received_last_packet or f1.received_first_packet > f0.received_last_packet)
+			{
+				// No overlap, compute average value of both streams
+				cap = f0.data_size / ((f0.received_last_packet - f0.received_first_packet) * 2e-9f) + f1.data_size / ((f1.received_last_packet - f1.received_first_packet) * 2e-9f);
+			}
+			else
+			{
+				// Overlap, count as a single transmission
+				cap = (f0.data_size + f1.data_size) / ((std::max(f0.received_last_packet, f1.received_last_packet) - std::min(f0.received_first_packet, f1.received_last_packet)) * 1e-9f);
+			}
+		}
+	}
 
 	float dt = (predicted_display_time - last_metric_time) * 1e-9f;
 
@@ -103,6 +124,8 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 
 	bandwidth_rx = 0.8 * bandwidth_rx + 0.2 * float(rx - bytes_received) / dt;
 	bandwidth_tx = 0.8 * bandwidth_tx + 0.2 * float(tx - bytes_sent) / dt;
+	if (cap)
+		bandwidth_cap = std::lerp(bandwidth_cap, cap, 0.01);
 
 	// Filter more aggressively for the compact view
 	compact_bandwidth_rx = 0.99 * compact_bandwidth_rx + 0.01 * float(rx - bytes_received) / dt;
@@ -118,6 +141,7 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 	global_metrics[metrics_offset].cpu_time = application::get_cpu_time().count() * 1e-9f;
 	global_metrics[metrics_offset].bandwidth_rx = bandwidth_rx * 8;
 	global_metrics[metrics_offset].bandwidth_tx = bandwidth_tx * 8;
+	global_metrics[metrics_offset].bandwidth_cap = bandwidth_cap * 8;
 
 	std::vector<shard_accumulator::blit_handle *> active_handles;
 	active_handles.reserve(blit_handles.size());
@@ -177,7 +201,8 @@ void scenes::stream::gui_performance_metrics()
 	        plot(_("GPU time"), {{_("Defoveate"), &global_metric::gpu_time}},  "s"),
 
 	        plot(_("Network"), {{_("Download"),  &global_metric::bandwidth_rx},
-	                            {_("Upload"),    &global_metric::bandwidth_tx}}, "bit/s"),
+	                            {_("Upload"),    &global_metric::bandwidth_tx},
+	                            {_("Link"),      &global_metric::bandwidth_cap}}, "bit/s"),
 	        // clang-format on
 	};
 
@@ -370,6 +395,7 @@ void scenes::stream::gui_compact_view()
 
 		f(_S("Download"), 8 * compact_bandwidth_rx * 1e-6, "Mbit/s");
 		f(_S("Upload"), 8 * compact_bandwidth_tx * 1e-6, "Mbit/s");
+		f(_S("Link"), 8 * bandwidth_cap * 1e-6, "Mbit/s");
 		f(_S("CPU time"), compact_cpu_time * 1000, "ms");
 		f(_S("GPU time"), compact_gpu_time * 1000, "ms");
 		f(_S("Motion to photon latency"),

@@ -36,13 +36,12 @@ shard_set::shard_set(uint8_t stream_index)
 
 void shard_set::reset(uint64_t frame_index)
 {
-	min_for_reconstruction = -1;
 	data.clear();
 
-	uint8_t stream_index = feedback.stream_index;
-	feedback = {};
-	feedback.frame_index = frame_index;
-	feedback.stream_index = stream_index;
+	feedback = {
+	        .frame_index = frame_index,
+	        .stream_index = feedback.stream_index,
+	};
 }
 
 bool shard_set::empty() const
@@ -121,11 +120,13 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 	}
 	else if (frame_diff == 0)
 	{
+		current.feedback.data_size += serialized_size(shard);
 		auto shard_idx = current.insert(std::move(shard), instance);
 		try_submit_frame(shard_idx);
 	}
 	else if (frame_diff == 1)
 	{
+		next.feedback.data_size += serialized_size(shard);
 		next.insert(std::move(shard), instance);
 		if (is_complete(next))
 		{
