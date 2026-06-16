@@ -132,6 +132,19 @@ constexpr float app_view_toggle_width = 150; // grid/list segmented control
 constexpr float app_size_toggle_width = 300; // small/medium/large segmented control
 constexpr float app_spinner_radius = 110;    // app-starting spinner
 constexpr float app_spinner_thickness = 22;
+
+// modal/popup windows not yet on the card system (first-run, confirm dialogs, loading popup)
+constexpr ImVec2 window_padding = {20, 20};
+constexpr float window_rounding = 10;
+constexpr float window_border_size = 2;
+
+constexpr ImVec2 tooltip_padding = {16, 12}; // hover tooltip window padding
+constexpr ImVec2 button_size = {220, 80};    // big touch buttons in confirm dialogs
+
+// PIN entry keypad
+constexpr ImVec2 pin_entry_key_size = {90, 70};
+constexpr ImVec2 pin_entry_item_spacing = {10, 10};
+constexpr float pin_entry_popup_width = 3 * pin_entry_key_size.x + 2 * pin_entry_item_spacing.x;
 } // namespace metrics
 
 // theme in effect, call current().apply() after mutating

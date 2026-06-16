@@ -533,9 +533,9 @@ void scenes::lobby::popup_load_environment(XrTime predicted_display_time)
 		}
 
 		ImGui::SetNextWindowPos(imgui_ctx->layers()[1].vp_center(), ImGuiCond_Always, {0.5f, 0.5f});
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, wivrn::ui::metrics::window_padding);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, wivrn::ui::metrics::window_rounding);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, wivrn::ui::metrics::window_border_size);
 		if (ImGui::BeginPopupModal("loading environment model", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 		{
 			if (future_environment.valid())

@@ -28,6 +28,7 @@
 #include <simdjson.h>
 #include <string>
 #include <type_traits>
+#include <vector>
 #include <openxr/openxr.h>
 
 namespace xr
@@ -35,6 +36,9 @@ namespace xr
 class session;
 class system;
 } // namespace xr
+
+// key <-> member serialization descriptor, defined in configuration.cpp
+struct config_field;
 
 enum class feature
 {
@@ -124,7 +128,8 @@ private:
 	std::map<feature, bool> features;
 	std::optional<float> stream_scale;
 
-	void parse_openxr_post_processing_options(simdjson::simdjson_result<simdjson::dom::object> root);
+	// table of scalar settings shared by save()/load(); non-scalar settings are explicit
+	static const std::vector<config_field> & config_fields();
 
 public:
 	configuration(xr::system &, xr::session &);

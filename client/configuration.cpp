@@ -24,10 +24,10 @@
 #include "wivrn_packets.h"
 
 #include <fstream>
+#include <functional>
 #include <magic_enum.hpp>
 #include <string_view>
 #include <type_traits>
-#include <variant>
 #include <vector>
 
 #ifdef __ANDROID__
@@ -37,103 +37,118 @@
 // If no refresh rate is configured, don't select a too high one
 static const float max_default_rate = 100;
 
-namespace
-{
-// scalar settings with a mechanical key <-> member mapping
-// everything else is handled explicitly in the constructor and save() below
-using config_member = std::variant<
-        bool configuration::*,
-        float configuration::*,
-        uint32_t configuration::*,
-        std::string configuration::*>;
-
+// key <-> member serialization descriptor for scalar settings (see config_fields()).
+// The few settings that aren't scalars are handled explicitly in save()/load().
 struct config_field
 {
-	const char * key;
-	config_member member;
+	std::function<void(std::ostream &, const configuration &)> save;
+	std::function<void(simdjson::dom::element, configuration &)> load;
 };
 
-const std::vector<config_field> & scalar_fields()
+namespace
 {
-	static const std::vector<config_field> fields = {
-	        {"resolution_scale", &configuration::resolution_scale},
-	        {"bitrate_bps", &configuration::bitrate_bps},
-	        {"enable_stream_gui", &configuration::enable_stream_gui},
-	        {"app_list_view", &configuration::app_list_view},
-	        {"app_icon_size", &configuration::app_icon_size},
-	        {"theme_preset", &configuration::theme_preset},
-	        {"theme_accent", &configuration::theme_accent},
-	        {"theme_rounding", &configuration::theme_rounding},
-	        {"theme_card_rounding", &configuration::theme_card_rounding},
-	        {"theme_font_scale", &configuration::theme_font_scale},
-	        {"theme_background_alpha", &configuration::theme_background_alpha},
-	        {"passthrough_enabled", &configuration::passthrough_enabled},
-	        {"mic_unprocessed_audio", &configuration::mic_unprocessed_audio},
-	        {"forward_keyboard", &configuration::forward_keyboard},
-	        {"forward_mouse", &configuration::forward_mouse},
-	        {"forward_gamepad", &configuration::forward_gamepad},
-	        {"virtual_keyboard_layout", &configuration::virtual_keyboard_layout},
-	        {"override_foveation_enable", &configuration::override_foveation_enable},
-	        {"override_foveation_pitch", &configuration::override_foveation_pitch},
-	        {"override_foveation_distance", &configuration::override_foveation_distance},
-	        {"first_run", &configuration::first_run},
-	        {"locale", &configuration::locale},
-	        {"environment_model", &configuration::environment_model},
-	        {"high_power_mode", &configuration::high_power_mode},
-	        {"fps_divider", &configuration::fps_divider},
-	        {"extended_config", &configuration::extended_config},
+template <typename>
+inline constexpr bool is_optional_v = false;
+template <typename T>
+inline constexpr bool is_optional_v<std::optional<T>> = true;
+
+template <typename T>
+struct remove_optional
+{
+	using type = T;
+};
+template <typename T>
+struct remove_optional<std::optional<T>>
+{
+	using type = T;
+};
+
+std::ostream & operator<<(std::ostream & stream, feature f)
+{
+	return stream << "\"" << magic_enum::enum_name(f) << "\"";
+}
+
+template <typename T>
+void write_value(std::ostream & json, const T & value)
+{
+	if constexpr (std::is_same_v<T, bool>)
+		json << std::boolalpha << value;
+	else if constexpr (std::is_same_v<T, std::string>)
+		json << json_string(value);
+	else if constexpr (std::is_enum_v<T>)
+		json << json_string(magic_enum::enum_name(value));
+	else if constexpr (std::is_integral_v<T>)
+		json << (uint64_t)value;
+	else // floating point
+		json << value;
+}
+
+template <typename T>
+std::optional<T> read_value(simdjson::simdjson_result<simdjson::dom::element> val)
+{
+	if constexpr (std::is_same_v<T, bool>)
+	{
+		if (val.is_bool())
+			return val.get_bool();
+	}
+	else if constexpr (std::is_same_v<T, std::string>)
+	{
+		if (val.is_string())
+			return std::string(std::string_view(val.get_string().value()));
+	}
+	else if constexpr (std::is_enum_v<T>)
+	{
+		if (val.is_string())
+		{
+			auto name = val.get_string().value();
+			for (const auto & [e, n]: magic_enum::enum_entries<T>())
+				if (name == n)
+					return e;
+		}
+	}
+	else if constexpr (std::is_integral_v<T>)
+	{
+		if (val.is_uint64())
+			return (T)val.get_uint64();
+		if (val.is_int64() and int64_t(val.get_int64()) >= 0)
+			return (T)val.get_int64();
+	}
+	else // floating point
+	{
+		if (val.is_double())
+			return (T)val.get_double();
+		if (val.is_int64())
+			return (T)val.get_int64();
+		if (val.is_uint64())
+			return (T)val.get_uint64();
+	}
+	return std::nullopt;
+}
+
+// build a field for a plain member: bool / float / integral / std::string / enum,
+// optionally wrapped in std::optional (only written when set)
+template <typename T>
+config_field scalar(const char * key, T configuration::* member)
+{
+	return {
+	        .save = [key, member](std::ostream & json, const configuration & c) {
+		        if constexpr (is_optional_v<T>)
+		        {
+			        if (c.*member)
+			        {
+				        json << ",\"" << key << "\":";
+				        write_value(json, *(c.*member));
+			        }
+		        }
+		        else
+		        {
+			        json << ",\"" << key << "\":";
+			        write_value(json, c.*member);
+		        } },
+	        .load = [key, member](simdjson::dom::element root, configuration & c) {
+		        if (auto v = read_value<typename remove_optional<T>::type>(root[key]))
+			        c.*member = *v; },
 	};
-	return fields;
-}
-
-void load_field(simdjson::dom::element root, configuration & c, const config_field & f)
-{
-	auto val = root[f.key];
-	std::visit([&](auto mp) {
-		using T = std::remove_cvref_t<decltype(c.*mp)>;
-		if constexpr (std::is_same_v<T, bool>)
-		{
-			if (val.is_bool())
-				c.*mp = val.get_bool();
-		}
-		else if constexpr (std::is_same_v<T, std::string>)
-		{
-			if (val.is_string())
-				c.*mp = std::string(std::string_view(val.get_string().value()));
-		}
-		else if constexpr (std::is_same_v<T, uint32_t>)
-		{
-			if (val.is_uint64())
-				c.*mp = uint32_t(uint64_t(val.get_uint64()));
-			else if (val.is_int64() and int64_t(val.get_int64()) >= 0)
-				c.*mp = uint32_t(int64_t(val.get_int64()));
-		}
-		else // float
-		{
-			if (val.is_double())
-				c.*mp = float(double(val.get_double()));
-			else if (val.is_int64())
-				c.*mp = float(int64_t(val.get_int64()));
-			else if (val.is_uint64())
-				c.*mp = float(uint64_t(val.get_uint64()));
-		}
-	},
-	           f.member);
-}
-
-void save_field(std::ostream & json, const configuration & c, const config_field & f)
-{
-	std::visit([&](auto mp) {
-		using T = std::remove_cvref_t<decltype(c.*mp)>;
-		json << ",\"" << f.key << "\":";
-		if constexpr (std::is_same_v<T, bool>)
-			json << std::boolalpha << (c.*mp);
-		else if constexpr (std::is_same_v<T, std::string>)
-			json << json_string(c.*mp);
-		else
-			json << (c.*mp);
-	},
-	           f.member);
 }
 } // namespace
 
@@ -215,6 +230,7 @@ configuration::configuration(xr::system & system, xr::session & session)
 			break;
 		preferred_refresh_rate = rate;
 	}
+	const float default_refresh_rate = preferred_refresh_rate;
 
 	try
 	{
@@ -238,40 +254,12 @@ configuration::configuration(xr::system & system, xr::session & session)
 			servers.emplace(data.service.txt["cookie"], data);
 		}
 
-		for (const auto & f: scalar_fields())
-			load_field(root, *this, f);
+		for (const auto & f: config_fields())
+			f.load(root, *this);
 
-		// settings with non-mechanical encoding
-		if (auto val = root["preferred_refresh_rate"]; val.is_double())
-		{
-			float f = val.get_double();
-			if (f == 0 or utils::contains(rates, f))
-				preferred_refresh_rate = f;
-		}
-
-		if (auto val = root["minimum_refresh_rate"]; val.is_double())
-			minimum_refresh_rate = val.get_double();
-
-		if (auto val = root["stream_scale"]; val.is_double())
-			stream_scale = val.get_double();
-
-		if (auto val = root["codec"]; val.is_string())
-		{
-			const auto codec_str = val.get_string().value();
-			for (const auto & [c, name]: magic_enum::enum_entries<wivrn::video_codec>())
-			{
-				if (codec_str == name)
-				{
-					codec = c;
-				}
-			}
-		}
-
-		if (auto val = root["bit_depth"]; val.is_uint64())
-			bit_depth = val.get_uint64();
-
-		if (auto val = root["openxr_post_processing"]; val.is_object())
-			parse_openxr_post_processing_options(val.get_object());
+		// refresh rate must be supported by this headset, otherwise fall back to the default
+		if (preferred_refresh_rate != 0 and not utils::contains(rates, preferred_refresh_rate))
+			preferred_refresh_rate = default_refresh_rate;
 
 		if (auto val = root["body_parts"]; val.is_object())
 		{
@@ -292,11 +280,21 @@ configuration::configuration(xr::system & system, xr::session & session)
 			}
 		}
 
-		for (const auto & [i, name]: magic_enum::enum_entries<feature>())
+		// nested object
+		if (auto val = root["openxr_post_processing"]; val.is_object())
 		{
-			if (auto val = root[name]; val.is_bool())
-				features[i] = val.get_bool();
+			auto obj = val.get_object();
+			openxr_post_processing = {};
+			if (auto v = obj["super_sampling"]; v.is_int64())
+				openxr_post_processing.super_sampling = v.get_int64();
+			if (auto v = obj["sharpening"]; v.is_int64())
+				openxr_post_processing.sharpening = v.get_int64();
 		}
+
+		// feature flags, keyed by enum name
+		for (const auto & [f, name]: magic_enum::enum_entries<feature>())
+			if (auto val = root[name]; val.is_bool())
+				features[f] = val.get_bool();
 
 		if (system.passthrough_supported() == xr::passthrough_type::none)
 			passthrough_enabled = false;
@@ -307,27 +305,42 @@ configuration::configuration(xr::system & system, xr::session & session)
 	}
 }
 
-void configuration::parse_openxr_post_processing_options(simdjson::simdjson_result<simdjson::dom::object> openxr_post_processing_root)
+const std::vector<config_field> & configuration::config_fields()
 {
-	openxr_post_processing = {};
-	if (auto val = openxr_post_processing_root["super_sampling"]; val.is_int64())
-		openxr_post_processing.super_sampling = val.get_int64();
-
-	if (auto val = openxr_post_processing_root["sharpening"]; val.is_int64())
-		openxr_post_processing.sharpening = val.get_int64();
-}
-
-static std::ostream & operator<<(std::ostream & stream, feature f)
-{
-	return stream << "\"" << magic_enum::enum_name(f) << "\"";
-}
-
-static std::ostream & write_openxr_post_processing(std::ofstream & stream, const configuration::openxr_post_processing_settings & openxr_post_processing)
-{
-	stream << "{\"super_sampling\":" << openxr_post_processing.super_sampling;
-	stream << ",\"sharpening\":" << openxr_post_processing.sharpening;
-	stream << "}";
-	return stream;
+	static const std::vector<config_field> fields = {
+	        scalar("resolution_scale", &configuration::resolution_scale),
+	        scalar("bitrate_bps", &configuration::bitrate_bps),
+	        scalar("enable_stream_gui", &configuration::enable_stream_gui),
+	        scalar("app_list_view", &configuration::app_list_view),
+	        scalar("app_icon_size", &configuration::app_icon_size),
+	        scalar("theme_preset", &configuration::theme_preset),
+	        scalar("theme_accent", &configuration::theme_accent),
+	        scalar("theme_rounding", &configuration::theme_rounding),
+	        scalar("theme_card_rounding", &configuration::theme_card_rounding),
+	        scalar("theme_font_scale", &configuration::theme_font_scale),
+	        scalar("theme_background_alpha", &configuration::theme_background_alpha),
+	        scalar("passthrough_enabled", &configuration::passthrough_enabled),
+	        scalar("mic_unprocessed_audio", &configuration::mic_unprocessed_audio),
+	        scalar("forward_keyboard", &configuration::forward_keyboard),
+	        scalar("forward_mouse", &configuration::forward_mouse),
+	        scalar("forward_gamepad", &configuration::forward_gamepad),
+	        scalar("virtual_keyboard_layout", &configuration::virtual_keyboard_layout),
+	        scalar("override_foveation_enable", &configuration::override_foveation_enable),
+	        scalar("override_foveation_pitch", &configuration::override_foveation_pitch),
+	        scalar("override_foveation_distance", &configuration::override_foveation_distance),
+	        scalar("first_run", &configuration::first_run),
+	        scalar("locale", &configuration::locale),
+	        scalar("environment_model", &configuration::environment_model),
+	        scalar("high_power_mode", &configuration::high_power_mode),
+	        scalar("fps_divider", &configuration::fps_divider),
+	        scalar("extended_config", &configuration::extended_config),
+	        scalar("preferred_refresh_rate", &configuration::preferred_refresh_rate),
+	        scalar("minimum_refresh_rate", &configuration::minimum_refresh_rate),
+	        scalar("stream_scale", &configuration::stream_scale),
+	        scalar("codec", &configuration::codec),
+	        scalar("bit_depth", &configuration::bit_depth),
+	};
+	return fields;
 }
 
 void configuration::save()
@@ -360,37 +373,17 @@ void configuration::save()
 
 	json << "{\"servers\":[" << servers_str << "]";
 
-	for (const auto & f: scalar_fields())
-		save_field(json, *this, f);
+	for (const auto & f: config_fields())
+		f.save(json, *this);
 
-	// settings with non-mechanical encoding
-	json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate;
-	if (minimum_refresh_rate)
-		json << ",\"minimum_refresh_rate\":" << *minimum_refresh_rate;
-	if (stream_scale)
-		json << ",\"stream_scale\":" << *stream_scale;
-	if (codec)
-		json << ",\"codec\":" << json_string(magic_enum::enum_name(*codec));
-	json << ",\"bit_depth\":" << (uint64_t)bit_depth;
-	json << ",\"openxr_post_processing\":";
-	write_openxr_post_processing(json, openxr_post_processing);
+	// nested object
+	json << ",\"openxr_post_processing\":{\"super_sampling\":" << openxr_post_processing.super_sampling;
+	json << ",\"sharpening\":" << openxr_post_processing.sharpening << "}";
 
-	std::stringstream body_part_ss;
-	for (const auto & [b, name]: magic_enum::enum_entries<wivrn::from_headset::body_part_mask>())
-	{
-		bool enabled = (body_part_mask & std::to_underlying(b)) != 0;
-		body_part_ss << "\"" << name << "\":" << std::boolalpha << enabled << ",";
-	}
-
-	std::string body_parts_str = body_part_ss.str();
-	if (!body_parts_str.empty())
-	{
-		body_parts_str.pop_back(); // Remove last comma
-		json << ",\"body_parts\":{" << body_parts_str << "}";
-	}
-
+	// feature flags, keyed by enum name
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
+
 	json << "}";
 }
 
