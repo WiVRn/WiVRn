@@ -54,7 +54,7 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends},
 Description: OpenXR streaming application to a standalone headset
- WiVRn wirelessly connects a standalone VR headset to a Linu
+ WiVRn wirelessly connects a standalone VR headset to a Linux
  computer. You can then play PCVR games on the headset while
  processing is done on the computer.
  .
