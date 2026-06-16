@@ -1292,7 +1292,7 @@ void imgui_context::tooltip(std::string_view text, std::optional<ImVec2> anchor)
 	// Draw the tooltip in the tooltip layer, themed
 	// Clamp position to avoid overflowing on the left or the right
 	const wivrn::ui::theme & t = wivrn::ui::current();
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, wivrn::ui::metrics::tooltip_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, t.card_rounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, t.border_size);
 	ImGui::PushStyleColor(ImGuiCol_PopupBg, t.card);
@@ -1322,7 +1322,7 @@ void imgui_context::tooltip(std::string_view text, std::optional<ImVec2> anchor)
 	auto M = glm::mat3_cast(tooltip_orientation);
 
 	float pixel_size = current_layer.size.y / current_layer.vp_size.y;
-	glm::vec3 tooltip_position_centre = rw_from_vp(item_position) + M * (glm::vec3(0, tooltip_size.y / 2, 0) * pixel_size + constants::style::tooltip_distance);
+	glm::vec3 tooltip_position_centre = rw_from_vp(item_position) + M * (glm::vec3(0, tooltip_size.y / 2, 0) * pixel_size + constants::gui::tooltip_distance);
 
 	// Position the tooltip layer
 	tooltip_layer.position = tooltip_position_centre;

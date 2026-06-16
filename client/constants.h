@@ -68,6 +68,9 @@ constexpr uint32_t pointer_color_border = 0xff000000;
 // offset of a popup layer in front of its main GUI panel
 constexpr glm::vec3 popup_position = {0, 0, 0.05};
 
+// world-space offset of a hover tooltip layer from the hovered item
+constexpr glm::vec3 tooltip_distance = {0, 0.004, 0.005};
+
 // scale/bias dimming the main GUI panel behind a popup
 constexpr XrColor4f popup_dimming_scale = {0.5, 0.5, 0.5, 1};
 constexpr XrColor4f popup_dimming_bias = {0.25, 0.25, 0.25, 0};
@@ -138,25 +141,3 @@ constexpr float gui_min_layer_distance = 0.5;
 constexpr float gui_max_layer_distance = 3;
 
 } // namespace constants::stream
-
-namespace constants::style
-{
-constexpr ImVec2 window_padding = {20, 20};
-constexpr float window_border_size = 2;
-constexpr float window_rounding = 10;
-
-constexpr ImVec2 tooltip_padding = {16, 12};
-constexpr float tooltip_rounding = 0;
-constexpr glm::vec3 tooltip_distance = {0, 0.004, 0.005};
-
-constexpr ImVec2 button_size = {220, 80};
-constexpr ImVec2 icon_button_size = {80, 80};
-constexpr float connection_popup_width = 1000;
-
-constexpr ImVec2 pin_entry_key_size = {90, 70};
-constexpr ImVec2 pin_entry_item_spacing = {10, 10};
-constexpr float pin_entry_popup_width = 3 * pin_entry_key_size.x + 2 * pin_entry_item_spacing.x;
-
-constexpr ImColor warn(0xf9, 0x73, 0x06);
-
-} // namespace constants::style

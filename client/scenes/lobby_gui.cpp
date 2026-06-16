@@ -65,7 +65,7 @@ using namespace std::chrono_literals;
 static void display_recentering_tip(imgui_context & ctx, const std::string & tip)
 {
 	ImGui::PushFont(nullptr, constants::gui::font_size_large);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, wivrn::ui::metrics::window_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::SetNextWindowPos(ctx.layers()[3].vp_center(), ImGuiCond_Always, {0.5, 0.5});
 	ImGui::Begin("Recentering tip", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
@@ -163,7 +163,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 	ImGui::PopFont();
 	ImGui::Dummy({0, style.ItemSpacing.y});
 
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, constants::style::pin_entry_item_spacing);
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::pin_entry_item_spacing);
 
 	// PIN display: big digits, muted placeholder while empty
 	const std::string displayed_text = pin_buffer == "" ? _("PIN") : pin_buffer;
@@ -171,7 +171,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 	const auto window = ImGui::GetCurrentWindow();
 	const ImGuiID id = window->GetID("PIN");
 	const ImVec2 label_size = ImGui::CalcTextSize(displayed_text.c_str(), nullptr, true);
-	const ImVec2 size = {constants::style::pin_entry_popup_width, label_size.y + style.FramePadding.y * 2.0f};
+	const ImVec2 size = {ui::metrics::pin_entry_popup_width, label_size.y + style.FramePadding.y * 2.0f};
 	const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size);
 	ImGui::ItemSize(size, style.FramePadding.y);
 	if (!ImGui::ItemAdd(bb, id))
@@ -190,7 +190,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 	if (ImGui::IsItemHovered())
 		imgui_ctx->tooltip(_("Input the PIN displayed on the dashboard"));
 
-	using constants::style::pin_entry_key_size;
+	using ui::metrics::pin_entry_key_size;
 
 	ImGui::BeginDisabled(pin_buffer.size() == pin_size);
 	for (int i = 1; i <= 9;)
@@ -854,18 +854,18 @@ void scenes::lobby::gui_first_run()
 
 	CenterTextH(optional_features[optional_feature_index].text);
 
-	float button_width = constants::style::button_size.x;
+	float button_width = wivrn::ui::metrics::button_size.x;
 	float buttons_width = 2 * button_width + style.ItemSpacing.x;
 	ImGui::SetCursorPosX((win_width - buttons_width) / 2);
 
-	if (ImGui::Button(_S("Yes"), constants::style::button_size))
+	if (ImGui::Button(_S("Yes"), wivrn::ui::metrics::button_size))
 	{
 		config.set_feature(optional_features[optional_feature_index].f, true);
 	}
 	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SameLine();
-	if (ImGui::Button(_S("No"), constants::style::button_size))
+	if (ImGui::Button(_S("No"), wivrn::ui::metrics::button_size))
 	{
 		config.set_feature(optional_features[optional_feature_index].f, false);
 		optional_feature_index++;
@@ -1066,9 +1066,9 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	if (current_tab == tab::first_run)
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding * 2);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, wivrn::ui::metrics::window_padding * 2);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, wivrn::ui::metrics::window_rounding);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, wivrn::ui::metrics::window_border_size);
 		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
 		gui_first_run();
 		ImGui::End();
