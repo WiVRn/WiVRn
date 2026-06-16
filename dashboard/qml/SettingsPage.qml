@@ -143,7 +143,7 @@ Kirigami.ScrollablePage {
             Dialogs.FileDialog {
                 id: adb_browse
                 onAccepted: {
-                    adb_location.text = new URL(selectedFile).pathname;
+                    adb_location.text = WivrnServer.host_path(new URL(selectedFile).pathname);
                 }
             }
 
