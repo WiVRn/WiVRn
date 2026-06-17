@@ -39,5 +39,7 @@ public:
 
 	static std::vector<std::filesystem::path> manifest_path();
 	static std::filesystem::path openvr_compat_path();
+
+	static void cleanup_openxr();
 };
 } // namespace wivrn

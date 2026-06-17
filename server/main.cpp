@@ -949,6 +949,8 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 
 	std::filesystem::create_directories(socket_path().parent_path());
 
+	if (do_active_runtime)
+		active_runtime::cleanup_openxr();
 	listen_socket = create_listen_socket();
 
 	u_trace_marker_init();
