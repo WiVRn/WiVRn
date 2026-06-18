@@ -55,7 +55,7 @@ class foveation
 
 	vk::raii::DescriptorSetLayout ds_layout;
 	vk::raii::PipelineLayout layout;
-	vk::raii::Pipeline pipeline;
+	std::array<vk::raii::Pipeline, 2> pipeline;
 	vk::raii::DescriptorPool descriptor_pool;
 	vk::DescriptorSet descriptor_set;
 

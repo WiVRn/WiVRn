@@ -35,13 +35,12 @@ layout(set = 0, binding = 1, std430) buffer restrict Config
 	// foveation parameters
 	uint x[2*MAX_DIM];
 	uint y[2*MAX_DIM];
-	// output parameters
-	uint alpha_width;
-	bool alpha;
 } ubo;
 
 layout(set = 0, binding = 2) uniform writeonly restrict image2DArray luma;
 layout(set = 0, binding = 3) uniform writeonly restrict image2DArray chroma;
+
+layout(constant_id = 0) const int alpha_width = 0;
 
 const mat3 color_space = mat3(
 //         R        G        B
@@ -139,10 +138,10 @@ void main()
 		// actual chroma
 		imageStore(chroma, ivec3(ix/2, iy/2, iz), vec4(sum.y, sum.z, 0, 0) / 4);
 
-		if (ubo.alpha)
+		if (alpha_width > 0)
 		{
 			// alpha in luma
-			int offset = int(ubo.alpha_width * iz);
+			int offset = alpha_width * int(iz);
 			imageStore(luma, ivec3(offset + ix/2, iy/2, 2), vec4(sum.w, 0, 0, 0) / 4);
 			imageStore(chroma, ivec3(offset + ix/2, iy/2, 2), vec4(0.5, 0.5, 0, 0));
 		}
