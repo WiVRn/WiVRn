@@ -57,7 +57,16 @@ public:
 	                .pData = &values,
 	        }
 	{
-		fill_entries();
+		if constexpr (sizeof...(Args) == 1)
+		{
+			info_.dataSize = sizeof(std::get<0>(values));
+			info_.pData = &std::get<0>(values);
+			entries = {vk::SpecializationMapEntry{
+			        .size = info_.dataSize,
+			}};
+		}
+		else
+			fill_entries();
 	}
 
 	operator vk::SpecializationInfo *()
