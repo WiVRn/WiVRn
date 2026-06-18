@@ -614,7 +614,10 @@ layer_squasher::do_layers(
 			writes[0].descriptorCount = image_array_size;
 		}
 
-		device.updateDescriptorSets(writes, {});
+		if (writes[0].descriptorCount == 0)
+			device.updateDescriptorSets(std::span(writes).subspan(1), {});
+		else
+			device.updateDescriptorSets(writes, {});
 
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *layout, 0, descriptor_sets[view], {});
 		auto [w, h] = calc_dispatch_dims_1_view(viewports[view]);
