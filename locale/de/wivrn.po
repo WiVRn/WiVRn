@@ -7,10 +7,10 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-15 21:25+0200\n"
-"PO-Revision-Date: 2026-06-18 16:13+0200\n"
+"PO-Revision-Date: 2026-06-18 17:59+0200\n"
 "Last-Translator: Snowflakes <Snowflakes@gmx.at>\n"
-"Language-Team: English <>\n"
-"Language: en_US\n"
+"Language-Team: German <>\n"
+"Language: de_DE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -241,7 +241,7 @@ msgstr "Server nicht verfügbar"
 #: client/scenes/lobby_gui.cpp:567
 msgctxt "language selection, replace with the name of the language"
 msgid "English"
-msgstr "Englisch"
+msgstr "Deutsch"
 
 #: client/scenes/lobby_gui.cpp:581
 msgid "Language"
@@ -354,12 +354,12 @@ msgstr "Höchstleistungsmodus"
 #: client/scenes/lobby_gui.cpp:762
 msgid "Increase power usage to allow higher resolution and refresh rate"
 msgstr ""
-"Erhöhe den Stromverbrauch, um höhere Auflösungen und Bildwiederholungsraten "
+"Erhöht den Stromverbrauch, um höhere Auflösungen und Bildwiederholungsraten "
 "zu ermöglichen"
 
 #: client/scenes/lobby_gui.cpp:768
 msgid "Enable microphone"
-msgstr "Aktiviere Mikrofon"
+msgstr "Mikrofon aktivieren"
 
 #: client/scenes/lobby_gui.cpp:777
 msgid "Unprocessed Microphone Audio"
@@ -367,7 +367,7 @@ msgstr "Unverarbeitetes Mikrofon-Audio"
 
 #: client/scenes/lobby_gui.cpp:783
 msgid "Force disable audio filters, such as noise cancellation"
-msgstr "Erzwinge das Deaktivieren der Audiofilter, wie die Rauschunterdrückung"
+msgstr "Erzwingt das Deaktivieren der Audiofilter, wie die Rauschunterdrückung"
 
 #: client/scenes/lobby_gui.cpp:790
 msgid "Enable hand tracking"
@@ -438,7 +438,7 @@ msgid ""
 "If enabled, the window is activated by pressing both thumbsticks."
 msgstr ""
 "Erlaubt, dass das Konfigurations-Fenster angezeigt wird, während ein "
-"Spiel gestreamt wird. "
+"Spiel gestreamt wird.\n"
 "Wenn es aktiviert ist, dann kann das Fenster angezeigt werden, indem "
 "beide Thumbsticks gedrückt werden."
 
@@ -761,7 +761,7 @@ msgstr "Standard"
 
 #: client/scenes/stream_gui.cpp:445
 msgid "Change"
-msgstr "Veränderung"
+msgstr "Ändern"
 
 #: client/scenes/stream_gui.cpp:477
 msgid "Use the right thumbstick to adjust the bitrate"
@@ -786,7 +786,7 @@ msgstr "Drücke A, um zu speichern oder B, um abzubrechen"
 
 #: client/scenes/stream_gui.cpp:560
 msgid "Running XR applications:"
-msgstr "Aktive XR Anwendungen:"
+msgstr "Laufende XR Anwendungen:"
 
 #: client/scenes/stream_gui.cpp:577
 msgid "Overlays"

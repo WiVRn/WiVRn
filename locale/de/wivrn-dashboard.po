@@ -7,10 +7,10 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-06-16 15:49+0200\n"
-"PO-Revision-Date: 2026-06-18 16:22+0200\n"
+"PO-Revision-Date: 2026-06-18 18:05+0200\n"
 "Last-Translator: Snowflakes <Snowflakes@gmx.at>\n"
-"Language-Team: English <>\n"
-"Language: en_US\n"
+"Language-Team: German <>\n"
+"Language: de_DE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -511,7 +511,7 @@ msgstr "Automatisch"
 #: dashboard/qml/SettingsPage.qml:50
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
-msgstr "Nvenc (NVIDIA GPUs)\t"
+msgstr "NVENC (NVIDIA GPUs)"
 
 #: dashboard/qml/SettingsPage.qml:54
 #, kde-format
@@ -714,7 +714,7 @@ msgstr ""
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
 msgid "Connection fails with \"no route to host\""
-msgstr "Verbindung schlägt fehlt mit \"Keine Route zum Host vorhanden\""
+msgstr "Verbindung schlägt fehlt mit \"no route to host\""
 
 #: dashboard/qml/TroubleshootPage.qml:36
 #, kde-format
