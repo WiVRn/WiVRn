@@ -390,7 +390,7 @@ foveation::foveation(wivrn::vk_bundle & bundle, vk::Extent3D foveated_size) :
                         .usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
                 },
                 VmaAllocationCreateInfo{
-                        .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                        .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
                         .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
                 },
                 "foveation storage buffer"),
@@ -517,7 +517,7 @@ void foveation::update_ubo(
 
 	compute_params();
 
-	auto ubo = gpu_buffer.data<ubo_data>();
+	ubo_data ubo;
 	for (size_t view = 0; view < 2; ++view)
 	{
 		bool flip = false;
@@ -534,7 +534,7 @@ void foveation::update_ubo(
 			offset = src_rect[view].offset.w;
 			extent = src_rect[view].extent.w;
 		}
-		fill_ubo(std::span(ubo->x + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, RENDER_FOVEATION_BUFFER_DIMENSIONS),
+		fill_ubo(std::span(ubo.x + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, RENDER_FOVEATION_BUFFER_DIMENSIONS),
 		         params[view].x,
 		         flip,
 		         offset,
@@ -553,13 +553,15 @@ void foveation::update_ubo(
 			offset = src_rect[view].offset.h;
 			extent = src_rect[view].extent.h;
 		}
-		fill_ubo(std::span(ubo->y + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, RENDER_FOVEATION_BUFFER_DIMENSIONS),
+		fill_ubo(std::span(ubo.y + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, RENDER_FOVEATION_BUFFER_DIMENSIONS),
 		         params[view].y,
 		         flip,
 		         offset,
 		         extent,
 		         foveated_size.height);
 	}
+	vmaCopyMemoryToAllocation(vk_allocator::instance(), &ubo, gpu_buffer, 0, sizeof(ubo));
+	std::memcpy(gpu_buffer.data<ubo_data>(), &ubo, sizeof(ubo));
 }
 
 std::array<to_headset::foveation_parameter, 2> foveation::foveate(
