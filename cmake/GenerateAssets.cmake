@@ -17,7 +17,7 @@ function(wivrn_generate_ktx)
     file(MAKE_DIRECTORY ${DEST_DIR})
 
     add_custom_command(OUTPUT ${arg_DESTINATION}
-        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap --zcmp 20 ${arg_DESTINATION} ${arg_SOURCE}
+        COMMAND ${KTX} create --encode uastc --uastc-quality 4 --generate-mipmap --zstd 20 --format R8G8B8A8_SRGB ${arg_SOURCE} ${arg_DESTINATION}
         DEPENDS ${arg_SOURCE})
 
     if (DEFINED arg_TARGET)

@@ -193,7 +193,7 @@ endif()
 
 if (WIVRN_BUILD_CLIENT)
     find_program(RSVG_CONVERT rsvg-convert REQUIRED)
-    find_program(TOKTX toktx REQUIRED)
+    find_program(KTX ktx REQUIRED)
 
     if (WIVRN_COMPRESS_GLB)
         find_program(GLTF_TRANSFORM gltf-transform REQUIRED)
