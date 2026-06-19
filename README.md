@@ -165,9 +165,9 @@ If the server list is empty in the headset app:
 
 <details><summary>How do I see server logs when using the dashboard?</summary>
 
-- Click Troubleshoot > Open server logs, or
-- Navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, or
-- For flatpak, navigate to `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.</details>
+- Click **Troubleshoot > Open server logs**
+- Or, navigate to `~/.local/state/wivrn/wivrn-dashboard` (the `~/.local/state` part may be different if `${XDG_STATE_HOME}` is set)
+- Or for WiVRn Flatpak, navigate to `~/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.</details>
 
 <details><summary>My NVIDIA GPU P-State is limited to P2 instead of reaching the highest P0 while using the NVIDIA NVENC encoder</summary>
     
