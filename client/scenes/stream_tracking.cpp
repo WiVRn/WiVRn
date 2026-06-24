@@ -443,6 +443,7 @@ void scenes::stream::tracking()
 			tracking.interaction_profiles = {
 			        interaction_profiles[0].load(),
 			        interaction_profiles[1].load(),
+			        interaction_profiles[2].load(),
 			};
 
 			tracking.production_timestamp = t0;
@@ -664,6 +665,7 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 	std::array path = {
 	        "/user/hand/left",
 	        "/user/hand/right",
+	        "/user/gamepad",
 	};
 #define DO_PROFILE(vendor, name)                                                \
 	if (profile == "/interaction_profiles/" #vendor "/" #name)              \
@@ -672,7 +674,7 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 		continue;                                                       \
 	}
 
-	for (size_t i = 0; i < 2; ++i)
+	for (size_t i = 0; i < path.size(); ++i)
 	{
 		try
 		{

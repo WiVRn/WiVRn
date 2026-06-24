@@ -757,6 +757,9 @@ void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clo
 
 	for (const auto & input: inputs.values)
 	{
+		// Gamepad inputs are handled by wivrn_gamepad
+		if (input.id >= device_id::GAMEPAD_MENU_CLICK)
+			continue;
 		int64_t last_change_time = input.last_change_time ? clock_offset.from_headset(input.last_change_time) : 0;
 		auto [index, type, device] = map_input(input.id);
 		if (device != device_type)

@@ -206,6 +206,11 @@ public:
 	{
 		return instance().app_info.native_app;
 	}
+
+	static android_hid::input_handler & get_input_handler()
+	{
+		return instance().input_handler;
+	}
 #endif
 
 	static bool is_session_running()

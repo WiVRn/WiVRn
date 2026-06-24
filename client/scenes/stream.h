@@ -76,7 +76,7 @@ private:
 	std::unique_ptr<wivrn_session> network_session;
 	std::thread network_thread;
 	thread_safe<to_headset::tracking_control> tracking_control{};
-	std::array<std::atomic<interaction_profile>, 2> interaction_profiles; // left and right hand
+	std::array<std::atomic<interaction_profile>, 3> interaction_profiles; // left hand, right hand, gamepad
 	std::atomic<bool> interaction_profile_changed = false;
 	std::atomic<XrTime> scheduled_derived_pose = 0; // Tracking thread will compute derived pose when time is reached
 	std::atomic<bool> recenter_requested = false;
