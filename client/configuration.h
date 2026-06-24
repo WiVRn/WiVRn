@@ -68,6 +68,11 @@ public:
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
 
+	// Input forwarding, per device. Off by default; only effective if the server permits it.
+	bool forward_keyboard = false;
+	bool forward_mouse = false;
+	bool forward_gamepad = false;
+
 	bool fb_lower_body = false;
 	bool fb_hip = true;
 

@@ -111,10 +111,10 @@ Kirigami.ScrollablePage {
                 visible: Settings.hid_forwarding_supported
                 Controls.CheckBox {
                     id: hid_forwarding
-                    text: i18n("Forward keyboard & mouse from headset")
+                    text: i18n("Expose forwarded input devices via uinput")
                 }
                 Kirigami.ContextualHelpButton {
-                    toolTipText: i18n("Keyboard and mouse connected to the client will act as if connected to the server. Client OS may reserve specific keys and combinations, which cannot be forwarded.")
+                    toolTipText: i18n("Mirror a keyboard, mouse or gamepad forwarded from the headset to uinput devices, for applications that do not read them through OpenXR. Which devices are forwarded is chosen on the headset. Client OS may reserve specific keys and combinations, which cannot be forwarded.")
                 }
             }
             Controls.CheckBox {

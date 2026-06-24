@@ -784,6 +784,29 @@ void scenes::lobby::gui_settings()
 		ImGui::Unindent();
 		ImGui::EndDisabled();
 	}
+	{
+		// Input forwarding: a keyboard, mouse or gamepad connected to the headset acts as if
+		// connected to the server. Keyboard and mouse need the server to mirror them to uinput; a
+		// gamepad also works through OpenXR, which needs no server permission.
+		if (ImGui::Checkbox(_S("Forward keyboard"), &config.forward_keyboard))
+			config.save();
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::Checkbox(_S("Forward mouse"), &config.forward_mouse))
+			config.save();
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::Checkbox(_S("Forward gamepad"), &config.forward_gamepad))
+			config.save();
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("A keyboard, mouse or gamepad connected to the headset acts as if connected to the server.\nKeyboard and mouse need the server to allow forwarded input devices. A gamepad also works through OpenXR."));
+
+		if (server_hid_forwarding == false and (config.forward_keyboard or config.forward_mouse))
+		{
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::SameLine();
+			ImGui::Text("%s", _S("The server does not allow forwarded keyboard and mouse"));
+		}
+	}
 	if (system.hand_tracking_supported())
 	{
 		bool enabled = config.check_feature(feature::hand_tracking);

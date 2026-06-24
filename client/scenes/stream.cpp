@@ -1362,9 +1362,10 @@ void scenes::stream::on_xr_event(const xr::event & event)
 	}
 }
 
-bool scenes::stream::forward_hid_input(from_headset::hid::input_t packet)
+bool scenes::stream::forward_hid_input(from_headset::hid::input_t packet, bool device_enabled)
 {
-	if (not hid_forwarding)
+	// hid_forwarding is whether the server permits it; device_enabled is the headset toggle.
+	if (not hid_forwarding or not device_enabled)
 		return false;
 	network_session->send_control(from_headset::hid::input{packet});
 	return true;
@@ -1372,25 +1373,25 @@ bool scenes::stream::forward_hid_input(from_headset::hid::input_t packet)
 
 bool scenes::stream::on_input_key_down(uint8_t key_code)
 {
-	return forward_hid_input(from_headset::hid::key_down{key_code});
+	return forward_hid_input(from_headset::hid::key_down{key_code}, application::get_config().forward_keyboard);
 }
 bool scenes::stream::on_input_key_up(uint8_t key_code)
 {
-	return forward_hid_input(from_headset::hid::key_up{key_code});
+	return forward_hid_input(from_headset::hid::key_up{key_code}, application::get_config().forward_keyboard);
 }
 bool scenes::stream::on_input_mouse_move(float x, float y)
 {
-	return forward_hid_input(from_headset::hid::mouse_move{x, y});
+	return forward_hid_input(from_headset::hid::mouse_move{x, y}, application::get_config().forward_mouse);
 }
 bool scenes::stream::on_input_button_down(uint8_t button)
 {
-	return forward_hid_input(from_headset::hid::button_down{button});
+	return forward_hid_input(from_headset::hid::button_down{button}, application::get_config().forward_mouse);
 }
 bool scenes::stream::on_input_button_up(uint8_t button)
 {
-	return forward_hid_input(from_headset::hid::button_up{button});
+	return forward_hid_input(from_headset::hid::button_up{button}, application::get_config().forward_mouse);
 }
 bool scenes::stream::on_input_scroll(float h, float v)
 {
-	return forward_hid_input(from_headset::hid::mouse_scroll{h, v});
+	return forward_hid_input(from_headset::hid::mouse_scroll{h, v}, application::get_config().forward_mouse);
 }

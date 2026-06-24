@@ -247,10 +247,10 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		}
 		catch (...)
 		{
-			U_LOG_W("Could not initialize keyboard & mouse forwarding");
+			U_LOG_W("Could not initialize input forwarding");
 			U_LOG_W("Ensure that the uinput kernel module is loaded and your user is in the input group.");
 			wivrn_ipc_socket_monado->send(from_monado::server_error{
-			        .where = "Could not initialize keyboard & mouse forwarding",
+			        .where = "Could not initialize input forwarding",
 			        .message = "Ensure that the uinput kernel module is loaded and your user is in the input group.",
 			});
 		}
@@ -399,8 +399,9 @@ void wivrn_session::resume_session()
 	if (audio_handle)
 		audio_handle->resume();
 
-	if (uinput_handler)
-		send_control(to_headset::feature_control{to_headset::feature_control::hid_input, true});
+	// Tell the headset whether forwarded input devices are mirrored to uinput. The headset picks
+	// what to forward. The OpenXR gamepad at /user/gamepad is always available regardless.
+	send_control(to_headset::feature_control{to_headset::feature_control::hid_input, bool(uinput_handler)});
 
 	{
 		float target_fps = default_fps();
@@ -679,7 +680,24 @@ void wivrn_session::operator()(from_headset::inputs && inputs)
 		right_controller.set_inputs(inputs, offset);
 
 	if (gamepad_device)
+	{
 		gamepad_device->set_inputs(inputs);
+		try
+		{
+			// Mirror to a uinput gamepad for non-OpenXR consumers, when permitted.
+			if (uinput_handler)
+				uinput_handler->handle_gamepad(inputs);
+		}
+		catch (const std::exception & e)
+		{
+			wivrn_ipc_socket_monado->send(from_monado::server_error{
+			        .where = "Gamepad forwarding error",
+			        .message = e.what(),
+			});
+			U_LOG_E("Gamepad forwarding error: %s", e.what());
+			uinput_handler.reset();
+		}
+	}
 }
 
 void wivrn_session::operator()(from_headset::hid::input && e)
@@ -1001,6 +1019,12 @@ void wivrn_session::run_net(std::stop_token stop)
 		try
 		{
 			connection->poll(*this, 20);
+
+			if (uinput_handler)
+			{
+				for (auto & haptics: uinput_handler->read_rumble())
+					send_control(std::move(haptics));
+			}
 		}
 		catch (const std::exception & e)
 		{

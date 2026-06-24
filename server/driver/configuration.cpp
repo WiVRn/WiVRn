@@ -189,6 +189,8 @@ configuration::configuration()
 			}
 		}
 
+		// Gates the uinput mirror of forwarded input devices. The OpenXR gamepad needs no
+		// permission, so it is always exposed.
 		if (auto it = json.find("hid-forwarding"); it != json.end())
 			hid_forwarding = *it;
 

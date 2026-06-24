@@ -27,8 +27,13 @@ void scenes::stream::read_actions()
 
 	if (not is_gui_interactable())
 	{
+		const bool forward_gamepad = application::get_config().forward_gamepad;
 		for (const auto & [id, action, action_type]: input_actions)
 		{
+			// Gamepad inputs are only forwarded if the headset opts in.
+			if (id >= device_id::GAMEPAD_MENU_CLICK and not forward_gamepad)
+				continue;
+
 			switch (action_type)
 			{
 				case XR_ACTION_TYPE_BOOLEAN_INPUT: {
