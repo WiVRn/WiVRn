@@ -62,7 +62,7 @@ option(WIVRN_USE_X264 "Enable x264 software encoder" ON)
 option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" ON)
 option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" OFF)
 
-set(OVR_COMPAT_SEARCH_PATH "/opt/xrizer:/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite"
+set(OVR_COMPAT_SEARCH_PATH "/opt/xrizer:/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite:/opt/VapoR:/usr/local/lib/VapoR"
     CACHE STRING "List of places to search for the OpenVR compatibility layer, separated by :")
 
 option(WIVRN_FEATURE_DEBUG_GUI "Enable Monado debug GUI" OFF)
