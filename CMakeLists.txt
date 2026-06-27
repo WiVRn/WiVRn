@@ -59,8 +59,8 @@ option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" ON)
 option(WIVRN_USE_VULKAN_ENCODE "Enable vulkan video encoder" ON)
 option(WIVRN_USE_X264 "Enable x264 software encoder" ON)
 
-option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" ON)
-option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" OFF)
+# WIVRN_USE_PIPEWIRE / WIVRN_USE_PULSEAUDIO are declared in the server dependency block below,
+# where they default to whether their library was found (auto-detection).
 
 set(OVR_COMPAT_SEARCH_PATH "/opt/xrizer:/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite:/opt/VapoR:/usr/local/lib/VapoR"
     CACHE STRING "List of places to search for the OpenVR compatibility layer, separated by :")
@@ -145,12 +145,24 @@ if (WIVRN_BUILD_SERVER)
         pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
     endif()
 
-    if (WIVRN_USE_PIPEWIRE)
-        pkg_check_modules(libpipewire REQUIRED IMPORTED_TARGET libpipewire-0.3)
-    endif()
+    # Audio backends are auto-detected: each is built when its development library is present.
+    # An explicit -DWIVRN_USE_{PIPEWIRE,PULSEAUDIO}=ON force-requires the library (fails loudly if
+    # missing). At runtime PipeWire is preferred and PulseAudio is the fallback, so a PipeWire-only
+    # host needs neither flag nor libpulse.
+    pkg_check_modules(libpipewire IMPORTED_TARGET libpipewire-0.3)
+    pkg_check_modules(libpulse IMPORTED_TARGET libpulse)
 
-    if (WIVRN_USE_PULSEAUDIO)
-        pkg_check_modules(libpulse REQUIRED IMPORTED_TARGET libpulse)
+    option(WIVRN_USE_PIPEWIRE "Enable pipewire backend (autodetected)" ${libpipewire_FOUND})
+    option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend (autodetected)" ${libpulse_FOUND})
+
+    if (WIVRN_USE_PIPEWIRE AND NOT libpipewire_FOUND)
+        message(FATAL_ERROR "WIVRN_USE_PIPEWIRE=ON but libpipewire-0.3 was not found")
+    endif()
+    if (WIVRN_USE_PULSEAUDIO AND NOT libpulse_FOUND)
+        message(FATAL_ERROR "WIVRN_USE_PULSEAUDIO=ON but libpulse was not found")
+    endif()
+    if (NOT WIVRN_USE_PIPEWIRE AND NOT WIVRN_USE_PULSEAUDIO)
+        message(FATAL_ERROR "At least one audio backend is required (WIVRN_USE_PIPEWIRE or WIVRN_USE_PULSEAUDIO)")
     endif()
 
     pkg_check_modules(AVAHI REQUIRED IMPORTED_TARGET avahi-client avahi-glib)

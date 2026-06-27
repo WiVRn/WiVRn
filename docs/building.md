@@ -18,7 +18,7 @@ It is possible to disable specific encoders, by adding options
 -DWIVRN_USE_X264=OFF
 ```
 
-Force specific audio backends
+Audio backends (PipeWire, PulseAudio) are auto-detected by default: each is built when its development library is present. PipeWire is preferred at runtime, with PulseAudio as a fallback, so a PipeWire-only host needs neither library nor flag. Force a backend on (and require its library) with:
 ```
 -DWIVRN_USE_PIPEWIRE=ON
 -DWIVRN_USE_PULSEAUDIO=ON
