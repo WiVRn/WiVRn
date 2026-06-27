@@ -40,6 +40,7 @@ option(WIVRN_COMPRESS_GLB "Compress textures in GLB files with gltf-transform" O
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_USE_ANDROID_BIN_LIBKTX "Download the prebuilt libktx for android" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
+option(WIVRN_BUILD_PICO_NATIVE_CLIENT "Build WiVRn Pico Native client (for Pico Neo 2)" OFF)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
 option(WIVRN_BUILD_SERVER_LIBRARY "Build OpenXR library for WiVRn server" ${WIVRN_BUILD_SERVER})
 option(WIVRN_BUILD_DASHBOARD "Build WiVRn dashboard" OFF)
@@ -86,7 +87,7 @@ option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang on
 
 set(WIVRN_ENVIRONMENTS_URL "https://github.com/WiVRn/WiVRn-environments/releases/latest/download/index.json" CACHE STRING "URL hosting the custom environments json file")
 
-if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_SERVER OR WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_DISSECTOR)
+if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_SERVER OR WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_DISSECTOR OR WIVRN_BUILD_PICO_NATIVE_CLIENT)
     set(NEED_COMMON TRUE)
 else()
     set(NEED_COMMON FALSE)
@@ -310,6 +311,10 @@ if (WIVRN_BUILD_CLIENT)
     add_subdirectory(client)
 endif()
 
+if (WIVRN_BUILD_PICO_NATIVE_CLIENT)
+    add_subdirectory(client/pico_native)
+endif()
+
 if (WIVRN_BUILD_SERVER OR WIVRN_BUILD_SERVER_LIBRARY)
     add_subdirectory(server)
 
@@ -336,7 +341,7 @@ endif()
 
 add_subdirectory(tools)
 
-foreach(TARGET_NAME wivrn wivrn-server wivrn-dashboard wivrn-common wivrn-dissector wivrnctl)
+foreach(TARGET_NAME wivrn wivrn-neo2 wivrn-server wivrn-dashboard wivrn-common wivrn-dissector wivrnctl)
     if(TARGET ${TARGET_NAME})
         target_compile_options(${TARGET_NAME} PRIVATE
             -fdiagnostics-color -Wall -Wextra -pedantic

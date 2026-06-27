@@ -9,9 +9,12 @@ _deps/
 
 build/
 build-*/
+server_build/
+external/pvrsdk-native/
 **/result
 
 *.so
+*.aar
 a.out
 *.pgm
 *.zip

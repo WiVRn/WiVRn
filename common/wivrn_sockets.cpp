@@ -491,7 +491,7 @@ wivrn::deserialization_packet wivrn::TCP::receive_raw()
 
 	if (capacity_left > 0)
 	{
-		ssize_t received_size = recv(fd, &*data.end(), capacity_left, MSG_DONTWAIT);
+		ssize_t received_size = recv(fd, data.data() + data.size_bytes(), capacity_left, MSG_DONTWAIT);
 
 		if (received_size < 0)
 			throw std::system_error{errno, std::generic_category()};
@@ -501,7 +501,7 @@ wivrn::deserialization_packet wivrn::TCP::receive_raw()
 
 		if (decrypter)
 		{
-			std::span<uint8_t> received_data{&*data.end(), (size_t)received_size};
+			std::span<uint8_t> received_data{data.data() + data.size_bytes(), (size_t)received_size};
 			decrypter.decrypt_in_place(received_data);
 		}
 

@@ -1,0 +1,134 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.13.0'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        flatDir {
+            dirs '../../external/pvrsdk-native'
+        }
+    }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "org.meumeu.wivrn.neo2"
+    ndkVersion = "28.2.13676358"
+
+    lint {
+        disable += "ExpiredTargetSdkVersion"
+    }
+
+    defaultConfig {
+        applicationId "org.meumeu.wivrn.neo2"
+        minSdkVersion 26
+        compileSdkVersion 34
+        targetSdkVersion 32
+
+        versionName = project.hasProperty('wivrn_version') ? wivrn_version : "1.0"
+        versionCode = project.hasProperty('wivrn_versionCode') ? wivrn_versionCode.toInteger() : 1
+        def fetchcontentBaseDir = project.hasProperty('fetchcontent_base_dir') ? ['-DFETCHCONTENT_BASE_DIR=' + fetchcontent_base_dir] : []
+
+        externalNativeBuild {
+            cmake {
+                arguments = ['-DANDROID_TOOLCHAIN=clang',
+                          '-DANDROID_STL=c++_static',
+                          '-DCMAKE_ANDROID_NDK_VERSION=' + ndkVersion,
+                          '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF',
+                          '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+                          '-DCMAKE_ANDROID_ASSETS_DIRECTORIES=' + layout.buildDirectory.dir("assets").get().asFile,
+                          '-DWIVRN_USE_SYSTEM_BOOST=OFF',
+                          '-DWIVRN_USE_SYSTEM_FREETYPE=OFF',
+                          '-DWIVRN_BUILD_CLIENT=OFF',
+                          '-DWIVRN_BUILD_PICO_NATIVE_CLIENT=ON',
+                          '-DWIVRN_BUILD_SERVER=OFF',
+                          '-DWIVRN_BUILD_SERVER_LIBRARY=OFF',
+                          '-DWIVRN_BUILD_WIVRNCTL=OFF',
+                          '-DWIVRN_BUILD_DASHBOARD=OFF',
+                          '-DWIVRN_WERROR=OFF'] +
+                          fetchcontentBaseDir
+                resValue "string", "app_name", "WiVRn Neo2"
+                abiFilters 'arm64-v8a'
+            }
+        }
+    }
+
+    signingConfigs {
+        if (project.hasProperty("signingKeyPassword")) {
+            release {
+                storeFile file("ks.keystore")
+                keyAlias "default_key"
+                storePassword signingKeyPassword
+                keyPassword signingKeyPassword
+                enableV2Signing = true
+            }
+        }
+    }
+
+    buildTypes {
+        if (project.hasProperty("signingKeyPassword")) {
+            release {
+                signingConfig = signingConfigs.release
+            }
+        }
+
+        release {
+            applicationIdSuffix = project.hasProperty('suffix') ? suffix: ".local"
+        }
+
+        releaseDebuggable {
+            initWith release
+            debuggable true
+        }
+
+        debug {
+            applicationIdSuffix = project.hasProperty('suffix') ? suffix: ".local"
+        }
+    }
+
+    buildTypes.all { variant ->
+        sourceSets {
+            "${variant.name}" {
+                jniLibs.srcDirs layout.buildDirectory.dir("libs${variant.name.capitalize()}")
+            }
+        }
+
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_LIB_DIRECTORIES=' + layout.buildDirectory.dir("libs${variant.name.capitalize()}").get().asFile
+            }
+        }
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = [ 'java' ]
+            res.srcDirs = [ 'resources' ]
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            version = '3.31.5'
+            path    '../../CMakeLists.txt'
+        }
+    }
+
+    applicationVariants.all { variant ->
+        tasks["generate${variant.name.capitalize()}Assets"].dependsOn "externalNativeBuild${variant.name.capitalize()}"
+    }
+}
+
+dependencies {
+    implementation name: 'PvrSDK-Native-release', ext: 'aar'
+}
