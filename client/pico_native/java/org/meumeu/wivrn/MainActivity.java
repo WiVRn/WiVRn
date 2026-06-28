@@ -9,6 +9,7 @@ import android.view.WindowManager;
 import com.picovr.cvclient.CVController;
 import com.picovr.cvclient.CVControllerListener;
 import com.picovr.cvclient.CVControllerManager;
+import com.picovr.cvclient.ButtonNum;
 import com.picovr.picovrlib.cvcontrollerclient.ControllerClient;
 import com.picovr.vractivity.Eye;
 import com.picovr.vractivity.HmdState;
@@ -148,6 +149,8 @@ public class MainActivity extends VRActivity implements RenderInterface {
         int leftTrigger = 0, rightTrigger = 0;
         int[] leftTouch = null, rightTouch = null;
         int leftBattery = 0, rightBattery = 0;
+        boolean leftA = false, leftB = false, leftGrip = false, leftClick = false, leftMenu = false;
+        boolean rightA = false, rightB = false, rightGrip = false, rightClick = false, rightMenu = false;
 
         if (leftController != null) {
             leftOrient = leftController.getOrientation();
@@ -155,6 +158,11 @@ public class MainActivity extends VRActivity implements RenderInterface {
             leftTrigger = leftController.getTriggerNum();
             leftTouch = leftController.getTouchPad();
             leftBattery = leftController.getBatteryLevel();
+            leftA = leftController.getButtonState(ButtonNum.buttonAX);
+            leftB = leftController.getButtonState(ButtonNum.buttonBY);
+            leftGrip = leftController.getButtonState(ButtonNum.buttonLG);
+            leftClick = leftController.getButtonState(ButtonNum.click);
+            leftMenu = leftController.getButtonState(ButtonNum.app);
         }
 
         if (rightController != null) {
@@ -163,11 +171,18 @@ public class MainActivity extends VRActivity implements RenderInterface {
             rightTrigger = rightController.getTriggerNum();
             rightTouch = rightController.getTouchPad();
             rightBattery = rightController.getBatteryLevel();
+            rightA = rightController.getButtonState(ButtonNum.buttonAX);
+            rightB = rightController.getButtonState(ButtonNum.buttonBY);
+            rightGrip = rightController.getButtonState(ButtonNum.buttonRG);
+            rightClick = rightController.getButtonState(ButtonNum.click);
+            rightMenu = rightController.getButtonState(ButtonNum.app);
         }
 
         nativeWivrnOnFrameBegin(nativePtr, orientation, position,
                 leftOrient, leftPose, leftTrigger, leftTouch, leftBattery,
-                rightOrient, rightPose, rightTrigger, rightTouch, rightBattery);
+                leftA, leftB, leftGrip, leftClick, leftMenu,
+                rightOrient, rightPose, rightTrigger, rightTouch, rightBattery,
+                rightA, rightB, rightGrip, rightClick, rightMenu);
     }
 
     @Override
@@ -228,7 +243,9 @@ public class MainActivity extends VRActivity implements RenderInterface {
     public native void nativeWivrnNewIntent(long ptr, Intent intent);
     public native void nativeWivrnOnFrameBegin(long ptr, float[] headOrient, float[] headPos,
             float[] leftOrient, float[] leftPos, int leftTrigger, int[] leftTouch, int leftBattery,
-            float[] rightOrient, float[] rightPos, int rightTrigger, int[] rightTouch, int rightBattery);
+            boolean leftA, boolean leftB, boolean leftGrip, boolean leftClick, boolean leftMenu,
+            float[] rightOrient, float[] rightPos, int rightTrigger, int[] rightTouch, int rightBattery,
+            boolean rightA, boolean rightB, boolean rightGrip, boolean rightClick, boolean rightMenu);
     public native void nativeWivrnDrawEye(long ptr, int eye);
     public native void nativeWivrnFrameEnd(long ptr);
     public native void nativeWivrnInitGL(long ptr, int w, int h);

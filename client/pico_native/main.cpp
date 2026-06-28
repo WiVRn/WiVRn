@@ -183,6 +183,11 @@ struct pico_client
 		int touch[2]{};
 		int battery = 0;
 		bool connected = false;
+		bool button_a = false;
+		bool button_b = false;
+		bool grip = false;
+		bool thumbstick_click = false;
+		bool menu = false;
 	};
 	controller_state controllers[2];
 
@@ -617,6 +622,12 @@ void pico_client::send_inputs()
 			add_input(device_id::LEFT_TRIGGER_CLICK, trigger_val > 0.9f ? 1.0f : 0.0f);
 			add_input(device_id::LEFT_THUMBSTICK_X, touch_x);
 			add_input(device_id::LEFT_THUMBSTICK_Y, touch_y);
+			add_input(device_id::LEFT_THUMBSTICK_CLICK, cs.thumbstick_click ? 1.0f : 0.0f);
+			add_input(device_id::X_CLICK, cs.button_a ? 1.0f : 0.0f);
+			add_input(device_id::Y_CLICK, cs.button_b ? 1.0f : 0.0f);
+			add_input(device_id::MENU_CLICK, cs.menu ? 1.0f : 0.0f);
+			add_input(device_id::LEFT_SQUEEZE_VALUE, cs.grip ? 1.0f : 0.0f);
+			add_input(device_id::LEFT_SQUEEZE_CLICK, cs.grip ? 1.0f : 0.0f);
 		}
 		else
 		{
@@ -624,6 +635,12 @@ void pico_client::send_inputs()
 			add_input(device_id::RIGHT_TRIGGER_CLICK, trigger_val > 0.9f ? 1.0f : 0.0f);
 			add_input(device_id::RIGHT_THUMBSTICK_X, touch_x);
 			add_input(device_id::RIGHT_THUMBSTICK_Y, touch_y);
+			add_input(device_id::RIGHT_THUMBSTICK_CLICK, cs.thumbstick_click ? 1.0f : 0.0f);
+			add_input(device_id::A_CLICK, cs.button_a ? 1.0f : 0.0f);
+			add_input(device_id::B_CLICK, cs.button_b ? 1.0f : 0.0f);
+			add_input(device_id::SYSTEM_CLICK, cs.menu ? 1.0f : 0.0f);
+			add_input(device_id::RIGHT_SQUEEZE_VALUE, cs.grip ? 1.0f : 0.0f);
+			add_input(device_id::RIGHT_SQUEEZE_CLICK, cs.grip ? 1.0f : 0.0f);
 		}
 	}
 
@@ -1111,7 +1128,9 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnOnFrameBegi
 	JNIEnv * env, jobject thiz, jlong ptr,
 	jfloatArray headOrient, jfloatArray headPos,
 	jfloatArray leftOrient, jfloatArray leftPos, jint leftTrigger, jintArray leftTouch, jint leftBattery,
-	jfloatArray rightOrient, jfloatArray rightPos, jint rightTrigger, jintArray rightTouch, jint rightBattery)
+	jboolean leftA, jboolean leftB, jboolean leftGrip, jboolean leftClick, jboolean leftMenu,
+	jfloatArray rightOrient, jfloatArray rightPos, jint rightTrigger, jintArray rightTouch, jint rightBattery,
+	jboolean rightA, jboolean rightB, jboolean rightGrip, jboolean rightClick, jboolean rightMenu)
 {
 	if (!g_client)
 		return;
@@ -1149,6 +1168,11 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnOnFrameBegi
 		memcpy(g_client->controllers[0].position, p, sizeof(p));
 		g_client->controllers[0].trigger = leftTrigger;
 		g_client->controllers[0].battery = leftBattery;
+		g_client->controllers[0].button_a = leftA;
+		g_client->controllers[0].button_b = leftB;
+		g_client->controllers[0].grip = leftGrip;
+		g_client->controllers[0].thumbstick_click = leftClick;
+		g_client->controllers[0].menu = leftMenu;
 		g_client->controllers[0].connected = true;
 		if (leftTouch)
 		{
@@ -1180,6 +1204,11 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnOnFrameBegi
 		memcpy(g_client->controllers[1].position, p, sizeof(p));
 		g_client->controllers[1].trigger = rightTrigger;
 		g_client->controllers[1].battery = rightBattery;
+		g_client->controllers[1].button_a = rightA;
+		g_client->controllers[1].button_b = rightB;
+		g_client->controllers[1].grip = rightGrip;
+		g_client->controllers[1].thumbstick_click = rightClick;
+		g_client->controllers[1].menu = rightMenu;
 		g_client->controllers[1].connected = true;
 		if (rightTouch)
 		{
