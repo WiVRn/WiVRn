@@ -476,7 +476,8 @@ static void fill_ubo(
 		const int n_source = std::abs(n_ratio - int(i)) + 1;
 		for (size_t j = 0; j < n; ++j)
 		{
-			assert(count > 0);
+			if (count <= 0)
+				break;
 			if (flip)
 				ubo[1] = ubo[0] - n_source;
 			else
@@ -484,6 +485,8 @@ static void fill_ubo(
 			ubo = ubo.subspan(1);
 			--count;
 		}
+		if (count <= 0)
+			break;
 	}
 	if (not ubo.empty())
 		std::ranges::fill(ubo, ubo[0]);
