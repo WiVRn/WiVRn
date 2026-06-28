@@ -19,6 +19,10 @@
 
           pkgs.libpng
           pkgs.kdePackages.kirigami-addons
+
+          # for client build
+          pkgs.curl
+          pkgs.ktx-tools
         ];
         extraNativeBuildInputs = [
           pkgs.util-linux
