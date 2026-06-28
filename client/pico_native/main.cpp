@@ -747,11 +747,16 @@ bool pico_client::connect_to_server()
 					{
 						spdlog::warn("connect: session creation failed (unknown exception, not rethrowing)");
 					}
-					if (session)
+					if (session && session->is_handshake_ok())
 					{
 						freeaddrinfo(result);
 						spdlog::info("Connected to server (IPv4)");
 						return true;
+					}
+					if (session)
+					{
+						spdlog::warn("connect: handshake failed, resetting session");
+						session.reset();
 					}
 				}
 				else if (rp->ai_family == AF_INET6)
@@ -759,11 +764,23 @@ bool pico_client::connect_to_server()
 					spdlog::info("connect: trying IPv6");
 					auto * addr = (struct sockaddr_in6 *)rp->ai_addr;
 					in6_addr ip = addr->sin6_addr;
-					session = std::make_unique<wivrn_session_pico>(
-						ip, server_port, tcp_only, headset_keypair, model_name, pin_enter);
-					freeaddrinfo(result);
-					spdlog::info("Connected to server (IPv6)");
-					return true;
+					try
+					{
+						session = std::make_unique<wivrn_session_pico>(
+							ip, server_port, tcp_only, headset_keypair, model_name, pin_enter);
+					}
+					catch (...)
+					{
+						spdlog::warn("connect: IPv6 session creation failed");
+					}
+					if (session && session->is_handshake_ok())
+					{
+						freeaddrinfo(result);
+						spdlog::info("Connected to server (IPv6)");
+						return true;
+					}
+					if (session)
+						session.reset();
 				}
 			}
 			catch (std::exception & e)
@@ -877,8 +894,12 @@ static std::pair<std::string, int> parse_uri(const std::string & uri)
 	if (scheme_end == std::string::npos)
 		return {host, port};
 
-	std::string scheme = uri.substr(0, scheme_end);
 	size_t host_start = scheme_end + 3;
+
+	size_t at_pos = uri.find('@', host_start);
+	if (at_pos != std::string::npos)
+		host_start = at_pos + 1;
+
 	size_t path_start = uri.find('/', host_start);
 	size_t query_start = uri.find('?', host_start);
 	size_t host_end = std::min(
@@ -904,6 +925,24 @@ static std::pair<std::string, int> parse_uri(const std::string & uri)
 
 static std::optional<std::string> parse_pin_from_uri(const std::string & uri)
 {
+	size_t scheme_end = uri.find("://");
+	if (scheme_end != std::string::npos)
+	{
+		size_t host_start = scheme_end + 3;
+		size_t at_pos = uri.find('@', host_start);
+		if (at_pos != std::string::npos)
+		{
+			std::string userinfo = uri.substr(host_start, at_pos - host_start);
+			size_t colon = userinfo.find(':');
+			if (colon != std::string::npos)
+			{
+				std::string pin = userinfo.substr(colon + 1);
+				if (!pin.empty())
+					return pin;
+			}
+		}
+	}
+
 	size_t query_start = uri.find('?');
 	if (query_start == std::string::npos)
 		return std::nullopt;
@@ -1033,6 +1072,13 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnNewIntent(J
 		g_client->server_host = host;
 		g_client->server_port = port;
 		g_client->tcp_only = uri->starts_with("wivrn+tcp://");
+
+		auto pin = parse_pin_from_uri(*uri);
+		if (pin)
+		{
+			g_client->pairing_pin = *pin;
+			spdlog::info("PIN from new intent URI: {}", *pin);
+		}
 	}
 }
 

@@ -48,6 +48,7 @@ private:
 
 	std::atomic<uint64_t> bytes_sent_ = 0;
 	std::atomic<uint64_t> bytes_received_ = 0;
+	bool handshake_ok = false;
 
 	template <typename T>
 	void handshake(T address, bool tcp_only, crypto::key & headset_keypair,
@@ -134,5 +135,10 @@ public:
 	uint64_t bytes_sent() const
 	{
 		return bytes_sent_;
+	}
+
+	bool is_handshake_ok() const
+	{
+		return handshake_ok;
 	}
 };

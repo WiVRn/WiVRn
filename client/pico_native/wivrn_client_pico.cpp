@@ -59,6 +59,8 @@ void wivrn_session_pico::handshake(T address, bool tcp_only, crypto::key & heads
                                    const std::string & model_name,
                                    std::function<std::string(int fd)> pin_enter)
 {
+ try
+ {
 	pollfd fds{};
 	fds.events = POLLIN;
 	fds.fd = control.get_fd();
@@ -187,11 +189,11 @@ void wivrn_session_pico::handshake(T address, bool tcp_only, crypto::key & heads
 
 		case to_headset::crypto_handshake::crypto_state::pairing_disabled:
 			spdlog::info("Pairing is disabled on server");
-			throw std::runtime_error("Pairing is disabled on server");
+			return;
 
 		case to_headset::crypto_handshake::crypto_state::incompatible_version:
 			spdlog::error("Incompatible protocol versions");
-			throw std::runtime_error("Incompatible server version");
+			return;
 	}
 
 	spdlog::warn("handshake: switch done, sending stream handshake");
@@ -203,17 +205,23 @@ void wivrn_session_pico::handshake(T address, bool tcp_only, crypto::key & heads
 	{
 		if (poll([](const auto && packet) { return std::is_same_v<std::remove_cvref_t<decltype(packet)>, to_headset::handshake>; }, 100ms))
 		{
+			handshake_ok = true;
 			return;
 		}
 
 		if (std::chrono::steady_clock::now() >= timeout)
-			throw std::runtime_error("Timeout");
+			return;
 
 		if (stream)
 		{
 			stream.send(from_headset::handshake{});
 		}
 	}
+ }
+ catch (...)
+ {
+	spdlog::warn("handshake: exception caught, handshake failed");
+ }
 }
 
 wivrn_session_pico::wivrn_session_pico(in6_addr address, int port, bool tcp_only,
@@ -222,14 +230,7 @@ wivrn_session_pico::wivrn_session_pico(in6_addr address, int port, bool tcp_only
                                        std::function<std::string(int fd)> pin_enter) :
         control(address, port), stream(-1), address(address)
 {
-	try
-	{
-		handshake(address, tcp_only, headset_keypair, model_name, pin_enter);
-	}
-	catch (std::exception & e)
-	{
-		throw handshake_error{e.what()};
-	}
+	handshake(address, tcp_only, headset_keypair, model_name, pin_enter);
 }
 
 wivrn_session_pico::wivrn_session_pico(in_addr address, int port, bool tcp_only,
@@ -238,12 +239,5 @@ wivrn_session_pico::wivrn_session_pico(in_addr address, int port, bool tcp_only,
                                        std::function<std::string(int fd)> pin_enter) :
         control(address, port), stream(-1), address(address)
 {
-	try
-	{
-		handshake(address, tcp_only, headset_keypair, model_name, pin_enter);
-	}
-	catch (std::exception & e)
-	{
-		throw handshake_error{e.what()};
-	}
+	handshake(address, tcp_only, headset_keypair, model_name, pin_enter);
 }
