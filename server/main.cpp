@@ -133,13 +133,6 @@ static bool pressure_vessel_openxr_support()
 	return pv_var and pv_var == std::string_view("1");
 }
 
-static void append_delim(std::string & to, std::string_view what, char delim)
-{
-	if (not to.empty())
-		to += delim;
-	to += what;
-}
-
 // search for the directory in path named needle
 // with d = /a/b/c/d/e and needle = c
 // return /a/b/c
@@ -159,7 +152,7 @@ static std::string steam_command()
 	std::string command;
 
 	if (not pressure_vessel_openxr_support())
-		command = "PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1";
+		command = "PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1 ";
 
 	std::string_view home{"\0", 1};
 	if (auto h = std::getenv("HOME"))
@@ -169,13 +162,13 @@ static std::string steam_command()
 	{
 		// /usr cannot be shared in pressure vessel container
 		if (p.starts_with("/usr"))
-			append_delim(command, " VR_OVERRIDE=/run/host" + p, ' ');
+			command += "VR_OVERRIDE=/run/host" + p + ' ';
 		else if (p.starts_with("/var") and not p.starts_with(home))
-			append_delim(command, "PRESSURE_VESSEL_FILESYSTEMS_RW=" + find_dir(p, "io.github.wivrn.wivrn").string(), ' ');
+			command += "PRESSURE_VESSEL_FILESYSTEMS_RW=" + find_dir(p, "io.github.wivrn.wivrn").string() + ' ';
 	}
 
 	if (not command.empty())
-		command += " %command%";
+		command += "%command%";
 
 	return command;
 }
