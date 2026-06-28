@@ -198,6 +198,7 @@ struct pico_client
 	void setup_decoders();
 	void setup_audio();
 	bool connect_to_server();
+	void try_connect();
 	void send_headset_info();
 	void network_loop();
 	void tracking_loop();
@@ -859,6 +860,30 @@ void pico_client::send_headset_info()
 		info.supported_codecs.size());
 }
 
+void pico_client::try_connect()
+{
+	if (session || server_host.empty())
+		return;
+
+	if (!connect_to_server())
+		return;
+
+	try
+	{
+		send_headset_info();
+		network_thread = std::thread([] { g_client->network_loop(); });
+		tracking_thread = std::thread([] { g_client->tracking_loop(); });
+	}
+	catch (std::exception & e)
+	{
+		spdlog::error("Failed to start client: {}", e.what());
+	}
+	catch (...)
+	{
+		spdlog::error("Failed to start client: unknown exception");
+	}
+}
+
 } // anonymous namespace
 
 static std::optional<std::string> get_server_uri_from_intent(JNIEnv * env, jobject intent)
@@ -1037,26 +1062,7 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnResume(JNIE
 	if (!g_client)
 		return;
 
-	if (!g_client->session && !g_client->server_host.empty())
-	{
-		if (g_client->connect_to_server())
-		{
-			try
-			{
-				g_client->send_headset_info();
-				g_client->network_thread = std::thread([] { g_client->network_loop(); });
-				g_client->tracking_thread = std::thread([] { g_client->tracking_loop(); });
-			}
-			catch (std::exception & e)
-			{
-				spdlog::error("Failed to start client: {}", e.what());
-			}
-			catch (...)
-			{
-				spdlog::error("Failed to start client: unknown exception");
-			}
-		}
-	}
+	g_client->try_connect();
 
 	g_client->running = true;
 	spdlog::info("nativeResume");
@@ -1082,6 +1088,8 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnNewIntent(J
 			g_client->pairing_pin = *pin;
 			spdlog::info("PIN from new intent URI: {}", *pin);
 		}
+
+		g_client->try_connect();
 	}
 }
 
