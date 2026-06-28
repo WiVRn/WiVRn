@@ -166,6 +166,8 @@ struct pico_client
 
 	std::thread network_thread;
 	std::thread tracking_thread;
+	std::thread connect_thread;
+	std::mutex connect_mutex;
 
 	// Current frame tracking data (from Java callbacks)
 	std::mutex frame_mutex;
@@ -189,6 +191,8 @@ struct pico_client
 		shutdown = true;
 		running = false;
 
+		if (connect_thread.joinable())
+			connect_thread.join();
 		if (network_thread.joinable())
 			network_thread.join();
 		if (tracking_thread.joinable())
@@ -865,23 +869,33 @@ void pico_client::try_connect()
 	if (session || server_host.empty())
 		return;
 
-	if (!connect_to_server())
-		return;
+	std::lock_guard lock(connect_mutex);
+	if (connect_thread.joinable())
+	{
+		if (session)
+			return;
+		connect_thread.join();
+	}
 
-	try
-	{
-		send_headset_info();
-		network_thread = std::thread([] { g_client->network_loop(); });
-		tracking_thread = std::thread([] { g_client->tracking_loop(); });
-	}
-	catch (std::exception & e)
-	{
-		spdlog::error("Failed to start client: {}", e.what());
-	}
-	catch (...)
-	{
-		spdlog::error("Failed to start client: unknown exception");
-	}
+	connect_thread = std::thread([this] {
+		if (!connect_to_server())
+			return;
+
+		try
+		{
+			send_headset_info();
+			network_thread = std::thread([] { g_client->network_loop(); });
+			tracking_thread = std::thread([] { g_client->tracking_loop(); });
+		}
+		catch (std::exception & e)
+		{
+			spdlog::error("Failed to start client: {}", e.what());
+		}
+		catch (...)
+		{
+			spdlog::error("Failed to start client: unknown exception");
+		}
+	});
 }
 
 } // anonymous namespace
