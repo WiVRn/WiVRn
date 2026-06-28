@@ -91,8 +91,11 @@ struct pico_client
 	int eye_height = 2048;
 	bool gl_initialized = false;
 
-	// FOV
-	XrFovf eye_fov[2]{};
+	// Pico Neo 2: 101 deg FOV, 50.50 deg per side (https://vr-compare.com/headset/piconeo2)
+	XrFovf eye_fov[2]{
+		XrFovf{-0.8814f, 0.8814f, 0.8814f, -0.8814f},
+		XrFovf{-0.8814f, 0.8814f, 0.8814f, -0.8814f},
+	};
 
 	// Tracking control
 	std::mutex tracking_mutex;
@@ -1276,16 +1279,9 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnInitGL(JNIE
 	g_client->eye_width = w;
 	g_client->eye_height = h;
 
-	// Default FOV for Pico Neo 2
-	for (int i = 0; i < 2; i++)
-	{
-		g_client->eye_fov[i] = XrFovf{
-			.angleLeft = -1.05f,
-			.angleRight = 1.05f,
-			.angleUp = 1.05f,
-			.angleDown = -1.05f,
-		};
-	}
+	spdlog::warn("nativeInitGL: FOV L={:.4f} R={:.4f} U={:.4f} D={:.4f}",
+		g_client->eye_fov[0].angleLeft, g_client->eye_fov[0].angleRight,
+		g_client->eye_fov[0].angleUp, g_client->eye_fov[0].angleDown);
 
 	g_client->blit_pipeline.init(w, h);
 	load_egl_procs();

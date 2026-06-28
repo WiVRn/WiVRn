@@ -24,6 +24,7 @@ target_sources(wivrn-neo2 PRIVATE
 
 target_include_directories(wivrn-neo2 PRIVATE
     ${CMAKE_SOURCE_DIR}/common
+    ${CMAKE_SOURCE_DIR}/external/pico-native-sdk/include
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
