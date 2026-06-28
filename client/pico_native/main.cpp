@@ -1096,7 +1096,9 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnOnFrameBegi
 	env->GetFloatArrayRegion(headPos, 0, 3, head_p);
 
 	static int frame_begin_count = 0;
-	bool log_this_frame = (++frame_begin_count % 600 == 1);
+	bool log_this_frame = (++frame_begin_count % 60 == 1);
+	if (log_this_frame)
+		spdlog::warn("onFrameBegin #{}: pos=({:.3f},{:.3f},{:.3f})", frame_begin_count, head_p[0], head_p[1], head_p[2]);
 
 	{
 		std::lock_guard lock(g_client->frame_mutex);
