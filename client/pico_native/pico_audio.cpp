@@ -65,7 +65,7 @@ int32_t pico_audio::speaker_data_cb(AAudioStream * stream, void * userdata, void
 #endif
 				self->speaker_tmp.payload = std::span(self->speaker_tmp.data.c.get(), target);
 				self->buffer_size_bytes += target;
-				spdlog::debug("Audio underrun, add {} bytes", target);
+				// spdlog::debug("Audio underrun, add {} bytes", target);
 			}
 		}
 	}

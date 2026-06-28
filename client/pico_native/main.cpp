@@ -1096,7 +1096,7 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnOnFrameBegi
 	env->GetFloatArrayRegion(headPos, 0, 3, head_p);
 
 	static int frame_begin_count = 0;
-	bool log_this_frame = (++frame_begin_count % 60 == 1);
+	bool log_this_frame = (++frame_begin_count % 600 == 1);
 
 	{
 		std::lock_guard lock(g_client->frame_mutex);
@@ -1254,10 +1254,8 @@ JNIEXPORT void JNICALL Java_org_meumeu_wivrn_MainActivity_nativeWivrnDrawEye(JNI
 	}
 
 	static int draw_count = 0;
-	if (++draw_count % 100 == 0)
-		spdlog::warn("DrawEye {}: tex={}, decoded_valid={}", eye, tex, decoded ? decoded->valid : false);
-	else if (tex != 0)
-		spdlog::warn("DrawEye {}: tex={} (first render)", eye, tex);
+	if (++draw_count % 300 == 0)
+		spdlog::info("DrawEye {}: tex={}, decoded_valid={}", eye, tex, decoded ? decoded->valid : false);
 
 	g_client->blit_pipeline.draw(eye, tex);
 }
