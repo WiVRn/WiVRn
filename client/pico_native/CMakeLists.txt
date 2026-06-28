@@ -5,10 +5,19 @@ set(DYNAMIC_LOADER ON)
 FetchContent_MakeAvailable(spdlog openxr_loader)
 
 # PvrSDK-Native library (from AAR)
+set(PVR_LIB_PATH ${CMAKE_SOURCE_DIR}/external/pvrsdk-native/jni/${ANDROID_ABI}/libPvr_NativeSDK.so)
+if(NOT EXISTS ${PVR_LIB_PATH})
+    message(FATAL_ERROR
+        "PvrSDK-Native not found.\n"
+        "The Pico Neo 2 SDK is required to build the Pico native client.\n"
+        "Download it from https://developer.picoxr.com/ (PvrSDK-Native 2.8.5.4 or compatible)\n"
+        "and extract to external/pvrsdk-native/ so that the path matches:\n"
+        "  external/pvrsdk-native/jni/${ANDROID_ABI}/libPvr_NativeSDK.so"
+    )
+endif()
 add_library(Pvr_NativeSDK SHARED IMPORTED)
 set_target_properties(Pvr_NativeSDK PROPERTIES
-    IMPORTED_LOCATION
-        ${CMAKE_SOURCE_DIR}/external/pvrsdk-native/jni/${ANDROID_ABI}/libPvr_NativeSDK.so
+    IMPORTED_LOCATION ${PVR_LIB_PATH}
 )
 
 # Client module

@@ -20,6 +20,24 @@ allprojects {
 
 apply plugin: 'com.android.application'
 
+// Check for PvrSDK-Native AAR
+def pvrAar = file('../../external/pvrsdk-native/PvrSDK-Native-release.aar')
+if (!pvrAar.exists()) {
+    throw new GradleException(
+        "\n\n" +
+        "PvrSDK-Native not found.\n" +
+        "The Pico Neo 2 SDK is required to build the Pico native client.\n\n" +
+        "Steps:\n" +
+        "  1. Register at https://developer.picoxr.com/\n" +
+        "  2. Download the Android Native SDK for Pico Neo 2\n" +
+        "     (PvrSDK-Native version 2.8.5.4 or compatible)\n" +
+        "  3. Extract PvrSDK-Native-release.aar from the SDK package\n" +
+        "  4. Place it at external/pvrsdk-native/PvrSDK-Native-release.aar\n" +
+        "  5. Also extract the jni/ directory so the path matches:\n" +
+        "     external/pvrsdk-native/jni/arm64-v8a/libPvr_NativeSDK.so\n\n"
+    )
+}
+
 android {
     namespace = "org.meumeu.wivrn.neo2"
     ndkVersion = "28.2.13676358"
