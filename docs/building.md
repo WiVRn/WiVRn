@@ -21,7 +21,6 @@ It is possible to disable specific encoders, by adding options
 Force specific audio backends
 ```
 -DWIVRN_USE_PIPEWIRE=ON
--DWIVRN_USE_PULSEAUDIO=ON
 ```
 
 Systemd service and pretty hostname support

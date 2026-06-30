@@ -60,7 +60,6 @@ option(WIVRN_USE_VULKAN_ENCODE "Enable vulkan video encoder" ON)
 option(WIVRN_USE_X264 "Enable x264 software encoder" ON)
 
 option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" ON)
-option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" OFF)
 
 set(OVR_COMPAT_SEARCH_PATH "/opt/xrizer:/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite:/opt/VapoR:/usr/local/lib/VapoR"
     CACHE STRING "List of places to search for the OpenVR compatibility layer, separated by :")
@@ -147,10 +146,6 @@ if (WIVRN_BUILD_SERVER)
 
     if (WIVRN_USE_PIPEWIRE)
         pkg_check_modules(libpipewire REQUIRED IMPORTED_TARGET libpipewire-0.3)
-    endif()
-
-    if (WIVRN_USE_PULSEAUDIO)
-        pkg_check_modules(libpulse REQUIRED IMPORTED_TARGET libpulse)
     endif()
 
     pkg_check_modules(AVAHI REQUIRED IMPORTED_TARGET avahi-client avahi-glib)
@@ -322,7 +317,6 @@ if (WIVRN_BUILD_SERVER OR WIVRN_BUILD_SERVER_LIBRARY)
         message(STATUS "")
         message(STATUS "Audio backends:")
         message(STATUS "\tPipewire  : ${WIVRN_USE_PIPEWIRE}")
-        message(STATUS "\tPulseaudio: ${WIVRN_USE_PULSEAUDIO}")
         message(STATUS "")
         message(STATUS "Optional features:")
         message(STATUS "\tsystemd: ${WIVRN_USE_SYSTEMD}")

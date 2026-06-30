@@ -25,7 +25,6 @@ Build-Depends:
  libglx-dev,
  libnotify-dev,
  libpipewire-0.3-dev,
- libpulse-dev,
  libswscale-dev,
  libsystemd-dev,
  libudev-dev,

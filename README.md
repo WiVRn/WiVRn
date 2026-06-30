@@ -119,7 +119,7 @@ flatpak override \
 When using a user installation of flatpak Steam, use `override --user` instead of `override`.
 
 ### Audio
-When the headset is connected, WiVRn will create a virtual output device simply named "WiVRn. You must manually set this audio output to enabled/default. Please note that in `pavucontrol` it will appear as a virtual device.
+When the headset is connected, WiVRn will create a virtual output device simply named "WiVRn. You must manually set this audio output to enabled/default. Please note that in `wpctl` it will appear as a virtual device.
 
 To enable microphone, you first have to enable it on the settings tab on the VR headset (and give permission when prompted). It should appear as a virtual input device named "WiVRn(microphone)", and needs to be assigned as the input device (same way as output device).
 
