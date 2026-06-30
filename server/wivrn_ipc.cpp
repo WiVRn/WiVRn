@@ -78,7 +78,7 @@ void run_cleanup_functions()
 	if (std::ranges::all_of(*cleanup_functions, [](auto & i) { return i.callback == nullptr; }))
 		return;
 
-	// Fork because pulseaudio doesn't like being initialized in the parent and the child
+	// Fork because the audio backend doesn't like being initialized in the parent and the child
 	// of a fork, and ipc_server_main() is called in a child process
 	pid_t child = fork();
 
