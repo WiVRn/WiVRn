@@ -20,87 +20,9 @@
 #include "wivrn_ipc.h"
 #include "driver/wivrn_connection.h"
 
-#include <algorithm>
-#include <sys/mman.h>
-#include <sys/wait.h>
-
 std::unique_ptr<wivrn::wivrn_connection> connection;
-
-struct cleanup_function
-{
-	void (*callback)(uintptr_t);
-	uintptr_t userdata;
-};
-
-std::array<cleanup_function, 1024> * cleanup_functions; // In shared memory
 
 std::optional<to_monado::packets> receive_from_main()
 {
 	return wivrn_ipc_socket_monado->receive();
-}
-
-void init_cleanup_functions()
-{
-	if (cleanup_functions)
-		munmap(cleanup_functions, sizeof(*cleanup_functions));
-	cleanup_functions = (decltype(cleanup_functions))mmap(nullptr, sizeof(*cleanup_functions), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, 0, 0);
-
-	std::fill(cleanup_functions->begin(), cleanup_functions->end(), cleanup_function{});
-}
-
-void add_cleanup_function(void (*callback)(uintptr_t), uintptr_t userdata)
-{
-	for (auto & i: *cleanup_functions)
-	{
-		if (i.callback == nullptr)
-		{
-			i = {callback, userdata};
-			return;
-		}
-	}
-}
-
-void remove_cleanup_function(void (*callback)(uintptr_t), uintptr_t userdata)
-{
-	for (auto & i: *cleanup_functions)
-	{
-		if (i.callback == callback && i.userdata == userdata)
-		{
-			i = {};
-			return;
-		}
-	}
-}
-
-void run_cleanup_functions()
-{
-	// Don't fork if cleanup_functions is empty
-	if (std::ranges::all_of(*cleanup_functions, [](auto & i) { return i.callback == nullptr; }))
-		return;
-
-	// Fork because the audio backend doesn't like being initialized in the parent and the child
-	// of a fork, and ipc_server_main() is called in a child process
-	pid_t child = fork();
-
-	if (child < 0)
-	{
-		perror("fork");
-	}
-	else if (child == 0)
-	{
-		for (auto & i: *cleanup_functions)
-		{
-			if (i.callback)
-			{
-				i.callback(i.userdata);
-			}
-			i = {};
-		}
-		exit(0);
-	}
-	else if (child > 0)
-	{
-		int wstatus = 0;
-		waitpid(child, &wstatus, 0);
-	}
 }

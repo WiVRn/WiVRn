@@ -416,8 +416,6 @@ gboolean headset_connected_success(void *)
 	if (enc_state == wivrn_connection::encryption_state::pairing)
 		set_encryption_state(wivrn_connection::encryption_state::enabled);
 
-	init_cleanup_functions();
-
 	std::cerr << "Client connected" << std::endl;
 
 	expose_known_keys_on_dbus();
