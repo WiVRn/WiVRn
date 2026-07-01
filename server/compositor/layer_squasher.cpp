@@ -44,6 +44,7 @@
 #include "util/comp_layer_accum.h"
 #include "util/comp_render_helpers.h"
 
+#include <algorithm>
 #include <array>
 #include <format>
 #include <ranges>
@@ -93,7 +94,8 @@ struct pose_data
 		// Except if it's not for the right frame, as it would make quads stutter
 		int64_t predicted_display_time_ns = frame.predicted_display_time_ns;
 		int64_t cutoff_ns = 3 * frame_interval_ns;
-		if (proj and llabs(predicted_display_time_ns - proj->data.timestamp) <= cutoff_ns)
+		const bool use_proj_view = proj and llabs(predicted_display_time_ns - proj->data.timestamp) <= cutoff_ns;
+		if (use_proj_view)
 		{
 			// depth has the same first member as proj
 			for (auto [i, data]: std::ranges::enumerate_view(proj->data.proj.v))
@@ -103,7 +105,12 @@ struct pose_data
 				eye_poses[i] = data.pose;
 			}
 		}
-		else
+
+		if (
+		        (not use_proj_view) or
+		        std::ranges::any_of(
+		                std::span(layers.layers, layers.layer_count),
+		                [](const auto & layer) { return is_layer_view_space(&layer.data); }))
 		{
 			xrt_space_relation head_rel;
 			hmd.get_view_poses(
@@ -114,15 +121,18 @@ struct pose_data
 			        &head_rel,
 			        fovs.data(),
 			        eye_poses.data());
-			for (uint32_t i = 0; i < view_count; ++i)
+			if (not use_proj_view)
 			{
-				xrt_relation_chain xrc{};
-				xrt_space_relation rel = XRT_SPACE_RELATION_ZERO;
+				for (uint32_t i = 0; i < view_count; ++i)
+				{
+					xrt_relation_chain xrc{};
+					xrt_space_relation rel = XRT_SPACE_RELATION_ZERO;
 
-				m_relation_chain_push_pose_if_not_identity(&xrc, &eye_poses[i]);
-				m_relation_chain_push_relation(&xrc, &head_rel);
-				m_relation_chain_resolve(&xrc, &rel);
-				world_poses[i] = rel.pose;
+					m_relation_chain_push_pose_if_not_identity(&xrc, &eye_poses[i]);
+					m_relation_chain_push_relation(&xrc, &head_rel);
+					m_relation_chain_resolve(&xrc, &rel);
+					world_poses[i] = rel.pose;
+				}
 			}
 		}
 	}
