@@ -172,6 +172,11 @@ jobs:
       with:
         manifest-path: flatpak/io.github.wivrn.wivrn.yml
         bundle: wivrn-server.flatpak
+        # The manifest is regenerated on every commit with the git hash embedded,
+        # so its default (manifest-hash) cache key never hits. Key on the files
+        # that actually define the dependency set instead, so the toolchain
+        # downloads and build cache persist across commits.
+        cache-key: flatpak-builder-${{ hashFiles('flatpak/io.github.wivrn.wivrn.yml.in', 'flatpak/ct-ng-x86_64.config', 'flatpak/ct-ng-aarch64.config', 'monado-rev', 'CMakeLists.txt') }}
 
     - name: Debug bundle
       uses: actions/upload-artifact@v7
