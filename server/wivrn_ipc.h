@@ -82,8 +82,3 @@ void send_to_main(T packet)
 {
 	wivrn_ipc_socket_monado->send(std::move(packet));
 }
-
-void init_cleanup_functions();
-void add_cleanup_function(void (*callback)(uintptr_t), uintptr_t userdata);
-void remove_cleanup_function(void (*callback)(uintptr_t), uintptr_t userdata);
-void run_cleanup_functions();
