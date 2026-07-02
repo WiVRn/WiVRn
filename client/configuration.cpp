@@ -180,6 +180,15 @@ configuration::configuration(xr::system & system, xr::session & session)
 		if (auto val = root["mic_unprocessed_audio"]; val.is_bool())
 			mic_unprocessed_audio = val.get_bool();
 
+		if (auto val = root["forward_keyboard"]; val.is_bool())
+			forward_keyboard = val.get_bool();
+
+		if (auto val = root["forward_mouse"]; val.is_bool())
+			forward_mouse = val.get_bool();
+
+		if (auto val = root["forward_gamepad"]; val.is_bool())
+			forward_gamepad = val.get_bool();
+
 		if (auto val = root["fb_lower_body"]; val.is_bool())
 			fb_lower_body = val.get_bool();
 		if (auto val = root["fb_hip"]; val.is_bool())
@@ -296,6 +305,9 @@ void configuration::save()
 	write_openxr_post_processing(json, openxr_post_processing);
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
 	json << ",\"mic_unprocessed_audio\":" << std::boolalpha << mic_unprocessed_audio;
+	json << ",\"forward_keyboard\":" << std::boolalpha << forward_keyboard;
+	json << ",\"forward_mouse\":" << std::boolalpha << forward_mouse;
+	json << ",\"forward_gamepad\":" << std::boolalpha << forward_gamepad;
 	json << ",\"fb_lower_body\":" << std::boolalpha << fb_lower_body;
 	json << ",\"fb_hip\":" << std::boolalpha << fb_hip;
 	json << ",\"enable_stream_gui\":" << std::boolalpha << enable_stream_gui;

@@ -123,6 +123,7 @@ if (WIVRN_BUILD_SERVER)
 			driver/wivrn_hmd.cpp
 			driver/wivrn_controller.cpp
 			driver/wivrn_eye_tracker.cpp
+			driver/wivrn_gamepad.cpp
 			driver/wivrn_android_face_tracker.cpp
 			driver/wivrn_fb_face2_tracker.cpp
 			driver/wivrn_htc_face_tracker.cpp
