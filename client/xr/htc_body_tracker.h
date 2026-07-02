@@ -49,9 +49,10 @@ class htc_body_tracker
 	std::vector<vive_xr_tracker> trackers;
 
 public:
+	using packet_type = wivrn::from_headset::htc_body;
 	htc_body_tracker(session & s, std::vector<std::pair<XrPath, xr::space>> & trackers);
 
 	void update_active();
-	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> locate_spaces(XrTime time, XrSpace reference);
+	packet_type locate_spaces(XrTime time, XrSpace reference);
 };
 } // namespace xr

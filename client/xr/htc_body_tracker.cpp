@@ -19,8 +19,10 @@
  */
 
 #include "htc_body_tracker.h"
+#include "wivrn_packets.h"
 #include "xr/details/enumerate.h"
 #include "xr/session.h"
+#include "xr/to_string.h"
 #include <openxr/openxr.h>
 
 // Note: This utilizes extensions not present in the OpenXR spec!
@@ -57,7 +59,7 @@ XrSpace xr::vive_xr_tracker::get_space() const
 	return space;
 }
 
-static wivrn::from_headset::body_tracking::pose locate_space(XrSpace space, XrSpace reference, XrTime time)
+static wivrn::from_headset::htc_body::pose locate_space(XrSpace space, XrSpace reference, XrTime time)
 {
 	XrSpaceVelocity velocity{
 	        .type = XR_TYPE_SPACE_VELOCITY,
@@ -68,24 +70,18 @@ static wivrn::from_headset::body_tracking::pose locate_space(XrSpace space, XrSp
 	        .next = &velocity,
 	};
 
-	xrLocateSpace(space, reference, time, &location);
+	if (auto res = xrLocateSpace(space, reference, time, &location); !XR_SUCCEEDED(res))
+	{
+		spdlog::warn("xrLocateSpace failed for HTC body tracker: {}", xr::to_string(res));
+		return {};
+	}
 
-	wivrn::from_headset::body_tracking::pose res{
+	wivrn::from_headset::htc_body::pose res{
 	        .pose = location.pose,
-	        .flags = 0,
+	        .linear_velocity = velocity.linearVelocity,
+	        .angular_velocity = velocity.angularVelocity,
+	        .flags = wivrn::from_headset::to_pose_flags(location.locationFlags, velocity.velocityFlags),
 	};
-
-	if (location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-		res.flags |= wivrn::from_headset::body_tracking::orientation_valid;
-
-	if (location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-		res.flags |= wivrn::from_headset::body_tracking::position_valid;
-
-	if (location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-		res.flags |= wivrn::from_headset::body_tracking::orientation_tracked;
-
-	if (location.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-		res.flags |= wivrn::from_headset::body_tracking::position_tracked;
 
 	return res;
 }
@@ -104,22 +100,19 @@ void xr::htc_body_tracker::update_active()
 		tracker.update_active(s);
 }
 
-std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> xr::htc_body_tracker::locate_spaces(XrTime time, XrSpace reference)
+xr::htc_body_tracker::packet_type xr::htc_body_tracker::locate_spaces(XrTime time, XrSpace reference)
 {
-	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> poses{};
+	xr::htc_body_tracker::packet_type ret{};
 
-	for (int i = 0; i < trackers.size(); i++)
+	for (size_t i = 0; i < trackers.size(); i++)
 	{
 		auto & tracker = trackers[i];
-		wivrn::from_headset::body_tracking::pose pose{
-		        .pose = {},
-		        .flags = 0,
-		};
+		wivrn::from_headset::htc_body::pose pose{};
 		if (tracker.get_active())
 			pose = locate_space(tracker.get_space(), reference, time);
 
-		poses[i] = pose;
+		ret.poses[i] = pose;
 	}
 
-	return poses;
+	return ret;
 }

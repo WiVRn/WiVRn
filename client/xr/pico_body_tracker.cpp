@@ -18,12 +18,11 @@
 
 #include "pico_body_tracker.h"
 #include "spdlog/spdlog.h"
+#include "wivrn_packets.h"
 #include "xr/instance.h"
 #include "xr/session.h"
 #include "xr/to_string.h"
 #include <openxr/openxr.h>
-
-static_assert(xr::pico_body_tracker::joint_whitelist.size() <= wivrn::from_headset::body_tracking::max_tracked_poses);
 
 xr::pico_body_tracker::pico_body_tracker(instance & inst, session & s) :
         handle(inst.get_proc<PFN_xrDestroyBodyTrackerBD>("xrDestroyBodyTrackerBD"))
@@ -41,10 +40,11 @@ xr::pico_body_tracker::pico_body_tracker(instance & inst, session & s) :
 	CHECK_XR(xrCreateBodyTrackerBD(s, &create_info, &id));
 }
 
-std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> xr::pico_body_tracker::locate_spaces(XrTime time, XrSpace reference)
+xr::pico_body_tracker::packet_type xr::pico_body_tracker::locate_spaces(XrTime time, XrSpace reference)
 {
+	xr::pico_body_tracker::packet_type ret{};
 	if (!xrLocateBodyJointsBD)
-		return std::nullopt;
+		return ret;
 
 	XrBodyJointsLocateInfoBD locate_info{
 	        .type = XR_TYPE_BODY_JOINTS_LOCATE_INFO_BD,
@@ -64,29 +64,19 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 	if (auto res = xrLocateBodyJointsBD(id, &locate_info, &joint_locations); !XR_SUCCEEDED(res))
 	{
 		spdlog::warn("Unable to get body joints: xrLocateBodyJointsBD returned {}", xr::to_string(res));
-		return std::nullopt;
+		return ret;
 	}
 
-	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> poses{};
-	int num_poses = 0;
-	for (auto joint: joint_whitelist)
+	ret.all_tracked = joint_locations.allJointPosesTracked;
+	for (size_t joint = XR_BODY_JOINT_PELVIS_BD; joint < XR_BODY_JOINT_COUNT_BD; joint++)
 	{
-		const auto & joint_loc = joints[joint];
-		wivrn::from_headset::body_tracking::pose pose{
-		        .pose = joint_loc.pose,
-		        .flags = 0,
+		auto & joint_loc = joints[joint];
+		ret.joints[joint] = {
+		        .position = joint_loc.pose.position,
+		        .orientation = pack(joint_loc.pose.orientation),
+		        .flags = wivrn::from_headset::to_pose_flags(joint_loc.locationFlags),
 		};
-
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-			pose.flags |= wivrn::from_headset::body_tracking::orientation_valid;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-			pose.flags |= wivrn::from_headset::body_tracking::position_valid;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-			pose.flags |= wivrn::from_headset::body_tracking::orientation_tracked;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-			pose.flags |= wivrn::from_headset::body_tracking::position_tracked;
-
-		poses[num_poses++] = pose;
 	}
-	return poses;
+
+	return ret;
 }

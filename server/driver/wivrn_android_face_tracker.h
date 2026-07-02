@@ -49,7 +49,7 @@ struct wivrn_android_face_data
 class android_face_list : public history<android_face_list, wivrn_android_face_data>
 {
 public:
-	static wivrn_android_face_data interpolate(const wivrn_android_face_data & a, const wivrn_android_face_data & b, float t)
+	wivrn_android_face_data interpolate(const wivrn_android_face_data & a, const wivrn_android_face_data & b, float t)
 	{
 		if (not a.is_valid)
 		{

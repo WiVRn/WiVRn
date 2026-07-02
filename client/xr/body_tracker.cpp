@@ -18,18 +18,19 @@
 
 #include "body_tracker.h"
 
+#include "xr/fb_body_tracker.h"
 #include "xr/htc_exts.h"
 #include "xr/instance.h"
 #include "xr/system.h"
+#include <openxr/openxr.h>
 
 xr::body_tracker_type xr::body_tracker_supported(xr::instance & instance, xr::system & system)
 {
-	if (instance.has_extension(XR_FB_BODY_TRACKING_EXTENSION_NAME) and
-	    instance.has_extension(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME) and
-	    instance.has_extension(XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME))
+	if (instance.has_extension(XR_FB_BODY_TRACKING_EXTENSION_NAME))
 	{
-		auto fb_body_properties = system.fb_body_tracking_properties();
-		if (fb_body_properties.supportsBodyTracking)
+		if (instance.has_extension(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME) and system.meta_body_tracking_properties().supportsFullBodyTracking)
+			return body_tracker_type::meta;
+		if (system.fb_body_tracking_properties().supportsBodyTracking)
 			return body_tracker_type::fb;
 	}
 
@@ -47,33 +48,33 @@ xr::body_tracker_type xr::body_tracker_supported(xr::instance & instance, xr::sy
 	return xr::body_tracker_type::none;
 }
 
-xr::body_tracker xr::make_body_tracker(xr::instance & instance, xr::system & system, xr::session & session, std::vector<std::pair<XrPath, xr::space>> & generic_trackers, bool full_body, bool hips)
+xr::body_tracker xr::make_body_tracker(xr::instance & instance, xr::system & system, xr::session & session, std::vector<std::pair<XrPath, xr::space>> & generic_trackers)
 {
-	if (instance.has_extension(XR_FB_BODY_TRACKING_EXTENSION_NAME) and
-	    instance.has_extension(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME) and
-	    instance.has_extension(XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME))
+	switch (body_tracker_supported(instance, system))
 	{
-		auto fb_body_properties = system.fb_body_tracking_properties();
-		if (fb_body_properties.supportsBodyTracking)
+		case body_tracker_type::meta:
 			return xr::body_tracker(std::in_place_type_t<xr::fb_body_tracker>(),
 			                        instance,
 			                        session,
-			                        full_body,
-			                        hips);
-	}
-
-	if (not generic_trackers.empty())
-		return xr::body_tracker(std::in_place_type_t<xr::htc_body_tracker>(),
-		                        session,
-		                        generic_trackers);
-
-	if (instance.has_extension(XR_BD_BODY_TRACKING_EXTENSION_NAME))
-	{
-		auto bd_body_properties = system.bd_body_tracking_properties();
-		if (bd_body_properties.supportsBodyTracking)
+			                        true);
+		case body_tracker_type::fb:
+			return xr::body_tracker(std::in_place_type_t<xr::fb_body_tracker>(),
+			                        instance,
+			                        session,
+			                        false);
+		case body_tracker_type::pico:
 			return xr::body_tracker(std::in_place_type_t<xr::pico_body_tracker>(),
 			                        instance,
 			                        session);
+		case body_tracker_type::htc:
+			if (not generic_trackers.empty())
+				return xr::body_tracker(std::in_place_type_t<xr::htc_body_tracker>(),
+				                        session,
+				                        generic_trackers);
+
+			break;
+		default:
+			break;
 	}
 
 	return std::monostate();
