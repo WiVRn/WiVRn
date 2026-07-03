@@ -375,7 +375,7 @@ void foveation::compute_params()
 			fill_param_2d(center, foveated_size.width, extent_w, params[i].x);
 		}
 		else
-			params[i].x = {uint16_t(last.src[i].extent.w)};
+			params[i].x = {uint16_t(extent_w)};
 
 		size_t extent_h = std::abs(last.src[i].extent.h);
 		if (foveated_size.height < extent_h)
@@ -390,7 +390,7 @@ void foveation::compute_params()
 			fill_param_2d(center, foveated_size.height, extent_h, params[i].y);
 		}
 		else
-			params[i].y = {uint16_t(last.src[i].extent.h)};
+			params[i].y = {uint16_t(extent_h)};
 	}
 }
 
@@ -476,8 +476,7 @@ static void fill_ubo(
 		const int n_source = std::abs(n_ratio - int(i)) + 1;
 		for (size_t j = 0; j < n; ++j)
 		{
-			if (count <= 0)
-				break;
+			assert(count > 0);
 			if (flip)
 				ubo[1] = ubo[0] - n_source;
 			else
@@ -485,8 +484,6 @@ static void fill_ubo(
 			ubo = ubo.subspan(1);
 			--count;
 		}
-		if (count <= 0)
-			break;
 	}
 	if (not ubo.empty())
 		std::ranges::fill(ubo, ubo[0]);
