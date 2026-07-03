@@ -357,7 +357,7 @@ void foveation::compute_params()
 			fill_param_2d(center, foveated_size.width, extent_w, params[i].x);
 		}
 		else
-			params[i].x = {uint16_t(last.src[i].extent.w)};
+			params[i].x = {uint16_t(extent_w)};
 
 		size_t extent_h = std::abs(last.src[i].extent.h);
 		if (foveated_size.height < extent_h)
@@ -372,7 +372,7 @@ void foveation::compute_params()
 			fill_param_2d(center, foveated_size.height, extent_h, params[i].y);
 		}
 		else
-			params[i].y = {uint16_t(last.src[i].extent.h)};
+			params[i].y = {uint16_t(extent_h)};
 	}
 }
 
