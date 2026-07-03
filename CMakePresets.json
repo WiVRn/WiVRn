@@ -84,6 +84,15 @@
 			}
 		},
 		{
+			"name": "profiling",
+			"displayName": "Server (tracing, all encoders) + client, for encoder profiling",
+			"inherits": "server-tracing",
+			"binaryDir": "${sourceDir}/build-profiling",
+			"cacheVariables": {
+				"WIVRN_BUILD_CLIENT": "ON"
+			}
+		},
+		{
 			"name": "dashboard",
 			"displayName": "Dashboard only",
 			"inherits": "base",
@@ -165,6 +174,11 @@
 		"displayName": "Build and install",
 		"configurePreset": "everything",
 		"targets": "install"
+		},
+		{
+		"name": "profiling",
+		"displayName": "Build server (tracing) + client for encoder profiling",
+		"configurePreset": "profiling"
 		}
 	]
 }
