@@ -19,6 +19,7 @@
 
 #include "hmd_traits.h"
 
+#include "utils/strings.h"
 #include "xr/to_string.h"
 
 #include <cassert>
@@ -203,8 +204,28 @@ void hmd_traits::init()
 	{
 		// Accepts OpenXR 1.1 but doesn't actually implement it
 		max_openxr_api_version = XR_API_VERSION_1_0;
+
 		// Doesn't handle additive blend, so needs specific ray model
-		controller_ray_model = "assets://ray-htc.glb";
+		// Fixed in XR elite firmware version 2.0
+		bool need_htc_ray = true;
+		const auto version = get_property("ro.product.version");
+		if (version)
+		{
+			auto digits = utils::split(*version, ".");
+			if (not digits.empty())
+			{
+				try
+				{
+					auto major = std::stoi(digits[0]);
+					if (major >= 2 and model == "VIVE XR Series")
+						need_htc_ray = false;
+				}
+				catch (...)
+				{}
+			}
+		}
+		if (need_htc_ray)
+			controller_ray_model = "assets://ray-htc.glb";
 
 		controller_profile = "htc-vive-focus-3";
 
