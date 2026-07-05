@@ -57,7 +57,7 @@ static std::optional<std::string> get_property(const char * property)
 static std::optional<std::string> env_string(std::string_view name)
 {
 #ifdef __ANDROID__
-	auto android_sysprop_name = std::format("wivrn.debug.{}", name);
+	auto android_sysprop_name = std::format("debug.wivrn.{}", name);
 	return get_property(android_sysprop_name.c_str());
 #else
 	std::string env_name = "WIVRN_";

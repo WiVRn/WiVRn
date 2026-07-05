@@ -33,6 +33,15 @@ using hmd_permissions = magic_enum::containers::array<feature, const char *>;
 class hmd_traits
 {
 public:
+	// Properties have the defaults below
+	// The cpp file has per-headset values
+	// it is possible to override values:
+	// on Android:
+	//   adb setprop debug.wivrn.{property-name} {property-value}
+	//   i.e. adb setprop debug.wivrn.view_locate false
+	// on Linux:
+	//   export WIVRN_{PROPERTY-NAME}={property-value}
+	//   i.e. export WIVRN_VIEW_LOCATE=false
 	std::string controller_profile = "generic-trigger-squeeze";
 	std::string controller_ray_model = "assets://ray.glb";
 	hmd_permissions permissions{};
