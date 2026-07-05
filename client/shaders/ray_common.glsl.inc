@@ -133,7 +133,9 @@ void main()
             discard;
     }
 
-    out_color = vec4(mesh.emissive_factor * texture(emissive_texture, texcoord).rgb, 0);
+    // https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#fundamentals-colors
+    // alpha can't be 0 or it will zero RGB values too
+    out_color = vec4(mesh.emissive_factor * texture(emissive_texture, texcoord).rgb, 1.0 / 255.0);
 #endif // HTC_WORKAROUND
 
 }
