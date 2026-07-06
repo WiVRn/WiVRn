@@ -39,6 +39,7 @@
 #include <boost/locale.hpp>
 #include <boost/url/parse.hpp>
 #include <chrono>
+#include <cstring>
 #include <ctype.h>
 #include <exception>
 #include <magic_enum.hpp>
@@ -602,6 +603,35 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/eyes_ext/input/gaze_ext/pose",
                 },
         },
+        interaction_profile{
+                .profile_name = "/interaction_profiles/microsoft/xbox_controller",
+                .input_sources = {
+                        "/user/gamepad/input/menu/click",
+                        "/user/gamepad/input/view/click",
+                        "/user/gamepad/input/a/click",
+                        "/user/gamepad/input/b/click",
+                        "/user/gamepad/input/x/click",
+                        "/user/gamepad/input/y/click",
+                        "/user/gamepad/input/dpad_up/click",
+                        "/user/gamepad/input/dpad_down/click",
+                        "/user/gamepad/input/dpad_left/click",
+                        "/user/gamepad/input/dpad_right/click",
+                        "/user/gamepad/input/shoulder_left/click",
+                        "/user/gamepad/input/shoulder_right/click",
+                        "/user/gamepad/input/thumbstick_left/click",
+                        "/user/gamepad/input/thumbstick_right/click",
+                        "/user/gamepad/input/trigger_left/value",
+                        "/user/gamepad/input/trigger_right/value",
+                        "/user/gamepad/input/thumbstick_left/x",
+                        "/user/gamepad/input/thumbstick_left/y",
+                        "/user/gamepad/input/thumbstick_right/x",
+                        "/user/gamepad/input/thumbstick_right/y",
+                        "/user/gamepad/output/haptic_left",
+                        "/user/gamepad/output/haptic_right",
+                        "/user/gamepad/output/haptic_left_trigger",
+                        "/user/gamepad/output/haptic_right_trigger",
+                },
+        },
 };
 
 static const std::pair<std::string_view, XrActionType> action_suffixes[] =
@@ -634,11 +664,15 @@ static const std::pair<std::string_view, XrActionType> action_suffixes[] =
 		{"/ready_ext", XR_ACTION_TYPE_BOOLEAN_INPUT},
 
 		// Output paths
-		{"/haptic",           XR_ACTION_TYPE_VIBRATION_OUTPUT},
-		{"/haptic_trigger",   XR_ACTION_TYPE_VIBRATION_OUTPUT},
-		{"/haptic_trigger_fb",XR_ACTION_TYPE_VIBRATION_OUTPUT},
-		{"/haptic_thumb",     XR_ACTION_TYPE_VIBRATION_OUTPUT},
-		{"/haptic_thumb_fb",  XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic",              XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic_trigger",      XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic_trigger_fb",   XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic_thumb",        XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic_thumb_fb",     XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic_left",         XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic_right",        XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic_left_trigger", XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		{"/haptic_right_trigger",XR_ACTION_TYPE_VIBRATION_OUTPUT},
                 // clang-format on
 };
 
@@ -1717,8 +1751,10 @@ void application::run()
 		while (ALooper_pollOnce(100, nullptr, &events, (void **)&source) >= 0)
 		{
 			// Process this event.
-			if (source != nullptr)
-				source->process(app_info.native_app, source);
+			if (source == nullptr)
+				continue;
+
+			source->process(app_info.native_app, source);
 		}
 
 		if (app_info.native_app->destroyRequested)

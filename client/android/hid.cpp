@@ -249,10 +249,13 @@ bool android_hid::input_handler::handle_input(scene * current_scene, AInputEvent
 {
 	const int32_t type = AInputEvent_getType(event);
 	const int32_t src = AInputEvent_getSource(event);
-	const int32_t dev = AInputEvent_getDeviceId(event);
 
 	if (type == AINPUT_EVENT_TYPE_KEY)
 	{
+		// Gamepad input is read through the OpenXR microsoft/xbox_controller profile, not here.
+		if ((src & AINPUT_SOURCE_GAMEPAD) == AINPUT_SOURCE_GAMEPAD)
+			return false;
+
 		int32_t flags = AKeyEvent_getFlags(event);
 		if ((flags & AKEY_EVENT_FLAG_SOFT_KEYBOARD) != 0)
 			return false; // ignore soft keyboards
@@ -288,6 +291,10 @@ bool android_hid::input_handler::handle_input(scene * current_scene, AInputEvent
 
 	if (type == AINPUT_EVENT_TYPE_MOTION)
 	{
+		// Gamepad axes are read through the OpenXR microsoft/xbox_controller profile, not here.
+		if ((src & AINPUT_SOURCE_JOYSTICK) == AINPUT_SOURCE_JOYSTICK)
+			return false;
+
 		// don't care about absolute mouse due to mapping difficulties
 		if ((src & AINPUT_SOURCE_MOUSE_RELATIVE) == 0)
 			return false;
