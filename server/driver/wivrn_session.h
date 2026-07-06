@@ -30,6 +30,7 @@
 #include "wivrn_controller.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
+#include "wivrn_gamepad.h"
 #include "wivrn_generic_tracker.h"
 #include "wivrn_hmd.h"
 #include "wivrn_htc_face_tracker.h"
@@ -95,6 +96,7 @@ class wivrn_session : public xrt_system_devices
 	wivrn_controller right_hand_interaction;
 	int32_t right_hand_interaction_index;
 	std::optional<wivrn_eye_tracker> eye_tracker;
+	std::optional<wivrn_gamepad> gamepad_device;
 	std::optional<wivrn_android_face_tracker> android_face_tracker;
 	std::optional<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::optional<wivrn_htc_face_tracker> htc_face_tracker;
