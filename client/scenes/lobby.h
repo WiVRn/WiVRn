@@ -63,6 +63,10 @@ class lobby : public scene_impl<lobby>
 	std::string server_name;
 	bool autoconnect_enabled = true;
 
+	// Last known uinput forwarding state of the connected server, kept after disconnection so the
+	// settings can warn that forwarded keyboard and mouse will not reach the server.
+	std::optional<bool> server_hid_forwarding;
+
 	std::optional<input_profile> input;
 	entt::entity lobby_entity;
 

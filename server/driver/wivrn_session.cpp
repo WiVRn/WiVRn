@@ -248,10 +248,10 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		}
 		catch (...)
 		{
-			U_LOG_W("Could not initialize keyboard & mouse forwarding");
+			U_LOG_W("Could not initialize input forwarding");
 			U_LOG_W("Ensure that the uinput kernel module is loaded and your user is in the input group.");
 			wivrn_ipc_socket_monado->send(from_monado::server_error{
-			        .where = "Could not initialize keyboard & mouse forwarding",
+			        .where = "Could not initialize input forwarding",
 			        .message = "Ensure that the uinput kernel module is loaded and your user is in the input group.",
 			});
 		}
@@ -403,8 +403,9 @@ void wivrn_session::resume_session()
 	if (audio_handle)
 		audio_handle->resume();
 
-	if (uinput_handler)
-		send_control(to_headset::feature_control{to_headset::feature_control::hid_input, true});
+	// Tell the headset whether forwarded input devices are mirrored to uinput. The headset picks
+	// what to forward. The OpenXR gamepad at /user/gamepad is always available regardless.
+	send_control(to_headset::feature_control{to_headset::feature_control::hid_input, bool(uinput_handler)});
 
 	{
 		float target_fps = default_fps();
@@ -480,14 +481,16 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 
 void wivrn_session::operator()(const from_headset::settings_changed & settings)
 {
-	auto locked = this->settings.lock();
-	*locked = settings;
+	*this->settings.lock() = settings;
 
 	if (settings.bitrate_bps != 0)
 		compositor.set_bitrate(settings.bitrate_bps);
 
 	if (settings.preferred_refresh_rate != 0)
 		compositor.set_framerate(settings.preferred_refresh_rate / settings.fps_divider);
+
+	if (not settings.mirror_gamepad and uinput_handler)
+		uinput_handler->destroy_gamepad();
 
 	wivrn_ipc_socket_monado->send(std::move(settings));
 }
@@ -549,7 +552,12 @@ static xrt_device_name get_name(interaction_profile profile)
 void wivrn_session::operator()(const from_headset::tracking & tracking)
 {
 	if (gamepad_device)
-		gamepad_device->set_connected(tracking.interaction_profiles[2] != interaction_profile::none);
+	{
+		gamepad_connected = tracking.interaction_profiles[2] != interaction_profile::none;
+		gamepad_device->set_connected(gamepad_connected);
+		if (not gamepad_connected and uinput_handler)
+			uinput_handler->destroy_gamepad();
+	}
 
 	auto left = (roles.left == -1 || roles.left == left_controller_index || roles.left == left_hand_interaction_index) ? get_name(tracking.interaction_profiles[0]) : XRT_DEVICE_INVALID;
 	auto right = (roles.right == -1 || roles.right == right_controller_index || roles.right == right_hand_interaction_index) ? get_name(tracking.interaction_profiles[1]) : XRT_DEVICE_INVALID;
@@ -683,7 +691,25 @@ void wivrn_session::operator()(from_headset::inputs && inputs)
 		right_controller.set_inputs(inputs, offset);
 
 	if (gamepad_device)
+	{
 		gamepad_device->set_inputs(inputs);
+		try
+		{
+			// Mirror to a uinput gamepad for non-OpenXR consumers, when the
+			// headset opts in and the server permits.
+			if (uinput_handler and gamepad_connected and settings.lock()->mirror_gamepad)
+				uinput_handler->handle_gamepad(inputs);
+		}
+		catch (const std::exception & e)
+		{
+			wivrn_ipc_socket_monado->send(from_monado::server_error{
+			        .where = "Gamepad forwarding error",
+			        .message = e.what(),
+			});
+			U_LOG_E("Gamepad forwarding error: %s", e.what());
+			uinput_handler.reset();
+		}
+	}
 }
 
 void wivrn_session::operator()(from_headset::hid::input && e)
@@ -1005,6 +1031,12 @@ void wivrn_session::run_net(std::stop_token stop)
 		try
 		{
 			connection->poll(*this, 20);
+
+			if (uinput_handler)
+			{
+				for (auto & haptics: uinput_handler->read_rumble())
+					send_stream(std::move(haptics));
+			}
 		}
 		catch (const std::exception & e)
 		{
