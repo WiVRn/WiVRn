@@ -387,6 +387,7 @@ static void send_settings_changed_packet(xr::session & session, wivrn_session * 
 	                .minimum_refresh_rate = config.minimum_refresh_rate.value_or(0),
 	                .fps_divider = config.fps_divider,
 	                .bitrate_bps = config.bitrate_bps,
+	                .mirror_gamepad = config.forward_gamepad,
 	        });
 }
 

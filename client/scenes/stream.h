@@ -32,6 +32,7 @@
 #include "wivrn_packets.h"
 #include "xr/space.h"
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <shared_mutex>
 #include <thread>
@@ -188,7 +189,7 @@ private:
 
 	stream(std::string server_name, scene & parent_scene);
 
-	bool forward_hid_input(from_headset::hid::input_t);
+	bool forward_hid_input(from_headset::hid::input_t, bool device_enabled);
 
 public:
 	~stream();
@@ -237,6 +238,13 @@ public:
 	state current_state() const
 	{
 		return state_;
+	}
+
+	// Whether the server mirrors forwarded input devices to uinput. The gamepad is also exposed
+	// through OpenXR regardless, so this only affects forwarded keyboard and mouse.
+	bool hid_forwarding_enabled() const
+	{
+		return hid_forwarding;
 	}
 
 	void exit();

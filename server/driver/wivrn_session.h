@@ -102,6 +102,7 @@ class wivrn_session : public xrt_system_devices
 	std::optional<wivrn_htc_face_tracker> htc_face_tracker;
 	beman::inplace_vector::inplace_vector<wivrn_generic_tracker, from_headset::body_tracking::max_tracked_poses> generic_trackers;
 	std::optional<wivrn_uinput> uinput_handler;
+	bool gamepad_connected = false; // network thread only
 
 	clock_offset_estimator offset_est;
 	std::atomic<XrDuration> tracking_latency; // production to reception time
