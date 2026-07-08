@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-31 21:58+0200\n"
+"POT-Creation-Date: 2026-07-08 19:10+0200\n"
 "PO-Revision-Date: 2025-11-19 20:20+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish <>\n"
@@ -19,52 +19,52 @@ msgstr ""
 "X-Language: es_ES\n"
 "X-Source-Language: en_US\n"
 
-#: dashboard/apk_installer.cpp:137
+#: dashboard/apk_installer.cpp:133
 #, kde-format
 msgid "Cannot save APK file: %1"
 msgstr "No se ha podido guardar el APK: %1"
 
-#: dashboard/apk_installer.cpp:171
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "Descargando APK: %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:173
+#: dashboard/apk_installer.cpp:169
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "Descargando APK: %1 MB"
 
-#: dashboard/apk_installer.cpp:182
+#: dashboard/apk_installer.cpp:178
 #, kde-format
 msgid "Download cancelled"
 msgstr "Descarga cancelada"
 
-#: dashboard/apk_installer.cpp:198
+#: dashboard/apk_installer.cpp:194
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "No se puede descargar el APK: %1"
 
-#: dashboard/apk_installer.cpp:221
+#: dashboard/apk_installer.cpp:217
 #, kde-format
 msgid "Installing APK"
 msgstr "Instalando APK"
 
-#: dashboard/apk_installer.cpp:225
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "Error al iniciar adb: %1"
 
-#: dashboard/apk_installer.cpp:235
+#: dashboard/apk_installer.cpp:231
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb salió anormalmente: %1"
 
-#: dashboard/apk_installer.cpp:243
+#: dashboard/apk_installer.cpp:239
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "El comando 'adb install' falló: código de salida %1"
 
-#: dashboard/apk_installer.cpp:248
+#: dashboard/apk_installer.cpp:244
 #, kde-format
 msgid "Installation successful"
 msgstr "Instalación completada con éxito"
@@ -555,19 +555,25 @@ msgstr "Comprobar configuración del sistema al iniciar"
 
 #: dashboard/qml/SettingsPage.qml:114
 #, kde-format
-msgid "Forward keyboard & mouse from headset"
-msgstr "Pasar el teclado y raton del visor"
+msgid "Expose forwarded input devices via uinput"
+msgstr "Exponer dispositivos de entrada redireccionados via uinput"
 
 #: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
-"Keyboard and mouse connected to the client will act as if connected to the "
-"server. Client OS may reserve specific keys and combinations, which cannot "
-"be forwarded."
+"Replicate mouse, keyboard and gamepad connected to the headset as virtual "
+"devices on PC.\n"
+"Replicated devices will appear as if they were plugged to the PC, some keys "
+"may be reserved by the headset OS and not be available. Gamepad is also "
+"available without virtual devices for applications that access it through "
+"OpenXR."
 msgstr ""
-"El teclado y ratón conectados al cliente actuarán como si se hubiesen "
-"conectado al servidor. El SO del cliente podria reservarse ciertas teclas y "
-"combinaciones, los cuales no podrán ser enviados."
+"Replica el raton, teclado y gamepad conectados al visor como dispositivos "
+"virtuales en el PC.\n"
+"Los dispositivos replicados aparecerán como si estuvieran enchufados al PC, "
+"algunas teclas podrían estar reservadas por el SO del visor y no estarían "
+"disponibles.El gamepad también esta disponible sin dispositivos virtuales "
+"para aplicaciones que lo manejen a través de OpenXR."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -992,6 +998,20 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid "Forward keyboard & mouse from headset"
+#~ msgstr "Pasar el teclado y raton del visor"
+
+#, kde-format
+#~ msgid ""
+#~ "Keyboard and mouse connected to the client will act as if connected to "
+#~ "the server. Client OS may reserve specific keys and combinations, which "
+#~ "cannot be forwarded."
+#~ msgstr ""
+#~ "El teclado y ratón conectados al cliente actuarán como si se hubiesen "
+#~ "conectado al servidor. El SO del cliente podria reservarse ciertas teclas "
+#~ "y combinaciones, los cuales no podrán ser enviados."
 
 #, kde-format
 #~ msgid ""
