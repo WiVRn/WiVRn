@@ -1003,10 +1003,8 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	avahi_glib_poll_free(glib_poll);
 	g_main_loop_unref(main_loop);
 
-#if WIVRN_USE_SYSTEMD
 	std::error_code ec;
 	std::filesystem::remove(socket_path(), ec);
-#endif
 
 	return wivrn_exit_code::success;
 }
