@@ -1,12 +1,13 @@
 #
 #  <>, 2025-2026.
+# Guillaume Meunier <guillaume.meunier@centraliens.net>, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-31 21:59+0200\n"
-"PO-Revision-Date: 2026-05-31 22:00+0200\n"
+"POT-Creation-Date: 2026-07-09 21:07+0200\n"
+"PO-Revision-Date: 2026-07-09 21:11+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
 "Language: French\n"
@@ -14,54 +15,54 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Gtranslator 50.0\n"
+"X-Generator: Gtranslator 48.0\n"
 
-#: dashboard/apk_installer.cpp:137
+#: dashboard/apk_installer.cpp:133
 #, kde-format
 msgid "Cannot save APK file: %1"
 msgstr "Impossible de sauvegarder l'APK : %1"
 
-#: dashboard/apk_installer.cpp:171
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "Téléchargement de l'APK : %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:173
+#: dashboard/apk_installer.cpp:169
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "Téléchargement de l'APK : %1 MB"
 
-#: dashboard/apk_installer.cpp:182
+#: dashboard/apk_installer.cpp:178
 #, kde-format
 msgid "Download cancelled"
 msgstr "Téléchargement annulé"
 
-#: dashboard/apk_installer.cpp:198
+#: dashboard/apk_installer.cpp:194
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "Impossible de télécharger l'APK : %1"
 
-#: dashboard/apk_installer.cpp:221
+#: dashboard/apk_installer.cpp:217
 #, kde-format
 msgid "Installing APK"
 msgstr "Installation de l'APK"
 
-#: dashboard/apk_installer.cpp:225
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "adb n'a pas pu démarrer : %1"
 
-#: dashboard/apk_installer.cpp:235
+#: dashboard/apk_installer.cpp:231
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb a quitté de façon anormale : %1"
 
-#: dashboard/apk_installer.cpp:243
+#: dashboard/apk_installer.cpp:239
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "La commande « adb install » a échoué : code de retour %1"
 
-#: dashboard/apk_installer.cpp:248
+#: dashboard/apk_installer.cpp:244
 #, kde-format
 msgid "Installation successful"
 msgstr "Installation réussie"
@@ -554,19 +555,25 @@ msgstr "Vérifier les paramètres système au démarrage"
 
 #: dashboard/qml/SettingsPage.qml:114
 #, kde-format
-msgid "Forward keyboard & mouse from headset"
-msgstr "Transmettre le clavier et la souris depuis le casque"
+msgid "Expose forwarded input devices via uinput"
+msgstr "Rendre disponible les dispositifs de saisie via uinput"
 
 #: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
-"Keyboard and mouse connected to the client will act as if connected to the "
-"server. Client OS may reserve specific keys and combinations, which cannot "
-"be forwarded."
+"Replicate mouse, keyboard and gamepad connected to the headset as virtual "
+"devices on PC.\n"
+"Replicated devices will appear as if they were plugged to the PC, some keys "
+"may be reserved by the headset OS and not be available. Gamepad is also "
+"available without virtual devices for applications that access it through "
+"OpenXR."
 msgstr ""
-"Le clavier et la souris connectés au casque agiront comme s'ils étaient "
-"connectés au serveur. L'OS du client peut réserver certaines touches et "
-"combinaisons, qui ne peuvent donc pas être transmises."
+"Réplique souris, clavier et manette connectés au casque comme périphériques "
+"virtuels sur l'ordinateur.\n"
+"Les périphériques répliques apparaissent comme si connectés à l'ordinateur, "
+"certaines touches peuvent être réservées par le système du casque et ne pas "
+"être disponibles. La manette est aussi disponible pour les applications "
+"compatibles via OpenXR sans utiliser les périphériques virtuels."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -993,6 +1000,20 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid "Forward keyboard & mouse from headset"
+#~ msgstr "Transmettre le clavier et la souris depuis le casque"
+
+#, kde-format
+#~ msgid ""
+#~ "Keyboard and mouse connected to the client will act as if connected to "
+#~ "the server. Client OS may reserve specific keys and combinations, which "
+#~ "cannot be forwarded."
+#~ msgstr ""
+#~ "Le clavier et la souris connectés au casque agiront comme s'ils étaient "
+#~ "connectés au serveur. L'OS du client peut réserver certaines touches et "
+#~ "combinaisons, qui ne peuvent donc pas être transmises."
 
 #, kde-format
 #~ msgid ""
