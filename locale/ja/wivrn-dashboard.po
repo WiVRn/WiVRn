@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-01 13:47+0900\n"
+"POT-Creation-Date: 2026-07-09 12:31+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -12,52 +12,52 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: dashboard/apk_installer.cpp:137
+#: dashboard/apk_installer.cpp:133
 #, kde-format
 msgid "Cannot save APK file: %1"
 msgstr "APKファイルを保存できませんでした：%1"
 
-#: dashboard/apk_installer.cpp:171
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "APKのダウンロード：%1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:173
+#: dashboard/apk_installer.cpp:169
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "APKのダウンロード：%1 MB"
 
-#: dashboard/apk_installer.cpp:182
+#: dashboard/apk_installer.cpp:178
 #, kde-format
 msgid "Download cancelled"
 msgstr "ダウンロードはキャンセルされました"
 
-#: dashboard/apk_installer.cpp:198
+#: dashboard/apk_installer.cpp:194
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "APKをダウンロードできませんでした：%1"
 
-#: dashboard/apk_installer.cpp:221
+#: dashboard/apk_installer.cpp:217
 #, kde-format
 msgid "Installing APK"
 msgstr "APKをインストール中"
 
-#: dashboard/apk_installer.cpp:225
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "adbの起動に失敗しました：%1"
 
-#: dashboard/apk_installer.cpp:235
+#: dashboard/apk_installer.cpp:231
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adbは失敗しました：%1"
 
-#: dashboard/apk_installer.cpp:243
+#: dashboard/apk_installer.cpp:239
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "「adb install」コマンドは失敗しました、コード%1"
 
-#: dashboard/apk_installer.cpp:248
+#: dashboard/apk_installer.cpp:244
 #, kde-format
 msgid "Installation successful"
 msgstr "インストール成功"
@@ -539,19 +539,22 @@ msgstr "起動時にパソコン設定を確認する"
 
 #: dashboard/qml/SettingsPage.qml:114
 #, kde-format
-msgid "Forward keyboard & mouse from headset"
-msgstr "キーボードとマウスの転送"
+msgid "Expose forwarded input devices via uinput"
+msgstr "入力デバイスの転送"
 
 #: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
-"Keyboard and mouse connected to the client will act as if connected to the "
-"server. Client OS may reserve specific keys and combinations, which cannot "
-"be forwarded."
+"Replicate mouse, keyboard and gamepad connected to the headset as virtual "
+"devices on PC.\n"
+"Replicated devices will appear as if they were plugged to the PC, some keys "
+"may be reserved by the headset OS and not be available. Gamepad is also "
+"available without virtual devices for applications that access it through "
+"OpenXR."
 msgstr ""
-"HMDに接続されたキーボードやマウスは、パソコンに接続されているかのように動作し"
-"ます。HMDのOSのグローバルショートカットとして使われているキーコンビネーション"
-"は転送できません。"
+"HMD接続のマウス・キーボード・ゲームコントローラーをPCの仮想デバイスとして再現します。\n"
+"PCに直接接続した状態で認識されますが、一部のキーはHMDのOSが使用するため、利用できない場合があります。\n"
+"OpenXR対応アプリでは、仮想デバイスなしでもゲームパッドが使用可能です。"
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -659,7 +662,8 @@ msgstr "HMDでWiVRnアプリが見つからない"
 msgid ""
 "If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
-msgstr "USBにてインストールされた場合、ライブラリの「提供元不明」タブをご覧ください"
+msgstr ""
+"USBにてインストールされた場合、ライブラリの「提供元不明」タブをご覧ください"
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
