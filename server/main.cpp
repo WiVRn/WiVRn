@@ -243,6 +243,8 @@ void start_server(configuration config)
 		// something is broken with Intel CCS under vaapi
 		setenv("INTEL_DEBUG", "noccs", false);
 
+		setenv("XRT_LOG", "info", false);
+
 		wivrn::ipc_server_cb server_cb;
 
 		ipc_server_main_info server_info{
