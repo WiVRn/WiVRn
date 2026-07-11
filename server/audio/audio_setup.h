@@ -33,7 +33,6 @@ struct audio_device
 	// unpublishes the device
 	virtual ~audio_device() = default;
 
-	virtual wivrn::to_headset::audio_stream_description description() const = 0;
 	virtual void process_mic_data(wivrn::audio_data &&) = 0;
 
 	virtual void pause() = 0;

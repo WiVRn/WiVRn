@@ -69,11 +69,6 @@ struct pipewire_device : public audio_device
 	};
 	std::jthread thread;
 
-	to_headset::audio_stream_description description() const override
-	{
-		return desc;
-	};
-
 	static void speaker_process(void * self_v);
 	static void mic_process(void * self_v);
 	static void mic_state_changed(void * self_v, pw_stream_state old, pw_stream_state state, const char * error);
@@ -423,7 +418,7 @@ void pipewire_device::pause()
 
 void pipewire_device::resume()
 {
-	session.send_control(description());
+	session.send_control(to_headset::audio_stream_description{desc});
 	session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, mic_state == PW_STREAM_STATE_STREAMING});
 }
 
