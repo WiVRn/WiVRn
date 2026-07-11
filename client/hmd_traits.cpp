@@ -31,6 +31,8 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <type_traits>
+#include <unordered_map>
 
 #include <spdlog/spdlog.h>
 
@@ -55,7 +57,11 @@ static std::optional<std::string> get_property(const char * property)
 }
 #endif
 
-static std::optional<std::string> env_string(std::string_view name)
+template <typename T>
+std::optional<T> env(std::string_view name);
+
+template <>
+std::optional<std::string> env(std::string_view name)
 {
 #ifdef __ANDROID__
 	auto android_sysprop_name = std::format("debug.wivrn.{}", name);
@@ -72,9 +78,10 @@ static std::optional<std::string> env_string(std::string_view name)
 #endif
 }
 
-static std::optional<uint32_t> env_u32(std::string_view name)
+template <>
+std::optional<uint32_t> env(std::string_view name)
 {
-	const auto value = env_string(name);
+	const auto value = env<std::string>(name);
 	if (not value)
 		return std::nullopt;
 	try
@@ -91,9 +98,10 @@ static std::optional<uint32_t> env_u32(std::string_view name)
 	}
 }
 
-static std::optional<bool> env_bool(std::string_view name)
+template <>
+std::optional<bool> env(std::string_view name)
 {
-	const auto value = env_string(name);
+	const auto value = env<std::string>(name);
 	if (not value)
 		return std::nullopt;
 	if (strcmp(value->c_str(), "1") == 0 || strcasecmp(value->c_str(), "true") == 0 || strcasecmp(value->c_str(), "yes") == 0 || strcasecmp(value->c_str(), "on") == 0)
@@ -101,6 +109,23 @@ static std::optional<bool> env_bool(std::string_view name)
 	if (strcmp(value->c_str(), "0") == 0 || strcasecmp(value->c_str(), "false") == 0 || strcasecmp(value->c_str(), "no") == 0 || strcasecmp(value->c_str(), "off") == 0)
 		return false;
 	return std::nullopt;
+}
+
+template <>
+std::optional<std::unordered_map<std::string, std::string>> env(std::string_view name)
+{
+	const auto values = env<std::string>(name);
+	if (not values)
+		return std::nullopt;
+
+	std::unordered_map<std::string, std::string> map;
+	for (auto value: utils::split(*values, ","))
+	{
+		if (auto pos = value.find('='); pos != std::string::npos)
+			map.insert(std::make_pair(value.substr(0, pos), value.substr(pos + 1)));
+	}
+
+	return map;
 }
 
 hmd_traits::hmd_traits() = default;
@@ -225,7 +250,11 @@ void hmd_traits::init()
 			}
 		}
 		if (need_htc_ray)
-			controller_ray_model = "assets://ray-htc.glb";
+			override_shader = {
+			        {"ray.frag", "ray_htc.frag"},
+			        {"ray_skinned.vert", "ray_skinned_htc.vert"},
+			        {"ray.vert", "ray_htc.vert"},
+			};
 
 		controller_profile = "htc-vive-focus-3";
 
@@ -252,30 +281,8 @@ void hmd_traits::init()
 #endif
 
 	spdlog::info("HMD traits initialized");
-	auto log_string = [](std::string_view name, std::string & field) {
-		if (auto val = env_string(name))
-		{
-			spdlog::info("\t{} override: {} -> {}", name, field, *val);
-			field = *val;
-		}
-		else
-		{
-			spdlog::info("\t{}: {}", name, field);
-		}
-	};
-	auto log_u32 = [](std::string_view name, uint32_t & field) {
-		if (auto val = env_u32(name))
-		{
-			spdlog::info("\t{} override: {} -> {}", name, field, *val);
-			field = *val;
-		}
-		else
-		{
-			spdlog::info("\t{}: {}", name, field);
-		}
-	};
-	auto log_bool = [](std::string_view name, bool & field) {
-		if (auto val = env_bool(name))
+	auto log = [](std::string_view name, auto & field) {
+		if (auto val = env<std::remove_cvref_t<decltype(field)>>(name))
 		{
 			spdlog::info("\t{} override: {} -> {}", name, field, *val);
 			field = *val;
@@ -286,9 +293,9 @@ void hmd_traits::init()
 		}
 	};
 
-	log_string("controller_profile", controller_profile);
-	log_string("controller_ray_model", controller_ray_model);
-	if (auto val = env_string("max_openxr_api_version"))
+	log("controller_profile", controller_profile);
+	log("controller_ray_model", controller_ray_model);
+	if (auto val = env<std::string>("max_openxr_api_version"))
 	{
 		XrVersion v;
 		if (val == "1.1")
@@ -307,14 +314,26 @@ void hmd_traits::init()
 	{
 		spdlog::info("\t{}: {}", "max_openxr_api_version", xr::to_string(max_openxr_api_version));
 	}
-	log_u32("panel_width_override", panel_width_override);
-	log_bool("needs_srgb_conversion", needs_srgb_conversion);
-	log_bool("view_locate", view_locate);
-	log_bool("vk_debug_ext_allowed", vk_debug_ext_allowed);
-	log_bool("bind_simple_controller", bind_simple_controller);
-	log_bool("hand_interaction_grip_surface", hand_interaction_grip_surface);
-	log_bool("pico_face_tracker", pico_face_tracker);
-	log_bool("discard_frame", discard_frame);
+	log("panel_width_override", panel_width_override);
+	log("needs_srgb_conversion", needs_srgb_conversion);
+	log("view_locate", view_locate);
+	log("vk_debug_ext_allowed", vk_debug_ext_allowed);
+	log("bind_simple_controller", bind_simple_controller);
+	log("hand_interaction_grip_surface", hand_interaction_grip_surface);
+	log("pico_face_tracker", pico_face_tracker);
+	log("discard_frame", discard_frame);
+
+	if (auto val = env<std::unordered_map<std::string, std::string>>("override_shader"))
+	{
+		for (const auto & [original, overridden]: *val)
+			override_shader.insert_or_assign(original, overridden);
+	}
+	std::erase_if(override_shader, [](const std::pair<std::string, std::string> & kv) { return kv.second == ""; });
+
+	for (const auto & [original, overridden]: override_shader)
+	{
+		spdlog::info("\tshader: {} -> {}", original, overridden);
+	}
 }
 
 static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t width)
