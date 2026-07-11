@@ -1,7 +1,7 @@
 #include "version.h"
 #include <KAboutData>
 #include <KIconTheme>
-#include <KLocalizedContext>
+#include <KLocalizedQmlContext>
 #include <KLocalizedString>
 #include <QApplication>
 #include <QCoroQml>
@@ -59,7 +59,7 @@ int main(int argc, char * argv[])
 
 	QQmlApplicationEngine engine;
 
-	engine.rootContext()->setContextObject(new KLocalizedContext(&engine));
+	KLocalization::setupLocalizedContext(&engine);
 	engine.loadFromModule("io.github.wivrn.wivrn", "Main");
 
 	if (engine.rootObjects().isEmpty())
