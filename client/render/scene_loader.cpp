@@ -19,6 +19,7 @@
 #include "scene_loader.h"
 
 #include "gpu_buffer.h"
+#include "hmd_traits.h"
 #include "image_loader.h"
 #include "render/scene_components.h"
 #include "render/vertex_layout.h"
@@ -835,6 +836,9 @@ public:
 			if (auto it = extras.find({fastgltf::Category::Materials, material_id, "fragment_shader"}); it != extras.end())
 				material.fragment_shader = it->second;
 
+			if (auto it = application::get_hmd_traits().override_shader.find(material.fragment_shader); it != application::get_hmd_traits().override_shader.end())
+				material.fragment_shader = it->second;
+
 			renderer::material::gpu_data & material_data = material.staging;
 
 			material_data.base_color_factor = convert(gltf_material.pbrData.baseColorFactor);
@@ -916,6 +920,9 @@ public:
 					primitive_ref.vertex_shader = "lit.vert";
 				else
 					primitive_ref.vertex_shader = "lit_skinned.vert";
+
+				if (auto it = application::get_hmd_traits().override_shader.find(primitive_ref.vertex_shader); it != application::get_hmd_traits().override_shader.end())
+					primitive_ref.vertex_shader = it->second;
 
 				// For attributes types, see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes-overview (§ 3.7.2.1)
 				auto shader = shader_loader{device}(primitive_ref.vertex_shader);
