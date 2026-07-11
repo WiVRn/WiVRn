@@ -197,7 +197,22 @@ void body_joints_list::update_tracking(const wivrn::from_headset::meta_body & tr
 			                   {
 				                   const auto body_part = parent.joint_body_parts.at(joint);
 				                   auto & tracker = it->second;
-				                   tracker.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
+
+				                   // Quest reports VALID bit not TRACKED bit, make sure TRACKED is set when VALID
+				                   // on the virtual trackers to appease the SolarXR driver and other apps
+				                   std::underlying_type_t<xrt_space_relation_flags> flags = pose.relation_flags;
+				                   if (flags & XRT_SPACE_RELATION_ORIENTATION_VALID_BIT)
+					                   flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
+				                   if (flags & XRT_SPACE_RELATION_POSITION_VALID_BIT)
+					                   flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
+				                   const xrt_space_relation virtual_tracker_pose{
+				                           .relation_flags = static_cast<xrt_space_relation_flags>(flags),
+				                           .pose = pose.pose,
+				                           .linear_velocity = pose.linear_velocity,
+				                           .angular_velocity = pose.angular_velocity,
+				                   };
+
+				                   tracker.update_tracking(tracking.production_timestamp, tracking.timestamp, virtual_tracker_pose, offset);
 			                   }
 		                   }
 	                   }},
