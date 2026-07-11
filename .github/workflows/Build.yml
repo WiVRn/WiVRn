@@ -11,7 +11,7 @@ env:
 jobs:
   build-linux:
     name: Linux
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: ${{ vars.APK_ONLY == '' }}
 
     strategy:
@@ -20,7 +20,8 @@ jobs:
         config:
           - preset: 'client-no-system-boost'
             packages: libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
-        # dashboard requires a more recent Ubuntu, have it out of this job
+          - preset: 'dashboard'
+            packages: extra-cmake-modules libarchive-dev libboost-all-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev libkirigami-dev librsvg2-dev nlohmann-json3-dev qcoro-qt6-dev qml6-module-org-kde-kirigamiaddons-formcard
           - preset: 'dissector-no-system-boost'
             packages: libboost-all-dev wireshark-dev
           - preset: 'server'
@@ -123,47 +124,6 @@ jobs:
         generate_release_notes: true
         draft: true
         files: server-build-deps.tar.xz
-
-  build-dashboard:
-    #FIXME: merge with the matrixed build once Ubuntu gets updated
-    name: Linux Dashboard
-    runs-on: ubuntu-24.04
-    container: ubuntu:plucky
-    if: ${{ vars.APK_ONLY == '' }}
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Prepare
-      run: |
-        apt-get update
-        apt-get install --yes curl wget sudo jq cmake ninja-build gcc g++ git pkgconf libboost-all-dev libkirigami-dev gettext libarchive-dev nlohmann-json3-dev qcoro-qt6-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev libvulkan-dev libssl-dev librsvg2-dev extra-cmake-modules qml6-module-org-kde-kirigamiaddons-formcard
-
-    - uses: actions/cache@v5
-      with:
-        key: cmake-linux-dashboard
-        path: |
-          ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.tar.*
-          ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
-          ${{github.workspace}}/cmake-fetch/*.tar.*
-          ${{github.workspace}}/cmake-fetch/*.tgz
-        restore-keys: cmake-linux-
-
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: >
-        cmake -B ${{github.workspace}}/build
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -DFETCHCONTENT_BASE_DIR=${{github.workspace}}/cmake-fetch
-        --preset dashboard
-        -DWIVRN_USE_SYSTEM_OPENXR=OFF
-        -DGIT_DESC=${{github.sha}}
-        -DGIT_COMMIT=${{github.sha}}
-
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
   build-server-flatpak:
     name: Linux server (flatpak)
