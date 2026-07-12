@@ -58,13 +58,10 @@ public:
 	std::unordered_map<std::string, std::string> override_shader;
 	std::unordered_set<std::string> blacklisted_extensions;
 #ifndef NDEBUG
-private:
 	bool initialized_ = false;
 #endif
 
 public:
-	hmd_traits();
-
 	void init();
 
 	const char * permission_name(feature f) const
