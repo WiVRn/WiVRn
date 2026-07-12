@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-11 14:46+0200\n"
-"PO-Revision-Date: 2026-07-12 21:02+0200\n"
+"PO-Revision-Date: 2026-07-12 21:30+0200\n"
 "Last-Translator: not\n"
 "Language-Team: Slovak <>\n"
 "Language: sk\n"
@@ -683,7 +683,7 @@ msgid ""
 "\"unknown sources\" section."
 msgstr ""
 "Ak ste nainštalovali WiVRn cez USB na Meta alebo Pico headsete, aplikácia sa "
-"nachádza v \"\"sekcii „neznáme zdroje“."
+"nachádza v sekcii „neznáme zdroje“."
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
