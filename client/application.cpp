@@ -829,9 +829,6 @@ void application::initialize_vulkan()
 		}
 #endif
 	}
-	std::ranges::sort(extensions);
-	for (const auto & [extension_name, spec_version]: extensions)
-		spdlog::info("    {} (version {})", extension_name, spec_version);
 
 	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
@@ -852,6 +849,19 @@ void application::initialize_vulkan()
 	instance_extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 	instance_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
 #endif
+
+	std::ranges::sort(extensions);
+	for (const auto & [extension_name, spec_version]: extensions)
+	{
+		if (runtime_hmd_traits.blacklisted_extensions.contains(extension_name))
+		{
+			spdlog::info("    {} (version {}) (blacklisted)", extension_name, spec_version);
+			if (std::ranges::find(instance_extensions, extension_name) != instance_extensions.end())
+				throw std::runtime_error("Required Vulkan instance extension is blacklisted");
+		}
+		else
+			spdlog::info("    {} (version {})", extension_name, spec_version);
+	}
 
 	vk::ApplicationInfo application_info{
 	        .pApplicationName = app_info.name.c_str(),
@@ -912,9 +922,19 @@ void application::initialize_vulkan()
 	spdlog::info("Available Vulkan device extensions:");
 	for (const auto & [extension_name, spec_version]: extensions)
 	{
-		spdlog::info("    {} (version {})", extension_name, spec_version);
-		if (auto it = optional_device_extensions.find(extension_name); it != optional_device_extensions.end())
-			vk_device_extensions.push_back(it->data());
+		if (runtime_hmd_traits.blacklisted_extensions.contains(extension_name))
+		{
+			spdlog::info("    {} (version {}) (blacklisted)", extension_name, spec_version);
+
+			if (std::ranges::find(vk_device_extensions, extension_name) != instance_extensions.end())
+				throw std::runtime_error("Required Vulkan device extension is blacklisted");
+		}
+		else
+		{
+			spdlog::info("    {} (version {})", extension_name, spec_version);
+			if (auto it = optional_device_extensions.find(extension_name); it != optional_device_extensions.end())
+				vk_device_extensions.push_back(it->data());
+		}
 	}
 
 	spdlog::info("Initializing Vulkan with device {}", physical_device_properties.deviceName.data());
@@ -1312,7 +1332,7 @@ void application::initialize()
 		auto it = std::find_if(opt_extensions.begin(),
 		                       opt_extensions.end(),
 		                       [&ext](const char * i) { return strcmp(i, ext.extensionName) == 0; });
-		if (it != opt_extensions.end())
+		if (it != opt_extensions.end() and not runtime_hmd_traits.blacklisted_extensions.contains(ext.extensionName))
 			xr_extensions.push_back(*it);
 	}
 

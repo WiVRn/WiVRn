@@ -199,7 +199,10 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 	std::ranges::sort(all_extensions, [](const char * a, const char * b) { return strcmp(a, b) < 0; }, &XrExtensionProperties::extensionName);
 	for (XrExtensionProperties & i: all_extensions)
 	{
-		spdlog::info("    {} (version {})", i.extensionName, i.extensionVersion);
+		if (application::get_hmd_traits().blacklisted_extensions.contains(i.extensionName))
+			spdlog::info("    {} (version {}) (blacklisted)", i.extensionName, i.extensionVersion);
+		else
+			spdlog::info("    {} (version {})", i.extensionName, i.extensionVersion);
 #ifndef NDEBUG
 		if (!strcmp(i.extensionName, "XR_EXT_debug_utils"))
 		{
