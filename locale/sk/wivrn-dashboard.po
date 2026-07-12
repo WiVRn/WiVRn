@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-31 21:58+0200\n"
-"PO-Revision-Date: 2026-06-02 14:23+0200\n"
+"POT-Creation-Date: 2026-07-11 14:46+0200\n"
+"PO-Revision-Date: 2026-07-12 21:30+0200\n"
 "Last-Translator: not\n"
 "Language-Team: Slovak <>\n"
 "Language: sk\n"
@@ -16,54 +16,54 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Lokalize 26.04.1\n"
+"X-Generator: Lokalize 26.04.3\n"
 
-#: dashboard/apk_installer.cpp:137
+#: dashboard/apk_installer.cpp:133
 #, kde-format
 msgid "Cannot save APK file: %1"
 msgstr "Nepodarilo sa uložiť APK súbor: %1"
 
-#: dashboard/apk_installer.cpp:171
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "Sťahuje sa APK: %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:173
+#: dashboard/apk_installer.cpp:169
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "Sťahuje sa APK: %1 MB"
 
-#: dashboard/apk_installer.cpp:182
+#: dashboard/apk_installer.cpp:178
 #, kde-format
 msgid "Download cancelled"
 msgstr "Sťahovanie zrušené"
 
-#: dashboard/apk_installer.cpp:198
+#: dashboard/apk_installer.cpp:194
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "Nepodarilo sa stiahnúť APK: %1"
 
-#: dashboard/apk_installer.cpp:221
+#: dashboard/apk_installer.cpp:217
 #, kde-format
 msgid "Installing APK"
 msgstr "Inštaluje sa APK"
 
-#: dashboard/apk_installer.cpp:225
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "Nepodarilo sa spustiť adb: %1"
 
-#: dashboard/apk_installer.cpp:235
+#: dashboard/apk_installer.cpp:231
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb sa neočakávane ukončilo: %1"
 
-#: dashboard/apk_installer.cpp:243
+#: dashboard/apk_installer.cpp:239
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "Príkaz 'adb install' zlyhal: kód ukončenia %1"
 
-#: dashboard/apk_installer.cpp:248
+#: dashboard/apk_installer.cpp:244
 #, kde-format
 msgid "Installation successful"
 msgstr "Inštalácia prebehla úspešne"
@@ -553,19 +553,26 @@ msgstr "Kontrolovať nastavenie systému pri štarte"
 
 #: dashboard/qml/SettingsPage.qml:114
 #, kde-format
-msgid "Forward keyboard & mouse from headset"
-msgstr "Preposielať klávesnicu a myš z headsetu"
+msgid "Expose forwarded input devices via uinput"
+msgstr "Sprístupniť presmerované vstupné zariadenia prostredníctvom uinput"
 
 #: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
-"Keyboard and mouse connected to the client will act as if connected to the "
-"server. Client OS may reserve specific keys and combinations, which cannot "
-"be forwarded."
+"Replicate mouse, keyboard and gamepad connected to the headset as virtual "
+"devices on PC.\n"
+"Replicated devices will appear as if they were plugged to the PC, some keys "
+"may be reserved by the headset OS and not be available. Gamepad is also "
+"available without virtual devices for applications that access it through "
+"OpenXR."
 msgstr ""
-"Klávesnica a myš pripojené ku klientovi sa budú správať, akoby boli "
-"pripojené k serveru. Niektoré klávesy alebo skratky však môže klientský "
-"systém blokovať."
+"Replikovať myš, klávesnicu a gamepad pripojené k headsetu ako virtuálne "
+"zariadenia v počítači.\n"
+"Replikované zariadenia sa zobrazia, akoby boli pripojené priamo k počítaču. "
+"Niektoré klávesy môžu byť vyhradené operačným systémom headsetu a nemusia byť "
+"dostupné. Herný ovládač je k dispozícii aj bez virtuálnych zariadení pre aplik"
+"ácie, "
+"ktoré k nemu pristupujú prostredníctvom OpenXR."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -675,9 +682,8 @@ msgid ""
 "If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Ak ste nainštalovali WiVRn cez USB na Meta alebo Pico headsete, aplikácia sa n"
-"achádza v \""
-"\"sekcii „neznáme zdroje“."
+"Ak ste nainštalovali WiVRn cez USB na Meta alebo Pico headsete, aplikácia sa "
+"nachádza v sekcii „neznáme zdroje“."
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
@@ -988,6 +994,20 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid "Forward keyboard & mouse from headset"
+#~ msgstr "Preposielať klávesnicu a myš z headsetu"
+
+#, kde-format
+#~ msgid ""
+#~ "Keyboard and mouse connected to the client will act as if connected to "
+#~ "the server. Client OS may reserve specific keys and combinations, which "
+#~ "cannot be forwarded."
+#~ msgstr ""
+#~ "Klávesnica a myš pripojené ku klientovi sa budú správať, akoby boli "
+#~ "pripojené k serveru. Niektoré klávesy alebo skratky však môže klientský "
+#~ "systém blokovať."
 
 #, kde-format
 #~ msgid ""
