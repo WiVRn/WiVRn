@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-18 02:18+0800\n"
-"PO-Revision-Date: 2026-05-19 10:53+0800\n"
+"POT-Creation-Date: 2026-07-11 20:46+0800\n"
+"PO-Revision-Date: 2026-07-12 22:48+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -19,52 +19,52 @@ msgstr ""
 "X-Generator: Gtranslator 50.0\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: dashboard/apk_installer.cpp:137
+#: dashboard/apk_installer.cpp:133
 #, kde-format
 msgid "Cannot save APK file: %1"
 msgstr "无法保存 APK 文件：%1"
 
-#: dashboard/apk_installer.cpp:171
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "正在下载 APK：%1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:173
+#: dashboard/apk_installer.cpp:169
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "正在下载 APK：%1 MB"
 
-#: dashboard/apk_installer.cpp:182
+#: dashboard/apk_installer.cpp:178
 #, kde-format
 msgid "Download cancelled"
 msgstr "下载已取消"
 
-#: dashboard/apk_installer.cpp:198
+#: dashboard/apk_installer.cpp:194
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "无法下载 APK：%1"
 
-#: dashboard/apk_installer.cpp:221
+#: dashboard/apk_installer.cpp:217
 #, kde-format
 msgid "Installing APK"
 msgstr "正在安装 APK"
 
-#: dashboard/apk_installer.cpp:225
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "adb 启动失败：%1"
 
-#: dashboard/apk_installer.cpp:235
+#: dashboard/apk_installer.cpp:231
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb 异常终止：%1"
 
-#: dashboard/apk_installer.cpp:243
+#: dashboard/apk_installer.cpp:239
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "'adb install' 执行失败：终止代码 %1"
 
-#: dashboard/apk_installer.cpp:248
+#: dashboard/apk_installer.cpp:244
 #, kde-format
 msgid "Installation successful"
 msgstr "安装成功"
@@ -540,18 +540,22 @@ msgstr "在启动时检查系统设置"
 
 #: dashboard/qml/SettingsPage.qml:114
 #, kde-format
-msgid "Forward keyboard & mouse from headset"
-msgstr "从头显转发键盘和鼠标输入"
+msgid "Expose forwarded input devices via uinput"
+msgstr "通过 uinput 暴露转发的输入设备"
 
 #: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
-"Keyboard and mouse connected to the client will act as if connected to the "
-"server. Client OS may reserve specific keys and combinations, which cannot "
-"be forwarded."
+"Replicate mouse, keyboard and gamepad connected to the headset as virtual "
+"devices on PC.\n"
+"Replicated devices will appear as if they were plugged to the PC, some keys "
+"may be reserved by the headset OS and not be available. Gamepad is also "
+"available without virtual devices for applications that access it through "
+"OpenXR."
 msgstr ""
-"连接到客户端的键盘和鼠标将表现得如同直接连接到服务器。客户端操作系统可能会保"
-"留特定的键映射和快捷键组合，这些无法被转发。"
+"将连接到头显的鼠标、键盘和手柄在 PC 上复制为虚拟设备。\n"
+"复制的设备将如同直接插入 PC 一样工作，部分按键可能被头显系统预留而不可用。对"
+"于通过 OpenXR 读取手柄的应用，即使不创建虚拟设备也可使用。"
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -657,10 +661,11 @@ msgstr "在头显上找不到 WiVRn 应用程序。"
 #: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:353
 #, kde-format
 msgid ""
-"If you installed WiVRn over USB on a Meta headset, the app is in the "
+"If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"如果您通过 USB 在 Meta 头显上安装了 WiVRn，该应用程序将在「未知来源」中。"
+"如果您通过 USB 于 Meta 或 Pico 头显上安装了 WiVRn，那么应用将会被放入“未知来"
+"源”当中。"
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
@@ -945,15 +950,35 @@ msgstr "完成"
 msgid "Finished"
 msgstr "已完成"
 
-#: dashboard/wivrn_server.cpp:540
+#: dashboard/wivrn_server.cpp:565
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:541
+#: dashboard/wivrn_server.cpp:566
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid "Forward keyboard & mouse from headset"
+#~ msgstr "从头显转发键盘和鼠标输入"
+
+#, kde-format
+#~ msgid ""
+#~ "Keyboard and mouse connected to the client will act as if connected to "
+#~ "the server. Client OS may reserve specific keys and combinations, which "
+#~ "cannot be forwarded."
+#~ msgstr ""
+#~ "连接到客户端的键盘和鼠标将表现得如同直接连接到服务器。客户端操作系统可能会"
+#~ "保留特定的键映射和快捷键组合，这些无法被转发。"
+
+#, kde-format
+#~ msgid ""
+#~ "If you installed WiVRn over USB on a Meta headset, the app is in the "
+#~ "\"unknown sources\" section."
+#~ msgstr ""
+#~ "如果您通过 USB 在 Meta 头显上安装了 WiVRn，该应用程序将在「未知来源」中。"
 
 #, kde-format
 #~ msgid "PIN: %1"
