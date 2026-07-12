@@ -19,9 +19,11 @@
 
 #include "hmd_traits.h"
 
+#include "utils/overloaded.h"
 #include "utils/strings.h"
 #include "xr/to_string.h"
 
+#include <boost/pfr.hpp>
 #include <cassert>
 #include <cctype>
 #include <cstdlib>
@@ -136,79 +138,6 @@ std::optional<std::unordered_set<std::string>> env(std::string_view name)
 		return std::nullopt;
 
 	return std::unordered_set<std::string>{std::from_range, utils::split(*values, ",")};
-}
-
-hmd_traits::hmd_traits() = default;
-
-template <typename T>
-void override_value(std::string_view name, T & field)
-{
-	if (auto val = env<std::remove_cvref_t<decltype(field)>>(name))
-	{
-		spdlog::info("\t{} override: {} -> {}", name, field, *val);
-		field = *val;
-	}
-	else
-	{
-		spdlog::info("\t{}: {}", name, field);
-	}
-}
-
-void override_value(std::string_view name, XrVersion & field)
-{
-	if (auto val = env<std::string>(name))
-	{
-		XrVersion v;
-		if (val == "1.1")
-			v = XR_API_VERSION_1_1;
-		else if (val == "1.0")
-			v = XR_API_VERSION_1_0;
-		else
-		{
-			spdlog::warn("XrVersion {} not recognized", *val);
-			v = field;
-		}
-		spdlog::info("\t{} override: {} -> {}", name, xr::to_string(field), xr::to_string(v));
-		field = v;
-	}
-	else
-	{
-		spdlog::info("\t{}: {}", name, xr::to_string(field));
-	}
-}
-
-void override_value(std::string_view name, std::unordered_map<std::string, std::string> & field)
-{
-	if (auto val = env<std::unordered_map<std::string, std::string>>(name))
-	{
-		for (const auto & [original, overridden]: *val)
-			field.insert_or_assign(original, overridden);
-	}
-	std::erase_if(field, [](const std::pair<std::string, std::string> & kv) { return kv.second == ""; });
-
-	for (const auto & [original, overridden]: field)
-	{
-		spdlog::info("\t{}: {} -> {}", name, original, overridden);
-	}
-}
-
-void override_value(std::string_view name, std::unordered_set<std::string> & field)
-{
-	if (auto val = env<std::unordered_set<std::string>>(name))
-	{
-		for (const auto & i: *val)
-		{
-			if (i.starts_with("-"))
-				field.erase(i.substr(1));
-			else
-				field.insert(i);
-		}
-	}
-
-	for (const auto & i: field)
-	{
-		spdlog::info("\t{}: {}", name, i);
-	}
 }
 
 void hmd_traits::init()
@@ -363,19 +292,74 @@ void hmd_traits::init()
 
 	spdlog::info("HMD traits initialized");
 
-	override_value("controller_profile", controller_profile);
-	override_value("controller_ray_model", controller_ray_model);
-	override_value("max_openxr_api_version", max_openxr_api_version);
-	override_value("panel_width_override", panel_width_override);
-	override_value("needs_srgb_conversion", needs_srgb_conversion);
-	override_value("view_locate", view_locate);
-	override_value("vk_debug_ext_allowed", vk_debug_ext_allowed);
-	override_value("bind_simple_controller", bind_simple_controller);
-	override_value("hand_interaction_grip_surface", hand_interaction_grip_surface);
-	override_value("pico_face_tracker", pico_face_tracker);
-	override_value("discard_frame", discard_frame);
-	override_value("override_shader", override_shader);
-	override_value("blacklisted_extensions", blacklisted_extensions);
+	boost::pfr::for_each_field_with_name(
+	        *this,
+	        utils::overloaded{
+	                [](std::string_view name, auto & field) {
+		                if (auto val = env<std::remove_cvref_t<decltype(field)>>(name))
+		                {
+			                spdlog::info("\t{} override: {} -> {}", name, field, *val);
+			                field = *val;
+		                }
+		                else
+		                {
+			                spdlog::info("\t{}: {}", name, field);
+		                }
+	                },
+	                [](std::string_view name, XrVersion & field) {
+		                if (auto val = env<std::string>(name))
+		                {
+			                XrVersion v;
+			                if (val == "1.1")
+				                v = XR_API_VERSION_1_1;
+			                else if (val == "1.0")
+				                v = XR_API_VERSION_1_0;
+			                else
+			                {
+				                spdlog::warn("XrVersion {} not recognized", *val);
+				                v = field;
+			                }
+			                spdlog::info("\t{} override: {} -> {}", name, xr::to_string(field), xr::to_string(v));
+			                field = v;
+		                }
+		                else
+		                {
+			                spdlog::info("\t{}: {}", name, xr::to_string(field));
+		                }
+	                },
+	                [](std::string_view name, std::unordered_map<std::string, std::string> & field) {
+		                if (auto val = env<std::unordered_map<std::string, std::string>>(name))
+		                {
+			                for (const auto & [original, overridden]: *val)
+				                field.insert_or_assign(original, overridden);
+		                }
+		                std::erase_if(field, [](const std::pair<std::string, std::string> & kv) { return kv.second == ""; });
+
+		                for (const auto & [original, overridden]: field)
+		                {
+			                spdlog::info("\t{}: {} -> {}", name, original, overridden);
+		                }
+	                },
+
+	                [](std::string_view name, std::unordered_set<std::string> & field) {
+		                if (auto val = env<std::unordered_set<std::string>>(name))
+		                {
+			                for (const auto & i: *val)
+			                {
+				                if (i.starts_with("-"))
+					                field.erase(i.substr(1));
+				                else
+					                field.insert(i);
+			                }
+		                }
+
+		                for (const auto & i: field)
+		                {
+			                spdlog::info("\t{}: {}", name, i);
+		                }
+	                },
+	                [](std::string_view, hmd_permissions) {},
+	        });
 }
 
 static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t width)
