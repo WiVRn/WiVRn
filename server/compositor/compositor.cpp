@@ -81,17 +81,6 @@ struct method_trait<Method, Result (wivrn::compositor::*)(Args...)>
 
 namespace
 {
-os_mutex copy_mutex(std::mutex & m)
-{
-	return {
-	        .mutex = *m.native_handle(),
-#ifndef NDEBUG
-	        .initialized = true,
-	        .recursive = false,
-#endif
-	};
-}
-
 const comp_swapchain_image & get_layer_image(const comp_layer & layer, uint32_t swapchain_index, uint32_t image_index)
 {
 	return reinterpret_cast<struct comp_swapchain *>(comp_layer_get_swapchain(&layer, swapchain_index))->images[image_index];
@@ -723,8 +712,11 @@ compositor::compositor(wivrn_session & session) :
 	// vk_init_from_given assumes a graphics queue was provided
 	c_base->vk.graphics_queue = nullptr;
 
+	// Monado submits to the main queue from IPC client threads under
+	// main_queue->mutex: our own submissions must take the same lock.
+	vk::detail::resultCheck(vk::Result(vk_init_mutex(&c_base->vk)), "vk_init_mutex");
 	if (c_base->vk.main_queue)
-		c_base->vk.main_queue->mutex = copy_mutex(vk.queue.mutex);
+		vk.queue.mutex.share(c_base->vk.main_queue->mutex.mutex);
 
 	{
 		comp_vulkan_formats formats{};
