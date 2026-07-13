@@ -44,13 +44,15 @@ We recommend using native packages if available for your distribution:
 - [Gentoo Guru](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn)
 - [NixOS](https://search.nixos.org/packages?channel=25.11&show=wivrn)
 
-For OpenVR and Steam compatibility, you also need a [compatibility library](#openvr-and-steam-games) such as xrizer or OpenComposite.
+For OpenVR and Steam compatibility, you also need a compatibility library such as [xrizer](https://github.com/Supreeeme/xrizer/) or [OpenComposite](https://gitlab.com/znixian/OpenOVR/).
 
 A flatpak is available on Flathub for all distributions:
 
 [![Flathub](https://flathub.org/api/badge)](https://flathub.org/apps/io.github.wivrn.wivrn)
 
-Note that due to flatpak sandboxing some features may not be available such as Lighthouse tracked devices.
+The flatpak contains both xrizer and OpenComposite.
+
+Note that due to flatpak sandboxing some features may not be available such as Lighthouse tracked devices or virtual input devices.
 
 ## Headset Client/App
 
@@ -76,34 +78,44 @@ Avahi must be running:
 systemctl enable --now avahi-daemon
 ```
 
+On SteamOS, the avahi configuration needs to be modified, see https://github.com/WiVRn/WiVRn/issues/1001#issuecomment-4940906113
+
 - If a firewall is installed, open port 5353/UDP for Avahi and ports 9757/UDP+TCP for WiVRn.
 - For example, if using UFW run `ufw allow 5353/udp` and `ufw allow 9757`.
 
-### Running
-- On your computer, run "WiVRn server" application, or `wivrn-dashboard` from the command line. It will show the setup wizard the first time you launch it.
-- On your headset, run WiVRn from the App Library. If you are using a Meta Quest and you have installed it from an APK instead of the Meta Store, it should be in the "unknown sources" section.
-- You should now see your computer in the list: click connect, the screen will show "Connection ready. Start a VR application on <i>\[your computer's name\]</i>".
+### Start the PC server process
+The graphical frontend is listed as "WiVRn server" in the application list, and is `wivrn-dashboard` on command line. On first start, a wizard will guide you through the initial steps.
 
-You can now stream an OpenXR application from your computer to your headset. For Steam games, you may also need to set the launch options to be able to use WiVRn. The server/dashboard will tell you how to do this if required.
-- Right-click on the game you want to play in VR in Steam and click "Properties".
-- In the "General" tab, enter the launch options that the WiVRn server/dashboard gave you inside the "Launch Options" setting.
+The actual server, for headless usage is `wivrn-server`. When installed by the OS, a systemd user service is also installed: `wivrn`, it can be enabled to automatically start with `systemctl --user enable --now wivrn`.
 
-You can set an application to be started automatically when your headset is connected, in the dashboard settings or [manually](docs/configuration.md#application).
+For Steam games, depending on installation method, you may need to set launch options. Either GUI or command line interfaces will display the value if it is needed.
 
-### Application list
+### Start the headset application
+On the headset, when installed from the store, simply start `WiVRn`.
+
+When manually installed, it will be in an "unknown" sources section.
+
+On first start, it will ask if you want to enable some features such as microphone, hand tracking, eye tracking etc. as they will require permissions to be granted. It is possible to grant those later from the settings tab.
+
+It is highly recommended to use default settings and only tweak them if you experience issues.
+
+### Connect to the server
+The headset application will start on a server list, your computer should be visible and have a connect button. Simply click it to start streaming.
+
+When the headset is connected, wivrn-server sets the OpenXR and OpenVR configuration to use WiVRn, the configuration is reverted once the connection ends and all running VR applications are closed. Applications will only be able to run in VR once the headset connection is established.
+
+The headset connection also triggers creation of virtual speaker and (if enabled on headset) microphone. You will have to select them in your system configuration to set as default input and output, the setting will be persisted until an other devices is selected as default.
+
+### Start an application
 When the headset is connected and no XR application is running, it will show an application launcher. Applications in that list are sourced from:
 - Steam games that are flagged as VR. Steam may need to be restarted for the list to be updated when new games are installed.
 - .desktop files that contain `X-WiVRn-VR` in the `Categories` section. Files are searched in [standard locations](https://specifications.freedesktop.org/desktop-entry/latest/file-naming.html#desktop-file-id) which usually include `~/.local/share/applications` and `/usr/share/applications/`.
 
-### OpenVR and Steam games
+You can set an application to be started automatically when your headset is connected, in the dashboard settings or [manually](docs/configuration.md#application).
 
-The flatpak includes [OpenComposite](https://gitlab.com/znixian/OpenOVR/) and [xrizer](https://github.com/Supreeeme/xrizer/), used to translate the OpenVR API to OpenXR. see [SteamVR](docs/steamvr.md) for details.
+## Steam Flatpak
+Flatpak applications are only able to access the flatpak version of WiVRn.
 
-If using Wine/Proton, it will probe for OpenVR at startup, This means even for OpenXR applications, OpenComposite or xrizer is required.
-
-When a headset connects, wivrn-server sets the OpenVR runtime to xrizer unless manually configured differently.
-
-### Steam Flatpak
 If you're using the Steam Flatpak, you'll need to grant read only access to the following paths:
 
 ```bash
@@ -118,11 +130,7 @@ flatpak override \
 
 When using a user installation of flatpak Steam, use `override --user` instead of `override`.
 
-### Audio
-When the headset is connected, WiVRn will create a virtual output device simply named "WiVRn. You must manually set this audio output to enabled/default. Please note that in `wpctl` it will appear as a virtual device.
-
-To enable microphone, you first have to enable it on the settings tab on the VR headset (and give permission when prompted). It should appear as a virtual input device named "WiVRn(microphone)", and needs to be assigned as the input device (same way as output device).
-
+The same overrides should work for other VR applications distributed as flatpaks.
 
 # Building
 
@@ -130,9 +138,7 @@ See [building](docs/building.md) for building the [dashboard](docs/building.md#d
 
 
 # Configuration
-Configuration can be done from the dashboard.
-
-See [configuration](docs/configuration.md) for editing the configuration manually.
+Most settings are controlled through the headset app, the server has configuration for items that are specifically related to the computer. Use the dashboard to edit those, or see [configuration](docs/configuration.md) for editing it manually.
 
 # Troubleshooting
 <details><summary>My computer is not seen by the headset</summary>
@@ -147,7 +153,7 @@ If the server list is empty in the headset app:
 - If you have a firewall, check that port 9757 (UDP and TCP) is open
 - The server and client must be the same version.</details>
 
-<details><summary>How do I use a wired connection?</summary>
+<details><summary>How do I use a wired connection manually?</summary>
 
 - Make sure the WiVRn Server is installed and running on your computer
 - Make sure you have the WiVRn app installed on your headset
