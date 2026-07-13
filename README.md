@@ -88,7 +88,7 @@ The graphical frontend is listed as "WiVRn server" in the application list, and 
 
 The actual server, for headless usage is `wivrn-server`. When installed by the OS, a systemd user service is also installed: `wivrn`, it can be enabled to automatically start with `systemctl --user enable --now wivrn`.
 
-For Steam games, depending on installation method, you may need to set launch options. Either GUI or command line interfaces will display the value if it is needed.
+For Steam games, depending on installation method, you may need to set launch options. Either the dashboard or command line output will display the value if it is needed.
 
 ### Start the headset application
 On the headset, when installed from the store, simply start `WiVRn`.
@@ -100,11 +100,11 @@ On first start, it will ask if you want to enable some features such as micropho
 It is highly recommended to use default settings and only tweak them if you experience issues.
 
 ### Connect to the server
-The headset application will start on a server list, your computer should be visible and have a connect button. Simply click it to start streaming.
+The headset application will start on a server list. Your computer should be visible and have a connect button. Simply click it to start streaming.
 
-When the headset is connected, wivrn-server sets the OpenXR and OpenVR configuration to use WiVRn, the configuration is reverted once the connection ends and all running VR applications are closed. Applications will only be able to run in VR once the headset connection is established.
+When the headset is connected, wivrn-server sets the OpenXR and OpenVR configuration to use WiVRn. Thus, applications will only be able to run in VR once the headset connection is established. The configuration is reverted once the connection ends and all running VR applications are closed. 
 
-The headset connection also triggers creation of virtual speaker and (if enabled on headset) microphone. You will have to select them in your system configuration to set as default input and output, the setting will be persisted until an other devices is selected as default.
+The headset connection also triggers the creation of a virtual speaker and (if enabled on headset) microphone. You will have to set them as the default output and input devices in your system audio configuration. This setting persists to future sessions until the defaults are changed to other devices.
 
 ### Start an application
 When the headset is connected and no XR application is running, it will show an application launcher. Applications in that list are sourced from:
@@ -138,7 +138,7 @@ See [building](docs/building.md) for building the [dashboard](docs/building.md#d
 
 
 # Configuration
-Most settings are controlled through the headset app, the server has configuration for items that are specifically related to the computer. Use the dashboard to edit those, or see [configuration](docs/configuration.md) for editing it manually.
+Most settings are controlled through the headset app, while the server has configuration for items that are specific to the server. Use the dashboard to edit the latter, or see [configuration](docs/configuration.md) for editing it manually.
 
 # Troubleshooting
 <details><summary>My computer is not seen by the headset</summary>
