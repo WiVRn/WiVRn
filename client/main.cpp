@@ -20,6 +20,7 @@
 #include "application.h"
 #include "scenes/lobby.h"
 #include "spdlog/spdlog.h"
+#include "version.h"
 
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -40,6 +41,10 @@ void real_main(android_app * native_app)
 void real_main()
 #endif
 {
+	if (wivrn::is_tag)
+		spdlog::info("Starting WiVRn version {}", wivrn::display_version());
+	else
+		spdlog::info("Starting WiVRn version {} ({})", wivrn::display_version(), wivrn::git_commit);
 	try
 	{
 		application_info info;
