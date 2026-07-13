@@ -52,7 +52,7 @@ A Flatpak is available on Flathub for all distributions:
 
 The Flatpak contains both xrizer and OpenComposite.
 
-Note that due to Flatpak sandboxing, some features may not be available such as support for SteamVR tracked devices (Lighthouse) or virtual gamepad/keyboard/input devices forwarded from the headset.
+Note that due to Flatpak sandboxing, some features such as support for SteamVR tracked (Lighthouse) devices, or virtual gamepad/keyboard/input devices forwarded from the headset, may not be available.
 
 ## Headset Client/App
 
@@ -78,7 +78,7 @@ Avahi must be running:
 systemctl enable --now avahi-daemon
 ```
 
-On SteamOS, the avahi configuration needs to be modified, see https://github.com/WiVRn/WiVRn/issues/1001#issuecomment-4940906113
+On SteamOS, the Avahi configuration needs to be modified to allow user services such as WiVRn to publish services on the network; see https://github.com/WiVRn/WiVRn/issues/1001#issuecomment-4940906113 for instructions on how to do so.
 
 - If a firewall is installed, open port 5353/UDP for Avahi and ports 9757/UDP+TCP for WiVRn.
 - For example, if using UFW run `ufw allow 5353/udp` and `ufw allow 9757`.
@@ -86,7 +86,7 @@ On SteamOS, the avahi configuration needs to be modified, see https://github.com
 ### Start the PC server process
 The graphical frontend is listed as "WiVRn server" in the application list, and is `wivrn-dashboard` on command line. On first start, a wizard will guide you through the initial steps.
 
-The actual server, for headless usage is `wivrn-server`. When installed through your distribution's package manager, a systemd user service named `wivrn` is also installed, which can be enabled to automatically start on login with `systemctl --user enable --now wivrn`.
+The actual server for headless usage is `wivrn-server`. When installed through your distribution's package manager, a systemd user service named `wivrn` is also installed, which can be enabled to automatically start on login with `systemctl --user enable --now wivrn`.
 
 For Steam games, depending on the installation method, you may need to set launch options in the Steam properties for each game you want to run. Either the dashboard or command line output will display the launch command if it is required.
 
