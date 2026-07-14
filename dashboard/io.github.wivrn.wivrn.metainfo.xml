@@ -68,6 +68,16 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="26.6.2" date="2026-07-14">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.6.2</url>
+			<description>
+				<ul>
+					<li>Fix a potential crash due to incorrect locking, happens mostly on NVIDIA</li>
+					<li>Fix some issues in compositor: 0 layers or vie-locked projection layer</li>
+					<li>Workaround issues with microphone on Meta headsets</li>
+				</ul>
+			</description>
+		</release>
 		<release version="26.6.1" date="2026-06-19">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.6.1</url>
 			<description>
