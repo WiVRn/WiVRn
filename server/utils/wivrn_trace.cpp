@@ -53,6 +53,7 @@ namespace wivrn::trace
 namespace
 {
 bool initialized = false;
+bool enabled = false;
 ::vk_bundle * calibration = nullptr;
 
 perfetto::Track g_encoder_track(1);
@@ -266,6 +267,7 @@ void init()
 		U_LOG_D("wivrn::trace: WIVRN_TRACING not set, perfetto tracing disabled");
 		return;
 	}
+	enabled = true;
 
 	const bool use_system = mode == tracing_mode::system or mode == tracing_mode::both;
 	const bool use_inprocess = mode == tracing_mode::inprocess or mode == tracing_mode::both;
@@ -321,7 +323,7 @@ void shutdown()
 
 bool is_enabled()
 {
-	return initialized;
+	return enabled;
 }
 
 void set_calibration_source(::vk_bundle * monado_vk)
