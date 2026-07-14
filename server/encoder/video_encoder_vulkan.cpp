@@ -572,9 +572,12 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	ts_pool = gpu_timestamp_pool(vk, encode_queue.family_index, num_slots, std::format("vulkan encoder {} encode", stream_idx));
 	if (tmp_image)
 		ts_pool_image_copy = gpu_timestamp_pool(vk, encode_queue.family_index, num_slots, std::format("vulkan encoder {} image-copy", stream_idx));
-	const uint32_t host_copy_family = vk.transfer_queue ? vk.transfer_queue.family_index : encode_queue.family_index;
-	ts_pool_host_copy = gpu_timestamp_pool(vk, host_copy_family, num_slots, std::format("vulkan encoder {} host-copy", stream_idx));
-	ts_pool_host_copy_overflow = gpu_timestamp_pool(vk, host_copy_family, num_slots, std::format("vulkan encoder {} host-copy-overflow", stream_idx));
+	if (slot_data[0].host_buffer)
+	{
+		const uint32_t host_copy_family = vk.transfer_queue ? vk.transfer_queue.family_index : encode_queue.family_index;
+		ts_pool_host_copy = gpu_timestamp_pool(vk, host_copy_family, num_slots, std::format("vulkan encoder {} host-copy", stream_idx));
+		ts_pool_host_copy_overflow = gpu_timestamp_pool(vk, host_copy_family, num_slots, std::format("vulkan encoder {} host-copy-overflow", stream_idx));
+	}
 
 	// command pools
 	{
