@@ -551,6 +551,7 @@ layer_squasher::do_layers(
 				        .angle_down = std::min(layer_fov.angle_down, all_layers_fov.angle_down),
 				};
 			ubo.layers[cur_layer].layer_data.unpremultiplied_alpha = is_layer_unpremultiplied(&layer.data);
+			ubo.layers[cur_layer].layer_data.sample_count = data.type == XRT_LAYER_PROJECTION or data.type == XRT_LAYER_PROJECTION_DEPTH ? 1 : 4;
 			apply_bias_and_scale_from_layer(
 			        &data,
 			        &ubo.layers[cur_layer].color_scale,
