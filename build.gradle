@@ -96,7 +96,7 @@ tasks.register("generatePngs", GeneratePngsTask) {
 
 android {
     namespace = "org.meumeu.wivrn"
-    ndkVersion = "28.2.13676358"
+    ndkVersion = "29.0.14206865"
 
     lint {
         disable += "ExpiredTargetSdkVersion"

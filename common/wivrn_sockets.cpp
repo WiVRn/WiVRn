@@ -257,11 +257,7 @@ std::pair<wivrn::deserialization_packet, sockaddr_in6> wivrn::UDP::receive_from_
 
 	size_t size = recvfrom(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC, (sockaddr *)&addr, &addrlen);
 
-#if defined(__cpp_lib_smart_ptr_for_overwrite) && __cpp_lib_smart_ptr_for_overwrite >= 202002L
 	auto buffer = std::make_shared_for_overwrite<uint8_t[]>(size);
-#else
-	std::shared_ptr<uint8_t[]> buffer(new uint8_t[size]);
-#endif
 	ssize_t received = recvfrom(fd, buffer.get(), size, 0, (sockaddr *)&addr, &addrlen);
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
@@ -310,11 +306,7 @@ wivrn::deserialization_packet wivrn::UDP::receive_raw()
 	static const size_t num_messages = 20;
 	if ((not buffer) or buffer.use_count() > 1)
 	{
-#if defined(__cpp_lib_smart_ptr_for_overwrite) && __cpp_lib_smart_ptr_for_overwrite >= 202002L
 		buffer = std::make_shared_for_overwrite<uint8_t[]>(message_size * num_messages);
-#else
-		buffer.reset(new uint8_t[message_size * num_messages]);
-#endif
 	}
 	std::array<iovec, num_messages> iovecs;
 	std::array<mmsghdr, num_messages> mmsgs;
@@ -479,11 +471,7 @@ wivrn::deserialization_packet wivrn::TCP::receive_raw()
 		size_t new_size = std::max<size_t>(data.size_bytes() + expected_size,
 		                                   4096);
 		auto old = std::move(buffer);
-#if defined(__cpp_lib_smart_ptr_for_overwrite) && __cpp_lib_smart_ptr_for_overwrite >= 202002L
 		buffer = std::make_shared_for_overwrite<uint8_t[]>(new_size);
-#else
-		buffer.reset(new uint8_t[new_size]);
-#endif
 		memcpy(buffer.get(), data.data(), data.size_bytes());
 		data = std::span(buffer.get(), data.size());
 		capacity_left = new_size - data.size_bytes();
