@@ -454,6 +454,8 @@ size_t wivrn::UDP::send_many_raw(std::span<serialization_packet> packets)
 
 wivrn::deserialization_packet wivrn::TCP::receive_raw()
 {
+	static constexpr size_t max_payload = 16 * 1024 * 1024;
+
 	ssize_t expected_size;
 
 	if (data.size_bytes() < sizeof(uint32_t))
@@ -463,6 +465,8 @@ wivrn::deserialization_packet wivrn::TCP::receive_raw()
 	else
 	{
 		uint32_t payload_size = *reinterpret_cast<uint32_t *>(data.data());
+		if (payload_size > max_payload)
+			throw std::runtime_error("Invalid packet: size " + std::to_string(payload_size));
 		expected_size = payload_size + sizeof(uint32_t) - data.size_bytes();
 	}
 
