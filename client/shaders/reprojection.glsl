@@ -30,6 +30,10 @@ layout(push_constant) uniform pc
 	vec4 chroma_key_params;
 	vec4 chroma_key_hsv_min; // xyz = HSV min, w unused
 	vec4 chroma_key_hsv_max; // xyz = HSV max, w unused
+	// Sunglasses tint: xyz = sRGB colour, w = blend strength (0 disables).
+	// Adding this vec4 brings the block to exactly the 128-byte Vulkan
+	// push constant minimum.
+	vec4 sunglasses_tint;
 };
 
 #define chroma_key_enabled (chroma_key_params.x > 0.5)
@@ -188,6 +192,16 @@ void main()
 		outColor.rgb /= outColor.a;
 		outColor = outColor * scale + bias;
 		outColor.rgb *= outColor.a;
+	}
+
+	if (sunglasses_tint.w > 0)
+	{
+		vec3 tint = sunglasses_tint.rgb;
+		if (do_srgb)
+			tint = sRGB_to_linear_rgba(vec4(tint, 1.0)).rgb;
+		// Multiply by outColor.a to keep premultiplied alpha: transparent
+		// (passthrough) regions stay untinted.
+		outColor.rgb = mix(outColor.rgb, tint * outColor.a, sunglasses_tint.w);
 	}
 }
 

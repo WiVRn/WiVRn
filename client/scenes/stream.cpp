@@ -53,6 +53,16 @@
 using namespace wivrn;
 using namespace beman::inplace_vector;
 
+static std::array<float, 3> hsv_to_rgb(const std::array<float, 3> & hsv)
+{
+	const float h = hsv[0] * 6, s = hsv[1], v = hsv[2];
+	auto f = [&](float n) {
+		float k = std::fmod(n + h, 6.f);
+		return v - v * s * std::clamp(std::min(k, 4 - k), 0.f, 1.f);
+	};
+	return {f(5), f(3), f(1)};
+}
+
 // clang-format off
 static const std::unordered_map<std::string, device_id> device_ids = {
 	{"/user/hand/left/input/x/click",             device_id::X_CLICK},
@@ -1039,12 +1049,19 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		        .curve = ck_cfg.curve,
 		        .despill = ck_cfg.despill,
 		};
+		const auto & sg_cfg = application::get_config().sunglasses;
+		stream_defoveator::sunglasses_params sg_params{
+		        .enabled = sg_cfg.enabled,
+		        .rgb = hsv_to_rgb(sg_cfg.hsv),
+		        .alpha = sg_cfg.alpha,
+		};
 		defoveator->defoveate(command_buffer,
 		                      foveation,
 		                      images,
 		                      {scale, scale, scale, 1.},
 		                      {bias, bias, bias, 0.},
 		                      ck_params,
+		                      sg_params,
 		                      image_index);
 
 		command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);

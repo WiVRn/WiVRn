@@ -588,6 +588,60 @@ void scenes::stream::gui_settings(float predicted_display_period)
 	}
 	ImGui::Unindent();
 
+	// Sunglasses: dim the stream with a solid colour overlay.
+	ImGui::Text("%s", _S("Sunglasses"));
+	ImGui::Indent();
+	{
+		auto & sg = config.sunglasses;
+		bool sg_dirty = false;
+		if (ImGui::Checkbox(_S("Enable sunglasses"), &sg.enabled))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Blend a solid color over the stream to dim it.\nPassthrough regions keep their real brightness."));
+
+		ImGui::BeginDisabled(!sg.enabled);
+		if (ImGui::SliderFloat(_S("Hue"), &sg.hsv[0], 0.f, 1.f, "%.3f"))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+
+		if (ImGui::SliderFloat(_S("Saturation"), &sg.hsv[1], 0.f, 1.f, "%.3f"))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+
+		if (ImGui::SliderFloat(_S("Value"), &sg.hsv[2], 0.f, 1.f, "%.3f"))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Brightness of the tint color. Keep at 0 for pure dimming."));
+
+		if (ImGui::SliderFloat(_S("Opacity"), &sg.alpha, 0.f, 1.f, "%.3f"))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("How strongly the color covers the image: 0 = invisible, 1 = fully opaque."));
+
+		{
+			ImGui::Text("%s", _S("Tint color preview"));
+			float r, g, b;
+			ImGui::ColorConvertHSVtoRGB(sg.hsv[0], sg.hsv[1], sg.hsv[2], r, g, b);
+			const float height = ImGui::GetFrameHeight();
+			ImGui::ColorButton("##sunglasses_tint", ImVec4(r, g, b, 1), ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop, ImVec2(height * 2, height));
+		}
+
+		if (ImGui::Button(_S("Reset sunglasses")))
+		{
+			sg = configuration::sunglasses_settings{};
+			sg_dirty = true;
+		}
+		imgui_ctx->vibrate_on_hover();
+		ImGui::EndDisabled();
+
+		if (sg_dirty)
+			config.save();
+	}
+	ImGui::Unindent();
+
 	ImGui::PopStyleVar();
 }
 

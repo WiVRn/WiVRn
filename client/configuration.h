@@ -94,6 +94,19 @@ public:
 	};
 	chroma_key_settings chroma_key;
 
+	// Sunglasses: blends a solid colour over the decoded stream to dim it.
+	// Only affects the stream layer, passthrough regions keep their real
+	// brightness.
+	struct sunglasses_settings
+	{
+		bool enabled = false;
+		// HSV in [0, 1]; default black = pure dimming.
+		std::array<float, 3> hsv{0.f, 0.f, 0.f};
+		// Blend strength: 0 = invisible, 1 = fully opaque tint.
+		float alpha = 0.3f;
+	};
+	sunglasses_settings sunglasses;
+
 	bool enable_stream_gui = true;
 
 	// XR_FB_composition_layer_settings extension flags

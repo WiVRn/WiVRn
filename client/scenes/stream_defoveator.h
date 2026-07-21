@@ -39,6 +39,15 @@ public:
 		float despill = 0.f;
 	};
 
+	// Parameters for the sunglasses tint. Colour is already converted to
+	// linear RGB by the caller so the shader only needs a mix().
+	struct sunglasses_params
+	{
+		bool enabled = false;
+		std::array<float, 3> rgb{0.f, 0.f, 0.f};
+		float alpha = 0.f;
+	};
+
 private:
 	struct vertex;
 	static const uint32_t view_count = 2;
@@ -104,6 +113,7 @@ public:
 	        std::array<float, 4> scale,
 	        std::array<float, 4> bias,
 	        const chroma_key_params & chroma_key,
+	        const sunglasses_params & sunglasses,
 	        int destination);
 
 	static XrExtent2Di defoveated_size(const wivrn::to_headset::foveation_parameter &);
