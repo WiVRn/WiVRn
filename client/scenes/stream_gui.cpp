@@ -526,6 +526,51 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		if (ImGui::IsItemHovered())
 			imgui_ctx->tooltip(_("Reduce the key color tinting remaining pixels (useful for green screens)."));
 
+		// Preview: hue bar with the keyed range shown saturated, the rest dimmed,
+		// plus a swatch of the centre of the selected HSV range.
+		{
+			ImGui::Text("%s", _S("Key color preview"));
+			const float h_min = ck.hsv_min[0];
+			const float h_max = ck.hsv_max[0];
+			const bool wrap = h_min > h_max;
+
+			float h_center = wrap
+			                         ? std::fmod(h_min + std::fmod(h_max - h_min + 1.f, 1.f) * 0.5f, 1.f)
+			                         : 0.5f * (h_min + h_max);
+			float r, g, b;
+			ImGui::ColorConvertHSVtoRGB(h_center,
+			                            0.5f * (ck.hsv_min[1] + ck.hsv_max[1]),
+			                            0.5f * (ck.hsv_min[2] + ck.hsv_max[2]),
+			                            r,
+			                            g,
+			                            b);
+			const float height = ImGui::GetFrameHeight();
+			ImGui::ColorButton("##chroma_key_center", ImVec4(r, g, b, 1), ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop, ImVec2(height * 2, height));
+			ImGui::SameLine();
+
+			ImDrawList * draw_list = ImGui::GetWindowDrawList();
+			const ImVec2 pos = ImGui::GetCursorScreenPos();
+			const float width = ImGui::GetContentRegionAvail().x;
+			const int segments = 64;
+			for (int i = 0; i < segments; ++i)
+			{
+				const float h0 = float(i) / segments;
+				const float h1 = float(i + 1) / segments;
+				const float h = 0.5f * (h0 + h1);
+				const bool inside = wrap ? (h >= h_min or h <= h_max) : (h >= h_min and h <= h_max);
+				ImGui::ColorConvertHSVtoRGB(h,
+				                            inside ? ck.hsv_max[1] : 0.25f,
+				                            inside ? ck.hsv_max[2] : 0.35f,
+				                            r,
+				                            g,
+				                            b);
+				draw_list->AddRectFilled(ImVec2(pos.x + width * h0, pos.y),
+				                         ImVec2(pos.x + width * h1, pos.y + height),
+				                         ImGui::ColorConvertFloat4ToU32(ImVec4(r, g, b, 1)));
+			}
+			ImGui::Dummy(ImVec2(width, height));
+		}
+
 		if (ImGui::Button(_S("Reset chroma key")))
 		{
 			ck = configuration::chroma_key_settings{};
