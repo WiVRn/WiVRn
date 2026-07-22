@@ -21,8 +21,8 @@
 // ui:: widget for each, rebuilt every frame so dynamic options/descriptions just work
 // same pages serve the lobby and the in-stream window, gated by ctx.in_game
 
-#include "scenes/gui_common.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
+#include "scenes/gui_common.h"
 
 #include "gui_settings.h"
 
@@ -170,7 +170,7 @@ void render_settings(const wivrn::gui::settings_context & ctx, const char * card
 		{
 			const ImVec2 row_max{row_min.x + ImGui::GetContentRegionAvail().x, ImGui::GetCursorScreenPos().y};
 			if (ImGui::IsMouseHoveringRect(row_min, row_max))
-				ctx.imgui_ctx.tooltip(s.disabled_tooltip, ImGui::GetMousePos());
+				ctx.imgui_ctx.tooltip(s.disabled_tooltip, (row_min + row_max) / 2);
 		}
 	}
 
