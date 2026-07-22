@@ -416,6 +416,7 @@ void settings_streaming(const settings_context & ctx)
 		        .button_label = _("Change"),
 		        .on_click = [&ctx] { if (ctx.enter_foveation_adjust) ctx.enter_foveation_adjust(); },
 		        .enabled = [&config] { return config.override_foveation_enable; },
+		        .disabled_tooltip = _("Enable foveation center override to change this setting"),
 		});
 	}
 
