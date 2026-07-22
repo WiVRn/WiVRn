@@ -438,31 +438,37 @@ void scenes::lobby::gui_server_list()
 			const std::string edit_l = _("Edit server");
 			const std::string del_l = _("Delete server");
 			std::vector<ui::action_item> actions;
-			actions.push_back({ICON_FA_BOLT, auto_l.c_str(), false, data.autoconnect});
+			ImGui::SetCursorScreenPos(row.trailing(x, {bh, bh}));
 			if (data.manual)
 			{
 				actions.push_back({ICON_FA_PEN, edit_l.c_str(), false, false});
 				actions.push_back({ICON_FA_TRASH, del_l.c_str(), true, false});
+				switch (ui::action_menu("##menu", ICON_FA_ELLIPSIS_VERTICAL, actions))
+				{
+					case 0:
+						add_server_cookie = cookie;
+						add_server_window_prettyname = data.service.name;
+						add_server_window_hostname = data.service.hostname;
+						add_server_window_port = data.service.port;
+						add_server_tcp_only = data.service.tcp_only;
+						open_add_edit = true;
+						break;
+					case 1:
+						delete_server_cookie = cookie;
+						open_delete = true;
+						break;
+				}
 			}
-			ImGui::SetCursorScreenPos(row.trailing(x, {bh, bh}));
-			switch (ui::action_menu("##menu", ICON_FA_ELLIPSIS_VERTICAL, actions))
+			else
 			{
-				case 0:
-					data.autoconnect = not data.autoconnect;
-					config.save();
-					break;
-				case 1:
-					add_server_cookie = cookie;
-					add_server_window_prettyname = data.service.name;
-					add_server_window_hostname = data.service.hostname;
-					add_server_window_port = data.service.port;
-					add_server_tcp_only = data.service.tcp_only;
-					open_add_edit = true;
-					break;
-				case 2:
-					delete_server_cookie = cookie;
-					open_delete = true;
-					break;
+				actions.push_back({ICON_FA_BOLT, auto_l.c_str(), false, data.autoconnect});
+				switch (ui::action_menu("##menu", ICON_FA_ELLIPSIS_VERTICAL, actions))
+				{
+					case 0:
+						data.autoconnect = not data.autoconnect;
+						config.save();
+						break;
+				}
 			}
 			x -= bh + gap;
 
