@@ -46,12 +46,6 @@ bool refresh_rate(
         imgui_context & imgui_ctx,
         configuration & config);
 
-bool body_tracking_parts(
-        xr::system & system,
-        imgui_context & imgui_ctx,
-        configuration & config,
-        bool in_game);
-
 bool post_processing(
         imgui_context & imgui_ctx,
         configuration & config);
