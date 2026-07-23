@@ -71,9 +71,6 @@ constexpr glm::vec3 popup_position = {0, 0, 0.05};
 // world-space offset of a hover tooltip layer from the hovered item
 constexpr glm::vec3 tooltip_distance = {0, 0.004, 0.005};
 
-// scale/bias dimming the main GUI panel behind a popup
-constexpr XrColor4f popup_dimming_scale = {0.5, 0.5, 0.5, 1};
-constexpr XrColor4f popup_dimming_bias = {0.25, 0.25, 0.25, 0};
 } // namespace constants::gui
 
 namespace constants::lobby

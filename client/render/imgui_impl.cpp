@@ -934,6 +934,28 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 		}
 	}
 
+	if (auto modal_popup = ImGui::GetTopMostAndVisiblePopupModal(); modal_popup != nullptr)
+	{
+		ImDrawList * draw_list = ImGui::GetForegroundDrawList();
+		for (ImGuiWindow * window: context->Windows)
+		{
+			if (window == modal_popup or window->ParentWindow != nullptr or not window->Active or window->Hidden or window->IsFallbackWindow)
+				continue;
+
+			static const auto virtual_keyboard_id = ImHashStr("VirtualKeyboard");
+			if (window->ID == virtual_keyboard_id)
+				continue;
+
+			ImRect window_rect{
+			        window->Pos.x,
+			        window->Pos.y,
+			        window->Pos.x + window->Size.x,
+			        window->Pos.y + window->Size.y};
+
+			draw_list->AddRectFilled(window_rect.Min, window_rect.Max, ImGui::ColorConvertFloat4ToU32(wivrn::ui::current().dimming), window->WindowRounding);
+		}
+	}
+
 	ImGui::Render();
 
 	current_command_buffer = (current_command_buffer + 1) % command_buffers.size();

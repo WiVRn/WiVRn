@@ -1076,18 +1076,12 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		}
 	}
 
-	// add the GUI layers, dim the main panel behind a modal popup, popup quad stays bright
-	bool dim_main = imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported;
 	for (auto [_, layer]: layers)
 	{
 		add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
 		if (composition_layer_depth_test_supported)
 			set_depth_test(true, XR_COMPARE_OP_LESS_FB);
-		if (dim_main)
-		{
-			set_color_scale_bias(constants::gui::popup_dimming_scale, constants::gui::popup_dimming_bias);
-			dim_main = false; // only the main window dims, not the popup
-		}
+
 		else if (alpha < 1 and composition_layer_color_scale_bias_supported)
 			set_color_scale_bias({alpha, alpha, alpha, alpha}, {});
 	}

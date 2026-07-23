@@ -53,6 +53,8 @@ static theme dark_default()
 	t.success = rgb(52, 199, 123);
 	t.warning = rgb(249, 115, 6);
 
+	t.dimming = rgb(128, 128, 128, 0.5f);
+
 	t.rounding = 8;
 	t.card_rounding = 14;
 	t.border_size = 1;

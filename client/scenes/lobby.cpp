@@ -1063,20 +1063,14 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	if (composition_layer_depth_test_supported)
 		set_depth_test(true, XR_COMPARE_OP_ALWAYS_FB);
 
-	bool dim_gui = imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported;
 	for (auto & [z_index, layer]: imgui_layers)
 	{
 		if (z_index < constants::lobby::zindex_recenter_tip)
 		{
 			add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
 
-			if (dim_gui)
-				set_color_scale_bias(constants::gui::popup_dimming_scale, constants::gui::popup_dimming_bias);
-
 			if (composition_layer_depth_test_supported)
 				set_depth_test(true, XR_COMPARE_OP_LESS_OR_EQUAL_FB);
-
-			dim_gui = false; // Only dim the main window
 		}
 	}
 
