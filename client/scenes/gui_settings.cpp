@@ -68,6 +68,7 @@ enum class ui_kind
 	slider,
 	segmented,
 	combo,
+	combo_multi,
 	button,
 };
 
@@ -86,6 +87,10 @@ struct setting
 	std::function<void(int)> set_int;
 	int v_min = 0;
 	int v_max = 0;
+
+	std::function<bool(int)> get_multi;
+	std::function<void(int, bool)> set_multi;
+
 	std::string fmt;
 	std::function<std::vector<std::string>()> options;
 	std::string title; // combo modal title
@@ -93,8 +98,9 @@ struct setting
 	std::string button_label;       // ui_kind::button
 	std::function<void()> on_click; // ui_kind::button
 
-	std::optional<bool> default_bool; // reset target for toggles
-	std::optional<int> default_int;   // reset target for slider/segmented/combo
+	std::optional<bool> default_bool;               // reset target for toggles
+	std::optional<int> default_int;                 // reset target for slider/segmented/combo
+	std::optional<std::vector<char>> default_multi; // reset target for multicombo
 
 	std::function<bool()> enabled;
 	std::string disabled_tooltip; // shown on a disabled row
@@ -115,6 +121,7 @@ void render_settings(const wivrn::gui::settings_context & ctx, const char * card
 		int def_i = s.default_int.value_or(0);
 		const bool * dpb = s.default_bool ? &def_b : nullptr;
 		const int * dpi = s.default_int ? &def_i : nullptr;
+		const std::vector<char> * dpm = s.default_multi ? &s.default_multi.value() : nullptr;
 
 		const ImVec2 row_min = ImGui::GetCursorScreenPos();
 
@@ -150,6 +157,23 @@ void render_settings(const wivrn::gui::settings_context & ctx, const char * card
 				int v = s.get_int();
 				if (ui::combo(s.id, s.title, items, &v, control_w, dpi))
 					s.set_int(v);
+				break;
+			}
+			case ui_kind::combo_multi: {
+				const auto opts = s.options();
+				std::vector<ui::combo_item> items;
+				std::vector<char> selected;
+				for (const auto & o: opts)
+					items.push_back({o.c_str()});
+				for (size_t i = 0; i < items.size(); ++i)
+					selected.push_back(s.get_multi(i));
+
+				if (ui::combo_multi(s.id, s.title, s.title, items, &selected, control_w, dpm))
+				{
+					// TODO only set the changed value
+					for (size_t i = 0; i < items.size(); ++i)
+						s.set_multi(i, selected[i]);
+				}
 				break;
 			}
 			case ui_kind::button: {
@@ -594,6 +618,29 @@ bool settings_tracking(const settings_context & ctx)
 		feature_toggle("##face", _("Face tracking"), _("Stream facial expressions to the PC."), feature::face_tracking, false);
 
 	const auto body_tracker = ctx.system.body_tracker_supported();
+
+	std::vector<char> body_parts_default;
+	std::vector<std::string> body_parts_names;
+	std::vector<from_headset::body_part_mask> body_parts_bit;
+	for (const auto & [bit, name]: {
+	             std::make_pair(from_headset::body_part_mask::chest, _C("virtual body tracker selection", "Chest")),
+	             std::make_pair(from_headset::body_part_mask::left_elbow, _C("virtual body tracker selection", "Left elbow")),
+	             std::make_pair(from_headset::body_part_mask::right_elbow, _C("virtual body tracker selection", "Right elbow")),
+	             std::make_pair(from_headset::body_part_mask::hip, _C("virtual body tracker selection", "Hip")),
+	             std::make_pair(from_headset::body_part_mask::left_knee, _C("virtual body tracker selection", "Left knee")),
+	             std::make_pair(from_headset::body_part_mask::right_knee, _C("virtual body tracker selection", "Right knee")),
+	             std::make_pair(from_headset::body_part_mask::left_foot, _C("virtual body tracker selection", "Left foot")),
+	             std::make_pair(from_headset::body_part_mask::right_foot, _C("virtual body tracker selection", "Right foot")),
+	     })
+	{
+		if (body_tracker == xr::body_tracker_type::fb and bit > from_headset::body_part_mask::hip)
+			break;
+		body_parts_default.push_back(1);
+		body_parts_names.push_back(name);
+		body_parts_bit.push_back(bit);
+	}
+
+	bool changed = false;
 	if (body_tracker != xr::body_tracker_type::none)
 	{
 		list.push_back({
@@ -609,15 +656,34 @@ bool settings_tracking(const settings_context & ctx)
 		        .enabled = [&ctx] { return not ctx.in_game; },
 		        .disabled_tooltip = disconnect_tip,
 		});
+
+		list.push_back({
+		        .id = "##body_tracking_parts",
+		        .label = _("Virtual body trackers"),
+		        .description = _("Create virtual tracker devices."),
+		        .ui = ui_kind::combo_multi,
+		        .get_multi = [&config, &body_parts_bit](int index) {
+			        const auto underlying = std::to_underlying(body_parts_bit[index]);
+			        return config.body_part_mask & underlying; },
+		        .set_multi = [&config, &body_parts_bit, &changed](int index, bool value) {
+			        const auto underlying = std::to_underlying(body_parts_bit[index]);
+				if (value)
+					config.body_part_mask |= underlying;
+				else
+					config.body_part_mask &= ~underlying;
+				changed = true; },
+		        .options = [&body_parts_names]() { return body_parts_names; },
+		        .title = _("Virtual body trackers"),
+		        .default_multi = body_parts_default,
+		        .enabled = [&ctx] { return not ctx.in_game; },
+		        .disabled_tooltip = disconnect_tip,
+		});
 	}
 
 	ui::page_header(_S("Tracking"), _S("Body and input tracking sent to the PC."));
 	render_settings(ctx, "##tracking", list);
 
-	if (body_tracker != xr::body_tracker_type::none)
-		return wivrn::gui::body_tracking_parts(ctx.system, ctx.imgui_ctx, config, ctx.in_game);
-
-	return false;
+	return changed;
 }
 
 void settings_system(const settings_context & ctx)
