@@ -97,6 +97,9 @@ struct combo_item
 // Combo box whose options open in a modal list, *selected is the chosen index, title labels the modal
 bool combo(const char * id, const std::string & title, const std::vector<combo_item> & items, int * selected, float width = 0, const int * default_value = nullptr);
 
+// Combo box with multiple selection
+bool combo_multi(const char * id, const std::string & title, const std::string & preview, const std::vector<combo_item> & items, std::vector<char> * selected, float width, const std::vector<char> * default_value);
+
 // Centre (display coords) where combo and begin_modal popups open, plus the popup-layer height
 // available_height of 0 leaves the list unbounded, set once per frame
 void set_popup_center(const ImVec2 & center, float available_height = 0);

@@ -696,7 +696,7 @@ ImVec2 popup_center = {0, 0};
 float popup_available_height = 0;
 
 // one selectable option inside the combo modal, tall full-width touch target with an optional description
-bool combo_row(const combo_item & item, bool selected)
+bool combo_row(const combo_item & item, bool selected, bool checked)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	const theme & t = current();
@@ -725,6 +725,12 @@ bool combo_row(const combo_item & item, bool selected)
 	if (selected)
 		draw->AddRectFilled(bb.Min, {bb.Min.x + metrics::combo_padding.x * 0.25f, bb.Max.y}, t.col(t.accent), t.rounding, ImDrawFlags_RoundCornersLeft);
 
+	if (checked)
+	{
+		const ImVec2 cs = ImGui::CalcTextSize(ICON_FA_CHECK);
+		draw->AddText({bb.Max.x - metrics::combo_padding.x - cs.x, bb.Min.y + (row_h - cs.y) * 0.5f}, t.col(t.accent), ICON_FA_CHECK);
+	}
+
 	const float tx = bb.Min.x + metrics::combo_padding.x;
 	const ImU32 name_col = t.col(t.text);
 	const ImVec2 nts = ImGui::CalcTextSize(item.name);
@@ -747,15 +753,8 @@ bool combo_row(const combo_item & item, bool selected)
 
 	return pressed;
 }
-} // namespace
 
-void set_popup_center(const ImVec2 & center, float available_height)
-{
-	popup_center = center;
-	popup_available_height = available_height;
-}
-
-bool combo(const char * id, const std::string & title, const std::vector<combo_item> & items, int * selected, float width, const int * default_value)
+bool combo_impl(const char * id, const std::string & title, const char * preview, const std::vector<combo_item> & items, int * selected, std::vector<char> * selected_multi, float width, const int * default_value, const std::vector<char> * default_value_multi, bool close_on_click)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	if (window->SkipItems or items.empty())
@@ -767,7 +766,7 @@ bool combo(const char * id, const std::string & title, const std::vector<combo_i
 
 	// closed box, same height as the slider so setting rows line up
 	ImVec2 size = ImGui::CalcItemSize({width, 0}, ImGui::CalcItemWidth(), ImGui::GetFrameHeight() * metrics::control_height);
-	if (default_value)
+	if (default_value or default_value_multi)
 		size.x -= reset_slot_width();
 	const ImVec2 pos = window->DC.CursorPos;
 	const ImRect bb(pos, pos + size);
@@ -790,10 +789,9 @@ bool combo(const char * id, const std::string & title, const std::vector<combo_i
 	if (t.border_size > 0)
 		draw->AddRect(bb.Min, bb.Max, t.col(t.border), t.rounding, 0, t.border_size);
 
-	const int sel = ImClamp(*selected, 0, int(items.size()) - 1);
+	const int sel = selected ? ImClamp(*selected, 0, int(items.size()) - 1) : -1;
 
 	// preview, left aligned and clipped to the box
-	const char * preview = items[sel].name;
 	const ImVec2 ts = ImGui::CalcTextSize(preview);
 	const float pad_x = metrics::combo_padding.x;
 	draw->PushClipRect(bb.Min, bb.Max, true);
@@ -847,14 +845,25 @@ bool combo(const char * id, const std::string & title, const std::vector<combo_i
 		ImGui::BeginChild("##list", {0, list_h});
 		for (int i = 0; i < int(items.size()); ++i)
 		{
-			const bool is_sel = i == sel;
-			if (combo_row(items[i], is_sel))
+			const bool is_selected = i == sel;
+			const bool is_selected_multi = selected_multi and i < selected_multi->size() and (*selected_multi)[i];
+			if (combo_row(items[i], is_selected, is_selected_multi))
 			{
-				*selected = i;
+				if (selected)
+					*selected = i;
+
+				if (selected_multi)
+				{
+					if (selected_multi->size() <= i)
+						selected_multi->resize(i + 1);
+					(*selected_multi)[i] = not(*selected_multi)[i];
+				}
+
 				changed = true;
-				ImGui::CloseCurrentPopup();
+				if (close_on_click)
+					ImGui::CloseCurrentPopup();
 			}
-			if (is_sel and ImGui::IsWindowAppearing())
+			if (is_selected and ImGui::IsWindowAppearing())
 				ImGui::SetScrollHereY(0.5f); // reveal the current value when opening
 		}
 		ImGui::EndChild();
@@ -870,13 +879,41 @@ bool combo(const char * id, const std::string & title, const std::vector<combo_i
 	ImGui::PopStyleVar(3);
 	ImGui::PopStyleColor(3);
 
-	if (default_value and reset_slot(id, *selected != *default_value))
+	bool show_reset_slot = (selected and default_value and *selected != *default_value) or
+	                       (selected_multi and default_value_multi and *selected_multi != *default_value_multi);
+
+	if (reset_slot(id, show_reset_slot))
 	{
-		*selected = *default_value;
+		if (selected and default_value)
+			*selected = *default_value;
+
+		if (selected_multi and default_value_multi)
+			*selected_multi = *default_value_multi;
+
 		changed = true;
 	}
 
 	return changed;
+}
+} // namespace
+
+void set_popup_center(const ImVec2 & center, float available_height)
+{
+	popup_center = center;
+	popup_available_height = available_height;
+}
+
+bool combo(const char * id, const std::string & title, const std::vector<combo_item> & items, int * selected, float width, const int * default_value)
+{
+	const int sel = ImClamp(*selected, 0, int(items.size()) - 1);
+	const char * preview = items[sel].name;
+
+	return combo_impl(id, title, preview, items, selected, nullptr, width, default_value, nullptr, true);
+}
+
+bool combo_multi(const char * id, const std::string & title, const std::string & preview, const std::vector<combo_item> & items, std::vector<char> * selected, float width, const std::vector<char> * default_value)
+{
+	return combo_impl(id, title, preview.c_str(), items, nullptr, selected, width, nullptr, default_value, false);
 }
 
 void chip(const std::string & label, chip_style style, bool dot, float height)
