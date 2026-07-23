@@ -55,6 +55,9 @@ struct theme
 	ImVec4 success;
 	ImVec4 warning;
 
+	// Dimming when a modal popup is visible
+	ImVec4 dimming;
+
 	// Shape, in pixels
 	float rounding;      // buttons, inputs, sliders
 	float card_rounding; // cards
