@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
-import pandas
 import csv
 import typing
+
+import pandas
+
 
 class Frame:
     def __init__(self, num):
         self.num = num
-        self.events = dict()
-        self.streams = dict()
-        self.flags = dict()
+        self.events = {}
+        self.streams = {}
+        self.flags = {}
         self.len = 1
 
     def set(self, event, timestamp, stream):
@@ -17,7 +19,7 @@ class Frame:
             self.events[event] = timestamp
         else:
             if stream not in self.streams:
-                self.streams[stream] = dict()
+                self.streams[stream] = {}
             if event in ("blit", "display"):
                 if event not in self.streams[stream]:
                     self.streams[stream][event] = [timestamp]
@@ -31,6 +33,7 @@ class Frame:
     def flag(self, stream, flag):
         self.flags[stream if stream != 255 else None] = flag
 
+
 def read(file: typing.TextIO) -> pandas.DataFrame:
     timings = csv.reader(file)
 
@@ -38,7 +41,6 @@ def read(file: typing.TextIO) -> pandas.DataFrame:
     frames = []
     streams = 0
     for event, frame, timestamp, stream, *extra in timings:
-
         if event == "event":
             continue
 
@@ -68,7 +70,16 @@ def read(file: typing.TextIO) -> pandas.DataFrame:
             frames[frame].flag(stream, x)
 
     common_cols = ["wake_up", "begin", "submit"]
-    stream_cols = ["encode_begin", "encode_end", "send_begin", "send_end", "receive_begin", "receive_end", "decode_begin", "decode_end"]
+    stream_cols = [
+        "encode_begin",
+        "encode_end",
+        "send_begin",
+        "send_end",
+        "receive_begin",
+        "receive_end",
+        "decode_begin",
+        "decode_end",
+    ]
     display_cols = ["blit", "display"]
 
     columns = ["frame"] + common_cols + stream_cols + display_cols

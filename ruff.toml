@@ -1,6 +1,6 @@
 # Ruff config — https://docs.astral.sh/ruff/
 # `include` sets which files are linted; widen it to cover more paths.
-include = ["tools/perfetto/**/*.py"]
+include = ["tools/**/*.py"]
 line-length = 100
 target-version = "py310"
 

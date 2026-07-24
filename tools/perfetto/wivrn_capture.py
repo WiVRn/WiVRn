@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -91,7 +92,7 @@ def download_tracebox(url, dest):
                     else:
                         print(f"\r  {downloaded / 1e6:.1f} MB", end="", flush=True)
         print()
-    except Exception as e:
+    except (OSError, urllib.error.URLError) as e:
         Path(dest).unlink(missing_ok=True)
         sys.exit(f"wivrn_capture: download failed: {e}")
 
@@ -106,13 +107,15 @@ def ensure_tracebox(path):
 
 def pgrep(name):
     """Return list of matching PIDs (as strings), or []."""
-    r = subprocess.run(["pgrep", "-x", name], capture_output=True, text=True)
+    r = subprocess.run(["pgrep", "-x", name], capture_output=True, text=True, check=False)
     return r.stdout.split() if r.returncode == 0 else []
 
 
 def socket_listening(sock_path):
     """Return True if a Unix socket at sock_path is bound and listening."""
-    r = subprocess.run(["ss", "-lxH", "src", str(sock_path)], capture_output=True, text=True)
+    r = subprocess.run(
+        ["ss", "-lxH", "src", str(sock_path)], capture_output=True, text=True, check=False
+    )
     return bool(r.stdout.strip())
 
 
@@ -121,7 +124,11 @@ def wait_for_producer(tracebox, env, timeout_s=20):
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         r = subprocess.run(
-            [str(tracebox), "perfetto", "--query"], env=env, capture_output=True, text=True
+            [str(tracebox), "perfetto", "--query"],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if "track_event" in r.stdout:
             return True
@@ -193,7 +200,7 @@ def main():
     if args.output:
         out = Path(args.output)
     else:
-        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        ts = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
         out = Path(f"wivrn-{ts}.pftrace")
 
     if not cfg.is_file():
@@ -234,9 +241,11 @@ def main():
     def cleanup():
         run_cfg.unlink(missing_ok=True)
         if started_probes:
-            subprocess.run([*sudo, "pkill", "-x", "traced_probes"], capture_output=True)
+            subprocess.run(
+                [*sudo, "pkill", "-x", "traced_probes"], capture_output=True, check=False
+            )
         if started_traced:
-            subprocess.run([*sudo, "pkill", "-x", "traced"], capture_output=True)
+            subprocess.run([*sudo, "pkill", "-x", "traced"], capture_output=True, check=False)
             producer_sock.unlink(missing_ok=True)
             consumer_sock.unlink(missing_ok=True)
 

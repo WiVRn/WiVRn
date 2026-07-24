@@ -32,8 +32,10 @@ jobs:
     - name: Run ruff lint check
       uses: astral-sh/ruff-action@v3
       with:
+        version: "0.16.0"
         args: "check"
     - name: Run ruff format check
       uses: astral-sh/ruff-action@v3
       with:
+        version: "0.16.0"
         args: "format --check"

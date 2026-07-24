@@ -20,9 +20,7 @@ class CMakeFile:
         with open(filename) as f:
             data = f.read()
         for match in re.findall("FetchContent_Declare\\(([^)]*)\\)", data):
-            words = [word for word
-                     in match.replace("\n", " ").split(" ")
-                     if word]
+            words = [word for word in match.replace("\n", " ").split(" ") if word]
             self.entries[words[0]] = words[1:]
 
     def get(self, target: str, key: str) -> str:
@@ -36,7 +34,9 @@ if __name__ == "__main__":
     parser.add_argument("--git")
     parser.add_argument("--gitlocal", action="store_true")
     parser.add_argument("--dir", action="store_true")
-    parser.add_argument("--out", help="directory where to write manifest and additional files", default=".")
+    parser.add_argument(
+        "--out", help="directory where to write manifest and additional files", default="."
+    )
 
     args = parser.parse_args()
     if not (args.git or args.dir):
@@ -52,34 +52,35 @@ if __name__ == "__main__":
     xrizer_repo = "https://github.com/Supreeeme/xrizer"
     xrizer_commit = re.findall(f"url: {xrizer_repo}.git[ \n]*commit: ([a-f0-9]*)", template)[0]
     lock = urlopen(f"{xrizer_repo}/raw/{xrizer_commit}/Cargo.lock")
-    gen_src = asyncio.run(flatpakcargogenerator.generate_sources(
-            toml.loads(lock.read().decode())))
+    gen_src = asyncio.run(flatpakcargogenerator.generate_sources(toml.loads(lock.read().decode())))
     with open(os.path.join(args.out, "xrizer-gen-src.json"), "w") as f:
         json.dump(gen_src, f, indent=4, sort_keys=False)
 
-
-    monado_commit = open(os.path.join(root, "monado-rev")).read()
+    with open(os.path.join(root, "monado-rev")) as f:
+        monado_commit = f.read()
     boost_url = cmake.get("boost", "URL")
     boost_sha256 = cmake.get("boost", "URL_HASH").split("=")[-1]
 
     try:
-        git_tag = subprocess.check_output(
-                ["git", "describe", "--exact-match", "--tags"],
-                cwd=root,
-                stderr=subprocess.DEVNULL
-                ).decode().strip()
+        git_tag = (
+            subprocess.check_output(
+                ["git", "describe", "--exact-match", "--tags"], cwd=root, stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
         git_commit = ""
         git_desc = ""
     except subprocess.CalledProcessError:
         git_tag = ""
-        git_commit = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"],
-                cwd=root
-                ).decode().strip()
-        git_desc = subprocess.check_output(
-                    ["git", "describe", "--tags", "--always"],
-                    cwd=root
-                    ).decode().strip()
+        git_commit = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root).decode().strip()
+        )
+        git_desc = (
+            subprocess.check_output(["git", "describe", "--tags", "--always"], cwd=root)
+            .decode()
+            .strip()
+        )
 
     if args.git or args.gitlocal:
         template = template.replace("WIVRN_SRC1", "type: git")
