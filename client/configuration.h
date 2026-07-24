@@ -22,6 +22,7 @@
 #include "wivrn_discover.h"
 #include "wivrn_packets.h"
 
+#include <array>
 #include <map>
 #include <mutex>
 #include <optional>
@@ -75,6 +76,36 @@ public:
 	bool forward_gamepad = false;
 
 	std::underlying_type_t<wivrn::from_headset::body_part_mask> body_part_mask = ~0;
+
+	// Client-side chroma key passthrough: keys out HSV range from decoded
+	// stream so the headset's passthrough (alpha blend env / FB / HTC) shows
+	// through. Applies to any running application, regardless of whether it
+	// outputs alpha.
+	struct chroma_key_settings
+	{
+		bool enabled = false;
+		// HSV in [0, 1]; hsv_min.h > hsv_max.h wraps around the hue ring.
+		std::array<float, 3> hsv_min{0.25f, 0.30f, 0.15f};
+		std::array<float, 3> hsv_max{0.45f, 1.00f, 1.00f};
+		// Soft falloff width around the HSV range, in normalized HSV units.
+		float curve = 0.10f;
+		// How aggressively to subtract the key hue from surviving pixels.
+		float despill = 0.50f;
+	};
+	chroma_key_settings chroma_key;
+
+	// Sunglasses: blends a solid colour over the decoded stream to dim it.
+	// Only affects the stream layer, passthrough regions keep their real
+	// brightness.
+	struct sunglasses_settings
+	{
+		bool enabled = false;
+		// HSV in [0, 1]; default black = pure dimming.
+		std::array<float, 3> hsv{0.f, 0.f, 0.f};
+		// Blend strength: 0 = invisible, 1 = fully opaque tint.
+		float alpha = 0.3f;
+	};
+	sunglasses_settings sunglasses;
 
 	bool enable_stream_gui = true;
 

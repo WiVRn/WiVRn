@@ -24,6 +24,7 @@
 #include <arpa/inet.h>
 #include <cassert>
 #include <memory>
+#include <mutex>
 #include <netdb.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
