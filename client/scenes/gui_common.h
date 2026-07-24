@@ -41,6 +41,10 @@ bool refresh_rate(
         imgui_context & imgui_ctx,
         configuration & config);
 
+bool supersampling(
+        imgui_context & imgui_ctx,
+        configuration & config);
+
 bool body_tracking_parts(
         xr::system & system,
         imgui_context & imgui_ctx,

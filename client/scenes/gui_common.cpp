@@ -120,6 +120,31 @@ bool refresh_rate(
 	return changed;
 }
 
+bool supersampling(
+        imgui_context & imgui_ctx,
+        configuration & config)
+{
+	const uint32_t min_sample_count = 0; // 1x
+	const uint32_t max_sample_count = 4; // 16x
+	bool changed = false;
+
+	// Slider operates in linear space but sample count is stored in powers-of-two. Temporarily convert count to its log2 for imgui.
+	int selected_count = std::log2(config.supersampling_mode);
+
+	if (ImGui::SliderInt(_S("Render Supersampling"), &selected_count, min_sample_count, max_sample_count, fmt::format("x{}", config.supersampling_mode).c_str(), 0))
+	{
+		config.supersampling_mode = 1u << selected_count;
+		config.save();
+		changed = true;
+	}
+	imgui_ctx.vibrate_on_hover();
+
+	if (ImGui::IsItemHovered())
+		imgui_ctx.tooltip(_("Reduce flicker for high contrast edges during rendering.\nUseful for applications which render high above the headset display resolution (e.g. overlays)"));
+
+	return changed;
+}
+
 bool body_tracking_parts(
         xr::system & system,
         imgui_context & imgui_ctx,
@@ -248,7 +273,7 @@ bool post_processing(
 		}
 		imgui_ctx.vibrate_on_hover();
 		if (ImGui::IsItemHovered())
-			imgui_ctx.tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
+			imgui_ctx.tooltip(_("Reduce flicker for high contrast edges during decoding.\nUseful when the render resolution is high compared to the headset display"));
 	}
 
 	{

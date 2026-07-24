@@ -1,0 +1,233 @@
+From 0b797be0b83941b2006f8c1e1073e64b1d3fa629 Mon Sep 17 00:00:00 2001
+From: caszuu <caszuul@gmail.com>
+Date: Sun, 19 Jul 2026 17:05:26 +0200
+Subject: [PATCH 2/2] c/shaders: Add per-layer supersampling
+
+---
+ src/xrt/compositor/render/render_interface.h |   2 +-
+ src/xrt/compositor/shaders/layer.comp        | 117 ++++++++++++++++---
+ src/xrt/compositor/util/comp_render_cs.c     |   1 +
+ 3 files changed, 102 insertions(+), 18 deletions(-)
+
+diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
+index 466341c7f..e1250b896 100644
+--- a/src/xrt/compositor/render/render_interface.h
++++ b/src/xrt/compositor/render/render_interface.h
+@@ -1231,7 +1231,7 @@ struct render_compute_layer_ubo_data
+ 		{
+ 			uint32_t layer_type;
+ 			uint32_t unpremultiplied_alpha;
+-			uint32_t _padding0;
++			uint32_t sample_count;
+ 			uint32_t _padding1;
+ 		} layer_data;
+ 
+diff --git a/src/xrt/compositor/shaders/layer.comp b/src/xrt/compositor/shaders/layer.comp
+index 01f921bf0..e450eb11b 100644
+--- a/src/xrt/compositor/shaders/layer.comp
++++ b/src/xrt/compositor/shaders/layer.comp
+@@ -6,6 +6,8 @@
+ 
+ #version 460
+ #extension GL_GOOGLE_include_directive : require
++#extension GL_KHR_shader_subgroup_ballot : require
++#extension GL_KHR_shader_subgroup_shuffle : require
+ 
+ #include "srgb.inc.glsl"
+ #include "hsv.inc.glsl"
+@@ -19,9 +21,9 @@ struct layer_data
+ {
+ 	uint layer_type;
+ 	uint unpremultiplied_alpha;
++	uint sample_count;
+ 
+ 	// This struct is used in an array, gets padded to vec4.
+-	uint _padding0;
+ 	uint _padding1;
+ };
+ 
+@@ -114,6 +116,88 @@ layout(set = 0, binding = 3, std140) uniform restrict Config
+ 	Layer layers[RENDER_MAX_LAYERS];
+ } ubo;
+ 
++const vec2 sample_offsets[] = {
++	// Trivial:
++	vec2(.5, .5) - vec2(.5),
++
++	// 2x MSAA:
++	vec2(.75, .75) - vec2(.5),
++	vec2(.25, .25) - vec2(.5),
++
++	// 4x MSAA:
++	vec2(.375, .125) - vec2(.5),
++	vec2(.875, .375) - vec2(.5),
++	vec2(.125, .625) - vec2(.5),
++	vec2(.625, .875) - vec2(.5),
++
++	// 8x MSAA:
++	vec2(.5625, .3125) - vec2(.5),
++	vec2(.4375, .6875) - vec2(.5),
++	vec2(.8125, .5625) - vec2(.5),
++	vec2(.3125, .1875) - vec2(.5),
++	vec2(.1875, .8125) - vec2(.5),
++	vec2(.0625, .4375) - vec2(.5),
++	vec2(.6875, .9375) - vec2(.5),
++	vec2(.9375, .0625) - vec2(.5),
++
++	// 16x MSAA:
++	vec2(.125, .125) - vec2(.5),
++	vec2(.375, .125) - vec2(.5),
++	vec2(.625, .125) - vec2(.5),
++	vec2(.875, .125) - vec2(.5),
++	vec2(.125, .375) - vec2(.5),
++	vec2(.375, .375) - vec2(.5),
++	vec2(.625, .375) - vec2(.5),
++	vec2(.875, .375) - vec2(.5),
++	vec2(.125, .625) - vec2(.5),
++	vec2(.375, .625) - vec2(.5),
++	vec2(.625, .625) - vec2(.5),
++	vec2(.875, .625) - vec2(.5),
++	vec2(.125, .875) - vec2(.5),
++	vec2(.375, .875) - vec2(.5),
++	vec2(.625, .875) - vec2(.5),
++	vec2(.875, .875) - vec2(.5)
++};
++
++vec4 sample_source_texture(vec2 uv, uint layer) {
++	uint source_image_index = LAYER.image_info.color_image_index;
++	uint sample_count = LAYER.layer_data.sample_count;
++
++	if (sample_count == 1) {
++		return texture(source[source_image_index], uv);
++	}
++
++	// All invocations are laid out in 2x2 quads. Therefore to obtain
++	// a full derivative coordinates have to be swapped diagonally.
++	//   x 1 2 3 4 5 6 7 8
++	//  y+----------------
++	//  1| 0 1 4 5 8 9 C D
++	//   |  X   X   X   X  ...
++	//  2| 2 3 6 7 A B E F
++
++	uint peer_idx = gl_SubgroupInvocationID ^ 3;
++	vec4 colour = vec4(.0);
++
++	// Check if both invocations have reached a valid uv coordinate
++	bool peer_valid = subgroupBallotBitExtract(subgroupBallot(true), peer_idx);
++
++	if (peer_valid) {
++		// Swap with peer and calculate derivative
++		vec2 diff = uv - subgroupShuffle(uv, peer_idx);
++
++		// Accumulate sample_count number of samples and average them out
++		for (uint sample_idx = 0; sample_idx < sample_count; sample_idx++) {
++			colour += texture(source[source_image_index], uv + diff * sample_offsets[sample_idx + sample_count - 1]);
++		}
++		colour /= sample_count;
++	} else {
++		// Peer invocation is inactive, fallback to a single sample
++		colour = texture(source[source_image_index], uv);
++	}
++
++	return colour;
++}
++
+ vec4 apply_chroma_key(vec4 color, uint layer)
+ {
+ 	float curve = LAYER.chroma_key.curve;
+@@ -304,12 +388,10 @@ vec4 do_cylinder(vec2 view_uv, uint layer)
+ 
+ 		vec2 uv_sub = fma(sample_point, LAYER.post_transform.zw, LAYER.post_transform.xy);
+ 
+-		uint index = LAYER.image_info.color_image_index;
+ #ifdef DEBUG
+-		out_color += texture(source[index], uv_sub) / 2.f;
++		out_color += sample_source_texture(uv_sub, layer) / 2.f;
+ #else
+-
+-		out_color = texture(source[index], uv_sub);
++		out_color = sample_source_texture(uv_sub, layer);
+ #endif
+ 	} else {
+ 		out_color += vec4(0.f);
+@@ -403,12 +485,10 @@ vec4 do_equirect2(vec2 view_uv, uint layer)
+ 
+ 		vec2 uv_sub = fma(sample_point, LAYER.post_transform.zw, LAYER.post_transform.xy);
+ 
+-		uint index = LAYER.image_info.color_image_index;
+ #ifdef DEBUG
+-		out_color += texture(source[index], uv_sub) / 2.0;
++		out_color += sample_source_texture(uv_sub, layer) / 2.0;
+ #else
+-
+-		out_color = texture(source[index], uv_sub);
++		out_color = sample_source_texture(uv_sub, layer);
+ #endif
+ 	} else {
+ 		out_color += vec4(0.f);
+@@ -419,13 +499,11 @@ vec4 do_equirect2(vec2 view_uv, uint layer)
+ 
+ vec4 do_projection(vec2 view_uv, uint layer)
+ {
+-	uint source_image_index = LAYER.image_info.color_image_index;
+-
+ 	// Do any transformation needed.
+ 	vec2 uv = transform_uv(view_uv, layer);
+ 
+ 	// Sample the source.
+-	vec4 colour = vec4(texture(source[source_image_index], uv).rgba);
++	vec4 colour = sample_source_texture(uv, layer);
+ 
+ 	return colour;
+ }
+@@ -451,8 +529,6 @@ vec3 get_direction(vec2 uv)
+ 
+ vec4 do_quad(vec2 view_uv, uint layer)
+ {
+-	uint source_image_index = LAYER.image_info.color_image_index;
+-
+ 	// center point of the plane in view space.
+ 	vec3 quad_position = LAYER.quad_position.xyz;
+ 
+@@ -514,7 +590,7 @@ vec4 do_quad(vec2 view_uv, uint layer)
+ 			// sample on the desired subimage, not the entire texture
+ 			plane_uv = fma(plane_uv, LAYER.post_transform.zw, LAYER.post_transform.xy);
+ 
+-			colour = texture(source[source_image_index], plane_uv);
++			colour = sample_source_texture(plane_uv, layer);
+ 		} else {
+ 			// intersection on infinite plane outside of plane bounds
+ 			colour = vec4(0.0, 0.0, 0.0, 0.0);
+@@ -572,8 +648,15 @@ vec4 do_layers(vec2 view_uv)
+ 
+ void main()
+ {
+-	uint ix = gl_GlobalInvocationID.x;
+-	uint iy = gl_GlobalInvocationID.y;
++	uint quad_idx = gl_LocalInvocationIndex / 4;
++	uint local_idx = gl_LocalInvocationIndex % 4;
++
++	uvec3 n_quads = gl_WorkGroupSize / 2;
++	uvec3 base = gl_WorkGroupID * gl_WorkGroupSize;
++
++	// Lay out local invocations so every group of 4 invocations forms a 2x2 quad.
++	uint ix = base.x + (quad_idx % n_quads.x) * 2 + local_idx % 2;
++	uint iy = base.y + (quad_idx / n_quads.x) * 2 + local_idx / 2;
+ 
+ 	ivec2 offset = ivec2(ubo.view.xy);
+ 	ivec2 extent = ivec2(ubo.view.zw);
+diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
+index ff7313f6f..262afd8f7 100644
+--- a/src/xrt/compositor/util/comp_render_cs.c
++++ b/src/xrt/compositor/util/comp_render_cs.c
+@@ -703,6 +703,7 @@ comp_render_cs_layer(struct render_compute *render,
+ 
+ 		ubo_data->layers[cur_layer].layer_data.layer_type = xrt_layer_to_cs_layer_type(data);
+ 		ubo_data->layers[cur_layer].layer_data.unpremultiplied_alpha = is_layer_unpremultiplied(data);
++		ubo_data->layers[cur_layer].layer_data.sample_count = 1; // FIXME: apply_sample_count_from_layer()
+ 
+ 		apply_bias_and_scale_from_layer(data, &ubo_data->layers[cur_layer].color_scale,
+ 		                                &ubo_data->layers[cur_layer].color_bias);
+-- 
+2.55.0
+

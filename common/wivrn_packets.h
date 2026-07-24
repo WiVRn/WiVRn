@@ -293,6 +293,7 @@ struct settings_changed
 
 	uint32_t fps_divider = 1;
 	uint32_t bitrate_bps;
+	uint32_t supersampling_mode;
 
 	// Whether the server should mirror the gamepad to a virtual uinput device;
 	// gamepad inputs are always forwarded for the OpenXR path

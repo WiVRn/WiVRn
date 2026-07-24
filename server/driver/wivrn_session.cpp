@@ -504,6 +504,9 @@ void wivrn_session::operator()(const from_headset::settings_changed & settings)
 	if (settings.preferred_refresh_rate != 0)
 		compositor.set_framerate(settings.preferred_refresh_rate / settings.fps_divider);
 
+	if (settings.supersampling_mode != 0)
+		compositor.set_sample_count(settings.supersampling_mode);
+
 	if (not settings.mirror_gamepad and uinput_handler)
 		uinput_handler->destroy_gamepad();
 
