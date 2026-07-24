@@ -259,9 +259,8 @@ std::pair<wivrn::deserialization_packet, sockaddr_in6> wivrn::UDP::receive_from_
 	if (peeked < 0)
 		throw std::system_error{errno, std::generic_category()};
 
-	size_t size = size_t(peeked);
-	auto buffer = std::make_shared_for_overwrite<uint8_t[]>(size);
-	ssize_t received = recvfrom(fd, buffer.get(), size, 0, (sockaddr *)&addr, &addrlen);
+	auto buffer = std::make_shared_for_overwrite<uint8_t[]>(peeked);
+	ssize_t received = recvfrom(fd, buffer.get(), peeked, 0, (sockaddr *)&addr, &addrlen);
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
 
