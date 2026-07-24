@@ -634,6 +634,8 @@ void scenes::lobby::gui_settings()
 		}
 	}
 
+	gui::supersampling(*imgui_ctx, config);
+
 	// foveation
 	{
 		const int step = 5;
@@ -672,6 +674,7 @@ void scenes::lobby::gui_settings()
 		}
 	}
 
+	// Video Codec
 	{
 		auto codec_name = [](const std::optional<wivrn::video_codec> codec) {
 			if (not codec)

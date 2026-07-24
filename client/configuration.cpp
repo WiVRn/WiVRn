@@ -150,6 +150,9 @@ configuration::configuration(xr::system & system, xr::session & session)
 		if (auto val = root["stream_scale"]; val.is_double())
 			stream_scale = val.get_double();
 
+		if (auto val = root["supersampling_mode"]; val.is_uint64())
+			supersampling_mode = val.get_uint64();
+
 		if (auto val = root["codec"]; val.is_string())
 		{
 			const auto codec_str = val.get_string().value();
@@ -311,6 +314,7 @@ void configuration::save()
 	json << ",\"resolution_scale\":" << resolution_scale;
 	if (stream_scale)
 		json << ",\"stream_scale\":" << *stream_scale;
+	json << ",\"supersampling_mode\":" << supersampling_mode;
 	if (codec)
 		json << ",\"codec\":" << json_string(magic_enum::enum_name(*codec));
 	json << ",\"bit_depth\":" << (uint64_t)bit_depth;

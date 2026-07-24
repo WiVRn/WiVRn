@@ -317,9 +317,10 @@ vk::raii::DescriptorPool make_ds_pool(wivrn::vk_bundle & vk, uint32_t image_arra
 namespace wivrn
 {
 
-layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
+layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size, uint32_t sample_count) :
         partially_bound_desc{bool(std::get<vk::PhysicalDeviceVulkan12Features>(vk.feat).descriptorBindingPartiallyBound)},
         image_array_size{std::min<uint32_t>(vk.physical_device.getProperties().limits.maxPerStageDescriptorSampledImages, RENDER_MAX_IMAGES_SIZE)},
+        sample_count{sample_count},
         clamp_to_border_black{vk.device,
                               vk::SamplerCreateInfo{
                                       .magFilter = vk::Filter::eLinear,
@@ -551,7 +552,7 @@ layer_squasher::do_layers(
 				        .angle_down = std::min(layer_fov.angle_down, all_layers_fov.angle_down),
 				};
 			ubo.layers[cur_layer].layer_data.unpremultiplied_alpha = is_layer_unpremultiplied(&layer.data);
-			ubo.layers[cur_layer].layer_data.sample_count = data.type == XRT_LAYER_PROJECTION or data.type == XRT_LAYER_PROJECTION_DEPTH ? 1 : 4;
+			ubo.layers[cur_layer].layer_data.sample_count = data.type == XRT_LAYER_PROJECTION or data.type == XRT_LAYER_PROJECTION_DEPTH ? 1 : (uint32_t)sample_count;
 			apply_bias_and_scale_from_layer(
 			        &data,
 			        &ubo.layers[cur_layer].color_scale,
