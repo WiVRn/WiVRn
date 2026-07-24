@@ -1116,16 +1116,6 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		};
 
 		toggle_item(ICON_FA_MICROPHONE, _S("Microphone"), feature::microphone);
-		top_items.push_back({side, [this] {
-			                     const float s = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
-			                     auto & config = application::get_config();
-			                     if (wivrn::ui::icon_button(ICON_FA_EYE_SLASH, {s, s}, config.passthrough_enabled, _S("Passthrough")))
-			                     {
-				                     config.passthrough_enabled = not config.passthrough_enabled;
-				                     setup_passthrough();
-				                     config.save();
-			                     }
-		                     }});
 		if (system.hand_tracking_supported())
 			toggle_item(ICON_FA_HAND, _S("Hand tracking"), feature::hand_tracking);
 		if (application::get_eye_gaze_supported())
