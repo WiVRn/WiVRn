@@ -422,7 +422,7 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 	const bool transferring = handle and handle->get_state() == libcurl::state::transferring;
 
 	// measure the trailing control so the row body click area can exclude it
-	const std::string active_l = ui::icon_label(ICON_FA_CHECK, _("Active"));
+	const std::string active_l = ui::icon_label(ICON_FA_CHECK, _C("chip displayed next to the selected environment in the settings", "Active"));
 	const ImVec2 active_sz = ui::chip_size(active_l);
 	float trailing = 0;
 	if (selected)
@@ -506,8 +506,8 @@ void scenes::lobby::environment_list(std::vector<environment_model> & models, bo
 
 	if (environment_to_be_deleted)
 	{
-		const std::string msg = fmt::format(_F("Permanently delete {}?"), environment_to_be_deleted->name);
-		switch (wivrn::ui::confirm_modal("confirm delete model", _("Delete environment"), msg, _("Delete"), _("Cancel"), true))
+		const std::string msg = fmt::format(_cF("confirmation message", "Permanently delete {}?"), environment_to_be_deleted->name);
+		switch (wivrn::ui::confirm_modal("confirm delete model", _C("confirmation messagebox title", "Delete environment"), msg, _("Delete"), _("Cancel"), true))
 		{
 			case 1:
 				delete_environment(*environment_to_be_deleted);
@@ -648,7 +648,7 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 
 	namespace ui = wivrn::ui;
 
-	ui::page_header(_S("Environment"), _S("Choose the environment your panels float in."));
+	ui::page_header(_cS("page header title", "Environment"), _cS("page header subtitle", "Choose the environment your panels float in."));
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
 
@@ -661,27 +661,36 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 	ui::begin_list_card("##get_more");
 	{
 		const float bh = ImGui::GetFrameHeight() * ui::metrics::control_height;
-		const std::string browse = ui::icon_label(ICON_FA_UP_RIGHT_FROM_SQUARE, _("Browse"));
-		const float bw = ui::button_width(browse);
-		const auto row = ui::begin_list_row("##getmore", ICON_FA_IMAGES, 0, _S("Get more environments"), _S("Download community-made spaces from the WiVRn dashboard on your PC."), false, bw + ui::metrics::list_row_pad, 0, false, false);
-		ImGui::SetCursorScreenPos(row.trailing(row.max.x, {bw, bh}));
-		if (ui::button(browse, ui::button_style::secondary, {bw, 0}))
+		const std::string browse = ui::icon_label(ICON_FA_UP_RIGHT_FROM_SQUARE, _C("button label to browse environments to download", "Browse"));
+		const float bw1 = ui::button_width(browse);
+
+		const std::string open = ui::icon_label(ICON_FA_FOLDER_OPEN, _C("button label to open an environment from a local gltf file", "Open"));
+		const float bw2 = ui::button_width(open);
+
+		const float bw = ImMax(bw1, bw2);
+
+		const auto row1 = ui::begin_list_row("##getmore", ICON_FA_IMAGES, 0, _S("Get more environments"), _S("Download community-made spaces."), false, bw1 + ui::metrics::list_row_pad, 0, false, false);
+		ImGui::SetCursorScreenPos(row1.trailing(row1.max.x, {bw, bh}));
+		if (ui::button(browse + "##browse", ui::button_style::secondary, {bw, 0}))
 		{
 			download_environment_list();
 			open_download_popup = true;
 		}
 		ui::end_list_row();
-		ui::end_card();
+
+		const auto row2 = ui::begin_list_row("##localgltf", ICON_FA_CUBE, 0, _S("Open local glTF model"), _S("Open a local glTF file saved on your headset."), false, bw2 + ui::metrics::list_row_pad, 0, false, false);
+		ImGui::SetCursorScreenPos(row2.trailing(row2.max.x, {bw, bh}));
+		if (ui::button(open + "##open", ui::button_style::secondary, {bw, 0}))
+			lobby_file_picker_future = lobby_file_picker.open();
+		ui::end_list_row();
 	}
+	ui::end_card();
 
 	// deferred past end_card so OpenPopup hashes at the same id-stack level as BeginPopupModal
 	if (open_download_popup)
 		ImGui::OpenPopup("download environment model");
 
-	if (ui::button(_S("Open local glTF model"), ui::button_style::secondary))
-		lobby_file_picker_future = lobby_file_picker.open();
-
-	if (ui::begin_modal("download environment model", _S("Browse environments"), 1200))
+	if (ui::begin_modal("download environment model", _cS("popup window title", "Browse environments"), 1200))
 	{
 		const float side = ImGui::GetFrameHeight() * ui::metrics::control_height;
 		const float list_h = 760;
@@ -722,7 +731,7 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 
 					ImGui::Dummy({0, constants::gui::font_size_large});
 					ImGui::SetCursorPosX((ImGui::GetWindowSize().x - side) / 2);
-					if (ui::icon_button(ICON_FA_ROTATE, {side, side}, false, _("Refresh")))
+					if (ui::icon_button(ICON_FA_ROTATE, {side, side}, false, _C("button label to re-deownload the environment list", "Refresh")))
 						download_environment_list();
 				}
 		}
@@ -745,47 +754,6 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 	{
 		popup_load_environment(predicted_display_time);
 	}
-
-	// if (ImGui::RadioButton(_S("Custom environment"), not config.passthrough_enabled and config.environment_model_uri != ""))
-	// 	lobby_file_picker_future = lobby_file_picker.open();
-	// imgui_ctx->vibrate_on_hover();
-	//
-	// try
-	// {
-	// 	lobby_file_picker.display();
-	//
-	// 	if (lobby_file_picker_future.valid() and lobby_file_picker_future.wait_for(0s) == std::future_status::ready)
-	// 	{
-	// 		auto environment = lobby_file_picker_future.get();
-	//
-	// 		// TODO load asynchronously
-	// 		// TODO allow caching
-	// 		spdlog::info("Loading new environment from {}", environment.path.native());
-	// 		auto t0 = std::chrono::steady_clock::now();
-	// 		auto new_lobby = load_gltf(environment.file);
-	// 		auto dt = std::chrono::steady_clock::now() - t0;
-	// 		spdlog::info("Loaded successfully in {}", dt);
-	//
-	// 		remove(lobby_entity);
-	// 		lobby_entity = add_gltf(new_lobby, layer_lobby).first;
-	//
-	// 		config.passthrough_enabled = false;
-	// 		setup_passthrough();
-	// 	}
-	// }
-	// catch (std::exception & e)
-	// {
-	// 	spdlog::warn("Cannot load environment: {}", e.what());
-	// }
-
-	// auto & lobby_node = world.get<components::node>(lobby_entity);
-	// float scale = lobby_node.scale.x;
-	// if (ImGui::SliderFloat("Environment scale", &scale, 0.1, 10, "%.3f", ImGuiSliderFlags_Logarithmic))
-	// 	lobby_node.scale = glm::vec3{scale, scale, scale};
-	// imgui_ctx->vibrate_on_hover();
-	//
-	// ImGui::SliderFloat("Environment elevation", &lobby_node.position.y, -3, 3, "%.3f");
-	// imgui_ctx->vibrate_on_hover();
 
 	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
 }

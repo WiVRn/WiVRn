@@ -159,7 +159,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 	const float header_top = ImGui::GetCursorPosY();
 	const std::string subtitle = _S("Pick an application to start streaming, or start one on the PC.");
 	if (server_name.empty())
-		ui::page_header(_S("Connected"), subtitle);
+		ui::page_header(_cS("status in the title bar", "Connected"), subtitle);
 	else
 		ui::page_header(fmt::format(_F("Connected to {}"), server_name), subtitle);
 	const float content_y = ImGui::GetCursorPosY();
@@ -167,7 +167,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 	const bool has_apps = not apps->empty();
 	int view = config.app_list_view ? 1 : 0;
 	int size_idx = std::clamp<int>(config.app_icon_size, 0, 2);
-	const std::vector<std::string> size_opts = {_S("Small"), _S("Medium"), _S("Large")};
+	const std::vector<std::string> size_opts = {_cS("icon size", "Small"), _cS("icon size", "Medium"), _cS("icon size", "Large")};
 	const std::vector<std::string> view_opts = {ICON_FA_TABLE_CELLS_LARGE, ICON_FA_LIST};
 	const float gap = ImGui::GetStyle().ItemSpacing.x;
 	const float view_w = ui::metrics::app_view_toggle_width;

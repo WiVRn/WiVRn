@@ -305,11 +305,11 @@ void scenes::lobby::gui_new_server()
 	ImGui::TextUnformatted(_S("Name"));
 	if (ImGui::IsWindowAppearing())
 		ImGui::SetKeyboardFocusHere();
-	ui::input_text("##name", add_server_window_prettyname, _S("My gaming PC"), w);
+	ui::input_text("##name", add_server_window_prettyname, _cS("placeholder for the server name when adding/editing a server", "My gaming PC"), w);
 	ImGui::Dummy({0, 6});
 
 	ImGui::TextUnformatted(_S("Address"));
-	ui::input_text("##hostname", add_server_window_hostname, _S("192.168.1.10 or host.local"), w);
+	ui::input_text("##hostname", add_server_window_hostname, _cS("placeholder for the server address when adding/editing a server", "192.168.1.10 or host.local"), w);
 	ImGui::Dummy({0, 6});
 
 	ImGui::TextUnformatted(_S("Port"));
@@ -369,7 +369,7 @@ void scenes::lobby::gui_server_list()
 	// header with an Add server button on the right
 	const ImVec2 hstart = ImGui::GetCursorPos();
 	const float header_avail = ImGui::GetContentRegionAvail().x;
-	ui::page_header(_S("Computers"), _S("Pick a PC running the WiVRn server to stream from."));
+	ui::page_header(_cS("page header title", "Computers"), _cS("page header subtitle", "Pick a PC running the WiVRn server to stream from."));
 	const ImVec2 hend = ImGui::GetCursorPos();
 
 	const std::string add_label = _("Add server");
@@ -423,10 +423,10 @@ void scenes::lobby::gui_server_list()
 
 			// trailing controls [Auto chip] [Connect] [menu], measured up front to exclude from the row click area
 			const char * c_icon = reachable ? ICON_FA_PLAY : (incompatible ? ICON_FA_TRIANGLE_EXCLAMATION : ICON_FA_MAGNIFYING_GLASS);
-			const std::string c_label = ui::icon_label(c_icon, reachable ? _("Connect") : (incompatible ? _("Incompatible") : _("Searching…")));
+			const std::string c_label = ui::icon_label(c_icon, reachable ? _("Connect") : (incompatible ? _C("button label when the server has an incompatible version", "Incompatible") : _C("button label when the server is known but not visible", "Searching…")));
 			const std::string c_tooltip = reachable ? std::string{} : (incompatible ? _("Incompatible server version") : _("Looking for this server on your network"));
 			const float cw = ui::button_width(c_label);
-			const std::string chip_label = ui::icon_label(ICON_FA_BOLT, _("Auto"));
+			const std::string chip_label = ui::icon_label(ICON_FA_BOLT, _C("chip displayed in server list when autoconnect is enabled", "Auto"));
 			const ImVec2 chip_sz = ui::chip_size(chip_label);
 			float trailing = bh + gap + cw + (data.autoconnect ? gap + chip_sz.x : 0) + ui::metrics::list_row_pad;
 
@@ -435,8 +435,8 @@ void scenes::lobby::gui_server_list()
 
 			// overflow menu
 			const std::string auto_l = _("Autoconnect");
-			const std::string edit_l = _("Edit server");
-			const std::string del_l = _("Delete server");
+			const std::string edit_l = _C("item in action menu", "Edit server");
+			const std::string del_l = _C("item in action menu", "Delete server");
 			std::vector<ui::action_item> actions;
 			ImGui::SetCursorScreenPos(row.trailing(x, {bh, bh}));
 			if (data.manual)
@@ -530,7 +530,7 @@ void scenes::lobby::gui_server_list()
 		wivrn::ui::end_modal();
 	}
 
-	if (wivrn::ui::begin_modal("add or edit server", add_server_cookie.empty() ? _("Add server") : _("Edit server"), 620))
+	if (wivrn::ui::begin_modal("add or edit server", add_server_cookie.empty() ? _C("popup window title", "Add server") : _C("popup window title", "Edit server"), 620))
 	{
 		gui_new_server();
 		wivrn::ui::end_modal();
@@ -542,7 +542,7 @@ void scenes::lobby::gui_server_list()
 		if (auto it = config.servers.find(delete_server_cookie); it != config.servers.end())
 			name = it->second.service.name;
 
-		switch (wivrn::ui::confirm_modal("delete server", _("Delete server"), fmt::format(_F("Remove \"{}\" from your saved computers?"), name), _("Delete"), _("Cancel"), true))
+		switch (wivrn::ui::confirm_modal("delete server", _C("confirmation messagebox title", "Delete server"), fmt::format(_cF("confirmation message", "Remove \"{}\" from your saved computers?"), name), _("Delete"), _("Cancel"), true))
 		{
 			case 1:
 				config.servers.erase(delete_server_cookie);
@@ -927,7 +927,7 @@ void scenes::lobby::gui_licenses()
 	for (const auto & c: components)
 		items.push_back({c.c_str()});
 
-	if (ui::combo("##component", _("Component"), items, &selected, ui::metrics::setting_control_width) or not license)
+	if (ui::combo("##component", _C("name of the combobox to choose which component license to display in the licenses page", "Component"), items, &selected, ui::metrics::setting_control_width) or not license)
 	{
 		selected_item = components[selected];
 		try
@@ -1115,21 +1115,21 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 			                     }});
 		};
 
-		toggle_item(ICON_FA_MICROPHONE, _S("Microphone"), feature::microphone);
+		toggle_item(ICON_FA_MICROPHONE, _cS("tooltip for top bar item in the lobby", "Microphone"), feature::microphone);
 		if (system.hand_tracking_supported())
-			toggle_item(ICON_FA_HAND, _S("Hand tracking"), feature::hand_tracking);
+			toggle_item(ICON_FA_HAND, _cS("tooltip for top bar item in the lobby", "Hand tracking"), feature::hand_tracking);
 		if (application::get_eye_gaze_supported())
-			toggle_item(ICON_FA_EYE, _S("Eye tracking"), feature::eye_gaze);
+			toggle_item(ICON_FA_EYE, _cS("tooltip for top bar item in the lobby", "Eye tracking"), feature::eye_gaze);
 		if (system.face_tracker_supported() != xr::face_tracker_type::none)
-			toggle_item(ICON_FA_FACE_SMILE, _S("Face tracking"), feature::face_tracking);
+			toggle_item(ICON_FA_FACE_SMILE, _cS("tooltip for top bar item in the lobby", "Face tracking"), feature::face_tracking);
 		if (system.body_tracker_supported() != xr::body_tracker_type::none)
-			toggle_item(ICON_FA_PERSON, _S("Body tracking"), feature::body_tracking);
+			toggle_item(ICON_FA_PERSON, _cS("tooltip for top bar item in the lobby", "Body tracking"), feature::body_tracking);
 
 		if (auto bat = wivrn::gui::battery_status_indicator(instance.now()))
 			top_items.push_back({wivrn::ui::chip_width(bat->label, false, side),
 			                     [bat = *bat, side] { wivrn::ui::chip(bat.label, bat.style, false, side); }});
 
-		const std::string conn = _("Not connected");
+		const std::string conn = _C("status in the title bar", "Not connected");
 		top_items.push_back({wivrn::ui::chip_width(conn, true, side),
 		                     [conn, side] { wivrn::ui::chip(conn, wivrn::ui::chip_style::muted, true, side); }});
 
@@ -1230,42 +1230,42 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 		wivrn::ui::begin_sidebar(TopBarH, TabWidth, 3);
 		{
-			if (wivrn::ui::nav_item(ICON_FA_COMPUTER, _S("Computers"), current_tab == tab::server_list))
+			if (wivrn::ui::nav_item(ICON_FA_COMPUTER, _cS("tab label", "Computers"), current_tab == tab::server_list))
 				current_tab = tab::server_list;
 
-			wivrn::ui::nav_section(_S("SETTINGS"));
-			if (wivrn::ui::nav_item(ICON_FA_GAUGE_HIGH, _S("Performance"), current_tab == tab::performance))
+			wivrn::ui::nav_section(_cS("tab group", "SETTINGS"));
+			if (wivrn::ui::nav_item(ICON_FA_GAUGE_HIGH, _cS("tab label", "Performance"), current_tab == tab::performance))
 				current_tab = tab::performance;
-			if (wivrn::ui::nav_item(ICON_FA_TOWER_BROADCAST, _S("Streaming"), current_tab == tab::streaming))
+			if (wivrn::ui::nav_item(ICON_FA_TOWER_BROADCAST, _cS("tab label", "Streaming"), current_tab == tab::streaming))
 				current_tab = tab::streaming;
-			if (wivrn::ui::nav_item(ICON_FA_WAND_MAGIC_SPARKLES, _S("Post-processing"), current_tab == tab::post_processing))
+			if (wivrn::ui::nav_item(ICON_FA_WAND_MAGIC_SPARKLES, _cS("tab label", "Post-processing"), current_tab == tab::post_processing))
 				current_tab = tab::post_processing;
-			if (wivrn::ui::nav_item(ICON_FA_VOLUME_HIGH, _S("Audio"), current_tab == tab::audio))
+			if (wivrn::ui::nav_item(ICON_FA_VOLUME_HIGH, _cS("tab label", "Audio"), current_tab == tab::audio))
 				current_tab = tab::audio;
-			if (wivrn::ui::nav_item(ICON_FA_KEYBOARD, _S("Devices"), current_tab == tab::devices))
+			if (wivrn::ui::nav_item(ICON_FA_KEYBOARD, _cS("tab label", "Devices"), current_tab == tab::devices))
 				current_tab = tab::devices;
-			if (wivrn::ui::nav_item(ICON_FA_LOCATION_CROSSHAIRS, _S("Tracking"), current_tab == tab::tracking))
+			if (wivrn::ui::nav_item(ICON_FA_LOCATION_CROSSHAIRS, _cS("tab label", "Tracking"), current_tab == tab::tracking))
 				current_tab = tab::tracking;
-			if (wivrn::ui::nav_item(ICON_FA_GEARS, _S("System"), current_tab == tab::system))
+			if (wivrn::ui::nav_item(ICON_FA_GEARS, _cS("tab label", "System"), current_tab == tab::system))
 				current_tab = tab::system;
 
-			wivrn::ui::nav_section(_S("PERSONALIZE"));
-			if (wivrn::ui::nav_item(ICON_FA_IMAGE, _S("Environment"), current_tab == tab::customize))
+			wivrn::ui::nav_section(_cS("tab group", "PERSONALIZE"));
+			if (wivrn::ui::nav_item(ICON_FA_IMAGE, _cS("tab label", "Environment"), current_tab == tab::customize))
 				current_tab = tab::customize;
-			if (wivrn::ui::nav_item(ICON_FA_PALETTE, _S("Theme"), current_tab == tab::theme))
+			if (wivrn::ui::nav_item(ICON_FA_PALETTE, _cS("tab label", "Theme"), current_tab == tab::theme))
 				current_tab = tab::theme;
 #if WIVRN_CLIENT_DEBUG_MENU
-			if (wivrn::ui::nav_item(ICON_FA_BUG_SLASH, _S("Debug"), current_tab == tab::debug))
+			if (wivrn::ui::nav_item(ICON_FA_BUG_SLASH, _cS("tab label", "Debug"), current_tab == tab::debug))
 				current_tab = tab::debug;
 #endif
 
 			// pinned to the bottom
 			wivrn::ui::sidebar_footer();
-			if (wivrn::ui::nav_item(ICON_FA_CIRCLE_INFO, _S("About"), current_tab == tab::about))
+			if (wivrn::ui::nav_item(ICON_FA_CIRCLE_INFO, _cS("tab label", "About"), current_tab == tab::about))
 				current_tab = tab::about;
-			if (wivrn::ui::nav_item(ICON_FA_SCALE_BALANCED, _S("Licenses"), current_tab == tab::licenses))
+			if (wivrn::ui::nav_item(ICON_FA_SCALE_BALANCED, _cS("tab label", "Licenses"), current_tab == tab::licenses))
 				current_tab = tab::licenses;
-			if (wivrn::ui::nav_item(ICON_FA_DOOR_OPEN, _S("Exit"), current_tab == tab::exit))
+			if (wivrn::ui::nav_item(ICON_FA_DOOR_OPEN, _cS("exit button in the lobby", "Exit"), current_tab == tab::exit))
 				current_tab = tab::exit;
 		}
 		wivrn::ui::end_sidebar();

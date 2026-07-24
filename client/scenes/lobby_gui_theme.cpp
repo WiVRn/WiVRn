@@ -69,7 +69,7 @@ void scenes::lobby::gui_theme()
 	ui::theme & theme = ui::current();
 	auto & config = application::get_config();
 
-	ui::page_header(_S("Theme"), _S("Accent color, palette and sizing of the interface."));
+	ui::page_header(_cS("page header title", "Theme"), _cS("page header subtitle", "Accent color, palette and sizing of the interface."));
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ui::metrics::card_item_spacing);
 	const float control_w = ui::metrics::setting_control_width;
@@ -77,7 +77,7 @@ void scenes::lobby::gui_theme()
 	ui::begin_card("##theme");
 	{
 		// Accent
-		ImGui::TextUnformatted(_S("Accent color"));
+		ImGui::TextUnformatted(_cS("setting name", "Accent color"));
 		ImGui::Dummy({0, 2});
 		for (const auto & swatch: ui::accent_swatches())
 		{
@@ -110,7 +110,7 @@ void scenes::lobby::gui_theme()
 		}();
 
 		static const int preset_default = 1;
-		ui::setting_label(_S("Preset"), _S("Surface and background palette"), control_w);
+		ui::setting_label(_cS("setting name", "Preset"), _cS("setting description", "Surface and background palette"), control_w);
 		if (ui::combo("##preset", _("Theme preset"), preset_items, &preset, control_w, &preset_default))
 		{
 			// keep the accent across a preset change, only the surfaces swap
@@ -130,7 +130,7 @@ void scenes::lobby::gui_theme()
 		// Rounding
 		static const int rounding_default = 8;
 		int rounding = int(theme.rounding);
-		ui::setting_label(_S("Rounding"), _S("Corner radius of controls"), control_w);
+		ui::setting_label(_cS("setting label", "Rounding"), _cS("setting description", "Corner radius of controls"), control_w);
 		if (ui::slider_int("##rounding", &rounding, 0, 20, "%d px", {control_w, 0}, &rounding_default))
 		{
 			theme.rounding = float(rounding);
@@ -142,7 +142,7 @@ void scenes::lobby::gui_theme()
 
 		static const int card_rounding_default = 14;
 		int card_rounding = int(theme.card_rounding);
-		ui::setting_label(_S("Card rounding"), _S("Corner radius of panels"), control_w);
+		ui::setting_label(_cS("setting label", "Card rounding"), _cS("setting description", "Corner radius of panels"), control_w);
 		if (ui::slider_int("##card_rounding", &card_rounding, 0, 28, "%d px", {control_w, 0}, &card_rounding_default))
 		{
 			theme.card_rounding = float(card_rounding);
@@ -155,7 +155,7 @@ void scenes::lobby::gui_theme()
 		// global font scale, 100% is the design default
 		static const int font_scale_default = 100;
 		int font_scale = int(theme.font_scale * 100);
-		ui::setting_label(_S("Text size"), _S("Global font scale"), control_w);
+		ui::setting_label(_cS("setting name", "Text size"), _cS("setting description", "Global font scale"), control_w);
 		if (ui::slider_int("##font_scale", &font_scale, 60, 140, "%d%%", {control_w, 0}, &font_scale_default))
 		{
 			theme.font_scale = float(font_scale) / 100.f;
@@ -168,7 +168,7 @@ void scenes::lobby::gui_theme()
 		// Panel transparency, independent of the selected preset
 		static const int opacity_default = 90;
 		int opacity = int(ui::background_alpha() * 100);
-		ui::setting_label(_S("Panel opacity"), _S("Opacity of the panel and card backgrounds"), control_w);
+		ui::setting_label(_cS("setting name", "Panel opacity"), _cS("setting description", "Opacity of the panel and card backgrounds"), control_w);
 		if (ui::slider_int("##opacity", &opacity, 20, 100, "%d%%", {control_w, 0}, &opacity_default))
 		{
 			ui::background_alpha() = float(opacity) / 100.f;

@@ -531,7 +531,7 @@ void scenes::stream::gui_applications()
 		network_session->send_control(from_headset::get_running_applications{});
 	}
 
-	wivrn::ui::page_header(_S("Applications"), _S("Running XR applications on the server."));
+	wivrn::ui::page_header(_cS("page header title", "Applications"), _cS("page header subtitle", "Running XR applications on the server."));
 
 	auto apps = running_applications.lock();
 	std::ranges::sort(apps->applications, [](auto & l, auto & r) {
@@ -542,9 +542,9 @@ void scenes::stream::gui_applications()
 
 	const float gap = ImGui::GetStyle().ItemSpacing.x;
 	const float ctrl_h = ImGui::GetFrameHeight() * wivrn::ui::metrics::control_height;
-	const std::string stop_label = wivrn::ui::icon_label(ICON_FA_XMARK, _("Stop"));
+	const std::string stop_label = wivrn::ui::icon_label(ICON_FA_XMARK, _C("button label to ask an application to quit", "Stop"));
 	const float stop_w = wivrn::ui::button_width(stop_label);
-	const std::string active_label = wivrn::ui::icon_label(ICON_FA_CIRCLE_CHECK, _("Active"));
+	const std::string active_label = wivrn::ui::icon_label(ICON_FA_CIRCLE_CHECK, _C("chip displayed next to a running application while streaming", "Active"));
 	const ImVec2 active_sz = wivrn::ui::chip_size(active_label);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, wivrn::ui::metrics::card_item_spacing);
@@ -922,7 +922,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		if (auto bat = wivrn::gui::battery_status_indicator(instance.now()))
 			top_items.push_back({wivrn::ui::chip_width(bat->label, false, side),
 			                     [bat = *bat, side] { wivrn::ui::chip(bat.label, bat.style, false, side); }});
-		const std::string conn = _("Connected");
+		const std::string conn = _C("status in the title bar", "Connected");
 		top_items.push_back({wivrn::ui::chip_width(conn, true, side),
 		                     [conn, side] { wivrn::ui::chip(conn, wivrn::ui::chip_style::success, true, side); }});
 		const std::string close_label = _S("Close");
@@ -949,10 +949,10 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		// navigation sidebar, the settings items swap the page but keep the coarse settings tab
 		wivrn::ui::begin_sidebar(top_bar_h, tab_width, 2);
 		{
-			wivrn::ui::nav_section(_S("STREAM"));
-			if (wivrn::ui::nav_item(ICON_FA_LIST, _S("Applications"), gui_status == stream_tab::applications))
+			wivrn::ui::nav_section(_cS("tab group", "STREAM"));
+			if (wivrn::ui::nav_item(ICON_FA_LIST, _cS("tab label", "Applications"), gui_status == stream_tab::applications))
 				next_gui_status = stream_tab::applications;
-			if (wivrn::ui::nav_item(ICON_FA_ROCKET, _S("Start"), false))
+			if (wivrn::ui::nav_item(ICON_FA_ROCKET, _cS("tab label", "Start"), false))
 			{
 				apps.reset();
 				network_session->send_control(from_headset::get_application_list{
@@ -965,7 +965,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			if (wivrn::ui::nav_item(ICON_FA_COMPUTER, _S("Statistics"), gui_status == stream_tab::stats))
 				next_gui_status = stream_tab::stats;
 
-			wivrn::ui::nav_section(_S("SETTINGS"));
+			wivrn::ui::nav_section(_cS("tab group", "SETTINGS"));
 			auto settings_item = [&](const char * icon, const std::string & label, settings_page page) {
 				if (wivrn::ui::nav_item(icon, label, gui_status == stream_tab::settings and current_settings_page == page))
 				{
@@ -973,18 +973,18 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 					next_gui_status = stream_tab::settings;
 				}
 			};
-			settings_item(ICON_FA_GAUGE_HIGH, _S("Performance"), settings_page::performance);
-			settings_item(ICON_FA_TOWER_BROADCAST, _S("Streaming"), settings_page::streaming);
-			settings_item(ICON_FA_WAND_MAGIC_SPARKLES, _S("Post-processing"), settings_page::post_processing);
-			settings_item(ICON_FA_VOLUME_HIGH, _S("Audio"), settings_page::audio);
-			settings_item(ICON_FA_LOCATION_CROSSHAIRS, _S("Tracking"), settings_page::tracking);
-			settings_item(ICON_FA_GEARS, _S("System"), settings_page::system);
+			settings_item(ICON_FA_GAUGE_HIGH, _cS("tab label", "Performance"), settings_page::performance);
+			settings_item(ICON_FA_TOWER_BROADCAST, _cS("tab label", "Streaming"), settings_page::streaming);
+			settings_item(ICON_FA_WAND_MAGIC_SPARKLES, _cS("tab label", "Post-processing"), settings_page::post_processing);
+			settings_item(ICON_FA_VOLUME_HIGH, _cS("tab label", "Audio"), settings_page::audio);
+			settings_item(ICON_FA_LOCATION_CROSSHAIRS, _cS("tab label", "Tracking"), settings_page::tracking);
+			settings_item(ICON_FA_GEARS, _cS("tab label", "System"), settings_page::system);
 
 			// pinned to the bottom
 			wivrn::ui::sidebar_footer();
-			if (wivrn::ui::nav_item(ICON_FA_CHART_LINE, _S("Statistics overlay"), false))
+			if (wivrn::ui::nav_item(ICON_FA_CHART_LINE, _cS("tab label", "Statistics overlay"), false))
 				next_gui_status = stream_tab::overlay_only;
-			if (wivrn::ui::nav_item(ICON_FA_MINIMIZE, _S("Compact view"), false))
+			if (wivrn::ui::nav_item(ICON_FA_MINIMIZE, _cS("tab label", "Compact view"), false))
 				next_gui_status = stream_tab::compact;
 		}
 		wivrn::ui::end_sidebar();

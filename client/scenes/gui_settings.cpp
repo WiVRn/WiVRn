@@ -209,7 +209,7 @@ namespace wivrn::gui
 void settings_performance(const settings_context & ctx)
 {
 	auto & config = ctx.config;
-	const std::string disconnect_tip = ctx.in_game ? _("Disconnect to change this setting.") : std::string{};
+	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
 	if (ctx.instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME) and not ctx.session.get_refresh_rates().empty())
@@ -294,7 +294,7 @@ void settings_performance(const settings_context & ctx)
 		list.push_back({
 		        .id = "##spacewarp",
 		        .label = _("Application SpaceWarp"),
-		        .description = _("Renders at half the refresh rate and synthesises in-between frames. Managed automatically while the refresh rate is set to Auto."),
+		        .description = _("Renders at half the refresh rate. The headset may synthesise frames."),
 		        .ui = ui_kind::toggle,
 		        .get_bool = [&config] { return config.fps_divider == 2; },
 		        .set_bool = [&ctx, &config](bool v) { config.fps_divider = v ? 2 : 1; config.save(); if (ctx.on_streaming_changed) ctx.on_streaming_changed(); },
@@ -317,14 +317,14 @@ void settings_performance(const settings_context & ctx)
 		});
 	}
 
-	ui::page_header(_S("Performance"), _S("Frame rate, resolution and power draw."));
+	ui::page_header(_cS("page header title", "Performance"), _cS("page header subtitle", "Frame rate, resolution and power draw."));
 	render_settings(ctx, "##performance", list);
 }
 
 void settings_streaming(const settings_context & ctx)
 {
 	auto & config = ctx.config;
-	const std::string disconnect_tip = ctx.in_game ? _("Disconnect to change this setting.") : std::string{};
+	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
 	auto codec_name = [](std::optional<wivrn::video_codec> codec) -> std::string {
@@ -351,7 +351,7 @@ void settings_streaming(const settings_context & ctx)
 
 	list.push_back({
 	        .id = "##codec",
-	        .label = _("Video codec"),
+	        .label = _C("setting name", "Video codec"),
 	        .description = _("How video is compressed before it is sent to the headset."),
 	        .ui = ui_kind::combo,
 	        .get_int = [&config, codecs] {
@@ -369,7 +369,7 @@ void settings_streaming(const settings_context & ctx)
 		        for (auto c: codecs)
 			        opts.push_back(codec_name(c));
 		        return opts; },
-	        .title = _("Video codec"),
+	        .title = _C("setting name", "Video codec"),
 	        .default_int = 0,
 	        .enabled = [&ctx] { return not ctx.in_game; },
 	        .disabled_tooltip = disconnect_tip,
@@ -379,7 +379,7 @@ void settings_streaming(const settings_context & ctx)
 	{
 		list.push_back({
 		        .id = "##ten_bit",
-		        .label = _("10-bit color"),
+		        .label = _C("setting name", "10-bit color"),
 		        .description = _("Higher color precision, supported by HEVC and AV1."),
 		        .ui = ui_kind::toggle,
 		        .get_bool = [&config] { return config.bit_depth == 10; },
@@ -412,7 +412,7 @@ void settings_streaming(const settings_context & ctx)
 		        .label = _("Adjust bitrate with thumbstick"),
 		        .description = _("Use the right thumbstick to fine-tune the bitrate."),
 		        .ui = ui_kind::button,
-		        .button_label = _("Adjust"),
+		        .button_label = _C("button label to adjust the bitrate", "Adjust"),
 		        .on_click = [&ctx] { ctx.enter_bitrate_adjust(); },
 		});
 	}
@@ -422,7 +422,7 @@ void settings_streaming(const settings_context & ctx)
 	{
 		list.push_back({
 		        .id = "##fov_override",
-		        .label = _("Foveation center override"),
+		        .label = _C("setting name", "Foveation center override"),
 		        .description = _("Manually set where image quality is focused, instead of the center or your gaze."),
 		        .ui = ui_kind::toggle,
 		        .get_bool = [&config] { return config.override_foveation_enable; },
@@ -435,19 +435,19 @@ void settings_streaming(const settings_context & ctx)
 		});
 		list.push_back({
 		        .id = "##fov_adjust",
-		        .label = _("Foveation center"),
-		        .description = fmt::format(_F("Height {:.1f} deg, distance {:.2f} m"), -config.override_foveation_pitch * 180 / M_PI, config.override_foveation_distance),
+		        .label = _C("setting name", "Foveation center"),
+		        .description = fmt::format(_F("Height {:.1f} °, distance {:.2f} m"), -config.override_foveation_pitch * 180 / M_PI, config.override_foveation_distance),
 		        .ui = ui_kind::button,
-		        .button_label = _("Change"),
+		        .button_label = _C("button label to change the foveation center", "Change"),
 		        .on_click = [&ctx] { if (ctx.enter_foveation_adjust) ctx.enter_foveation_adjust(); },
 		        .enabled = [&config] { return config.override_foveation_enable; },
-		        .disabled_tooltip = _("Enable foveation center override to change this setting"),
+		        .disabled_tooltip = _("Enable foveation center override to change this setting."),
 		});
 	}
 
 	list.push_back({
 	        .id = "##stream_gui",
-	        .label = _("In-stream window"),
+	        .label = _C("setting name", "In-stream window"),
 	        .description = _("Enables the configuration window to be shown while the game is streaming. If enabled, the window is activated by pressing both thumbsticks."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.enable_stream_gui; },
@@ -455,7 +455,7 @@ void settings_streaming(const settings_context & ctx)
 	        .default_bool = true,
 	});
 
-	ui::page_header(_S("Streaming"), _S("How video is encoded and sent to the headset."));
+	ui::page_header(_cS("page header title", "Streaming"), _cS("page header subtitle", "How video is encoded and sent to the headset."));
 	render_settings(ctx, "##streaming", list);
 }
 
@@ -509,19 +509,19 @@ void settings_post_processing(const settings_context & ctx)
 		flag_combo("##sharpening", _("Sharpening"), _("Improve clarity of high contrast edges and counteract blur. Useful when the input resolution is low compared to the headset display."), {0, XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB, XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB}, &configuration::openxr_post_processing_settings::sharpening);
 	}
 
-	ui::page_header(_S("Post-processing"), _S("OpenXR layer supersampling and sharpening."));
+	ui::page_header(_S("Post-processing"), _cS("page header subtitle", "OpenXR layer supersampling and sharpening."));
 	render_settings(ctx, "##post_processing", list);
 }
 
 void settings_audio(const settings_context & ctx)
 {
 	auto & config = ctx.config;
-	const std::string disconnect_tip = ctx.in_game ? _("Disconnect to change this setting.") : std::string{};
+	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
 	list.push_back({
 	        .id = "##microphone",
-	        .label = _("Microphone"),
+	        .label = _C("setting name", "Microphone"),
 	        .description = _("Stream the headset microphone to the PC."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.check_feature(feature::microphone); },
@@ -533,7 +533,7 @@ void settings_audio(const settings_context & ctx)
 
 	list.push_back({
 	        .id = "##unprocessed",
-	        .label = _("Unprocessed audio"),
+	        .label = _C("setting name", "Unprocessed audio"),
 	        .description = _("Force disable audio filters, such as noise cancellation."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.mic_unprocessed_audio; },
@@ -543,7 +543,7 @@ void settings_audio(const settings_context & ctx)
 	        .disabled_tooltip = disconnect_tip,
 	});
 
-	ui::page_header(_S("Audio"), _S("Microphone streamed to the PC."));
+	ui::page_header(_cS("page header title", "Audio"), _cS("page header subtitle", "Microphone streamed to the PC."));
 	render_settings(ctx, "##audio", list);
 }
 
@@ -554,7 +554,7 @@ void settings_devices(const settings_context & ctx)
 
 	list.push_back({
 	        .id = "##keyboard",
-	        .label = _("Keyboard"),
+	        .label = _C("setting name", "Keyboard"),
 	        .description = _("Forward the keyboard from the headset to the PC."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.forward_keyboard; },
@@ -564,7 +564,7 @@ void settings_devices(const settings_context & ctx)
 
 	list.push_back({
 	        .id = "##mouse",
-	        .label = _("Mouse"),
+	        .label = _C("setting name", "Mouse"),
 	        .description = _("Forward the mouse from the headset to the PC."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.forward_mouse; },
@@ -574,7 +574,7 @@ void settings_devices(const settings_context & ctx)
 
 	list.push_back({
 	        .id = "##gamepad",
-	        .label = _("Gamepad"),
+	        .label = _C("setting name", "Gamepad"),
 	        .description = _("Forward the gamepad from the headset to the PC."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.forward_gamepad; },
@@ -582,7 +582,7 @@ void settings_devices(const settings_context & ctx)
 	        .default_bool = false,
 	});
 
-	ui::page_header(_S("Devices"), _S("Forward input devices to the PC."));
+	ui::page_header(_cS("page header title", "Devices"), _cS("page header subtitle", "Forward input devices to the PC."));
 	render_settings(ctx, "##devices", list);
 
 	if (ctx.server_hid_forwarding == false and (config.forward_keyboard or config.forward_mouse or config.forward_gamepad))
@@ -592,7 +592,7 @@ void settings_devices(const settings_context & ctx)
 bool settings_tracking(const settings_context & ctx)
 {
 	auto & config = ctx.config;
-	const std::string disconnect_tip = ctx.in_game ? _("Disconnect to change this setting.") : std::string{};
+	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
 	auto feature_toggle = [&](const char * id, std::string label, std::string desc, feature f, bool def) {
@@ -610,13 +610,13 @@ bool settings_tracking(const settings_context & ctx)
 	};
 
 	if (ctx.system.hand_tracking_supported())
-		feature_toggle("##hand", _("Hand tracking"), _("Track your hands for input when controllers are down."), feature::hand_tracking, true);
+		feature_toggle("##hand", _C("setting name", "Hand tracking"), _("Track your hands for input when controllers are down."), feature::hand_tracking, true);
 
 	if (application::get_eye_gaze_supported())
-		feature_toggle("##eye", _("Eye tracking"), _("Used by foveated encoding to focus quality where you look."), feature::eye_gaze, false);
+		feature_toggle("##eye", _C("setting name", "Eye tracking"), _("Used by foveated encoding to focus quality where you look."), feature::eye_gaze, false);
 
 	if (ctx.system.face_tracker_supported() != xr::face_tracker_type::none)
-		feature_toggle("##face", _("Face tracking"), _("Stream facial expressions to the PC."), feature::face_tracking, false);
+		feature_toggle("##face", _C("setting name", "Face tracking"), _("Stream facial expressions to the PC."), feature::face_tracking, false);
 
 	const auto body_tracker = ctx.system.body_tracker_supported();
 
@@ -646,7 +646,7 @@ bool settings_tracking(const settings_context & ctx)
 	{
 		list.push_back({
 		        .id = "##body",
-		        .label = _("Body tracking"),
+		        .label = _C("setting name", "Body tracking"),
 		        .description = body_tracker == xr::body_tracker_type::fb or body_tracker == xr::body_tracker_type::meta
 		                               ? _("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings, otherwise body data will be guessed from controller and headset positions.")
 		                               : _("Stream body joint positions to the PC."),
@@ -660,7 +660,7 @@ bool settings_tracking(const settings_context & ctx)
 
 		list.push_back({
 		        .id = "##body_tracking_parts",
-		        .label = _("Virtual body trackers"),
+		        .label = _C("setting name", "Virtual body trackers"),
 		        .description = _("Create virtual tracker devices."),
 		        .ui = ui_kind::combo_multi,
 		        .get_multi = [&config, &body_parts_bit](int index) {
@@ -674,14 +674,14 @@ bool settings_tracking(const settings_context & ctx)
 					config.body_part_mask &= ~underlying;
 				changed = true; },
 		        .options = [&body_parts_names]() { return body_parts_names; },
-		        .title = _("Virtual body trackers"),
+		        .title = _C("setting name", "Virtual body trackers"),
 		        .default_multi = body_parts_default,
 		        .enabled = [&ctx] { return not ctx.in_game; },
 		        .disabled_tooltip = disconnect_tip,
 		});
 	}
 
-	ui::page_header(_S("Tracking"), _S("Body and input tracking sent to the PC."));
+	ui::page_header(_cS("page header title", "Tracking"), _cS("page header subtitle", "Body and input tracking sent to the PC."));
 	render_settings(ctx, "##tracking", list);
 
 	return changed;
@@ -709,7 +709,7 @@ void settings_system(const settings_context & ctx)
 	list.push_back({
 	        .id = "##language",
 	        .label = _("Language"),
-	        .description = _("Interface language."),
+	        .description = _C("setting name", "Interface language."),
 	        .ui = ui_kind::combo,
 	        .get_int = [&config, languages] {
 		        if (not config.locale.empty())
@@ -723,7 +723,7 @@ void settings_system(const settings_context & ctx)
 		        application::instance().load_locale(); },
 	        .options = [languages] {
 		        std::vector<std::string> opts;
-		        opts.push_back(_C("language", "System language"));
+		        opts.push_back(_C("item in the interface language combobox", "System language"));
 		        for (const auto & [lang, loc, code]: languages)
 			        opts.push_back(lang);
 		        return opts; },
@@ -733,7 +733,7 @@ void settings_system(const settings_context & ctx)
 
 	list.push_back({
 	        .id = "##extended",
-	        .label = _("Extended configuration"),
+	        .label = _C("setting name", "Extended configuration"),
 	        .description = _("Allows unsafe configuration values, use at your own risk."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.extended_config; },
@@ -741,7 +741,7 @@ void settings_system(const settings_context & ctx)
 	        .default_bool = false,
 	});
 
-	ui::page_header(_S("System"), _S("Language and advanced options."));
+	ui::page_header(_cS("page header title", "System"), _cS("page header suibtitle", "Language and advanced options."));
 	render_settings(ctx, "##system", list);
 }
 
