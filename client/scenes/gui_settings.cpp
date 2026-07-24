@@ -300,6 +300,7 @@ void settings_performance(const settings_context & ctx)
 		        .set_bool = [&ctx, &config](bool v) { config.fps_divider = v ? 2 : 1; config.save(); if (ctx.on_streaming_changed) ctx.on_streaming_changed(); },
 		        .default_bool = false,
 		        .enabled = [&config] { return config.preferred_refresh_rate != 0; },
+		        .disabled_tooltip = _("Set a refresh rate other than auto to enable this setting."),
 		});
 	}
 
