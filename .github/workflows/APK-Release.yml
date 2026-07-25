@@ -25,6 +25,15 @@ jobs:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
+    # Gradle distribution and the Android plugin's dependencies.
+    - uses: actions/cache@v5
+      with:
+        key: gradle-android-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'build.gradle') }}
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        restore-keys: gradle-android-
+
     - name: Install dependencies
       run: |
         sudo apt-get update && sudo apt-get install glslang-tools spirv-tools librsvg2-bin gettext npm
