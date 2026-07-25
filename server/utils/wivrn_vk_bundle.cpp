@@ -36,15 +36,9 @@ namespace
 {
 
 VkBool32 message_callback(
-#if VK_HEADER_VERSION >= 304
         vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         vk::DebugUtilsMessageTypeFlagsEXT messageTypes,
         const vk::DebugUtilsMessengerCallbackDataEXT * pCallbackData,
-#else
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-        const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
-#endif
         void * pUserData)
 {
 	u_logging_level level = U_LOGGING_ERROR;

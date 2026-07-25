@@ -123,8 +123,8 @@ endif()
 
 if (WIVRN_BUILD_SERVER)
     find_program(GDBUS_CODEGEN gdbus-codegen REQUIRED)
-    if (Vulkan_VERSION  VERSION_LESS "1.3.261")
-        message(FATAL_ERROR "Vulkan version must be at least 1.3.261, found ${Vulkan_VERSION}")
+    if (Vulkan_VERSION  VERSION_LESS "1.4.304")
+        message(FATAL_ERROR "Vulkan version must be at least 1.4.304, found ${Vulkan_VERSION}")
     endif()
 
     if (NOT WIVRN_USE_NVENC AND NOT WIVRN_USE_VAAPI AND NOT WIVRN_USE_X264 AND NOT WIVRN_USE_VULKAN_ENCODE)
@@ -134,12 +134,6 @@ if (WIVRN_BUILD_SERVER)
     if (WIVRN_USE_VAAPI)
         pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavcodec libavutil)
         pkg_check_modules(LIBDRM REQUIRED IMPORTED_TARGET libdrm)
-    endif()
-
-    if (WIVRN_USE_VULKAN_ENCODE)
-        if (Vulkan_VERSION VERSION_LESS 1.3.283)
-            message(FATAL_ERROR "Vulkan video encode requires 1.3.283, found ${Vulkan_VERSION}")
-        endif()
     endif()
 
     if (WIVRN_USE_X264)

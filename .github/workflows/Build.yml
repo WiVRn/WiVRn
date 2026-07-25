@@ -30,7 +30,6 @@ jobs:
         # Perfetto SDK glue don't bitrot (WIVRN_TRACE_MONADO needs percetto, not packaged in CI)
           - preset: 'server-tracing'
             packages: libboost-all-dev libsystemd-dev
-            perfetto: true
           - preset: 'server-no-systemd'
             packages: libboost-all-dev
           - preset: 'server-no-system-boost'
@@ -42,7 +41,7 @@ jobs:
     - name: Apt dependencies
       uses: awalsh128/cache-apt-pkgs-action@v1.6.1
       with:
-        packages: ccache ${{matrix.config.packages}} ${{ startsWith(matrix.config.preset, 'server') && env.SERVER_DEPS || ''}}
+        packages: ccache libvulkan-dev glslang-tools spirv-tools libwayland-dev libxrandr-dev ${{matrix.config.packages}} ${{ startsWith(matrix.config.preset, 'server') && env.SERVER_DEPS || ''}}
 
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2.23
@@ -69,15 +68,8 @@ jobs:
         sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
         npm install --global @gltf-transform/cli@4.1.1
 
-    - name: Prepare Vulkan SDK
-      uses: humbletim/setup-vulkan-sdk@v1.2.1
-      with:
-        vulkan-query-version: 1.3.296.0
-        vulkan-components: Vulkan-Headers, Vulkan-Loader, Glslang, SPIRV-Reflect, SPIRV-Tools
-        vulkan-use-cache: true
-
     - name: Fetch Perfetto SDK
-      if: ${{ matrix.config.perfetto }}
+      if: ${{ matrix.config.preset == 'server-tracing' }}
       # The amalgamated SDK is two files; install them where server/CMakeLists.txt looks.
       env:
         PERFETTO_TAG: v51.0
@@ -192,13 +184,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Prepare Vulkan SDK
-      uses: humbletim/setup-vulkan-sdk@v1.2.1
-      with:
-        vulkan-query-version: 1.3.296.0
-        vulkan-components: Glslang, SPIRV-Tools
-        vulkan-use-cache: true
-
     - uses: actions/cache@v5
       with:
         key: cmake-android-${{matrix.buildtype}}
@@ -212,7 +197,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin gettext
+        sudo apt-get update && sudo apt-get install glslang-tools spirv-tools librsvg2-bin gettext
         wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.3.2-Linux-x86_64.deb
         npm install --global @gltf-transform/cli
