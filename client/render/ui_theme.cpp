@@ -18,6 +18,7 @@
  */
 
 #include "ui_theme.h"
+#include "utils/i18n.h"
 
 namespace wivrn::ui
 {
@@ -31,6 +32,7 @@ static theme dark_default()
 {
 	theme t;
 	t.name = "Dark";
+	t.localized_name = _C("theme name", "Dark");
 
 	t.accent = rgb(30, 115, 255);
 	t.accent_hovered = rgb(64, 140, 255);
@@ -66,6 +68,7 @@ static theme midnight()
 {
 	theme t = dark_default();
 	t.name = "Midnight";
+	t.localized_name = _C("theme name", "Midnight");
 	t.background = rgb(6, 8, 16);
 	t.card = rgb(16, 20, 34);
 	t.card_hovered = rgb(22, 27, 44);
@@ -80,6 +83,7 @@ static theme slate_light()
 {
 	theme t = dark_default();
 	t.name = "Slate";
+	t.localized_name = _C("theme name", "Slate");
 	t.background = rgb(28, 30, 36);
 	t.card = rgb(38, 41, 49);
 	t.card_hovered = rgb(46, 50, 60);
@@ -97,6 +101,7 @@ static theme oled()
 {
 	theme t = dark_default();
 	t.name = "OLED";
+	t.localized_name = _C("theme name", "OLED");
 	t.background = rgb(0, 0, 0);
 	t.card = rgb(6, 6, 8);
 	t.card_hovered = rgb(11, 12, 14);
@@ -112,6 +117,7 @@ static theme graphite()
 {
 	theme t = dark_default();
 	t.name = "Graphite";
+	t.localized_name = _C("theme name", "Graphite");
 	t.background = rgb(20, 21, 23);
 	t.card = rgb(31, 33, 36);
 	t.card_hovered = rgb(39, 41, 45);
@@ -129,6 +135,7 @@ static theme light()
 {
 	theme t = dark_default();
 	t.name = "Light";
+	t.localized_name = _C("theme name", "Light");
 	t.background = rgb(188, 193, 202);
 	t.card = rgb(252, 252, 253);
 	t.card_hovered = rgb(242, 243, 246);

@@ -99,7 +99,7 @@ void scenes::lobby::gui_theme()
 		const auto preset_list = ui::presets();
 		std::vector<ui::combo_item> preset_items;
 		for (const auto & p: preset_list)
-			preset_items.push_back({p.name.c_str()});
+			preset_items.push_back({p.localized_name.c_str()});
 
 		// seed the selection from the saved preset so the box matches what is applied
 		static int preset = [&] {

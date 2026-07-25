@@ -29,6 +29,7 @@ namespace wivrn::ui
 struct theme
 {
 	std::string name;
+	std::string localized_name;
 
 	// Accent
 	ImVec4 accent;
