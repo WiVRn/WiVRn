@@ -29,7 +29,7 @@ Build-Depends:
  libsystemd-dev,
  libudev-dev,
  libva-dev,
- libvulkan-dev (>= 1.3.261),
+ libvulkan-dev (>= 1.4.304),
  libwayland-dev,
  libx11-xcb-dev,
  libx264-dev,
