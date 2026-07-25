@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-09 12:31+0900\n"
+"POT-Creation-Date: 2026-07-11 14:46+0200\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -89,7 +89,7 @@ msgid "OpenXR runtime"
 msgstr "OpenXRランタイム"
 
 #: dashboard/qml/About.qml:17 dashboard/qml/ApkInstallPage.qml:65
-#: dashboard/qml/HeadsetStatsPage.qml:36 dashboard/qml/HeadsetsPage.qml:183
+#: dashboard/qml/HeadsetsPage.qml:183 dashboard/qml/HeadsetStatsPage.qml:36
 #: dashboard/qml/TroubleshootPage.qml:71
 #, kde-format
 msgctxt "go back to the home page"
@@ -153,11 +153,6 @@ msgstr "WiVRnを再インストールする"
 #, kde-format
 msgid "Install WiVRn"
 msgstr "WiVRnをインストールする"
-
-#: dashboard/qml/HeadsetStatsPage.qml:12
-#, kde-format
-msgid "Headset statistics"
-msgstr "HMDの統計情報"
 
 #: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:439
 #, kde-format
@@ -244,6 +239,11 @@ msgstr "ペアリングを有効化する"
 #, kde-format
 msgid "Pair a new headset"
 msgstr "新しいHMDをペアリングする"
+
+#: dashboard/qml/HeadsetStatsPage.qml:12
+#, kde-format
+msgid "Headset statistics"
+msgstr "HMDの統計情報"
 
 #: dashboard/qml/Main.qml:12
 #, kde-format
@@ -552,8 +552,10 @@ msgid ""
 "available without virtual devices for applications that access it through "
 "OpenXR."
 msgstr ""
-"HMD接続のマウス・キーボード・ゲームコントローラーをPCの仮想デバイスとして再現します。\n"
-"PCに直接接続した状態で認識されますが、一部のキーはHMDのOSが使用するため、利用できない場合があります。\n"
+"HMD接続のマウス・キーボード・ゲームコントローラーをPCの仮想デバイスとして再現"
+"します。\n"
+"PCに直接接続した状態で認識されますが、一部のキーはHMDのOSが使用するため、利用"
+"できない場合があります。\n"
 "OpenXR対応アプリでは、仮想デバイスなしでもゲームパッドが使用可能です。"
 
 #: dashboard/qml/SettingsPage.qml:122

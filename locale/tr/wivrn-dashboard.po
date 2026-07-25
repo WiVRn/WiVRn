@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-27 14:42+0300\n"
+"POT-Creation-Date: 2026-07-11 14:46+0200\n"
 "PO-Revision-Date: 2026-05-29 16:16+0300\n"
 "Last-Translator: Hüseyin Fahri Uzun <mail@fahriuzun.com>\n"
 "Language-Team: \n"
@@ -19,52 +19,52 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 3.9\n"
 
-#: dashboard/apk_installer.cpp:137
+#: dashboard/apk_installer.cpp:133
 #, kde-format
 msgid "Cannot save APK file: %1"
 msgstr "APK dosyası kayıt edilemedi: %1"
 
-#: dashboard/apk_installer.cpp:171
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "APK indiriliyor: %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:173
+#: dashboard/apk_installer.cpp:169
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "APK indiriliyor: %1 MB"
 
-#: dashboard/apk_installer.cpp:182
+#: dashboard/apk_installer.cpp:178
 #, kde-format
 msgid "Download cancelled"
 msgstr "İndirme iptal edildi"
 
-#: dashboard/apk_installer.cpp:198
+#: dashboard/apk_installer.cpp:194
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "APK indirilemiyor: %1"
 
-#: dashboard/apk_installer.cpp:221
+#: dashboard/apk_installer.cpp:217
 #, kde-format
 msgid "Installing APK"
 msgstr "APK yükleniyor"
 
-#: dashboard/apk_installer.cpp:225
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "adb başlatılamadı: %1"
 
-#: dashboard/apk_installer.cpp:235
+#: dashboard/apk_installer.cpp:231
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb anormal şekilde çıktı: %1"
 
-#: dashboard/apk_installer.cpp:243
+#: dashboard/apk_installer.cpp:239
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "'adb install' komutu başarısız oldu: çıkış kodu %1"
 
-#: dashboard/apk_installer.cpp:248
+#: dashboard/apk_installer.cpp:244
 #, kde-format
 msgid "Installation successful"
 msgstr "Yükleme başarılı"
@@ -552,19 +552,19 @@ msgstr "Başlangıçta sistem ayarlarını kontrol et"
 
 #: dashboard/qml/SettingsPage.qml:114
 #, kde-format
-msgid "Forward keyboard & mouse from headset"
-msgstr "Gözlükten klavye & mouse ilet"
+msgid "Expose forwarded input devices via uinput"
+msgstr ""
 
 #: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
-"Keyboard and mouse connected to the client will act as if connected to the "
-"server. Client OS may reserve specific keys and combinations, which cannot "
-"be forwarded."
+"Replicate mouse, keyboard and gamepad connected to the headset as virtual "
+"devices on PC.\n"
+"Replicated devices will appear as if they were plugged to the PC, some keys "
+"may be reserved by the headset OS and not be available. Gamepad is also "
+"available without virtual devices for applications that access it through "
+"OpenXR."
 msgstr ""
-"İstemciye bağlı klavye ve fare, sunucuya bağlıymış gibi çalışacaktır. "
-"İstemci işletim sistemi, iletilemeyen belirli tuşları ve tuş "
-"kombinasyonlarını ayırma hakkını saklı tutar."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -673,11 +673,9 @@ msgstr "Gözlüğümde WiVRn uygulamasını bulamıyorum"
 #: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:353
 #, kde-format
 msgid ""
-"If you installed WiVRn over USB on a Meta headset, the app is in the "
+"If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Meta gözlüğüne USB üzerinden WiVRn'i kurduysanız, uygulama \"bilinmeyen "
-"kaynaklar\" bölümündedir."
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
@@ -988,6 +986,28 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid "Forward keyboard & mouse from headset"
+#~ msgstr "Gözlükten klavye & mouse ilet"
+
+#, kde-format
+#~ msgid ""
+#~ "Keyboard and mouse connected to the client will act as if connected to "
+#~ "the server. Client OS may reserve specific keys and combinations, which "
+#~ "cannot be forwarded."
+#~ msgstr ""
+#~ "İstemciye bağlı klavye ve fare, sunucuya bağlıymış gibi çalışacaktır. "
+#~ "İstemci işletim sistemi, iletilemeyen belirli tuşları ve tuş "
+#~ "kombinasyonlarını ayırma hakkını saklı tutar."
+
+#, kde-format
+#~ msgid ""
+#~ "If you installed WiVRn over USB on a Meta headset, the app is in the "
+#~ "\"unknown sources\" section."
+#~ msgstr ""
+#~ "Meta gözlüğüne USB üzerinden WiVRn'i kurduysanız, uygulama \"bilinmeyen "
+#~ "kaynaklar\" bölümündedir."
 
 #, kde-format
 #~ msgid "The server does not have CAP_SYS_NICE capabilities"
