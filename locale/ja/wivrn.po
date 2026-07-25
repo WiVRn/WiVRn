@@ -780,7 +780,7 @@ msgstr "有効"
 
 #: client/scenes/stream_gui.cpp:440 client/scenes/stream_gui.cpp:511
 #, c++-format
-msgid "Height {:.1f} deg"
+msgid "Height {:.1f} °"
 msgstr "仰角 {:.1f}°"
 
 #: client/scenes/stream_gui.cpp:441 client/scenes/stream_gui.cpp:512

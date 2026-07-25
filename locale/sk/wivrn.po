@@ -794,7 +794,7 @@ msgstr "Zapnúť"
 
 #: client/scenes/stream_gui.cpp:440 client/scenes/stream_gui.cpp:511
 #, c++-format
-msgid "Height {:.1f} deg"
+msgid "Height {:.1f} °"
 msgstr "Výška: {:.1f} deg"
 
 #: client/scenes/stream_gui.cpp:441 client/scenes/stream_gui.cpp:512

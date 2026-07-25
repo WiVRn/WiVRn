@@ -218,7 +218,7 @@ void settings_performance(const settings_context & ctx)
 		list.push_back({
 		        .id = "##refresh",
 		        .label = _("Refresh rate"),
-		        .description = _("Select refresh rate based on measured application performance. May cause flicker when a change happens."),
+		        .description = _("Use 'auto' to select the refresh rate based on measured application performance. May cause flicker when a change happens."),
 		        .ui = ui_kind::segmented,
 		        .get_int = [&config, rates] {
 			        for (size_t i = 0; i < rates.size(); ++i)
@@ -241,7 +241,7 @@ void settings_performance(const settings_context & ctx)
 				        ctx.on_streaming_changed(); },
 		        .options = [rates] {
 			        std::vector<std::string> opts;
-			        opts.push_back(_C("automatic refresh rate", "Auto"));
+			        opts.push_back(_C("automatic refresh rate, use a short string", "Auto"));
 			        for (float r: rates)
 				        opts.push_back(fmt::format("{}", int(r)));
 			        return opts; },
@@ -534,7 +534,7 @@ void settings_audio(const settings_context & ctx)
 	list.push_back({
 	        .id = "##unprocessed",
 	        .label = _C("setting name", "Unprocessed audio"),
-	        .description = _("Force disable audio filters, such as noise cancellation."),
+	        .description = _("Disable audio filters, such as noise cancellation."),
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.mic_unprocessed_audio; },
 	        .set_bool = [&config](bool v) { config.mic_unprocessed_audio = v; config.save(); },

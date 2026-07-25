@@ -742,7 +742,7 @@ msgstr "Aktif et"
 
 #: client/scenes/stream_gui.cpp:431 client/scenes/stream_gui.cpp:502
 #, c++-format
-msgid "Height {:.1f} deg"
+msgid "Height {:.1f} °"
 msgstr "Boy {:.1f} deg"
 
 #: client/scenes/stream_gui.cpp:432 client/scenes/stream_gui.cpp:503

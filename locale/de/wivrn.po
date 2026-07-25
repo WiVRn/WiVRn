@@ -747,7 +747,7 @@ msgstr "Aktivieren"
 
 #: client/scenes/stream_gui.cpp:432 client/scenes/stream_gui.cpp:503
 #, c++-format
-msgid "Height {:.1f} deg"
+msgid "Height {:.1f} °"
 msgstr "Höhe {:.1f} deg"
 
 #: client/scenes/stream_gui.cpp:433 client/scenes/stream_gui.cpp:504

@@ -477,7 +477,7 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 	ImGui::Text("%s", _S("Use the thumbsticks to move the foveation center"));
 	ImGui::Text("%s", _S("Press A to save or B to cancel"));
-	ImGui::Text("%s", fmt::format(_F("Height {:.1f} deg"), -override_foveation_pitch * 180 / M_PI).c_str());
+	ImGui::Text("%s", fmt::format(_F("Height {:.1f} °"), -override_foveation_pitch * 180 / M_PI).c_str());
 	ImGui::Text("%s", fmt::format(_F("Distance {:.2f} m"), override_foveation_distance).c_str());
 	ImGui::PopFont();
 

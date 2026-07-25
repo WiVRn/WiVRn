@@ -529,7 +529,7 @@ msgstr "啟用"
 
 #: client/scenes/stream_gui.cpp:514 client/scenes/stream_gui.cpp:561
 #, c++-format
-msgid "Height {:.1f} deg"
+msgid "Height {:.1f} °"
 msgstr "高度 {:.1f} 度"
 
 #: client/scenes/stream_gui.cpp:515 client/scenes/stream_gui.cpp:562

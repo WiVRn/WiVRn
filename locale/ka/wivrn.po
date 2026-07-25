@@ -743,7 +743,7 @@ msgstr "ჩართვა"
 
 #: client/scenes/stream_gui.cpp:432 client/scenes/stream_gui.cpp:503
 #, c++-format
-msgid "Height {:.1f} deg"
+msgid "Height {:.1f} °"
 msgstr "სიმაღლე {:.1f} გრად"
 
 #: client/scenes/stream_gui.cpp:433 client/scenes/stream_gui.cpp:504
