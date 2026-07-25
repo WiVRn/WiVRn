@@ -72,7 +72,7 @@ jobs:
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.1
       with:
-        vulkan-query-version: 1.3.296.0
+        vulkan-query-version: 1.4.328.1
         vulkan-components: Vulkan-Headers, Vulkan-Loader, Glslang, SPIRV-Reflect, SPIRV-Tools
         vulkan-use-cache: true
 
@@ -195,7 +195,7 @@ jobs:
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.1
       with:
-        vulkan-query-version: 1.3.296.0
+        vulkan-query-version: 1.4.328.1
         vulkan-components: Glslang, SPIRV-Tools
         vulkan-use-cache: true
 
