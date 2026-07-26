@@ -1184,7 +1184,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
 		{
-			// Arbitraty transitions can happen from network commands
+			// Arbitrary transitions can happen from network commands
 			// Ensure we can't have a set of 2 non interactable states
 			if (is_gui_interactable())
 				next_gui_status = stream_tab::hidden;
