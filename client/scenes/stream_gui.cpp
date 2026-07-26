@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <glm/ext/quaternion_common.hpp>
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "stream.h"
@@ -941,9 +940,62 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		wivrn::ui::top_bar(top_bar_h, wivrn_logo, top_items);
 
 		if (request_disconnect)
+		{
+			network_session->send_control(from_headset::get_running_applications{});
 			ImGui::OpenPopup("confirm disconnect");
-		if (wivrn::ui::confirm_modal("confirm disconnect", _("Disconnect"), _("Disconnect from the server and return to the lobby?"), _("Disconnect"), _("Cancel"), true) == 1)
-			exit();
+		}
+
+		if (wivrn::ui::begin_modal("confirm disconnect", _("Disconnect")))
+		{
+			const std::string kill_apps = ICON_FA_XMARK " " + _("Stop all applications");
+			const std::string disconnect_only = ICON_FA_DOOR_OPEN " " + _("Disconnect");
+			const std::string cancel = _("Cancel");
+
+			const float gap = ImGui::GetStyle().ItemSpacing.x;
+
+			const float kill_apps_w = ImGui::CalcTextSize(kill_apps.c_str()).x + wivrn::ui::metrics::button_padding.x * 2;
+			const float disconnect_only_w = ImGui::CalcTextSize(disconnect_only.c_str()).x + wivrn::ui::metrics::button_padding.x * 2;
+			const float cancel_w = ImGui::CalcTextSize(cancel.c_str()).x + wivrn::ui::metrics::button_padding.x * 2;
+			const float buttons_width = disconnect_only_w + cancel_w + kill_apps_w + 2 * gap;
+
+			ImGui::Dummy({std::max<float>(500, buttons_width), 0});
+
+			const auto & t = wivrn::ui::current();
+			ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
+			ImGui::TextWrapped("%s", _S("Disconnect from the server and return to the lobby?"));
+			ImGui::TextWrapped("%s", _S("The following applications/overlays are open:"));
+
+			for (const auto & app: running_applications.lock()->applications)
+				ImGui::TextWrapped("• %s", app.name.c_str());
+
+			ImGui::PopStyleColor();
+			ImGui::Dummy({0, 12});
+
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - buttons_width);
+
+			if (button(kill_apps, wivrn::ui::button_style::danger, {kill_apps_w, 0}))
+			{
+				for (const auto & app: running_applications.lock()->applications)
+					network_session->send_control(from_headset::stop_application{.id = app.id});
+				exit();
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+
+			if (button(disconnect_only, wivrn::ui::button_style::primary, {disconnect_only_w, 0}))
+			{
+				exit();
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+
+			if (button(cancel, wivrn::ui::button_style::secondary, {cancel_w, 0}))
+			{
+				ImGui::CloseCurrentPopup();
+			}
+
+			wivrn::ui::end_modal();
+		}
 
 		// navigation sidebar, the settings items swap the page but keep the coarse settings tab
 		wivrn::ui::begin_sidebar(top_bar_h, tab_width, 2);
