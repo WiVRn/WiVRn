@@ -558,11 +558,8 @@ void scenes::stream::on_focused()
 		}
 	}
 
-	if (application::get_config().enable_stream_gui)
-	{
-		plots_toggle_1 = get_action("plots_toggle_1").first;
-		plots_toggle_2 = get_action("plots_toggle_2").first;
-	}
+	plots_toggle_1 = get_action("plots_toggle_1").first;
+	plots_toggle_2 = get_action("plots_toggle_2").first;
 	recenter_left = get_action("recenter_left").first;
 	recenter_right = get_action("recenter_right").first;
 	gui_distance_left = get_action("gui_distance_left").first;
@@ -1174,7 +1171,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	read_actions();
 
-	if (plots_toggle_1 and plots_toggle_2)
+	if (application::get_config().enable_stream_gui)
 	{
 		XrActionStateGetInfo get_info{
 		        .type = XR_TYPE_ACTION_STATE_GET_INFO,
