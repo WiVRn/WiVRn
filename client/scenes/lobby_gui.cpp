@@ -1281,10 +1281,12 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 	if (not is_gui_visible(*imgui_ctx, predicted_display_time))
 	{
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{th.background.x, th.background.y, th.background.z, wivrn::ui::background_alpha()});
 		if (system.hand_tracking_supported())
 			display_recentering_tip(*imgui_ctx, _("Press the grip button or put your palm up\nto move the main window"));
 		else
 			display_recentering_tip(*imgui_ctx, _("Press the grip button to move the main window"));
+		ImGui::PopStyleColor(); // ImGuiCol_WindowBg
 	}
 
 #if WIVRN_CLIENT_DEBUG_MENU
