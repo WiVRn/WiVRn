@@ -51,4 +51,12 @@ struct test
 	float y;
 };
 static_assert(serialization_type_hash<test>(0) == hash("structure{int32,float32}"));
+
+enum test_enum : uint32_t
+{
+	foo,
+	bar,
+	foobar = 42
+};
+static_assert(serialization_type_hash<test_enum>(0) == hash("enum32{foo=0,bar=1,foobar=42}"));
 } // namespace
