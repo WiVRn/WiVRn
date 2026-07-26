@@ -5,6 +5,7 @@
 #include "utils/named_thread.h"
 #include <arpa/inet.h>
 #include <ifaddrs.h>
+#include <mutex>
 #include <net/if.h>
 #include <poll.h>
 #include <spdlog/spdlog.h>

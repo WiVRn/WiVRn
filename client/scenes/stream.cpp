@@ -53,6 +53,16 @@
 using namespace wivrn;
 using namespace beman::inplace_vector;
 
+static std::array<float, 3> hsv_to_rgb(const std::array<float, 3> & hsv)
+{
+	const float h = hsv[0] * 6, s = hsv[1], v = hsv[2];
+	auto f = [&](float n) {
+		float k = std::fmod(n + h, 6.f);
+		return v - v * s * std::clamp(std::min(k, 4 - k), 0.f, 1.f);
+	};
+	return {f(5), f(3), f(1)};
+}
+
 // clang-format off
 static const std::unordered_map<std::string, device_id> device_ids = {
 	{"/user/hand/left/input/x/click",             device_id::X_CLICK},
@@ -886,6 +896,8 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	std::array<XrFovf, view_count> fov;
 	std::array<wivrn::to_headset::foveation_parameter, view_count> foveation;
 	bool use_alpha = false;
+	const auto & ck_cfg = application::get_config().chroma_key;
+	const bool chroma_key_active = ck_cfg.enabled && system.passthrough_supported() != xr::passthrough_type::none;
 
 	std::array<stream_defoveator::input, view_count> images;
 	for (size_t i = 0; i < view_count + use_alpha; ++i)
@@ -1030,11 +1042,26 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		const float scale = std::lerp(1, constants::stream::dimming_scale, x);
 		const float bias = std::lerp(0, constants::stream::dimming_bias, x);
 
+		stream_defoveator::chroma_key_params ck_params{
+		        .enabled = chroma_key_active,
+		        .hsv_min = ck_cfg.hsv_min,
+		        .hsv_max = ck_cfg.hsv_max,
+		        .curve = ck_cfg.curve,
+		        .despill = ck_cfg.despill,
+		};
+		const auto & sg_cfg = application::get_config().sunglasses;
+		stream_defoveator::sunglasses_params sg_params{
+		        .enabled = sg_cfg.enabled,
+		        .rgb = hsv_to_rgb(sg_cfg.hsv),
+		        .alpha = sg_cfg.alpha,
+		};
 		defoveator->defoveate(command_buffer,
 		                      foveation,
 		                      images,
 		                      {scale, scale, scale, 1.},
 		                      {bias, bias, bias, 0.},
+		                      ck_params,
+		                      sg_params,
 		                      image_index);
 
 		command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
@@ -1071,12 +1098,13 @@ void scenes::stream::render(const XrFrameState & frame_state)
 #endif
 		swapchain.release();
 
-		if (use_alpha)
+		const bool want_passthrough = use_alpha || chroma_key_active;
+		if (want_passthrough)
 			session.enable_passthrough(system);
 		else
 			session.disable_passthrough();
 
-		render_start(use_alpha, frame_state.predictedDisplayTime);
+		render_start(want_passthrough, frame_state.predictedDisplayTime);
 
 		// Add the layer with the streamed content
 		std::array<XrCompositionLayerProjectionView, view_count> layer_view;
@@ -1099,7 +1127,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			        };
 		}
 		add_projection_layer(
-		        use_alpha ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT : 0,
+		        want_passthrough ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT : 0,
 		        application::space(xr::spaces::world),
 		        layer_view);
 

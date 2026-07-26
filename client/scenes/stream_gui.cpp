@@ -475,6 +475,173 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		config.override_foveation_distance = override_foveation_distance;
 		config.save();
 	}
+
+	// Chroma key passthrough (ALVR-style, client-side).
+	ImGui::Text("%s", _S("Chroma key passthrough"));
+	ImGui::Indent();
+	{
+		auto & ck = config.chroma_key;
+		const bool passthrough_supported = system.passthrough_supported() != xr::passthrough_type::none;
+		ImGui::BeginDisabled(!passthrough_supported);
+		bool ck_dirty = false;
+		if (ImGui::Checkbox(_S("Enable chroma key"), &ck.enabled))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Replace pixels inside the HSV range below with the passthrough view.\nApplies to any running application, even when it does not output alpha."));
+
+		ImGui::BeginDisabled(!ck.enabled);
+		if (ImGui::SliderFloat(_S("Hue min"), &ck.hsv_min[0], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::SliderFloat(_S("Hue max"), &ck.hsv_max[0], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Hue range. If min > max the range wraps around 0/1 (useful for reds)."));
+
+		if (ImGui::SliderFloat(_S("Saturation min"), &ck.hsv_min[1], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::SliderFloat(_S("Saturation max"), &ck.hsv_max[1], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+
+		if (ImGui::SliderFloat(_S("Value min"), &ck.hsv_min[2], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::SliderFloat(_S("Value max"), &ck.hsv_max[2], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+
+		if (ImGui::SliderFloat(_S("Softness"), &ck.curve, 0.f, 0.5f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Feathering width around the HSV range. Larger values blend the edges more smoothly."));
+
+		if (ImGui::SliderFloat(_S("Despill"), &ck.despill, 0.f, 1.f, "%.2f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Reduce the key color tinting remaining pixels (useful for green screens)."));
+
+		// Preview: hue bar with the keyed range shown saturated, the rest dimmed,
+		// plus a swatch of the centre of the selected HSV range.
+		{
+			ImGui::Text("%s", _S("Key color preview"));
+			const float h_min = ck.hsv_min[0];
+			const float h_max = ck.hsv_max[0];
+			const bool wrap = h_min > h_max;
+
+			float h_center = wrap
+			                         ? std::fmod(h_min + std::fmod(h_max - h_min + 1.f, 1.f) * 0.5f, 1.f)
+			                         : 0.5f * (h_min + h_max);
+			float r, g, b;
+			ImGui::ColorConvertHSVtoRGB(h_center,
+			                            0.5f * (ck.hsv_min[1] + ck.hsv_max[1]),
+			                            0.5f * (ck.hsv_min[2] + ck.hsv_max[2]),
+			                            r,
+			                            g,
+			                            b);
+			const float height = ImGui::GetFrameHeight();
+			ImGui::ColorButton("##chroma_key_center", ImVec4(r, g, b, 1), ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop, ImVec2(height * 2, height));
+			ImGui::SameLine();
+
+			ImDrawList * draw_list = ImGui::GetWindowDrawList();
+			const ImVec2 pos = ImGui::GetCursorScreenPos();
+			const float width = ImGui::GetContentRegionAvail().x;
+			const int segments = 64;
+			for (int i = 0; i < segments; ++i)
+			{
+				const float h0 = float(i) / segments;
+				const float h1 = float(i + 1) / segments;
+				const float h = 0.5f * (h0 + h1);
+				const bool inside = wrap ? (h >= h_min or h <= h_max) : (h >= h_min and h <= h_max);
+				ImGui::ColorConvertHSVtoRGB(h,
+				                            inside ? ck.hsv_max[1] : 0.25f,
+				                            inside ? ck.hsv_max[2] : 0.35f,
+				                            r,
+				                            g,
+				                            b);
+				draw_list->AddRectFilled(ImVec2(pos.x + width * h0, pos.y),
+				                         ImVec2(pos.x + width * h1, pos.y + height),
+				                         ImGui::ColorConvertFloat4ToU32(ImVec4(r, g, b, 1)));
+			}
+			ImGui::Dummy(ImVec2(width, height));
+		}
+
+		if (ImGui::Button(_S("Reset chroma key")))
+		{
+			ck = configuration::chroma_key_settings{};
+			ck_dirty = true;
+		}
+		imgui_ctx->vibrate_on_hover();
+		ImGui::EndDisabled();
+
+		if (ck_dirty)
+			config.save();
+		ImGui::EndDisabled();
+
+		if (!passthrough_supported)
+			ImGui::TextDisabled("%s", _S("Passthrough not supported on this headset"));
+	}
+	ImGui::Unindent();
+
+	// Sunglasses: dim the stream with a solid colour overlay.
+	ImGui::Text("%s", _S("Sunglasses"));
+	ImGui::Indent();
+	{
+		auto & sg = config.sunglasses;
+		bool sg_dirty = false;
+		if (ImGui::Checkbox(_S("Enable sunglasses"), &sg.enabled))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Blend a solid color over the stream to dim it.\nPassthrough regions keep their real brightness."));
+
+		ImGui::BeginDisabled(!sg.enabled);
+		if (ImGui::SliderFloat(_S("Hue"), &sg.hsv[0], 0.f, 1.f, "%.3f"))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+
+		if (ImGui::SliderFloat(_S("Saturation"), &sg.hsv[1], 0.f, 1.f, "%.3f"))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+
+		if (ImGui::SliderFloat(_S("Value"), &sg.hsv[2], 0.f, 1.f, "%.3f"))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Brightness of the tint color. Keep at 0 for pure dimming."));
+
+		if (ImGui::SliderFloat(_S("Opacity"), &sg.alpha, 0.f, 1.f, "%.3f"))
+			sg_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("How strongly the color covers the image: 0 = invisible, 1 = fully opaque."));
+
+		{
+			ImGui::Text("%s", _S("Tint color preview"));
+			float r, g, b;
+			ImGui::ColorConvertHSVtoRGB(sg.hsv[0], sg.hsv[1], sg.hsv[2], r, g, b);
+			const float height = ImGui::GetFrameHeight();
+			ImGui::ColorButton("##sunglasses_tint", ImVec4(r, g, b, 1), ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop, ImVec2(height * 2, height));
+		}
+
+		if (ImGui::Button(_S("Reset sunglasses")))
+		{
+			sg = configuration::sunglasses_settings{};
+			sg_dirty = true;
+		}
+		imgui_ctx->vibrate_on_hover();
+		ImGui::EndDisabled();
+
+		if (sg_dirty)
+			config.save();
+	}
+	ImGui::Unindent();
+
 	ImGui::PopStyleVar();
 }
 

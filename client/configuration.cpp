@@ -25,6 +25,7 @@
 
 #include <fstream>
 #include <magic_enum.hpp>
+#include <mutex>
 
 #ifdef __ANDROID__
 #include "android/permissions.h"
@@ -177,6 +178,57 @@ configuration::configuration(xr::system & system, xr::session & session)
 		if (auto val = root["passthrough_enabled"]; val.is_bool())
 			passthrough_enabled = val.get_bool();
 
+		if (auto ck = root["chroma_key"]; ck.is_object())
+		{
+			if (auto val = ck["enabled"]; val.is_bool())
+				chroma_key.enabled = val.get_bool();
+			auto read_triplet = [](simdjson::simdjson_result<simdjson::dom::element> el, std::array<float, 3> & out) {
+				if (!el.is_array())
+					return;
+				size_t i = 0;
+				for (auto v: simdjson::dom::array(el))
+				{
+					if (i >= out.size())
+						break;
+					if (v.is_double())
+						out[i] = v.get_double();
+					else if (v.is_int64())
+						out[i] = v.get_int64();
+					++i;
+				}
+			};
+			read_triplet(ck["hsv_min"], chroma_key.hsv_min);
+			read_triplet(ck["hsv_max"], chroma_key.hsv_max);
+			if (auto val = ck["curve"]; val.is_double())
+				chroma_key.curve = val.get_double();
+			if (auto val = ck["despill"]; val.is_double())
+				chroma_key.despill = val.get_double();
+		}
+
+		if (auto sg = root["sunglasses"]; sg.is_object())
+		{
+			if (auto val = sg["enabled"]; val.is_bool())
+				sunglasses.enabled = val.get_bool();
+			auto read_triplet = [](simdjson::simdjson_result<simdjson::dom::element> el, std::array<float, 3> & out) {
+				if (!el.is_array())
+					return;
+				size_t i = 0;
+				for (auto v: simdjson::dom::array(el))
+				{
+					if (i >= out.size())
+						break;
+					if (v.is_double())
+						out[i] = v.get_double();
+					else if (v.is_int64())
+						out[i] = v.get_int64();
+					++i;
+				}
+			};
+			read_triplet(sg["hsv"], sunglasses.hsv);
+			if (auto val = sg["alpha"]; val.is_double())
+				sunglasses.alpha = val.get_double();
+		}
+
 		if (auto val = root["mic_unprocessed_audio"]; val.is_bool())
 			mic_unprocessed_audio = val.get_bool();
 
@@ -318,6 +370,18 @@ void configuration::save()
 	json << ",\"openxr_post_processing\":";
 	write_openxr_post_processing(json, openxr_post_processing);
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
+	json << ",\"chroma_key\":{"
+	     << "\"enabled\":" << std::boolalpha << chroma_key.enabled
+	     << ",\"hsv_min\":[" << chroma_key.hsv_min[0] << "," << chroma_key.hsv_min[1] << "," << chroma_key.hsv_min[2] << "]"
+	     << ",\"hsv_max\":[" << chroma_key.hsv_max[0] << "," << chroma_key.hsv_max[1] << "," << chroma_key.hsv_max[2] << "]"
+	     << ",\"curve\":" << chroma_key.curve
+	     << ",\"despill\":" << chroma_key.despill
+	     << "}";
+	json << ",\"sunglasses\":{"
+	     << "\"enabled\":" << std::boolalpha << sunglasses.enabled
+	     << ",\"hsv\":[" << sunglasses.hsv[0] << "," << sunglasses.hsv[1] << "," << sunglasses.hsv[2] << "]"
+	     << ",\"alpha\":" << sunglasses.alpha
+	     << "}";
 	json << ",\"mic_unprocessed_audio\":" << std::boolalpha << mic_unprocessed_audio;
 	json << ",\"forward_keyboard\":" << std::boolalpha << forward_keyboard;
 	json << ",\"forward_mouse\":" << std::boolalpha << forward_mouse;

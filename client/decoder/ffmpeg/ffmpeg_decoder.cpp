@@ -22,6 +22,7 @@
 #include "scenes/stream.h"
 #include "spdlog/spdlog.h"
 #include <cassert>
+#include <mutex>
 #include <vulkan/vulkan.hpp>
 
 extern "C"

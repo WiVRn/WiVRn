@@ -23,6 +23,7 @@
 #include "application.h"
 #include "spdlog/spdlog.h"
 #include <android/native_activity.h>
+#include <mutex>
 #include <sys/system_properties.h>
 
 #include "android/jnipp.h"
