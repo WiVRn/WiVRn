@@ -1085,11 +1085,10 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 		ImGui::SetNextWindowSize({1400, 900});
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 		gui_connected(predicted_display_time);
 		ImGui::End();
-		ImGui::PopStyleVar(3); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding, ImGuiStyleVar_FramePadding
+		ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding
 	}
 	else
 	{
