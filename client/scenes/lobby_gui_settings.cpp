@@ -76,3 +76,8 @@ void scenes::lobby::gui_system()
 {
 	wivrn::gui::settings_system(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
 }
+
+void scenes::lobby::gui_theme()
+{
+	wivrn::gui::settings_theme(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+}

@@ -151,6 +151,7 @@ private:
 		audio,
 		devices,
 		tracking,
+		theme,
 		system,
 	};
 	settings_page current_settings_page = settings_page::performance;

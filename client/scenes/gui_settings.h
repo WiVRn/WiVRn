@@ -67,5 +67,6 @@ void settings_audio(const settings_context &);
 void settings_devices(const settings_context &);
 bool settings_tracking(const settings_context &);
 void settings_system(const settings_context &);
+void settings_theme(const settings_context &);
 
 } // namespace wivrn::gui

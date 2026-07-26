@@ -448,6 +448,9 @@ void scenes::stream::gui_settings(float)
 		case settings_page::system:
 			wivrn::gui::settings_system(ctx);
 			break;
+		case settings_page::theme:
+			wivrn::gui::settings_theme(ctx);
+			break;
 	}
 }
 
@@ -984,6 +987,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			settings_item(ICON_FA_KEYBOARD, _cS("tab label", "Devices"), settings_page::devices);
 			settings_item(ICON_FA_LOCATION_CROSSHAIRS, _cS("tab label", "Tracking"), settings_page::tracking);
 			settings_item(ICON_FA_GEARS, _cS("tab label", "System"), settings_page::system);
+			settings_item(ICON_FA_PALETTE, _cS("tab label", "Theme"), settings_page::theme);
 
 			// pinned to the bottom
 			wivrn::ui::sidebar_footer();
