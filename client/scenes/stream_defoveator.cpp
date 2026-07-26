@@ -45,6 +45,11 @@ struct vert_pc
 	glm::ivec4 a_rect;
 	std::array<float, 4> scale;
 	std::array<float, 4> bias;
+	// Chroma key (see reprojection.glsl). Packed layout: params.x = enabled
+	// (0/1 as float), y = curve, z = despill, w reserved.
+	std::array<float, 4> chroma_key_params;
+	std::array<float, 4> chroma_key_hsv_min; // xyz used, w padding
+	std::array<float, 4> chroma_key_hsv_max;
 };
 
 void stream_defoveator::ensure_vertices(size_t num_vertices)
@@ -308,6 +313,7 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
                                   const std::array<input, 2> & inputs,
                                   std::array<float, 4> scale,
                                   std::array<float, 4> bias,
+                                  const chroma_key_params & chroma_key,
                                   int destination)
 {
 	if (destination < 0 || destination >= (int)output_images.size())
@@ -430,6 +436,9 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 		                             input.rect_a.extent.height),
 		        .scale = scale,
 		        .bias = bias,
+		        .chroma_key_params = {chroma_key.enabled ? 1.f : 0.f, chroma_key.curve, chroma_key.despill, 0.f},
+		        .chroma_key_hsv_min = {chroma_key.hsv_min[0], chroma_key.hsv_min[1], chroma_key.hsv_min[2], 0.f},
+		        .chroma_key_hsv_max = {chroma_key.hsv_max[0], chroma_key.hsv_max[1], chroma_key.hsv_max[2], 0.f},
 		};
 
 		device.updateDescriptorSets(descriptor_writes, {});
