@@ -410,7 +410,6 @@ void scenes::stream::gui_settings(float)
 	        .in_game = true,
 	        .server_hid_forwarding = hid_forwarding_enabled(),
 	        .on_streaming_changed = [this] { send_settings_changed_packet(session, network_session.get(), application::get_config()); },
-	        .enter_bitrate_adjust = [this] { next_gui_status = stream_tab::bitrate_settings; },
 	        .enter_foveation_adjust = [this] { next_gui_status = stream_tab::foveation_settings; },
 	        .on_foveation_override_changed = [this] {
 		        const auto & config = application::get_config();
@@ -671,7 +670,6 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	switch (gui_status)
 	{
 		case stream_tab::hidden:
-		case stream_tab::bitrate_settings:
 		case stream_tab::foveation_settings:
 		case stream_tab::overlay_only:
 		case stream_tab::compact:
@@ -727,7 +725,6 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		glm::mat3 M = glm::mat3_cast(head_position->second);
 		switch (gui_status)
 		{
-			case stream_tab::bitrate_settings:
 			case stream_tab::foveation_settings:
 				imgui_ctx->layers()[0].orientation = head_position->second;
 				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
@@ -794,7 +791,6 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			break;
 
 		case stream_tab::hidden:
-		case stream_tab::bitrate_settings:
 		case stream_tab::foveation_settings:
 			ImGui::SetNextWindowPos(viewport_size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			always_auto_resize = true;
@@ -892,10 +888,6 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			ScrollWhenDragging();
 			ImGui::EndChild();
 			ImGui::PopStyleVar();
-			break;
-
-		case stream_tab::bitrate_settings:
-			gui_bitrate_settings(predicted_display_period * 1.e-9f);
 			break;
 
 		case stream_tab::foveation_settings:

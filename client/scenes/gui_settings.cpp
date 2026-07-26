@@ -404,19 +404,6 @@ void settings_streaming(const settings_context & ctx)
 	        .default_int = 50,
 	});
 
-	// in-stream: thumbstick bitrate, easier than the slider in VR
-	if (ctx.in_game and ctx.enter_bitrate_adjust)
-	{
-		list.push_back({
-		        .id = "##bitrate_adjust",
-		        .label = _("Adjust bitrate with thumbstick"),
-		        .description = _("Use the right thumbstick to fine-tune the bitrate."),
-		        .ui = ui_kind::button,
-		        .button_label = _C("button label to adjust the bitrate", "Adjust"),
-		        .on_click = [&ctx] { ctx.enter_bitrate_adjust(); },
-		});
-	}
-
 	// in-stream: steer where foveation focuses quality
 	if (ctx.in_game)
 	{

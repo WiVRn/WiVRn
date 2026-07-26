@@ -802,7 +802,6 @@ bool scenes::stream::is_interactable(stream_tab tab)
 	{
 		case stream_tab::stats:
 		case stream_tab::settings:
-		case stream_tab::bitrate_settings:
 		case stream_tab::foveation_settings:
 		case stream_tab::applications:
 		case stream_tab::application_launcher:
@@ -1025,7 +1024,6 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		switch (gui_status)
 		{
 			case stream_tab::hidden:
-			case stream_tab::bitrate_settings:
 			case stream_tab::foveation_settings:
 			case stream_tab::compact:
 			case stream_tab::overlay_only:

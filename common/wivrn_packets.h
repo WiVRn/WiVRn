@@ -31,7 +31,6 @@
 #include <type_traits>
 #include <variant>
 #include <vector>
-#include <vulkan/vulkan_core.h>
 #include <openxr/openxr.h>
 
 #include "packed_quaternion.h"
@@ -41,7 +40,7 @@
 namespace wivrn
 {
 
-static constexpr int protocol_revision = 2;
+static constexpr int protocol_revision = 1;
 
 enum class device_id : uint8_t
 {
@@ -209,7 +208,6 @@ enum class stream_tab : uint8_t
 	compact,
 	stats,
 	settings,
-	bitrate_settings,
 	foveation_settings,
 	applications,
 	application_launcher,
