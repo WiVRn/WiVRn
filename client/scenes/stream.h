@@ -149,6 +149,7 @@ private:
 		streaming,
 		post_processing,
 		audio,
+		devices,
 		tracking,
 		system,
 	};

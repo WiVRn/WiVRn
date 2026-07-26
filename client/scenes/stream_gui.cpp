@@ -408,6 +408,7 @@ void scenes::stream::gui_settings(float)
 	        .recommended_width = width,
 	        .recommended_height = height,
 	        .in_game = true,
+	        .server_hid_forwarding = hid_forwarding_enabled(),
 	        .on_streaming_changed = [this] { send_settings_changed_packet(session, network_session.get(), application::get_config()); },
 	        .enter_bitrate_adjust = [this] { next_gui_status = stream_tab::bitrate_settings; },
 	        .enter_foveation_adjust = [this] { next_gui_status = stream_tab::foveation_settings; },
@@ -436,6 +437,9 @@ void scenes::stream::gui_settings(float)
 			break;
 		case settings_page::audio:
 			wivrn::gui::settings_audio(ctx);
+			break;
+		case settings_page::devices:
+			wivrn::gui::settings_devices(ctx);
 			break;
 		case settings_page::tracking:
 			if (wivrn::gui::settings_tracking(ctx))
@@ -977,6 +981,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			settings_item(ICON_FA_TOWER_BROADCAST, _cS("tab label", "Streaming"), settings_page::streaming);
 			settings_item(ICON_FA_WAND_MAGIC_SPARKLES, _cS("tab label", "Post-processing"), settings_page::post_processing);
 			settings_item(ICON_FA_VOLUME_HIGH, _cS("tab label", "Audio"), settings_page::audio);
+			settings_item(ICON_FA_KEYBOARD, _cS("tab label", "Devices"), settings_page::devices);
 			settings_item(ICON_FA_LOCATION_CROSSHAIRS, _cS("tab label", "Tracking"), settings_page::tracking);
 			settings_item(ICON_FA_GEARS, _cS("tab label", "System"), settings_page::system);
 
