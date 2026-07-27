@@ -404,6 +404,7 @@ void scenes::stream::gui_settings(float)
 	// same pages as the lobby, with in_game enabling the in-stream controls
 	wivrn::gui::settings_context ctx{
 	        .config = application::get_config(),
+	        .default_config = application::get_default_config(),
 	        .instance = instance,
 	        .session = session,
 	        .system = system,

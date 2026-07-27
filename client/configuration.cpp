@@ -218,29 +218,28 @@ void configuration::set_feature(feature f, bool state)
 	save();
 }
 
-configuration::configuration(xr::system & system, xr::session & session) :
-        default_refresh_rate([&session]() {
-	        const auto & rates = session.get_refresh_rates();
-	        float default_rate = rates.empty() ? 0 : rates[0];
-	        for (auto rate: rates)
-	        {
-		        if (rate >= max_default_rate)
-			        break;
-		        default_rate = rate;
-	        }
-	        return default_rate;
-        }())
+configuration::configuration(xr::system & system, xr::session & session)
 {
 	passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	features[feature::hand_tracking] = system.hand_tracking_supported();
 
-	preferred_refresh_rate = default_refresh_rate;
 	const auto & rates = session.get_refresh_rates();
+	preferred_refresh_rate = rates.empty() ? 0 : rates[0];
+	for (auto rate: rates)
+	{
+		if (rate >= max_default_rate)
+			break;
+		preferred_refresh_rate = rate;
+	}
+}
 
+configuration::configuration(xr::system & system, xr::session & session, const std::filesystem::path & config_path) :
+        configuration(system, session)
+{
 	try
 	{
 		simdjson::dom::parser parser;
-		simdjson::dom::element root = parser.load((application::get_config_path() / "client.json").native());
+		simdjson::dom::element root = parser.load(config_path.native());
 		for (simdjson::dom::object i: simdjson::dom::array(root["servers"]))
 		{
 			server_data data{
@@ -259,10 +258,13 @@ configuration::configuration(xr::system & system, xr::session & session) :
 			servers.emplace(data.service.txt["cookie"], data);
 		}
 
+		float default_refresh_rate = preferred_refresh_rate;
+
 		for (const auto & f: config_fields())
 			f.load(root, *this);
 
 		// refresh rate must be supported by this headset, otherwise fall back to the default
+		const auto & rates = session.get_refresh_rates();
 		if (preferred_refresh_rate != 0 and not utils::contains(rates, preferred_refresh_rate))
 			preferred_refresh_rate = default_refresh_rate;
 

@@ -39,6 +39,7 @@ namespace wivrn::gui
 struct settings_context
 {
 	configuration & config;
+	configuration & default_config;
 	xr::instance & instance;
 	xr::session & session;
 	xr::system & system;

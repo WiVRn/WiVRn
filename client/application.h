@@ -156,6 +156,7 @@ private:
 	std::chrono::nanoseconds last_scene_cpu_time;
 
 	std::optional<configuration> config;
+	std::optional<configuration> default_config;
 
 	boost::locale::generator gen;
 	boost::locale::gnu_gettext::messages_info messages_info;
@@ -430,6 +431,12 @@ public:
 	{
 		assert(instance().config);
 		return *instance().config;
+	}
+
+	static configuration & get_default_config()
+	{
+		assert(instance().default_config);
+		return *instance().default_config;
 	}
 
 	static XrSessionState get_session_state()

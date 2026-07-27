@@ -22,6 +22,7 @@
 #include "wivrn_discover.h"
 #include "wivrn_packets.h"
 
+#include <filesystem>
 #include <map>
 #include <mutex>
 #include <optional>
@@ -133,7 +134,7 @@ private:
 
 public:
 	configuration(xr::system &, xr::session &);
-	configuration() = default;
+	configuration(xr::system &, xr::session &, const std::filesystem::path &);
 
 	void save();
 
@@ -150,6 +151,4 @@ public:
 	{
 		return max_bitrate(extended_config);
 	}
-
-	const float default_refresh_rate = 0;
 };

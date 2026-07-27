@@ -1122,7 +1122,7 @@ void scenes::lobby::on_focused()
 	catch (std::exception & e)
 	{
 		spdlog::warn("Cannot load environment from {}: {}, reverting to default", config.environment_model, e.what());
-		config.environment_model = configuration{}.environment_model;
+		config.environment_model = application::get_default_config().environment_model;
 		lobby_entity = add_gltf(config.environment_model, layer_lobby).first;
 		config.save();
 	}
@@ -1323,7 +1323,7 @@ void scenes::lobby::on_focused()
 	                .gltf_url = "default",
 	                .builtin = true,
 	                .override_order = -1,
-	                .local_gltf_path = configuration{}.environment_model,
+	                .local_gltf_path = application::get_default_config().environment_model,
 	                .screenshot = imgui_ctx->load_texture("assets://default-environment.ktx2")});
 
 	std::ranges::sort(local_environments, std::less{});

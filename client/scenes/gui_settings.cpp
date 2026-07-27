@@ -201,6 +201,17 @@ void render_settings(const wivrn::gui::settings_context & ctx, const char * card
 	ui::end_card();
 	ImGui::PopStyleVar();
 }
+
+template <typename Range, typename T>
+std::optional<int> index(const Range & range, const T & value)
+{
+	auto it = std::ranges::find(range, value);
+	if (it == range.end())
+		return std::nullopt;
+	else
+		return (it - range.begin());
+}
+
 } // namespace
 
 namespace wivrn::gui
@@ -209,13 +220,13 @@ namespace wivrn::gui
 void settings_video(const settings_context & ctx)
 {
 	auto & config = ctx.config;
+	auto & default_config = ctx.default_config;
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
 	if (const auto rates = ctx.session.get_refresh_rates(); not rates.empty())
 	{
-		auto it = std::ranges::find(rates, config.default_refresh_rate);
-		int default_rate_index = it == rates.end() ? 0 : (it - rates.begin() + 1);
+		int default_rate_index = index(rates, default_config.preferred_refresh_rate).value_or(-1) + 1;
 
 		list.push_back({
 		        .id = "##refresh",
@@ -264,7 +275,7 @@ void settings_video(const settings_context & ctx)
 		        .v_min = 50,
 		        .v_max = config.extended_config ? 350 : 150,
 		        .fmt = "%d%%",
-		        .default_int = 100,
+		        .default_int = int(std::lround(default_config.resolution_scale * 100)),
 		        .enabled = [&ctx] { return not ctx.in_game; },
 		        .disabled_tooltip = disconnect_tip,
 		});
@@ -279,7 +290,7 @@ void settings_video(const settings_context & ctx)
 		        .ui = ui_kind::toggle,
 		        .get_bool = [&config] { return config.fps_divider == 2; },
 		        .set_bool = [&ctx, &config](bool v) { config.fps_divider = v ? 2 : 1; config.save(); if (ctx.on_streaming_changed) ctx.on_streaming_changed(); },
-		        .default_bool = false,
+		        .default_bool = default_config.fps_divider == 2,
 		        .enabled = [&config] { return config.preferred_refresh_rate != 0; },
 		        .disabled_tooltip = _("Set a refresh rate other than auto to enable this setting."),
 		});
@@ -292,6 +303,7 @@ void settings_video(const settings_context & ctx)
 void settings_streaming(const settings_context & ctx)
 {
 	auto & config = ctx.config;
+	auto & default_config = ctx.default_config;
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
@@ -311,7 +323,7 @@ void settings_streaming(const settings_context & ctx)
 	        .v_min = 0,
 	        .v_max = 80,
 	        .fmt = "%d%%",
-	        .default_int = int(std::lround((1 - (config.check_feature(feature::eye_gaze) ? 0.3 : 0.5)) * 100)),
+	        .default_int = int(std::lround((1 - default_config.get_stream_scale()) * 100)),
 	        .enabled = [&ctx] { return not ctx.in_game; },
 	        .disabled_tooltip = disconnect_tip,
 	});
@@ -343,12 +355,7 @@ void settings_streaming(const settings_context & ctx)
 	        .label = _C("setting name", "Video codec"),
 	        .description = _("How video is compressed before it is sent to the headset."),
 	        .ui = ui_kind::combo,
-	        .get_int = [&config, codecs] {
-		        if (config.codec)
-			        for (size_t i = 0; i < codecs.size(); ++i)
-				        if (codecs[i] == *config.codec)
-					        return int(i) + 1;
-		        return 0; },
+	        .get_int = [&config, codecs] { return config.codec ? index(codecs, *config.codec).value_or(-1) + 1 : 0; },
 	        .set_int = [&config, codecs](int v) {
 		        config.codec = v == 0 ? std::nullopt : std::optional(codecs[v - 1]);
 		        config.save(); },
@@ -359,7 +366,7 @@ void settings_streaming(const settings_context & ctx)
 			        opts.push_back(codec_name(c));
 		        return opts; },
 	        .title = _C("setting name", "Video codec"),
-	        .default_int = 0,
+	        .default_int = default_config.codec ? index(codecs, *default_config.codec).value_or(-1) + 1 : 0,
 	        .enabled = [&ctx] { return not ctx.in_game; },
 	        .disabled_tooltip = disconnect_tip,
 	});
@@ -373,7 +380,7 @@ void settings_streaming(const settings_context & ctx)
 		        .ui = ui_kind::toggle,
 		        .get_bool = [&config] { return config.bit_depth == 10; },
 		        .set_bool = [&config](bool v) { config.bit_depth = v ? 10 : 8; config.save(); },
-		        .default_bool = true,
+		        .default_bool = default_config.bit_depth == 10,
 		        .enabled = [&ctx] { return not ctx.in_game; },
 		        .disabled_tooltip = disconnect_tip,
 		});
@@ -386,11 +393,11 @@ void settings_streaming(const settings_context & ctx)
 	        .description = _("Video data rate sent to the headset."),
 	        .ui = ui_kind::slider,
 	        .get_int = [&config] { return int(config.bitrate_bps / mb); },
-	        .set_int = [&ctx, &config](int v) { config.bitrate_bps = uint32_t(v) * 1'000'000; config.save(); if (ctx.on_streaming_changed) ctx.on_streaming_changed(); },
+	        .set_int = [&ctx, &config](int v) { config.bitrate_bps = uint32_t(v) * mb; config.save(); if (ctx.on_streaming_changed) ctx.on_streaming_changed(); },
 	        .v_min = 5,
 	        .v_max = int(config.max_bitrate() / mb),
 	        .fmt = "%d Mbit/s",
-	        .default_int = 50,
+	        .default_int = int(default_config.bitrate_bps / mb),
 	});
 
 	// in-stream: steer where foveation focuses quality
@@ -407,7 +414,7 @@ void settings_streaming(const settings_context & ctx)
 			        config.save();
 			        if (ctx.on_foveation_override_changed)
 				        ctx.on_foveation_override_changed(); },
-		        .default_bool = false,
+		        .default_bool = default_config.override_foveation_enable,
 		});
 		list.push_back({
 		        .id = "##fov_adjust",
@@ -440,6 +447,7 @@ void settings_streaming(const settings_context & ctx)
 void settings_post_processing(const settings_context & ctx)
 {
 	auto & config = ctx.config;
+	auto & default_config = ctx.default_config;
 	std::vector<setting> list;
 
 	if (application::get_openxr_post_processing_supported())
@@ -465,11 +473,7 @@ void settings_post_processing(const settings_context & ctx)
 			        .label = std::move(label),
 			        .description = std::move(desc),
 			        .ui = ui_kind::combo,
-			        .get_int = [&config, flags, member] {
-				        for (size_t i = 0; i < flags.size(); ++i)
-					        if (config.openxr_post_processing.*member == flags[i])
-						        return int(i);
-				        return 0; },
+			        .get_int = [&config, flags, member] { return index(flags, config.openxr_post_processing.*member).value_or(0); },
 			        .set_int = [&config, flags, member](int v) {
 				        config.openxr_post_processing.*member = flags[v];
 				        config.save(); },
@@ -479,7 +483,7 @@ void settings_post_processing(const settings_context & ctx)
 					        o.push_back(flag_name(f));
 				        return o; },
 			        .title = std::move(title),
-			        .default_int = 0,
+			        .default_int = index(flags, config.openxr_post_processing.*member).value_or(0),
 			});
 		};
 
@@ -494,6 +498,7 @@ void settings_post_processing(const settings_context & ctx)
 void settings_audio(const settings_context & ctx)
 {
 	auto & config = ctx.config;
+	auto & default_config = ctx.default_config;
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
@@ -504,7 +509,7 @@ void settings_audio(const settings_context & ctx)
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.check_feature(feature::microphone); },
 	        .set_bool = [&config](bool v) { config.set_feature(feature::microphone, v); },
-	        .default_bool = false,
+	        .default_bool = default_config.check_feature(feature::microphone),
 	        .enabled = [&ctx] { return not ctx.in_game; },
 	        .disabled_tooltip = disconnect_tip,
 	});
@@ -516,7 +521,7 @@ void settings_audio(const settings_context & ctx)
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.mic_unprocessed_audio; },
 	        .set_bool = [&config](bool v) { config.mic_unprocessed_audio = v; config.save(); },
-	        .default_bool = false,
+	        .default_bool = default_config.mic_unprocessed_audio,
 	        .enabled = [&ctx, &config] { return not ctx.in_game and config.check_feature(feature::microphone); },
 	        .disabled_tooltip = disconnect_tip,
 	});
@@ -528,6 +533,7 @@ void settings_audio(const settings_context & ctx)
 void settings_devices(const settings_context & ctx)
 {
 	auto & config = application::get_config();
+	auto & default_config = ctx.default_config;
 	std::vector<setting> list;
 
 	list.push_back({
@@ -537,7 +543,7 @@ void settings_devices(const settings_context & ctx)
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.forward_keyboard; },
 	        .set_bool = [&config](bool v) { config.forward_keyboard = v; config.save(); },
-	        .default_bool = false,
+	        .default_bool = default_config.forward_keyboard,
 	});
 
 	list.push_back({
@@ -547,7 +553,7 @@ void settings_devices(const settings_context & ctx)
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.forward_mouse; },
 	        .set_bool = [&config](bool v) { config.forward_mouse = v; config.save(); },
-	        .default_bool = false,
+	        .default_bool = default_config.forward_mouse,
 	});
 
 	list.push_back({
@@ -557,7 +563,7 @@ void settings_devices(const settings_context & ctx)
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.forward_gamepad; },
 	        .set_bool = [&config](bool v) { config.forward_gamepad = v; config.save(); },
-	        .default_bool = false,
+	        .default_bool = default_config.forward_gamepad,
 	});
 
 	ui::page_header(_cS("page header title", "Devices"), _cS("page header subtitle", "Forward input devices to the PC."));
@@ -570,10 +576,11 @@ void settings_devices(const settings_context & ctx)
 bool settings_tracking(const settings_context & ctx)
 {
 	auto & config = ctx.config;
+	auto & default_config = ctx.default_config;
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
-	auto feature_toggle = [&](const char * id, std::string label, std::string desc, feature f, bool def) {
+	auto feature_toggle = [&](const char * id, std::string label, std::string desc, feature f) {
 		list.push_back({
 		        .id = id,
 		        .label = std::move(label),
@@ -581,20 +588,20 @@ bool settings_tracking(const settings_context & ctx)
 		        .ui = ui_kind::toggle,
 		        .get_bool = [&config, f] { return config.check_feature(f); },
 		        .set_bool = [&config, f](bool v) { config.set_feature(f, v); },
-		        .default_bool = def,
+		        .default_bool = default_config.check_feature(f),
 		        .enabled = [&ctx] { return not ctx.in_game; },
 		        .disabled_tooltip = disconnect_tip,
 		});
 	};
 
 	if (ctx.system.hand_tracking_supported())
-		feature_toggle("##hand", _C("setting name", "Hand tracking"), _("Track your hands for input when controllers are down."), feature::hand_tracking, true);
+		feature_toggle("##hand", _C("setting name", "Hand tracking"), _("Track your hands for input when controllers are down."), feature::hand_tracking);
 
 	if (application::get_eye_gaze_supported())
-		feature_toggle("##eye", _C("setting name", "Eye tracking"), _("Used by foveated encoding to focus quality where you look."), feature::eye_gaze, false);
+		feature_toggle("##eye", _C("setting name", "Eye tracking"), _("Used by foveated encoding to focus quality where you look."), feature::eye_gaze);
 
 	if (ctx.system.face_tracker_supported() != xr::face_tracker_type::none)
-		feature_toggle("##face", _C("setting name", "Face tracking"), _("Stream facial expressions to the PC."), feature::face_tracking, false);
+		feature_toggle("##face", _C("setting name", "Face tracking"), _("Stream facial expressions to the PC."), feature::face_tracking);
 
 	const auto body_tracker = ctx.system.body_tracker_supported();
 
@@ -614,7 +621,7 @@ bool settings_tracking(const settings_context & ctx)
 	{
 		if (body_tracker == xr::body_tracker_type::fb and bit > from_headset::body_part_mask::hip)
 			break;
-		body_parts_default.push_back(1);
+		body_parts_default.push_back((default_config.body_part_mask & std::to_underlying(bit)) != 0);
 		body_parts_names.push_back(name);
 		body_parts_bit.push_back(bit);
 	}
@@ -631,7 +638,7 @@ bool settings_tracking(const settings_context & ctx)
 		        .ui = ui_kind::toggle,
 		        .get_bool = [&config] { return config.check_feature(feature::body_tracking); },
 		        .set_bool = [&config](bool v) { config.set_feature(feature::body_tracking, v); },
-		        .default_bool = false,
+		        .default_bool = default_config.check_feature(feature::body_tracking),
 		        .enabled = [&ctx] { return not ctx.in_game; },
 		        .disabled_tooltip = disconnect_tip,
 		});
@@ -667,6 +674,7 @@ bool settings_tracking(const settings_context & ctx)
 void settings_system(const settings_context & ctx)
 {
 	auto & config = ctx.config;
+	auto & default_config = ctx.default_config;
 	std::vector<setting> list;
 
 	auto language_name = [](const std::locale & loc = std::locale()) {
@@ -683,17 +691,20 @@ void settings_system(const settings_context & ctx)
 	}
 	std::ranges::sort(languages, [](auto & l, auto & r) { return std::get<0>(l) < std::get<0>(r); });
 
+	auto language_index = [languages](const configuration & cfg) {
+		if (cfg.locale != "")
+			for (size_t i = 0; i < languages.size(); ++i)
+				if (std::get<2>(languages[i]) == cfg.locale)
+					return int(i) + 1;
+		return 0;
+	};
+
 	list.push_back({
 	        .id = "##language",
 	        .label = _("Language"),
 	        .description = _C("setting name", "Interface language."),
 	        .ui = ui_kind::combo,
-	        .get_int = [&config, languages] {
-		        if (not config.locale.empty())
-			        for (size_t i = 0; i < languages.size(); ++i)
-				        if (std::get<2>(languages[i]) == config.locale)
-					        return int(i) + 1;
-		        return 0; },
+	        .get_int = [&config, language_index] { return language_index(config); },
 	        .set_int = [&config, languages](int v) {
 		        config.locale = v == 0 ? "" : std::get<2>(languages[v - 1]);
 		        config.save();
@@ -705,7 +716,7 @@ void settings_system(const settings_context & ctx)
 			        opts.push_back(lang);
 		        return opts; },
 	        .title = _("Language"),
-	        .default_int = 0,
+	        .default_int = language_index(default_config),
 	});
 
 	list.push_back({
@@ -715,7 +726,7 @@ void settings_system(const settings_context & ctx)
 	        .ui = ui_kind::toggle,
 	        .get_bool = [&config] { return config.extended_config; },
 	        .set_bool = [&config](bool v) { config.extended_config = v; config.save(); },
-	        .default_bool = false,
+	        .default_bool = default_config.extended_config,
 	});
 
 	if (ctx.instance.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))
@@ -727,7 +738,7 @@ void settings_system(const settings_context & ctx)
 		        .ui = ui_kind::toggle,
 		        .get_bool = [&config] { return config.high_power_mode; },
 		        .set_bool = [&config](bool v) { config.high_power_mode = v; config.save(); },
-		        .default_bool = true,
+		        .default_bool = default_config.high_power_mode,
 		});
 	}
 
@@ -749,7 +760,7 @@ void settings_system(const settings_context & ctx)
 				config.enable_stream_gui = v;
 				config.save();
 			} },
-	        .default_bool = true,
+	        .default_bool = default_config.enable_stream_gui,
 	});
 
 	ui::page_header(_cS("page header title", "System"), _cS("page header suibtitle", "Language and advanced options."));
@@ -763,6 +774,7 @@ void settings_theme(const settings_context & ctx)
 {
 	ui::theme & theme = ui::current();
 	auto & config = ctx.config;
+	auto & default_config = ctx.default_config;
 
 	ui::page_header(_cS("page header title", "Theme"), _cS("page header subtitle", "Accent color, palette and sizing of the interface."));
 
@@ -797,14 +809,15 @@ void settings_theme(const settings_context & ctx)
 			preset_items.push_back({p.localized_name.c_str()});
 
 		// seed the selection from the saved preset so the box matches what is applied
-		static int preset = [&] {
+		auto f = [&](const configuration & cfg) {
 			for (int i = 0; i < int(preset_list.size()); ++i)
-				if (preset_list[i].name == config.theme_preset)
+				if (preset_list[i].name == cfg.theme_preset)
 					return i;
 			return 1; // dark_default
-		}();
+		};
+		static int preset = f(config);
+		static const int preset_default = f(default_config);
 
-		static const int preset_default = 1;
 		ui::setting_label(_cS("setting name", "Preset"), _cS("setting description", "Surface and background palette"), control_w);
 		if (ui::combo("##preset", _("Theme preset"), preset_items, &preset, control_w, &preset_default))
 		{
@@ -823,7 +836,7 @@ void settings_theme(const settings_context & ctx)
 		ui::row_separator();
 
 		// Rounding
-		static const int rounding_default = 8;
+		static const int rounding_default = default_config.theme_rounding;
 		int rounding = int(theme.rounding);
 		ui::setting_label(_cS("setting label", "Rounding"), _cS("setting description", "Corner radius of controls"), control_w);
 		if (ui::slider_int("##rounding", &rounding, 0, 20, "%d px", {control_w, 0}, &rounding_default))
@@ -861,7 +874,7 @@ void settings_theme(const settings_context & ctx)
 		ui::row_separator();
 
 		// Panel transparency, independent of the selected preset
-		static const int opacity_default = 75;
+		static const int opacity_default = int(default_config.theme_background_alpha * 100 + 0.5);
 		int opacity = int(ui::background_alpha() * 100 + 0.5);
 		ui::setting_label(_cS("setting name", "Panel opacity"), _cS("setting description", "Opacity of the panel and card backgrounds"), control_w);
 		if (ui::slider_int("##opacity", &opacity, 20, 100, "%d%%", {control_w, 0}, &opacity_default))

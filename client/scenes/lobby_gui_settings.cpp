@@ -30,6 +30,7 @@ wivrn::gui::settings_context lobby_settings_context(xr::instance & instance, xr:
 {
 	return {
 	        .config = application::get_config(),
+	        .default_config = application::get_default_config(),
 	        .instance = instance,
 	        .session = session,
 	        .system = system,
