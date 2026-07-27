@@ -145,6 +145,7 @@ static theme light()
 	t.text = rgb(14, 16, 20);
 	t.text_muted = rgb(66, 72, 84);
 	t.border = rgb(176, 182, 194);
+	t.success = rgb(36, 147, 90);
 	return t;
 }
 
