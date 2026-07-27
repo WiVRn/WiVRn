@@ -218,19 +218,24 @@ void configuration::set_feature(feature f, bool state)
 	save();
 }
 
-configuration::configuration(xr::system & system, xr::session & session)
+configuration::configuration(xr::system & system, xr::session & session) :
+        default_refresh_rate([&session]() {
+	        const auto & rates = session.get_refresh_rates();
+	        float default_rate = rates.empty() ? 0 : rates[0];
+	        for (auto rate: rates)
+	        {
+		        if (rate >= max_default_rate)
+			        break;
+		        default_rate = rate;
+	        }
+	        return default_rate;
+        }())
 {
 	passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	features[feature::hand_tracking] = system.hand_tracking_supported();
 
+	preferred_refresh_rate = default_refresh_rate;
 	const auto & rates = session.get_refresh_rates();
-	for (auto rate: rates)
-	{
-		if (rate >= max_default_rate)
-			break;
-		preferred_refresh_rate = rate;
-	}
-	const float default_refresh_rate = preferred_refresh_rate;
 
 	try
 	{
@@ -396,6 +401,11 @@ float configuration::get_stream_scale() const
 {
 	if (stream_scale)
 		return *stream_scale;
+	return get_default_stream_scale();
+}
+
+float configuration::get_default_stream_scale() const
+{
 	if (check_feature(feature::eye_gaze))
 		return 0.3;
 	return 0.5;

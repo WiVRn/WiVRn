@@ -139,6 +139,7 @@ public:
 
 	void set_stream_scale(float);
 	float get_stream_scale() const;
+	float get_default_stream_scale() const;
 
 	uint32_t max_bitrate(bool extended) const
 	{
@@ -149,4 +150,6 @@ public:
 	{
 		return max_bitrate(extended_config);
 	}
+
+	const float default_refresh_rate = 0;
 };

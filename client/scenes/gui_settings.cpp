@@ -212,9 +212,11 @@ void settings_performance(const settings_context & ctx)
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
-	if (ctx.instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME) and not ctx.session.get_refresh_rates().empty())
+	if (const auto rates = ctx.session.get_refresh_rates(); not rates.empty())
 	{
-		const auto rates = ctx.session.get_refresh_rates();
+		auto it = std::ranges::find(rates, config.default_refresh_rate);
+		int default_rate_index = it == rates.end() ? 0 : (it - rates.begin() + 1);
+
 		list.push_back({
 		        .id = "##refresh",
 		        .label = _("Refresh rate"),
@@ -245,7 +247,7 @@ void settings_performance(const settings_context & ctx)
 			        for (float r: rates)
 				        opts.push_back(fmt::format("{}", int(r)));
 			        return opts; },
-		        .default_int = 0,
+		        .default_int = default_rate_index,
 		});
 	}
 
@@ -859,7 +861,7 @@ void settings_theme(const settings_context & ctx)
 		ui::row_separator();
 
 		// Panel transparency, independent of the selected preset
-		static const int opacity_default = 90;
+		static const int opacity_default = 75;
 		int opacity = int(ui::background_alpha() * 100);
 		ui::setting_label(_cS("setting name", "Panel opacity"), _cS("setting description", "Opacity of the panel and card backgrounds"), control_w);
 		if (ui::slider_int("##opacity", &opacity, 20, 100, "%d%%", {control_w, 0}, &opacity_default))

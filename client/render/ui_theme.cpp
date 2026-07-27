@@ -187,7 +187,7 @@ void set_theme(const theme & t)
 
 float & background_alpha()
 {
-	static float alpha = 0.90f; // translucent panels by default
+	static float alpha = 0.75f; // translucent panels by default
 	return alpha;
 }
 
