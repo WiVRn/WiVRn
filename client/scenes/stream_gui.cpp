@@ -170,6 +170,7 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 void scenes::stream::gui_performance_metrics()
 {
 	const ImGuiStyle & style = ImGui::GetStyle();
+	const wivrn::ui::theme & t = wivrn::ui::current();
 
 	ImVec2 window_size = ImGui::GetWindowSize() - ImVec2(2, 2) * style.WindowPadding;
 
@@ -194,7 +195,10 @@ void scenes::stream::gui_performance_metrics()
 	        window_size.x / n_cols - style.ItemSpacing.x * (n_cols - 1) / n_cols,
 	        (window_size.y - 2 * ImGui::GetCurrentContext()->FontSize - 2 * style.ItemSpacing.y) / n_rows - style.ItemSpacing.y * (n_rows - 1) / n_rows);
 
-	ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
+	ImPlot::PushStyleColor(ImPlotCol_PlotBg, ImVec4{t.background.x, t.background.y, t.background.z, 0.8f});
+	ImPlot::PushStyleColor(ImPlotCol_PlotBorder, t.border);
+	ImPlot::PushStyleColor(ImPlotCol_LegendBg, ImVec4{t.card.x, t.card.y, t.card.z, 0.9f});
+	ImPlot::PushStyleColor(ImPlotCol_InlayText, t.text);
 	ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
 	ImPlot::PushStyleColor(ImPlotCol_AxisBg, IM_COL32(0, 0, 0, 0));
 	ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
@@ -342,7 +346,7 @@ void scenes::stream::gui_performance_metrics()
 			ImGui::SameLine();
 	}
 
-	ImPlot::PopStyleColor(5);
+	ImPlot::PopStyleColor(8);
 	{
 		ImGui::TextUnformatted(
 		        fmt::format(
@@ -820,11 +824,8 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	}
 
 	// themed translucent background, matching the lobby
-	if (display_tabs)
-	{
-		const wivrn::ui::theme & th = wivrn::ui::current();
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{th.background.x, th.background.y, th.background.z, wivrn::ui::background_alpha()});
-	}
+	const wivrn::ui::theme & th = wivrn::ui::current();
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{th.background.x, th.background.y, th.background.z, wivrn::ui::background_alpha()});
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0);
 	if (always_auto_resize)
@@ -1045,9 +1046,8 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		wivrn::ui::shell_dividers(top_bar_h, tab_width);
 	}
 	ImGui::End();
-	ImGui::PopStyleVar(2); // ImGuiStyleVar_ChildBorderSize, ImGuiStyleVar_WindowPadding
-	if (display_tabs)
-		ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+	ImGui::PopStyleVar(2);  // ImGuiStyleVar_ChildBorderSize, ImGuiStyleVar_WindowPadding
+	ImGui::PopStyleColor(); // ImGuiCol_WindowBg
 
 	auto layers = imgui_ctx->end_frame();
 
