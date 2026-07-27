@@ -206,7 +206,7 @@ void render_settings(const wivrn::gui::settings_context & ctx, const char * card
 namespace wivrn::gui
 {
 
-void settings_performance(const settings_context & ctx)
+void settings_video(const settings_context & ctx)
 {
 	auto & config = ctx.config;
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
@@ -270,6 +270,31 @@ void settings_performance(const settings_context & ctx)
 		});
 	}
 
+	if (ctx.instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
+	{
+		list.push_back({
+		        .id = "##spacewarp",
+		        .label = _("Application SpaceWarp"),
+		        .description = _("Renders at half the refresh rate. The headset may synthesise frames."),
+		        .ui = ui_kind::toggle,
+		        .get_bool = [&config] { return config.fps_divider == 2; },
+		        .set_bool = [&ctx, &config](bool v) { config.fps_divider = v ? 2 : 1; config.save(); if (ctx.on_streaming_changed) ctx.on_streaming_changed(); },
+		        .default_bool = false,
+		        .enabled = [&config] { return config.preferred_refresh_rate != 0; },
+		        .disabled_tooltip = _("Set a refresh rate other than auto to enable this setting."),
+		});
+	}
+
+	ui::page_header(_cS("page header title", "Video"), _cS("page header subtitle", "Frame rate and resolution."));
+	render_settings(ctx, "##video", list);
+}
+
+void settings_streaming(const settings_context & ctx)
+{
+	auto & config = ctx.config;
+	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
+	std::vector<setting> list;
+
 	list.push_back({
 	        .id = "##foveation",
 	        .label = _("Foveated encoding"),
@@ -290,44 +315,6 @@ void settings_performance(const settings_context & ctx)
 	        .enabled = [&ctx] { return not ctx.in_game; },
 	        .disabled_tooltip = disconnect_tip,
 	});
-
-	if (ctx.instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
-	{
-		list.push_back({
-		        .id = "##spacewarp",
-		        .label = _("Application SpaceWarp"),
-		        .description = _("Renders at half the refresh rate. The headset may synthesise frames."),
-		        .ui = ui_kind::toggle,
-		        .get_bool = [&config] { return config.fps_divider == 2; },
-		        .set_bool = [&ctx, &config](bool v) { config.fps_divider = v ? 2 : 1; config.save(); if (ctx.on_streaming_changed) ctx.on_streaming_changed(); },
-		        .default_bool = false,
-		        .enabled = [&config] { return config.preferred_refresh_rate != 0; },
-		        .disabled_tooltip = _("Set a refresh rate other than auto to enable this setting."),
-		});
-	}
-
-	if (ctx.instance.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))
-	{
-		list.push_back({
-		        .id = "##high_power",
-		        .label = _("High power mode"),
-		        .description = _("Increase power usage to allow higher resolution and refresh rate. Drains battery and runs hot."),
-		        .ui = ui_kind::toggle,
-		        .get_bool = [&config] { return config.high_power_mode; },
-		        .set_bool = [&config](bool v) { config.high_power_mode = v; config.save(); },
-		        .default_bool = true,
-		});
-	}
-
-	ui::page_header(_cS("page header title", "Performance"), _cS("page header subtitle", "Frame rate, resolution and power draw."));
-	render_settings(ctx, "##performance", list);
-}
-
-void settings_streaming(const settings_context & ctx)
-{
-	auto & config = ctx.config;
-	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
-	std::vector<setting> list;
 
 	auto codec_name = [](std::optional<wivrn::video_codec> codec) -> std::string {
 		if (not codec)
@@ -434,32 +421,8 @@ void settings_streaming(const settings_context & ctx)
 		});
 	}
 
-	bool disable_instream_gui = false;
-	bool disable_instream_gui_popup_open = ImGui::IsPopupOpen("confirm disable in stream gui");
-	list.push_back({
-	        .id = "##stream_gui",
-	        .label = _C("setting name", "In-stream window"),
-	        .description = _("Enables the configuration window to be shown while the game is streaming. If enabled, the window is activated by pressing both thumbsticks."),
-	        .ui = ui_kind::toggle,
-	        .get_bool = [&config, &disable_instream_gui_popup_open] { return config.enable_stream_gui and not disable_instream_gui_popup_open; },
-	        .set_bool = [&ctx, &config, &disable_instream_gui](bool v) {
-			if (ctx.in_game and not v)
-			{
-				disable_instream_gui = true;
-			}
-			else
-			{
-				config.enable_stream_gui = v;
-				config.save();
-			} },
-	        .default_bool = true,
-	});
-
 	ui::page_header(_cS("page header title", "Streaming"), _cS("page header subtitle", "How video is encoded and sent to the headset."));
 	render_settings(ctx, "##streaming", list);
-
-	if (disable_instream_gui)
-		ImGui::OpenPopup("confirm disable in stream gui");
 
 	if (wivrn::ui::confirm_modal(
 	            "confirm disable in stream gui",
@@ -755,8 +718,45 @@ void settings_system(const settings_context & ctx)
 	        .default_bool = false,
 	});
 
+	if (ctx.instance.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))
+	{
+		list.push_back({
+		        .id = "##high_power",
+		        .label = _("High power mode"),
+		        .description = _("Increase power usage to allow higher resolution and refresh rate. Drains battery and runs hot."),
+		        .ui = ui_kind::toggle,
+		        .get_bool = [&config] { return config.high_power_mode; },
+		        .set_bool = [&config](bool v) { config.high_power_mode = v; config.save(); },
+		        .default_bool = true,
+		});
+	}
+
+	bool disable_instream_gui = false;
+	bool disable_instream_gui_popup_open = ImGui::IsPopupOpen("confirm disable in stream gui");
+	list.push_back({
+	        .id = "##stream_gui",
+	        .label = _C("setting name", "In-stream window"),
+	        .description = _("Enables the configuration window to be shown while the game is streaming. If enabled, the window is activated by pressing both thumbsticks."),
+	        .ui = ui_kind::toggle,
+	        .get_bool = [&config, &disable_instream_gui_popup_open] { return config.enable_stream_gui and not disable_instream_gui_popup_open; },
+	        .set_bool = [&ctx, &config, &disable_instream_gui](bool v) {
+			if (ctx.in_game and not v)
+			{
+				disable_instream_gui = true;
+			}
+			else
+			{
+				config.enable_stream_gui = v;
+				config.save();
+			} },
+	        .default_bool = true,
+	});
+
 	ui::page_header(_cS("page header title", "System"), _cS("page header suibtitle", "Language and advanced options."));
 	render_settings(ctx, "##system", list);
+
+	if (disable_instream_gui)
+		ImGui::OpenPopup("confirm disable in stream gui");
 }
 
 void settings_theme(const settings_context & ctx)
@@ -862,7 +862,7 @@ void settings_theme(const settings_context & ctx)
 
 		// Panel transparency, independent of the selected preset
 		static const int opacity_default = 75;
-		int opacity = int(ui::background_alpha() * 100);
+		int opacity = int(ui::background_alpha() * 100 + 0.5);
 		ui::setting_label(_cS("setting name", "Panel opacity"), _cS("setting description", "Opacity of the panel and card backgrounds"), control_w);
 		if (ui::slider_int("##opacity", &opacity, 20, 100, "%d%%", {control_w, 0}, &opacity_default))
 		{

@@ -59,7 +59,7 @@ struct settings_context
 	std::function<void()> on_foveation_override_changed; // foveation override toggled
 };
 
-void settings_performance(const settings_context &);
+void settings_video(const settings_context &);
 void settings_streaming(const settings_context &);
 void settings_post_processing(const settings_context &);
 void settings_audio(const settings_context &);

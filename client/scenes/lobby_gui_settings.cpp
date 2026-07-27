@@ -42,9 +42,9 @@ wivrn::gui::settings_context lobby_settings_context(xr::instance & instance, xr:
 }
 } // namespace
 
-void scenes::lobby::gui_performance()
+void scenes::lobby::gui_video()
 {
-	wivrn::gui::settings_performance(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_video(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
 }
 
 void scenes::lobby::gui_streaming()

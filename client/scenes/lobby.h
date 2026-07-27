@@ -119,10 +119,10 @@ class lobby : public scene_impl<lobby>
 	{
 		first_run,
 		server_list,
-		performance,
+		video,
+		audio,
 		streaming,
 		post_processing,
-		audio,
 		devices,
 		tracking,
 		system,
@@ -230,7 +230,7 @@ class lobby : public scene_impl<lobby>
 	void gui_disconnected();
 	void gui_server_list();
 	void gui_new_server();
-	void gui_performance();
+	void gui_video();
 	void gui_streaming();
 	void gui_audio();
 	void gui_devices();

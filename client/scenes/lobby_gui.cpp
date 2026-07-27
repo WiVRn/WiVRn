@@ -1160,16 +1160,20 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				gui_server_list();
 				break;
 
-			case tab::performance:
-				gui_performance();
+			case tab::video:
+				gui_video();
+				break;
+
+			case tab::audio:
+				gui_audio();
 				break;
 
 			case tab::streaming:
 				gui_streaming();
 				break;
 
-			case tab::audio:
-				gui_audio();
+			case tab::post_processing:
+				gui_post_processing();
 				break;
 
 			case tab::devices:
@@ -1182,10 +1186,6 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 			case tab::system:
 				gui_system();
-				break;
-
-			case tab::post_processing:
-				gui_post_processing();
 				break;
 
 			case tab::customize:
@@ -1233,14 +1233,14 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				current_tab = tab::server_list;
 
 			wivrn::ui::nav_section(_cS("tab group", "SETTINGS"));
-			if (wivrn::ui::nav_item(ICON_FA_GAUGE_HIGH, _cS("tab label", "Performance"), current_tab == tab::performance))
-				current_tab = tab::performance;
+			if (wivrn::ui::nav_item(ICON_FA_IMAGE, _cS("tab label", "Video"), current_tab == tab::video))
+				current_tab = tab::video;
+			if (wivrn::ui::nav_item(ICON_FA_VOLUME_HIGH, _cS("tab label", "Audio"), current_tab == tab::audio))
+				current_tab = tab::audio;
 			if (wivrn::ui::nav_item(ICON_FA_TOWER_BROADCAST, _cS("tab label", "Streaming"), current_tab == tab::streaming))
 				current_tab = tab::streaming;
 			if (wivrn::ui::nav_item(ICON_FA_WAND_MAGIC_SPARKLES, _cS("tab label", "Post-processing"), current_tab == tab::post_processing))
 				current_tab = tab::post_processing;
-			if (wivrn::ui::nav_item(ICON_FA_VOLUME_HIGH, _cS("tab label", "Audio"), current_tab == tab::audio))
-				current_tab = tab::audio;
 			if (wivrn::ui::nav_item(ICON_FA_KEYBOARD, _cS("tab label", "Devices"), current_tab == tab::devices))
 				current_tab = tab::devices;
 			if (wivrn::ui::nav_item(ICON_FA_LOCATION_CROSSHAIRS, _cS("tab label", "Tracking"), current_tab == tab::tracking))

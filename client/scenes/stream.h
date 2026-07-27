@@ -145,16 +145,16 @@ private:
 	// settings sub-page, client-only: the wire stream_tab stays settings
 	enum class settings_page
 	{
-		performance,
+		video,
+		audio,
 		streaming,
 		post_processing,
-		audio,
 		devices,
 		tracking,
 		theme,
 		system,
 	};
-	settings_page current_settings_page = settings_page::performance;
+	settings_page current_settings_page = settings_page::video;
 
 	// Tab currently being displayed
 	stream_tab gui_status = stream_tab::hidden;
