@@ -707,7 +707,7 @@ void scenes::lobby::gui_customize(XrTime predicted_display_time)
 				ImSpinner::SpinnerAng("index download spinner",
 				                      200,                         // Radius
 				                      40,                          // Thickness
-				                      ImColor{1.f, 1.f, 1.f, 1.f}, // Colour
+				                      ImColor{ui::current().text}, // Colour
 				                      ImColor{1.f, 1.f, 1.f, 0.f}, // Background
 				                      6,                           // Velocity
 				                      0.75f * 2 * M_PI             // Angle
