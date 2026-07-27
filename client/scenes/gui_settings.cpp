@@ -689,7 +689,6 @@ bool settings_tracking(const settings_context & ctx)
 		        .options = [&body_parts_names]() { return body_parts_names; },
 		        .title = _C("setting name", "Virtual body trackers"),
 		        .default_multi = body_parts_default,
-		        .enabled = [&ctx] { return not ctx.in_game; },
 		        .disabled_tooltip = disconnect_tip,
 		});
 	}
