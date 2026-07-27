@@ -236,7 +236,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 			const float avail = ImGui::GetContentRegionAvail().x;
 			const int per_line = std::max(1, int((avail + gap) / (target + gap)));
 			const float tile_w = int((avail - gap * (per_line - 1)) / per_line);
-			const float image_size = tile_w - tile_margin * 2;
+			const float image_size = grid_image_size(config.app_icon_size);
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {gap, gap});
 			for (const auto [index, app]: utils::enumerate(*apps))
 			{
