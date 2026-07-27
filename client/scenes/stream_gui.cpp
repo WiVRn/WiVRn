@@ -554,7 +554,7 @@ void scenes::stream::gui_applications()
 	const std::string stop_label = wivrn::ui::icon_label(ICON_FA_XMARK, _C("button label to ask an application to quit", "Stop"));
 	const float stop_w = wivrn::ui::button_width(stop_label);
 	const std::string active_label = wivrn::ui::icon_label(ICON_FA_CIRCLE_CHECK, _C("chip displayed next to a running application while streaming", "Active"));
-	const ImVec2 active_sz = wivrn::ui::chip_size(active_label);
+	const float active_w = wivrn::ui::chip_width(active_label, false, stop_w);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, wivrn::ui::metrics::card_item_spacing);
 	wivrn::ui::begin_list_card("##running");
@@ -585,7 +585,7 @@ void scenes::stream::gui_applications()
 
 			// overlays and the active app aren't selectable, only their stop button acts
 			const bool interactive = not(app.active or app.overlay);
-			const float trailing = stop_w + (app.active ? gap + active_sz.x : 0) + wivrn::ui::metrics::list_row_pad;
+			const float trailing = stop_w + (app.active ? gap + active_w : 0) + wivrn::ui::metrics::list_row_pad;
 			const auto row = wivrn::ui::begin_list_row("##row", ICON_FA_CUBE, 0, app.name, {}, app.active, trailing, 0, false, interactive);
 			float x = row.max.x;
 
@@ -598,8 +598,8 @@ void scenes::stream::gui_applications()
 
 			if (app.active)
 			{
-				ImGui::SetCursorScreenPos(row.trailing(x, active_sz));
-				wivrn::ui::chip(active_label, wivrn::ui::chip_style::success);
+				ImGui::SetCursorScreenPos(row.trailing(x, {active_w, ctrl_h}));
+				wivrn::ui::chip(active_label, wivrn::ui::chip_style::success, false, ctrl_h);
 			}
 
 			if (row.clicked and interactive)
