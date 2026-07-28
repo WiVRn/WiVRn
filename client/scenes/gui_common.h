@@ -19,6 +19,11 @@
 
 #pragma once
 
+#include "render/ui_widgets.h"
+#include <optional>
+#include <string>
+#include <openxr/openxr.h>
+
 class configuration;
 class imgui_context;
 
@@ -41,14 +46,21 @@ bool refresh_rate(
         imgui_context & imgui_ctx,
         configuration & config);
 
-bool body_tracking_parts(
-        xr::system & system,
-        imgui_context & imgui_ctx,
-        configuration & config);
-
 bool post_processing(
         imgui_context & imgui_ctx,
         configuration & config);
+
+float toggle_width();
+
+// top-bar battery pill: icon+percent label and threshold colour
+struct battery_indicator
+{
+	std::string label;
+	wivrn::ui::chip_style style;
+};
+
+// headset battery as a top-bar pill, nullopt when unavailable, now drives the charging animation
+std::optional<battery_indicator> battery_status_indicator(XrTime now);
 
 } // namespace gui
 } // namespace wivrn

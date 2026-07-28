@@ -19,6 +19,8 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
+#include "lobby_keyboard.h"
+
 #include <array>
 #include <cassert>
 #include <cctype>
@@ -32,7 +34,7 @@
 #include "IconsFontAwesome6.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "lobby_keyboard.h"
+#include "render/ui_theme.h"
 
 static const ImGuiKey key_layout = (ImGuiKey)(ImGuiKey_NamedKey_END + 1);
 static const ImGuiKey key_symbols_letter = (ImGuiKey)(ImGuiKey_NamedKey_END + 2);
@@ -465,6 +467,7 @@ void virtual_keyboard::press_single_key(const key & k)
 void virtual_keyboard::display(imgui_context & ctx)
 {
 	ImGuiStyle & style = ImGui::GetStyle();
+	const wivrn::ui::theme & th = wivrn::ui::current();
 
 	ImGuiInputTextState * input_state = ImGui::GetInputTextState(ImGui::GetCurrentContext()->ActiveId);
 	bool want_digits = input_state and (input_state->Flags & ImGuiInputTextFlags_CharsDecimal) != 0;
@@ -473,15 +476,20 @@ void virtual_keyboard::display(imgui_context & ctx)
 	                                                     : *layouts[current_layout].second;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, th.card_rounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {8, 8});
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, th.rounding);
 	if (want_digits)
 		ImGui::SetNextWindowSize({350, 400});
 	else
 		ImGui::SetNextWindowSize({1400, 400});
 
+	// window background follows the theme, with a user-controlled opacity
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{th.background.x, th.background.y, th.background.z, wivrn::ui::background_alpha()});
+	ImGui::PushStyleColor(ImGuiCol_Button, th.control);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, th.control_hovered);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, th.control_active);
+	ImGui::PushStyleColor(ImGuiCol_Text, th.text);
 	ImGui::Begin("VirtualKeyboard", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoFocusOnClick);
 
 	ImVec2 size = ImGui::GetWindowSize();
@@ -554,8 +562,8 @@ void virtual_keyboard::display(imgui_context & ctx)
 	}
 
 	ImGui::End();
-	ImGui::PopStyleColor(); // ImGuiCol_WindowBg
-	ImGui::PopStyleVar(4);  // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_FrameRounding
+	ImGui::PopStyleColor(5); // ImGuiCol_WindowBg, ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive, ImGuiCol_Text
+	ImGui::PopStyleVar(4);   // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_FrameRounding
 }
 
 const std::string_view virtual_keyboard::get_layout() const

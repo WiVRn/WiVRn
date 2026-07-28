@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-03 21:56+0200\n"
+"POT-Creation-Date: 2026-07-25 18:50+0200\n"
 "PO-Revision-Date: 2026-02-04 09:22+0200\n"
 "Last-Translator: 8osm3rka <admin@osm8.live>\n"
 "Language-Team: Russian\n"
@@ -16,530 +16,894 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Gtranslator 49.0\n"
 
-#: client/scene.cpp:73
+#: client/render/ui_theme.cpp:35
+msgctxt "theme name"
+msgid "Dark"
+msgstr ""
+
+#: client/render/ui_theme.cpp:71
+msgctxt "theme name"
+msgid "Midnight"
+msgstr ""
+
+#: client/render/ui_theme.cpp:86
+msgctxt "theme name"
+msgid "Slate"
+msgstr ""
+
+#: client/render/ui_theme.cpp:104
+msgctxt "theme name"
+msgid "OLED"
+msgstr ""
+
+#: client/render/ui_theme.cpp:120
+msgctxt "theme name"
+msgid "Graphite"
+msgstr ""
+
+#: client/render/ui_theme.cpp:138
+msgctxt "theme name"
+msgid "Light"
+msgstr ""
+
+#: client/scene.cpp:74
 msgid "No supported swapchain format"
 msgstr "Нет поддерживаемого формата цепочек обмена"
 
-#: client/scenes/app_launcher.cpp:128
-msgid "Connected to WiVRn server"
-msgstr "Подключение к серверу WiVRn установлено"
+#: client/scenes/app_launcher.cpp:160
+msgid "Pick an application to start streaming, or start one on the PC."
+msgstr ""
 
-#: client/scenes/app_launcher.cpp:130
+#: client/scenes/app_launcher.cpp:162 client/scenes/stream_gui.cpp:925
+msgctxt "status in the title bar"
+msgid "Connected"
+msgstr ""
+
+#: client/scenes/app_launcher.cpp:164
 #, c++-format
 msgid "Connected to {}"
 msgstr "Подключен к {}"
 
-#: client/scenes/app_launcher.cpp:136
-msgid "Start an application on the server to start streaming."
-msgstr "Запустите приложение на сервере чтобы начать трансляцию."
-
-#: client/scenes/app_launcher.cpp:146
-msgid "Start an application on your computer or select one to start streaming."
+#: client/scenes/app_launcher.cpp:170
+msgctxt "icon size"
+msgid "Small"
 msgstr ""
-"Запустите приложение на вашем компьютере или выберите его чтобы начать "
-"трансляцию."
 
-#: client/scenes/app_launcher.cpp:148
-#, c++-format
-msgid "Start an application on {} or select one to start streaming."
-msgstr "Запустите приложение на {} или выберите его чтобы начать трансляцию."
-
-#: client/scenes/lobby.cpp:230
-msgid "Incompatible WiVRn server: no protocol field in TXT"
-msgstr "Несовместимый сервер WiVRn: нет поля протокола в TXT"
-
-#: client/scenes/lobby.cpp:233
-#, c++-format
-msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
-msgstr "Несовместимый протокол сервера WiVRn (клиент: {}, сервер: {})"
-
-#: client/scenes/lobby.cpp:248
-#, c++-format
-msgid "Cannot resolve hostname: {}"
-msgstr "Невозможно разрешить имя хоста: {}"
-
-#: client/scenes/lobby.cpp:335 client/scenes/lobby.cpp:341
-#, c++-format
-msgid "Cannot connect to {} ({}): {}"
-msgstr "Невозможно подключиться к {} ({}): {}"
-
-#: client/scenes/lobby.cpp:424
-msgid "Waiting for connection"
-msgstr "Ожидание подключения"
-
-#: client/scenes/lobby.cpp:1316
-msgid "Passthrough"
-msgstr "Сквозная передача"
-
-#: client/scenes/lobby.cpp:1328
-msgid "Default environment"
-msgstr "Окружение по умолчанию"
-
-#: client/scenes/lobby_gui.cpp:101
-msgctxt "openxr_post_processing"
-msgid "Normal"
-msgstr "Нормальное"
-
-#: client/scenes/lobby_gui.cpp:104
-msgctxt "openxr_post_processing"
-msgid "Quality"
-msgstr "Качество"
-
-#: client/scenes/lobby_gui.cpp:106
-msgctxt "openxr_post_processing"
-msgid "Disabled"
-msgstr "Выключено"
-
-#: client/scenes/lobby_gui.cpp:114 client/scenes/lobby_gui.cpp:258
-#: client/scenes/stream_gui.cpp:1009
-msgid "Disconnect"
-msgstr "Отключиться"
-
-#: client/scenes/lobby_gui.cpp:134 client/scenes/lobby_gui_customize.cpp:753
-#: client/scenes/lobby_gui_customize.cpp:844
-#: client/scenes/lobby_gui_customize.cpp:900 client/scenes/stream_gui.cpp:1005
-msgid "Close"
-msgstr "Закрыть"
-
-#: client/scenes/lobby_gui.cpp:140
-msgid "Connection"
-msgstr "Подключение"
-
-#: client/scenes/lobby_gui.cpp:142
-#, c++-format
-msgid "Connection to {}"
-msgstr "Подключение к {}"
-
-#: client/scenes/lobby_gui.cpp:172
-msgid "PIN"
-msgstr "ПИН"
-
-#: client/scenes/lobby_gui.cpp:194
-msgid "Input the PIN displayed on the dashboard"
-msgstr "Введите ПИН отображенный в панеле управления"
-
-#: client/scenes/lobby_gui.cpp:284
-msgid "Name"
-msgstr "Название"
-
-#: client/scenes/lobby_gui.cpp:295
-msgid "Address"
-msgstr "Адрес"
-
-#: client/scenes/lobby_gui.cpp:304
-msgid "Port"
-msgstr "Порт"
-
-#: client/scenes/lobby_gui.cpp:312
-msgid "TCP only"
-msgstr "Только TCP"
-
-#: client/scenes/lobby_gui.cpp:319 client/scenes/lobby_gui_customize.cpp:655
-#: client/scenes/stream_gui.cpp:962
-msgid "Cancel"
-msgstr "Отменить"
-
-#: client/scenes/lobby_gui.cpp:333
-msgid "Save"
-msgstr "Сохранить"
-
-#: client/scenes/lobby_gui.cpp:386
-msgid ""
-"Start a WiVRn server on your\n"
-"local network"
+#: client/scenes/app_launcher.cpp:170
+msgctxt "icon size"
+msgid "Medium"
 msgstr ""
-"Запустите сервер WiVRn в вашей\n"
-"локальной сети"
 
-#: client/scenes/lobby_gui.cpp:418
-msgid "Autoconnect"
-msgstr "Автоматическое подключение"
+#: client/scenes/app_launcher.cpp:170
+msgctxt "icon size"
+msgid "Large"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:444
-msgid "Connect"
-msgstr "Подключиться"
+#: client/scenes/app_launcher.cpp:212
+msgid "Waiting for an application on the server"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:454 client/wivrn_client.cpp:186
-msgid "Incompatible server version"
-msgstr "Несовместимая версия сервера"
+#: client/scenes/gui_settings.cpp:212 client/scenes/gui_settings.cpp:327
+#: client/scenes/gui_settings.cpp:519 client/scenes/gui_settings.cpp:595
+msgctxt "tooltip for disabled settings"
+msgid "Disconnect to change this setting."
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:456
-msgid "Server not available"
-msgstr "Сервер недоступен"
-
-#: client/scenes/lobby_gui.cpp:538
-msgctxt "language selection, replace with the name of the language"
-msgid "English"
-msgstr "Русский"
-
-#: client/scenes/lobby_gui.cpp:552
-msgid "Language"
-msgstr "Язык"
-
-#: client/scenes/lobby_gui.cpp:552 client/scenes/lobby_gui.cpp:554
-msgid "System language"
-msgstr "Язык системы"
-
-#: client/scenes/lobby_gui.cpp:580 client/scenes/stream_gui.cpp:411
+#: client/scenes/gui_settings.cpp:220
 msgid "Refresh rate"
 msgstr "Частота обновления"
 
-#: client/scenes/lobby_gui.cpp:580 client/scenes/lobby_gui.cpp:582
-#: client/scenes/stream_gui.cpp:411 client/scenes/stream_gui.cpp:413
-msgctxt "automatic refresh rate"
-msgid "Automatic"
-msgstr "Автоматическая"
-
-#: client/scenes/lobby_gui.cpp:589 client/scenes/stream_gui.cpp:421
+#: client/scenes/gui_settings.cpp:221
 msgid ""
-"Select refresh rate based on measured application performance.\n"
-"May cause flicker when a change happens."
+"Select refresh rate based on measured application performance. May cause "
+"flicker when a change happens."
 msgstr ""
-"Выбрать частоту обновления, основанную на измеренной производительности "
-"приложения.\n"
-"Может вызывать мерцание когда происходит изменение."
 
-#: client/scenes/lobby_gui.cpp:606 client/scenes/stream_gui.cpp:439
-msgid "Minimum refresh rate"
-msgstr "Минимальная частота обновления"
+#: client/scenes/gui_settings.cpp:244
+msgctxt "automatic refresh rate"
+msgid "Auto"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:632
-msgid "Foveation level"
-msgstr "Уровень фовеации"
-
-#: client/scenes/lobby_gui.cpp:655
+#: client/scenes/gui_settings.cpp:257
 msgid "Render resolution"
 msgstr "Разрешение"
 
-#: client/scenes/lobby_gui.cpp:659
-#, c-format, c++-format
-msgid "{}%% - {}x{} per eye"
-msgstr "{}%% - {}x{} на каждый глаз"
-
-#: client/scenes/lobby_gui.cpp:670
+#: client/scenes/gui_settings.cpp:258
 #, c++-format
-msgid "Resolution larger than {}x{} may not be supported by the headset"
-msgstr "Разрешение больше чем {}x{} может не поддерживаться шлемом"
+msgctxt "render resolution"
+msgid "Pixels rendered per eye ({}x{}). Lower to gain performance."
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:680
+#: client/scenes/gui_settings.cpp:273
 msgid "Foveated encoding"
 msgstr "Кодировка с фовеацией"
 
-#: client/scenes/lobby_gui.cpp:684
-#, c-format, c++-format
-msgid "{}%%"
-msgstr "{}%%"
-
-#: client/scenes/lobby_gui.cpp:697
+#: client/scenes/gui_settings.cpp:275
 msgid ""
-"Higher values focus image quality where you look at,\n"
-"improving latency, power efficiency and quality."
+"Higher values focus image quality where you look at, improving latency, "
+"power efficiency and quality."
 msgstr ""
-"Значения выше концентрируют качество картинки там, где вы смотрите, что "
-"улучшает задержку, энергоэффективность и качество."
 
-#: client/scenes/lobby_gui.cpp:700
+#: client/scenes/gui_settings.cpp:276
 msgid ""
-"Higher values focus image quality at the center,\n"
-"improving latency, power efficiency and quality."
+"Higher values focus image quality at the center, improving latency, power "
+"efficiency and quality."
 msgstr ""
-"Значения выше концентрируют качество картинки в центре, что улучшает "
-"задержку, энергоэффективность и качество."
 
-#: client/scenes/lobby_gui.cpp:709
+#: client/scenes/gui_settings.cpp:296
+msgid "Application SpaceWarp"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:297
+msgid "Renders at half the refresh rate. The headset may synthesise frames."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:303
+msgid "Set a refresh rate other than auto to enable this setting."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:311
+msgid "High power mode"
+msgstr "Режим повышенной мощности"
+
+#: client/scenes/gui_settings.cpp:312
+msgid ""
+"Increase power usage to allow higher resolution and refresh rate. Drains "
+"battery and runs hot."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:320
+msgctxt "page header title"
+msgid "Performance"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:320
+msgctxt "page header subtitle"
+msgid "Frame rate, resolution and power draw."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:332 client/scenes/gui_settings.cpp:344
 msgctxt "Codec"
 msgid "Automatic"
 msgstr "Автоматически"
 
-#: client/scenes/lobby_gui.cpp:713
+#: client/scenes/gui_settings.cpp:336
 msgctxt "Codec"
 msgid "H.264"
 msgstr "H.264"
 
-#: client/scenes/lobby_gui.cpp:715
+#: client/scenes/gui_settings.cpp:338
 msgctxt "Codec"
-msgid "H.265"
-msgstr "H.265"
+msgid "HEVC (H.265)"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:717
+#: client/scenes/gui_settings.cpp:340
 msgctxt "Codec"
 msgid "AV1"
 msgstr "AV1"
 
-#: client/scenes/lobby_gui.cpp:725
-msgid "Codec"
-msgstr "Кодек"
+#: client/scenes/gui_settings.cpp:354 client/scenes/gui_settings.cpp:372
+msgctxt "setting name"
+msgid "Video codec"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:753
-msgid "10-bit"
-msgstr "10-бит"
+#: client/scenes/gui_settings.cpp:355
+msgid "How video is compressed before it is sent to the headset."
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:768
+#: client/scenes/gui_settings.cpp:382
+msgctxt "setting name"
+msgid "10-bit color"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:383
+msgid "Higher color precision, supported by HEVC and AV1."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:396
 msgid "Bitrate"
 msgstr "Битрейт"
 
-#: client/scenes/lobby_gui.cpp:772
+#: client/scenes/gui_settings.cpp:397
+msgid "Video data rate sent to the headset."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:412
+msgid "Adjust bitrate with thumbstick"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:413
+msgid "Use the right thumbstick to fine-tune the bitrate."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:415
+msgctxt "button label to adjust the bitrate"
+msgid "Adjust"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:425
+#, fuzzy
+msgctxt "setting name"
+msgid "Foveation center override"
+msgstr "Переопределение центра фовеации"
+
+#: client/scenes/gui_settings.cpp:426
+msgid ""
+"Manually set where image quality is focused, instead of the center or your "
+"gaze."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:438
+msgctxt "setting name"
+msgid "Foveation center"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:439
 #, c++-format
-msgid "{}Mbit/s"
-msgstr "{}Мбит/с"
-
-#: client/scenes/lobby_gui.cpp:783
-msgid "High power mode"
-msgstr "Режим повышенной мощности"
-
-#: client/scenes/lobby_gui.cpp:786
-msgid "Increase power usage to allow higher resolution and refresh rate"
+msgid "Height {:.1f} °, distance {:.2f} m"
 msgstr ""
-"Увеличивает энергопотребление, что позволяет достичь более высокого "
-"разрешения и частоты обновлений"
 
-#: client/scenes/lobby_gui.cpp:792
-msgid "Enable microphone"
-msgstr "Включить микрофон"
+#: client/scenes/gui_settings.cpp:441
+#, fuzzy
+msgctxt "button label to change the foveation center"
+msgid "Change"
+msgstr "Изменить"
 
-#: client/scenes/lobby_gui.cpp:801
-msgid "Unprocessed Microphone Audio"
-msgstr "Необработанный звук с микрофона"
+#: client/scenes/gui_settings.cpp:444
+msgid "Enable foveation center override to change this setting."
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:807
-msgid "Force disable audio filters, such as noise cancellation"
-msgstr "Принудительно отключить звуковые фильтры, такие как шумоподавление"
+#: client/scenes/gui_settings.cpp:450
+msgctxt "setting name"
+msgid "In-stream window"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:814
-msgid "Enable hand tracking"
-msgstr "Включить отслеживание рук"
+#: client/scenes/gui_settings.cpp:451
+msgid ""
+"Enables the configuration window to be shown while the game is streaming. If"
+" enabled, the window is activated by pressing both thumbsticks."
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:820 client/scenes/lobby_gui.cpp:831
-#: client/scenes/lobby_gui.cpp:841 client/scenes/lobby_gui.cpp:856
-#: client/scenes/lobby_gui_customize.cpp:640
-msgid "This feature is not supported by your headset"
-msgstr "Эта функция не поддерживается вашим шлемом"
+#: client/scenes/gui_settings.cpp:458
+msgctxt "page header title"
+msgid "Streaming"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:825
-msgid "Enable eye tracking"
-msgstr "Включить отслеживание глаз"
+#: client/scenes/gui_settings.cpp:458
+msgctxt "page header subtitle"
+msgid "How video is encoded and sent to the headset."
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:836
-msgid "Enable face tracking"
-msgstr "Включить отслеживание лица"
+#: client/scenes/gui_settings.cpp:474
+msgctxt "openxr_post_processing"
+msgid "Normal"
+msgstr "Нормальное"
 
-#: client/scenes/lobby_gui.cpp:848
-msgid "Enable body tracking"
-msgstr "Включить отслеживание тела"
+#: client/scenes/gui_settings.cpp:477
+msgctxt "openxr_post_processing"
+msgid "Quality"
+msgstr "Качество"
 
-#: client/scenes/lobby_gui.cpp:861
+#: client/scenes/gui_settings.cpp:479
+msgctxt "openxr_post_processing"
+msgid "Disabled"
+msgstr "Выключено"
+
+#: client/scenes/gui_settings.cpp:508
+msgid "Supersampling"
+msgstr "Supersampling"
+
+#: client/scenes/gui_settings.cpp:508
+msgid ""
+"Reduce flicker for high contrast edges. Useful when the input resolution is "
+"high compared to the headset display."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:509
+msgid "Sharpening"
+msgstr "Увеличение резкости"
+
+#: client/scenes/gui_settings.cpp:509
+msgid ""
+"Improve clarity of high contrast edges and counteract blur. Useful when the "
+"input resolution is low compared to the headset display."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:512
+msgid "Post-processing"
+msgstr "Постобработка"
+
+#: client/scenes/gui_settings.cpp:512
+msgctxt "page header subtitle"
+msgid "OpenXR layer supersampling and sharpening."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:524
+msgctxt "setting name"
+msgid "Microphone"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:525
+msgid "Stream the headset microphone to the PC."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:536
+msgctxt "setting name"
+msgid "Unprocessed audio"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:537
+msgid "Force disable audio filters, such as noise cancellation."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:546
+msgctxt "page header title"
+msgid "Audio"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:546
+msgctxt "page header subtitle"
+msgid "Microphone streamed to the PC."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:557
+msgctxt "setting name"
+msgid "Keyboard"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:558
+msgid "Forward the keyboard from the headset to the PC."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:567
+msgctxt "setting name"
+msgid "Mouse"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:568
+msgid "Forward the mouse from the headset to the PC."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:577
+msgctxt "setting name"
+msgid "Gamepad"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:578
+msgid "Forward the gamepad from the headset to the PC."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:585
+msgctxt "page header title"
+msgid "Devices"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:585
+msgctxt "page header subtitle"
+msgid "Forward input devices to the PC."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:589 client/scenes/stream_network.cpp:91
+msgid "The server does not allow forwarded input devices"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:613
+msgctxt "setting name"
+msgid "Hand tracking"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:613
+msgid "Track your hands for input when controllers are down."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:616
+msgctxt "setting name"
+msgid "Eye tracking"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:616
+msgid "Used by foveated encoding to focus quality where you look."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:619
+msgctxt "setting name"
+msgid "Face tracking"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:619
+msgid "Stream facial expressions to the PC."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:627
+msgctxt "virtual body tracker selection"
+msgid "Chest"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:628
+msgctxt "virtual body tracker selection"
+msgid "Left elbow"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:629
+msgctxt "virtual body tracker selection"
+msgid "Right elbow"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:630
+msgctxt "virtual body tracker selection"
+msgid "Hip"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:631
+msgctxt "virtual body tracker selection"
+msgid "Left knee"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:632
+msgctxt "virtual body tracker selection"
+msgid "Right knee"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:633
+msgctxt "virtual body tracker selection"
+msgid "Left foot"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:634
+msgctxt "virtual body tracker selection"
+msgid "Right foot"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:649
+msgctxt "setting name"
+msgid "Body tracking"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:651
 msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
-"tracking settings,\n"
-"otherwise body data will be guessed from controller and headset positions"
+"tracking settings, otherwise body data will be guessed from controller and "
+"headset positions."
 msgstr ""
-"Требуется чтобы в Quest было включено 'Отслеживание рук и тела' в настройках "
-"отслеживания движений,\n"
-"иначе данные тела будут угаданы из положения контроллера и шлема"
 
-#: client/scenes/lobby_gui.cpp:871
-msgid "Enable lower body tracking"
-msgstr "Включить отслеживание нижней части тела"
-
-#: client/scenes/lobby_gui.cpp:877
-msgid ""
-"Estimate lower body joint positions using Generative Legs\n"
-"Requires 'Hand and body tracking' to be enabled in the Quest movement "
-"tracking settings"
+#: client/scenes/gui_settings.cpp:652
+msgid "Stream body joint positions to the PC."
 msgstr ""
-"Оценить положение суставов нижней части тела используя Генеративные Ноги\n"
-"Требуется чтобы в Quest было включено 'Отслеживание рук и тела' в настройках "
-"отслеживания движений"
 
-#: client/scenes/lobby_gui.cpp:880
-msgid "Enable hip tracking"
-msgstr "Включить отслеживание бедер"
-
-#: client/scenes/lobby_gui.cpp:886
-msgid ""
-"Only takes affect with lower body tracking enabled\n"
-"May be desired when using another source of hip tracking"
+#: client/scenes/gui_settings.cpp:663 client/scenes/gui_settings.cpp:677
+msgctxt "setting name"
+msgid "Virtual body trackers"
 msgstr ""
-"Вступает в силу только с включенным отслеживанием нижней части тела\n"
-"Может пригодится когда используется другой источник отслеживания бедер"
 
-#: client/scenes/lobby_gui.cpp:895
-msgid "Enable in-stream window"
-msgstr "Включить окно во время трансляции"
-
-#: client/scenes/lobby_gui.cpp:898
-msgid ""
-"Enables the configuration window to be shown while the game is streaming.\n"
-"If enabled, the window is activated by pressing both thumbsticks."
+#: client/scenes/gui_settings.cpp:664
+msgid "Create virtual tracker devices."
 msgstr ""
-"Позволяет отображать окно конфигурации во время трансляции игры.\n"
-"Если включено, окно активируется нажатием обоих джойстиков."
 
-#: client/scenes/lobby_gui.cpp:902
-msgid "Extended configuration values"
-msgstr "Расширенные значения настроек"
+#: client/scenes/gui_settings.cpp:684
+msgctxt "page header title"
+msgid "Tracking"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:905
+#: client/scenes/gui_settings.cpp:684
+msgctxt "page header subtitle"
+msgid "Body and input tracking sent to the PC."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:696
+msgctxt "language selection, replace with the name of the language"
+msgid "English"
+msgstr "Русский"
+
+#: client/scenes/gui_settings.cpp:711 client/scenes/gui_settings.cpp:730
+msgid "Language"
+msgstr "Язык"
+
+#: client/scenes/gui_settings.cpp:712
+msgctxt "setting name"
+msgid "Interface language."
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:726
+#, fuzzy
+msgctxt "item in the interface language combobox"
+msgid "System language"
+msgstr "Язык системы"
+
+#: client/scenes/gui_settings.cpp:736
+msgctxt "setting name"
+msgid "Extended configuration"
+msgstr ""
+
+#: client/scenes/gui_settings.cpp:737
 msgid "Allows unsafe configuration values, use at your own risk."
 msgstr ""
 "Позволяет устанавливать небезопасные значения настроек, используйте на свой "
 "риск."
 
-#: client/scenes/lobby_gui.cpp:919 client/scenes/stream_gui.cpp:473
-msgid "OpenXR post-processing"
-msgstr "OpenXR постобработка"
-
-#: client/scenes/lobby_gui.cpp:923 client/scenes/stream_gui.cpp:477
-msgid "Supersampling"
-msgstr "Supersampling"
-
-#: client/scenes/lobby_gui.cpp:943 client/scenes/stream_gui.cpp:498
-msgid ""
-"Reduce flicker for high contrast edges.\n"
-"Useful when the input resolution is high compared to the headset display"
+#: client/scenes/gui_settings.cpp:744
+msgctxt "page header title"
+msgid "System"
 msgstr ""
-"Уменьшает мерцание для высококонтрастных границ.\n"
-"Полезно когда входное разрешение высокое по сравнение с экраном шлема"
 
-#: client/scenes/lobby_gui.cpp:948 client/scenes/stream_gui.cpp:503
-msgid "Sharpening"
-msgstr "Увеличение резкости"
-
-#: client/scenes/lobby_gui.cpp:968 client/scenes/stream_gui.cpp:524
-msgid ""
-"Improve clarity of high contrast edges and counteract blur.\n"
-"Useful when the input resolution is low compared to the headset display"
+#: client/scenes/gui_settings.cpp:744
+msgctxt "page header suibtitle"
+msgid "Language and advanced options."
 msgstr ""
-"Улучшить четкость высококонтрастных границ и противодействовать размытию.\n"
-"Полезно когда входное разрешение низкое по сравнение с экраном шлема"
 
-#: client/scenes/lobby_gui.cpp:1152 client/scenes/lobby_gui.cpp:1160
-#: client/scenes/stream_gui.cpp:172 client/scenes/stream_gui.cpp:370
-msgid "CPU time"
-msgstr "Время ЦПУ"
+#: client/scenes/lobby.cpp:217
+msgid "Incompatible WiVRn server: no protocol field in TXT"
+msgstr "Несовместимый сервер WiVRn: нет поля протокола в TXT"
 
-#: client/scenes/lobby_gui.cpp:1156
-msgid "CPU time [ms]"
-msgstr "Время ЦПУ [мс]"
+#: client/scenes/lobby.cpp:220
+#, c++-format
+msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
+msgstr "Несовместимый протокол сервера WiVRn (клиент: {}, сервер: {})"
 
-#: client/scenes/lobby_gui.cpp:1166 client/scenes/lobby_gui.cpp:1174
-#: client/scenes/stream_gui.cpp:174 client/scenes/stream_gui.cpp:371
-msgid "GPU time"
-msgstr "Время ГПУ"
+#: client/scenes/lobby.cpp:235
+#, c++-format
+msgid "Cannot resolve hostname: {}"
+msgstr "Невозможно разрешить имя хоста: {}"
 
-#: client/scenes/lobby_gui.cpp:1170
-msgid "GPU time [ms]"
-msgstr "Время ГПУ [мс]"
+#: client/scenes/lobby.cpp:322 client/scenes/lobby.cpp:328
+#, c++-format
+msgid "Cannot connect to {} ({}): {}"
+msgstr "Невозможно подключиться к {} ({}): {}"
 
-#: client/scenes/lobby_gui.cpp:1234
-msgid "Enable the microphone?"
-msgstr "Включить микрофон?"
+#: client/scenes/lobby.cpp:406
+msgid "Waiting for connection"
+msgstr "Ожидание подключения"
 
-#: client/scenes/lobby_gui.cpp:1239
-msgid "Enable eye tracking?"
-msgstr "Включить отслеживание глаз?"
+#: client/scenes/lobby.cpp:1307
+msgid "Passthrough"
+msgstr "Сквозная передача"
 
-#: client/scenes/lobby_gui.cpp:1244
-msgid "Enable face tracking?"
-msgstr "Включить отслеживание лица?"
+#: client/scenes/lobby.cpp:1319
+msgid "Default environment"
+msgstr "Окружение по умолчанию"
 
-#: client/scenes/lobby_gui.cpp:1249
-msgid "Enable body tracking?"
-msgstr "Включить отслеживание тела?"
+#: client/scenes/lobby_gui.cpp:101 client/scenes/lobby_gui.cpp:244
+#: client/scenes/stream_gui.cpp:936 client/scenes/stream_gui.cpp:946
+msgid "Disconnect"
+msgstr "Отключиться"
 
-#: client/scenes/lobby_gui.cpp:1257
-msgid "Welcome to WiVRn"
-msgstr "Добро пожаловать в WiVRn"
+#: client/scenes/lobby_gui.cpp:121 client/scenes/lobby_gui.cpp:284
+#: client/scenes/lobby_gui_customize.cpp:588
+#: client/scenes/lobby_gui_customize.cpp:743 client/scenes/stream_gui.cpp:928
+msgid "Close"
+msgstr "Закрыть"
 
-#: client/scenes/lobby_gui.cpp:1285
-msgid "Yes"
-msgstr "Да"
+#: client/scenes/lobby_gui.cpp:128
+msgid "Connection"
+msgstr "Подключение"
 
-#: client/scenes/lobby_gui.cpp:1292
-msgid "No"
-msgstr "Нет"
+#: client/scenes/lobby_gui.cpp:130
+#, c++-format
+msgid "Connection to {}"
+msgstr "Подключение к {}"
 
-#: client/scenes/lobby_gui.cpp:1311 client/scenes/lobby_gui.cpp:1957
-msgid "Licenses"
-msgstr "Лицензии"
+#: client/scenes/lobby_gui.cpp:162
+msgid "Enter PIN"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:1587
-msgid "Microphone is enabled"
-msgstr "Микрофон включен"
+#: client/scenes/lobby_gui.cpp:169
+msgid "PIN"
+msgstr "ПИН"
 
-#: client/scenes/lobby_gui.cpp:1588
-msgid "Microphone is disabled"
-msgstr "Микрофон выключен"
+#: client/scenes/lobby_gui.cpp:191
+msgid "Input the PIN displayed on the dashboard"
+msgstr "Введите ПИН отображенный в панеле управления"
 
-#: client/scenes/lobby_gui.cpp:1597
-msgid "Hand tracking is enabled"
-msgstr "Отслеживание рук включено"
+#: client/scenes/lobby_gui.cpp:273
+msgid "Disconnected"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:1598
-msgid "Hand tracking is disabled"
-msgstr "Отслеживание рук выключено"
+#: client/scenes/lobby_gui.cpp:275
+#, c++-format
+msgid "Disconnected from {}"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:1607
-msgid "Eye tracking is enabled"
-msgstr "Отслеживание глаз включено"
+#: client/scenes/lobby_gui.cpp:305
+msgid "Name"
+msgstr "Название"
 
-#: client/scenes/lobby_gui.cpp:1608
-msgid "Eye tracking is disabled"
-msgstr "Отслеживание глаз выключено"
+#: client/scenes/lobby_gui.cpp:308
+msgctxt "placeholder for the server name when adding/editing a server"
+msgid "My gaming PC"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:1618
-msgid "Face tracking is enabled"
-msgstr "Отслеживание лица включено"
+#: client/scenes/lobby_gui.cpp:311
+msgid "Address"
+msgstr "Адрес"
 
-#: client/scenes/lobby_gui.cpp:1619
-msgid "Face tracking is disabled"
-msgstr "Отслеживание лица выключено"
+#: client/scenes/lobby_gui.cpp:312
+msgctxt "placeholder for the server address when adding/editing a server"
+msgid "192.168.1.10 or host.local"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:1633
-msgid "Body tracking is enabled"
-msgstr "Отслеживание тела включено"
+#: client/scenes/lobby_gui.cpp:315
+msgid "Port"
+msgstr "Порт"
 
-#: client/scenes/lobby_gui.cpp:1634
-msgid "Body tracking is disabled"
-msgstr "Отслеживание тела выключено"
+#: client/scenes/lobby_gui.cpp:319
+msgid "TCP only"
+msgstr "Только TCP"
 
-#: client/scenes/lobby_gui.cpp:1650
+#: client/scenes/lobby_gui.cpp:326 client/scenes/lobby_gui.cpp:545
+#: client/scenes/lobby_gui_customize.cpp:449
+#: client/scenes/lobby_gui_customize.cpp:510 client/scenes/stream_gui.cpp:911
+#: client/scenes/stream_gui.cpp:946
+msgid "Cancel"
+msgstr "Отменить"
+
+#: client/scenes/lobby_gui.cpp:327
+msgid "Save"
+msgstr "Сохранить"
+
+#: client/scenes/lobby_gui.cpp:372
+msgctxt "page header title"
+msgid "Computers"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:372
+msgctxt "page header subtitle"
+msgid "Pick a PC running the WiVRn server to stream from."
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:375
 msgid "Add server"
 msgstr "Добавить сервер"
 
-#: client/scenes/lobby_gui.cpp:1936
-msgid "Server list"
-msgstr "Список серверов"
+#: client/scenes/lobby_gui.cpp:403
+msgid "Start a WiVRn server on your local network."
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:1939 client/scenes/stream_gui.cpp:990
-msgid "Settings"
-msgstr "Настройки"
+#: client/scenes/lobby_gui.cpp:426
+msgid "Connect"
+msgstr "Подключиться"
 
-#: client/scenes/lobby_gui.cpp:1942
+#: client/scenes/lobby_gui.cpp:426
+msgctxt "button label when the server has an incompatible version"
+msgid "Incompatible"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:426
+msgctxt "button label when the server is known but not visible"
+msgid "Searching…"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:427 client/wivrn_client.cpp:186
+msgid "Incompatible server version"
+msgstr "Несовместимая версия сервера"
+
+#: client/scenes/lobby_gui.cpp:427
+msgid "Looking for this server on your network"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:429
+msgctxt "chip displayed in server list when autoconnect is enabled"
+msgid "Auto"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:437
+msgid "Autoconnect"
+msgstr "Автоматическое подключение"
+
+#: client/scenes/lobby_gui.cpp:438
+msgctxt "item in action menu"
+msgid "Edit server"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:439
+msgctxt "item in action menu"
+msgid "Delete server"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:533
+#, fuzzy
+msgctxt "popup window title"
+msgid "Add server"
+msgstr "Добавить сервер"
+
+#: client/scenes/lobby_gui.cpp:533
+msgctxt "popup window title"
+msgid "Edit server"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:545
+msgctxt "confirmation messagebox title"
+msgid "Delete server"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:545
+#, c++-format
+msgctxt "confirmation message"
+msgid "Remove \"{}\" from your saved computers?"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:545 client/scenes/lobby_gui_customize.cpp:510
+msgid "Delete"
+msgstr "Удалить"
+
+#: client/scenes/lobby_gui.cpp:734 client/scenes/lobby_gui.cpp:742
+#: client/scenes/stream_gui.cpp:179 client/scenes/stream_gui.cpp:377
+msgid "CPU time"
+msgstr "Время ЦПУ"
+
+#: client/scenes/lobby_gui.cpp:738
+msgid "CPU time [ms]"
+msgstr "Время ЦПУ [мс]"
+
+#: client/scenes/lobby_gui.cpp:748 client/scenes/lobby_gui.cpp:756
+#: client/scenes/stream_gui.cpp:181 client/scenes/stream_gui.cpp:378
+msgid "GPU time"
+msgstr "Время ГПУ"
+
+#: client/scenes/lobby_gui.cpp:752
+msgid "GPU time [ms]"
+msgstr "Время ГПУ [мс]"
+
+#: client/scenes/lobby_gui.cpp:816
+msgid "Enable the microphone?"
+msgstr "Включить микрофон?"
+
+#: client/scenes/lobby_gui.cpp:821
+msgid "Enable eye tracking?"
+msgstr "Включить отслеживание глаз?"
+
+#: client/scenes/lobby_gui.cpp:826
+msgid "Enable face tracking?"
+msgstr "Включить отслеживание лица?"
+
+#: client/scenes/lobby_gui.cpp:831
+msgid "Enable body tracking?"
+msgstr "Включить отслеживание тела?"
+
+#: client/scenes/lobby_gui.cpp:839
+msgid "Welcome to WiVRn"
+msgstr "Добро пожаловать в WiVRn"
+
+#: client/scenes/lobby_gui.cpp:867
+msgid "Yes"
+msgstr "Да"
+
+#: client/scenes/lobby_gui.cpp:874
+msgid "No"
+msgstr "Нет"
+
+#: client/scenes/lobby_gui.cpp:895
+msgid "Licenses"
+msgstr "Лицензии"
+
+#: client/scenes/lobby_gui.cpp:895
+msgid "Open-source components bundled with WiVRn."
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:930
+msgctxt ""
+"name of the combobox to choose which component license to display in the "
+"licenses page"
+msgid "Component"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1118
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Microphone"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1120
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Hand tracking"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1122
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Eye tracking"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1124
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Face tracking"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1126
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Body tracking"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1132
+msgctxt "status in the title bar"
+msgid "Not connected"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1233
+msgctxt "tab label"
+msgid "Computers"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1236 client/scenes/stream_gui.cpp:968
+msgctxt "tab group"
+msgid "SETTINGS"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1237 client/scenes/stream_gui.cpp:976
+msgctxt "tab label"
+msgid "Performance"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1239 client/scenes/stream_gui.cpp:977
+msgctxt "tab label"
+msgid "Streaming"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1241 client/scenes/stream_gui.cpp:978
+#, fuzzy
+msgctxt "tab label"
 msgid "Post-processing"
 msgstr "Постобработка"
 
-#: client/scenes/lobby_gui.cpp:1945
-msgid "Customize"
-msgstr "Настроить"
+#: client/scenes/lobby_gui.cpp:1243 client/scenes/stream_gui.cpp:979
+msgctxt "tab label"
+msgid "Audio"
+msgstr ""
 
-#: client/scenes/lobby_gui.cpp:1949
+#: client/scenes/lobby_gui.cpp:1245
+msgctxt "tab label"
+msgid "Devices"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1247 client/scenes/stream_gui.cpp:980
+msgctxt "tab label"
+msgid "Tracking"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1249 client/scenes/stream_gui.cpp:981
+msgctxt "tab label"
+msgid "System"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1252
+msgctxt "tab group"
+msgid "PERSONALIZE"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1253
+msgctxt "tab label"
+msgid "Environment"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1255
+msgctxt "tab label"
+msgid "Theme"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:1258
+#, fuzzy
+msgctxt "tab label"
 msgid "Debug"
 msgstr "Отладка"
 
-#: client/scenes/lobby_gui.cpp:1954
+#: client/scenes/lobby_gui.cpp:1264
+#, fuzzy
+msgctxt "tab label"
 msgid "About"
 msgstr "О приложении"
 
-#: client/scenes/lobby_gui.cpp:1960
+#: client/scenes/lobby_gui.cpp:1266
+#, fuzzy
+msgctxt "tab label"
+msgid "Licenses"
+msgstr "Лицензии"
+
+#: client/scenes/lobby_gui.cpp:1268
+#, fuzzy
+msgctxt "exit button in the lobby"
 msgid "Exit"
 msgstr "Выйти"
 
-#: client/scenes/lobby_gui.cpp:1977
+#: client/scenes/lobby_gui.cpp:1285
 msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
@@ -547,51 +911,56 @@ msgstr ""
 "Нажмите кнопку захвата или поднимите ладонь\n"
 "чтобы переместить главное окно"
 
-#: client/scenes/lobby_gui.cpp:1979
+#: client/scenes/lobby_gui.cpp:1287
 msgid "Press the grip button to move the main window"
 msgstr "Нажмите кнопку захвата чтобы переместить главное окно"
 
-#: client/scenes/lobby_gui_customize.cpp:213
+#: client/scenes/lobby_gui_customize.cpp:215
 msgid "Locally loaded environment"
 msgstr "Локально загруженное окружение"
 
-#: client/scenes/lobby_gui_customize.cpp:226
+#: client/scenes/lobby_gui_customize.cpp:228
 #, c++-format
 msgid "Locally loaded environment ({})"
 msgstr "Локально загруженное окружение ({})"
 
-#: client/scenes/lobby_gui_customize.cpp:300
+#: client/scenes/lobby_gui_customize.cpp:301
 #, c++-format
 msgid "Cannot load local environment: {}"
 msgstr "Не удалось загрузить локальное окружение: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:333
+#: client/scenes/lobby_gui_customize.cpp:334
 #, c++-format
 msgid "Cannot load environment list: {}"
 msgstr "Не удалось загрузить список окружений: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:463
+#: client/scenes/lobby_gui_customize.cpp:410
 #, c++-format
 msgid "Author: {}"
 msgstr "Автор: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:467
+#: client/scenes/lobby_gui_customize.cpp:414
 #, c++-format
 msgid "Size: {:.1f} MB"
 msgstr "Размер: {:.1f} Мб"
 
-#: client/scenes/lobby_gui_customize.cpp:547
+#: client/scenes/lobby_gui_customize.cpp:425
+msgctxt "chip displayed next to the selected environment in the settings"
+msgid "Active"
+msgstr ""
+
+#: client/scenes/lobby_gui_customize.cpp:455
 msgid "Delete this model"
 msgstr "Удалить эту модель"
 
-#: client/scenes/lobby_gui_customize.cpp:583
-#: client/scenes/lobby_gui_customize.cpp:789
+#: client/scenes/lobby_gui_customize.cpp:465
+#: client/scenes/lobby_gui_customize.cpp:624
 #, c++-format
 msgid "HTTP error {} when downloading {}"
 msgstr "Ошибка HTTP {} во время загрузки {}"
 
-#: client/scenes/lobby_gui_customize.cpp:591
-#: client/scenes/lobby_gui_customize.cpp:797
+#: client/scenes/lobby_gui_customize.cpp:467
+#: client/scenes/lobby_gui_customize.cpp:632
 #, c++-format
 msgid ""
 "Curl error when downloading {}\n"
@@ -600,186 +969,317 @@ msgstr ""
 "Ошибка curl во время загрузки {}\n"
 "{}: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:652
+#: client/scenes/lobby_gui_customize.cpp:503
+msgid "This feature is not supported by your headset"
+msgstr "Эта функция не поддерживается вашим шлемом"
+
+#: client/scenes/lobby_gui_customize.cpp:509
 #, c++-format
-msgid "Really delete {}?"
-msgstr "Точно удалить {}?"
+msgctxt "confirmation message"
+msgid "Permanently delete {}?"
+msgstr ""
 
-#: client/scenes/lobby_gui_customize.cpp:656
-msgid "Delete"
-msgstr "Удалить"
+#: client/scenes/lobby_gui_customize.cpp:510
+msgctxt "confirmation messagebox title"
+msgid "Delete environment"
+msgstr ""
 
-#: client/scenes/lobby_gui_customize.cpp:737
+#: client/scenes/lobby_gui_customize.cpp:572
 #, c++-format
 msgid "Cannot load environment: {}"
 msgstr "Не удалось загрузить окружение: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:745
+#: client/scenes/lobby_gui_customize.cpp:580
 msgid "Loading environment"
 msgstr "Загрузка окружения"
 
-#: client/scenes/lobby_gui_customize.cpp:824
-msgid "Download more environments"
-msgstr "Скачать больше окружений"
+#: client/scenes/lobby_gui_customize.cpp:651
+msgctxt "page header title"
+msgid "Environment"
+msgstr ""
 
-#: client/scenes/lobby_gui_customize.cpp:832
+#: client/scenes/lobby_gui_customize.cpp:651
+msgctxt "page header subtitle"
+msgid "Choose the environment your panels float in."
+msgstr ""
+
+#: client/scenes/lobby_gui_customize.cpp:664
+msgctxt "button label to browse environments to download"
+msgid "Browse"
+msgstr ""
+
+#: client/scenes/lobby_gui_customize.cpp:667
+msgctxt "button label to open an environment from a local gltf file"
+msgid "Open"
+msgstr ""
+
+#: client/scenes/lobby_gui_customize.cpp:672
+msgid "Get more environments"
+msgstr ""
+
+#: client/scenes/lobby_gui_customize.cpp:672
+msgid "Download community-made spaces."
+msgstr ""
+
+#: client/scenes/lobby_gui_customize.cpp:681
 msgid "Open local glTF model"
 msgstr "Открыть локальную glTF модель"
 
-#: client/scenes/stream_gui.cpp:174
+#: client/scenes/lobby_gui_customize.cpp:681
+msgid "Open a local glTF file saved on your headset."
+msgstr ""
+
+#: client/scenes/lobby_gui_customize.cpp:693
+msgctxt "popup window title"
+msgid "Browse environments"
+msgstr ""
+
+#: client/scenes/lobby_gui_customize.cpp:734
+msgctxt "button label to re-deownload the environment list"
+msgid "Refresh"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:72
+msgctxt "page header title"
+msgid "Theme"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:72
+msgctxt "page header subtitle"
+msgid "Accent color, palette and sizing of the interface."
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:80
+msgctxt "setting name"
+msgid "Accent color"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:113
+msgctxt "setting name"
+msgid "Preset"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:113
+msgctxt "setting description"
+msgid "Surface and background palette"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:114
+msgid "Theme preset"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:133
+msgctxt "setting label"
+msgid "Rounding"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:133
+msgctxt "setting description"
+msgid "Corner radius of controls"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:145
+msgctxt "setting label"
+msgid "Card rounding"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:145
+msgctxt "setting description"
+msgid "Corner radius of panels"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:158
+msgctxt "setting name"
+msgid "Text size"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:158
+msgctxt "setting description"
+msgid "Global font scale"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:171
+msgctxt "setting name"
+msgid "Panel opacity"
+msgstr ""
+
+#: client/scenes/lobby_gui_theme.cpp:171
+msgctxt "setting description"
+msgid "Opacity of the panel and card backgrounds"
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:181
 msgid "Defoveate"
 msgstr "Дефовеация"
 
-#: client/scenes/stream_gui.cpp:176
+#: client/scenes/stream_gui.cpp:183
 msgid "Network"
 msgstr "Сеть"
 
-#: client/scenes/stream_gui.cpp:176 client/scenes/stream_gui.cpp:368
+#: client/scenes/stream_gui.cpp:183 client/scenes/stream_gui.cpp:375
 msgid "Download"
 msgstr "Загрузка"
 
-#: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:369
+#: client/scenes/stream_gui.cpp:184 client/scenes/stream_gui.cpp:376
 msgid "Upload"
 msgstr "Выгрузка"
 
-#: client/scenes/stream_gui.cpp:246
+#: client/scenes/stream_gui.cpp:253
 #, c++-format
 msgid "Decoder {}"
 msgstr "Декодер {}"
 
-#: client/scenes/stream_gui.cpp:258
+#: client/scenes/stream_gui.cpp:265
 msgid "Timings [ms]"
 msgstr "Тайминги [мс]"
 
-#: client/scenes/stream_gui.cpp:318
+#: client/scenes/stream_gui.cpp:325
 msgid "Encode"
 msgstr "Кодирование"
 
-#: client/scenes/stream_gui.cpp:319
+#: client/scenes/stream_gui.cpp:326
 msgid "Send"
 msgstr "Отправка"
 
-#: client/scenes/stream_gui.cpp:320
+#: client/scenes/stream_gui.cpp:327
 msgid "Receive"
 msgstr "Получение"
 
-#: client/scenes/stream_gui.cpp:321
+#: client/scenes/stream_gui.cpp:328
 msgid "Decode"
 msgstr "Декодирование"
 
-#: client/scenes/stream_gui.cpp:322
+#: client/scenes/stream_gui.cpp:329
 msgid "Blitted"
 msgstr "Блиттированное"
 
-#: client/scenes/stream_gui.cpp:323
+#: client/scenes/stream_gui.cpp:330
 msgid "Displayed"
 msgstr "Отображенное"
 
-#: client/scenes/stream_gui.cpp:324
+#: client/scenes/stream_gui.cpp:331
 msgid "Predicted"
 msgstr "Прогнозируемое"
 
-#: client/scenes/stream_gui.cpp:343
+#: client/scenes/stream_gui.cpp:350
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "Расчетная задержка от движения к фотонам: {}мс"
 
-#: client/scenes/stream_gui.cpp:348
+#: client/scenes/stream_gui.cpp:355
 msgid "Press the grip button to move the window"
 msgstr "Нажмите кнопку захвата чтобы передвинуть окно"
 
-#: client/scenes/stream_gui.cpp:350 client/scenes/stream_gui.cpp:918
+#: client/scenes/stream_gui.cpp:357 client/scenes/stream_gui.cpp:613
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "Нажмите оба джойстика чтобы показать окно WiVRn"
 
-#: client/scenes/stream_gui.cpp:372
+#: client/scenes/stream_gui.cpp:379
 msgid "Motion to photon latency"
 msgstr "Задержка от движения к фотонам"
 
-#: client/scenes/stream_gui.cpp:458
-msgid "Bitrate:"
-msgstr "Битрейт:"
-
-#: client/scenes/stream_gui.cpp:468
-msgid "Click to adjust bitrate"
-msgstr "Нажмите чтобы настроить битрейт"
-
-#: client/scenes/stream_gui.cpp:531
-msgid "Foveation center override"
-msgstr "Переопределение центра фовеации"
-
-#: client/scenes/stream_gui.cpp:534
-msgid "Enable"
-msgstr "Включить"
-
-#: client/scenes/stream_gui.cpp:542 client/scenes/stream_gui.cpp:614
-#, c++-format
-msgid "Height {:.1f} deg"
-msgstr "Высота {:.1f} градусов"
-
-#: client/scenes/stream_gui.cpp:543 client/scenes/stream_gui.cpp:615
-#, c++-format
-msgid "Distance {:.2f} m"
-msgstr "Расстояние {:.2f} м"
-
-#: client/scenes/stream_gui.cpp:544
-msgid "Default"
-msgstr "По умолчанию"
-
-#: client/scenes/stream_gui.cpp:555
-msgid "Change"
-msgstr "Изменить"
-
-#: client/scenes/stream_gui.cpp:588
+#: client/scenes/stream_gui.cpp:454
 msgid "Use the right thumbstick to adjust the bitrate"
 msgstr "Используйте правый джойстик для настройки битрейта"
 
-#: client/scenes/stream_gui.cpp:589
+#: client/scenes/stream_gui.cpp:455
 msgid "Press A to go back"
 msgstr "Нажмите A чтобы вернуться назад"
 
-#: client/scenes/stream_gui.cpp:590
+#: client/scenes/stream_gui.cpp:456
 #, c++-format
 msgid "Bitrate: {}Mbit/s"
 msgstr "Битрейт: {}МБит/с"
 
-#: client/scenes/stream_gui.cpp:612
+#: client/scenes/stream_gui.cpp:478
 msgid "Use the thumbsticks to move the foveation center"
 msgstr "Используйте джойстики чтобы передвинуть центр фовеации"
 
-#: client/scenes/stream_gui.cpp:613
+#: client/scenes/stream_gui.cpp:479
 msgid "Press A to save or B to cancel"
 msgstr "Нажмите A чтобы сохранить или B чтобы отменить"
 
-#: client/scenes/stream_gui.cpp:671
-msgid "Running XR applications:"
-msgstr "Запущенные XR приложения:"
+#: client/scenes/stream_gui.cpp:480
+#, c++-format
+msgid "Height {:.1f} °"
+msgstr "Высота {:.1f} градусов"
 
-#: client/scenes/stream_gui.cpp:688
-msgid "Overlays"
-msgstr "Оверлеи"
+#: client/scenes/stream_gui.cpp:481
+#, c++-format
+msgid "Distance {:.2f} m"
+msgstr "Расстояние {:.2f} м"
 
-#: client/scenes/stream_gui.cpp:727
-msgid "Request to quit, may be ignored by the application"
-msgstr "Запрос на выход, может быть проигнорирован приложением"
-
-#: client/scenes/stream_gui.cpp:977
+#: client/scenes/stream_gui.cpp:534
+#, fuzzy
+msgctxt "page header title"
 msgid "Applications"
 msgstr "Приложения"
 
-#: client/scenes/stream_gui.cpp:980
+#: client/scenes/stream_gui.cpp:534
+msgctxt "page header subtitle"
+msgid "Running XR applications on the server."
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:545
+msgctxt "button label to ask an application to quit"
+msgid "Stop"
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:547
+msgctxt "chip displayed next to a running application while streaming"
+msgid "Active"
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:556
+msgid "No XR application is currently running."
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:568
+msgid "Overlays"
+msgstr "Оверлеи"
+
+#: client/scenes/stream_gui.cpp:587
+msgid "Request to quit, may be ignored by the application"
+msgstr "Запрос на выход, может быть проигнорирован приложением"
+
+#: client/scenes/stream_gui.cpp:870 client/scenes/stream_gui.cpp:965
+msgid "Statistics"
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:870
+msgid "Live streaming performance."
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:946
+msgid "Disconnect from the server and return to the lobby?"
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:952
+msgctxt "tab group"
+msgid "STREAM"
+msgstr ""
+
+#: client/scenes/stream_gui.cpp:953
+#, fuzzy
+msgctxt "tab label"
+msgid "Applications"
+msgstr "Приложения"
+
+#: client/scenes/stream_gui.cpp:955
+#, fuzzy
+msgctxt "tab label"
 msgid "Start"
 msgstr "Запустить"
 
-#: client/scenes/stream_gui.cpp:993
-msgid "Stats"
-msgstr "Метрики"
-
-#: client/scenes/stream_gui.cpp:999
+#: client/scenes/stream_gui.cpp:985
+#, fuzzy
+msgctxt "tab label"
 msgid "Statistics overlay"
 msgstr "Оверлей метрик"
 
-#: client/scenes/stream_gui.cpp:1002
+#: client/scenes/stream_gui.cpp:987
+#, fuzzy
+msgctxt "tab label"
 msgid "Compact view"
 msgstr "Компактный вид"
 
@@ -798,6 +1298,266 @@ msgstr "Невозможно проверить ПИН"
 #: client/wivrn_client.cpp:182
 msgid "Pairing is disabled on server"
 msgstr "Сопряжение выключено на сервере"
+
+#~ msgid "Connected to WiVRn server"
+#~ msgstr "Подключение к серверу WiVRn установлено"
+
+#~ msgid "Start an application on the server to start streaming."
+#~ msgstr "Запустите приложение на сервере чтобы начать трансляцию."
+
+#~ msgid ""
+#~ "Start an application on your computer or select one to start streaming."
+#~ msgstr ""
+#~ "Запустите приложение на вашем компьютере или выберите его чтобы начать "
+#~ "трансляцию."
+
+#, c++-format
+#~ msgid "Start an application on {} or select one to start streaming."
+#~ msgstr "Запустите приложение на {} или выберите его чтобы начать трансляцию."
+
+#~ msgid ""
+#~ "Start a WiVRn server on your\n"
+#~ "local network"
+#~ msgstr ""
+#~ "Запустите сервер WiVRn в вашей\n"
+#~ "локальной сети"
+
+#~ msgid "Server not available"
+#~ msgstr "Сервер недоступен"
+
+#~ msgid "System language"
+#~ msgstr "Язык системы"
+
+#~ msgctxt "automatic refresh rate"
+#~ msgid "Automatic"
+#~ msgstr "Автоматическая"
+
+#~ msgid ""
+#~ "Select refresh rate based on measured application performance.\n"
+#~ "May cause flicker when a change happens."
+#~ msgstr ""
+#~ "Выбрать частоту обновления, основанную на измеренной производительности приложения.\n"
+#~ "Может вызывать мерцание когда происходит изменение."
+
+#~ msgid "Minimum refresh rate"
+#~ msgstr "Минимальная частота обновления"
+
+#~ msgid "Foveation level"
+#~ msgstr "Уровень фовеации"
+
+#, c-format, c++-format
+#~ msgid "{}%% - {}x{} per eye"
+#~ msgstr "{}%% - {}x{} на каждый глаз"
+
+#, c++-format
+#~ msgid "Resolution larger than {}x{} may not be supported by the headset"
+#~ msgstr "Разрешение больше чем {}x{} может не поддерживаться шлемом"
+
+#, c-format, c++-format
+#~ msgid "{}%%"
+#~ msgstr "{}%%"
+
+#~ msgid ""
+#~ "Higher values focus image quality where you look at,\n"
+#~ "improving latency, power efficiency and quality."
+#~ msgstr ""
+#~ "Значения выше концентрируют качество картинки там, где вы смотрите, что "
+#~ "улучшает задержку, энергоэффективность и качество."
+
+#~ msgid ""
+#~ "Higher values focus image quality at the center,\n"
+#~ "improving latency, power efficiency and quality."
+#~ msgstr ""
+#~ "Значения выше концентрируют качество картинки в центре, что улучшает "
+#~ "задержку, энергоэффективность и качество."
+
+#~ msgctxt "Codec"
+#~ msgid "H.265"
+#~ msgstr "H.265"
+
+#~ msgid "Codec"
+#~ msgstr "Кодек"
+
+#~ msgid "10-bit"
+#~ msgstr "10-бит"
+
+#, c++-format
+#~ msgid "{}Mbit/s"
+#~ msgstr "{}Мбит/с"
+
+#~ msgid "Increase power usage to allow higher resolution and refresh rate"
+#~ msgstr ""
+#~ "Увеличивает энергопотребление, что позволяет достичь более высокого "
+#~ "разрешения и частоты обновлений"
+
+#~ msgid "Enable microphone"
+#~ msgstr "Включить микрофон"
+
+#~ msgid "Unprocessed Microphone Audio"
+#~ msgstr "Необработанный звук с микрофона"
+
+#~ msgid "Force disable audio filters, such as noise cancellation"
+#~ msgstr "Принудительно отключить звуковые фильтры, такие как шумоподавление"
+
+#~ msgid "Enable hand tracking"
+#~ msgstr "Включить отслеживание рук"
+
+#~ msgid "Enable eye tracking"
+#~ msgstr "Включить отслеживание глаз"
+
+#~ msgid "Enable face tracking"
+#~ msgstr "Включить отслеживание лица"
+
+#~ msgid "Enable body tracking"
+#~ msgstr "Включить отслеживание тела"
+
+#~ msgid ""
+#~ "Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\n"
+#~ "otherwise body data will be guessed from controller and headset positions"
+#~ msgstr ""
+#~ "Требуется чтобы в Quest было включено 'Отслеживание рук и тела' в настройках отслеживания движений,\n"
+#~ "иначе данные тела будут угаданы из положения контроллера и шлема"
+
+#~ msgid "Enable lower body tracking"
+#~ msgstr "Включить отслеживание нижней части тела"
+
+#~ msgid ""
+#~ "Estimate lower body joint positions using Generative Legs\n"
+#~ "Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"
+#~ msgstr ""
+#~ "Оценить положение суставов нижней части тела используя Генеративные Ноги\n"
+#~ "Требуется чтобы в Quest было включено 'Отслеживание рук и тела' в настройках отслеживания движений"
+
+#~ msgid "Enable hip tracking"
+#~ msgstr "Включить отслеживание бедер"
+
+#~ msgid ""
+#~ "Only takes affect with lower body tracking enabled\n"
+#~ "May be desired when using another source of hip tracking"
+#~ msgstr ""
+#~ "Вступает в силу только с включенным отслеживанием нижней части тела\n"
+#~ "Может пригодится когда используется другой источник отслеживания бедер"
+
+#~ msgid "Enable in-stream window"
+#~ msgstr "Включить окно во время трансляции"
+
+#~ msgid ""
+#~ "Enables the configuration window to be shown while the game is streaming.\n"
+#~ "If enabled, the window is activated by pressing both thumbsticks."
+#~ msgstr ""
+#~ "Позволяет отображать окно конфигурации во время трансляции игры.\n"
+#~ "Если включено, окно активируется нажатием обоих джойстиков."
+
+#~ msgid "Extended configuration values"
+#~ msgstr "Расширенные значения настроек"
+
+#~ msgid "OpenXR post-processing"
+#~ msgstr "OpenXR постобработка"
+
+#~ msgid ""
+#~ "Reduce flicker for high contrast edges.\n"
+#~ "Useful when the input resolution is high compared to the headset display"
+#~ msgstr ""
+#~ "Уменьшает мерцание для высококонтрастных границ.\n"
+#~ "Полезно когда входное разрешение высокое по сравнение с экраном шлема"
+
+#~ msgid ""
+#~ "Improve clarity of high contrast edges and counteract blur.\n"
+#~ "Useful when the input resolution is low compared to the headset display"
+#~ msgstr ""
+#~ "Улучшить четкость высококонтрастных границ и противодействовать размытию.\n"
+#~ "Полезно когда входное разрешение низкое по сравнение с экраном шлема"
+
+#~ msgid "Microphone is enabled"
+#~ msgstr "Микрофон включен"
+
+#~ msgid "Microphone is disabled"
+#~ msgstr "Микрофон выключен"
+
+#~ msgid "Hand tracking is enabled"
+#~ msgstr "Отслеживание рук включено"
+
+#~ msgid "Hand tracking is disabled"
+#~ msgstr "Отслеживание рук выключено"
+
+#~ msgid "Eye tracking is enabled"
+#~ msgstr "Отслеживание глаз включено"
+
+#~ msgid "Eye tracking is disabled"
+#~ msgstr "Отслеживание глаз выключено"
+
+#~ msgid "Face tracking is enabled"
+#~ msgstr "Отслеживание лица включено"
+
+#~ msgid "Face tracking is disabled"
+#~ msgstr "Отслеживание лица выключено"
+
+#~ msgid "Body tracking is enabled"
+#~ msgstr "Отслеживание тела включено"
+
+#~ msgid "Body tracking is disabled"
+#~ msgstr "Отслеживание тела выключено"
+
+#~ msgid "Server list"
+#~ msgstr "Список серверов"
+
+#~ msgid "Settings"
+#~ msgstr "Настройки"
+
+#~ msgid "Customize"
+#~ msgstr "Настроить"
+
+#~ msgid "Debug"
+#~ msgstr "Отладка"
+
+#~ msgid "About"
+#~ msgstr "О приложении"
+
+#~ msgid "Exit"
+#~ msgstr "Выйти"
+
+#, c++-format
+#~ msgid "Really delete {}?"
+#~ msgstr "Точно удалить {}?"
+
+#~ msgid "Download more environments"
+#~ msgstr "Скачать больше окружений"
+
+#~ msgid "Bitrate:"
+#~ msgstr "Битрейт:"
+
+#~ msgid "Click to adjust bitrate"
+#~ msgstr "Нажмите чтобы настроить битрейт"
+
+#~ msgid "Foveation center override"
+#~ msgstr "Переопределение центра фовеации"
+
+#~ msgid "Enable"
+#~ msgstr "Включить"
+
+#~ msgid "Default"
+#~ msgstr "По умолчанию"
+
+#~ msgid "Change"
+#~ msgstr "Изменить"
+
+#~ msgid "Running XR applications:"
+#~ msgstr "Запущенные XR приложения:"
+
+#~ msgid "Applications"
+#~ msgstr "Приложения"
+
+#~ msgid "Start"
+#~ msgstr "Запустить"
+
+#~ msgid "Stats"
+#~ msgstr "Метрики"
+
+#~ msgid "Statistics overlay"
+#~ msgstr "Оверлей метрик"
+
+#~ msgid "Compact view"
+#~ msgstr "Компактный вид"
 
 #~ msgid "Resolution scale"
 #~ msgstr "Масштаб разрешения"

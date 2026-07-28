@@ -121,24 +121,19 @@ static glm::quat compute_gui_orientation(glm::vec3 head_position, glm::vec3 new_
 
 void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
+	using constants::gui::popup_position;
 	using constants::lobby::keyboard_pitch;
 	using constants::lobby::keyboard_position;
-	using constants::lobby::popup_position;
 
 	auto q = compute_gui_orientation(head_position, new_gui_position);
-	auto M = glm::mat3_cast(q); // plane-to-world transform
 
 	// Main window
 	imgui_ctx->layers()[0].position = new_gui_position;
 	imgui_ctx->layers()[0].orientation = q;
 
-	// Popup
-	imgui_ctx->layers()[1].position = new_gui_position + M * popup_position;
-	imgui_ctx->layers()[1].orientation = q;
-
-	// Keyboard
-	imgui_ctx->layers()[2].position = new_gui_position + M * keyboard_position;
-	imgui_ctx->layers()[2].orientation = q * glm::quat(cos(keyboard_pitch / 2), sin(keyboard_pitch / 2), 0, 0);
+	// Popup and keyboard track the main window
+	imgui_ctx->place_layer_relative(1, 0, popup_position);
+	imgui_ctx->place_layer_relative(2, 0, keyboard_position, glm::quat(cos(keyboard_pitch / 2), sin(keyboard_pitch / 2), 0, 0));
 }
 
 scenes::lobby::lobby() :
@@ -169,6 +164,8 @@ scenes::lobby::lobby() :
 	}
 
 	keyboard.set_layout(config.virtual_keyboard_layout);
+
+	apply_theme_settings();
 
 	if (config.first_run)
 		current_tab = tab::first_run;
@@ -1066,20 +1063,14 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	if (composition_layer_depth_test_supported)
 		set_depth_test(true, XR_COMPARE_OP_ALWAYS_FB);
 
-	bool dim_gui = imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported;
 	for (auto & [z_index, layer]: imgui_layers)
 	{
 		if (z_index < constants::lobby::zindex_recenter_tip)
 		{
 			add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
 
-			if (dim_gui)
-				set_color_scale_bias(constants::lobby::dimming_scale, constants::lobby::dimming_bias);
-
 			if (composition_layer_depth_test_supported)
 				set_depth_test(true, XR_COMPARE_OP_LESS_OR_EQUAL_FB);
-
-			dim_gui = false; // Only dim the main window
 		}
 	}
 
@@ -1131,7 +1122,7 @@ void scenes::lobby::on_focused()
 	catch (std::exception & e)
 	{
 		spdlog::warn("Cannot load environment from {}: {}, reverting to default", config.environment_model, e.what());
-		config.environment_model = configuration{}.environment_model;
+		config.environment_model = application::get_default_config().environment_model;
 		lobby_entity = add_gltf(config.environment_model, layer_lobby).first;
 		config.save();
 	}
@@ -1332,7 +1323,7 @@ void scenes::lobby::on_focused()
 	                .gltf_url = "default",
 	                .builtin = true,
 	                .override_order = -1,
-	                .local_gltf_path = configuration{}.environment_model,
+	                .local_gltf_path = application::get_default_config().environment_model,
 	                .screenshot = imgui_ctx->load_texture("assets://default-environment.ktx2")});
 
 	std::ranges::sort(local_environments, std::less{});

@@ -226,6 +226,9 @@ public:
 		return layers_;
 	}
 
+	// place a satellite layer at base orientation (optionally post-rotated), offset in the base's local frame
+	void place_layer_relative(size_t layer, size_t base, glm::vec3 offset, glm::quat extra_rotation = glm::quat(1, 0, 0, 0));
+
 	std::vector<window_viewport> windows();
 
 	viewport & layer(ImVec2 position);
@@ -246,12 +249,11 @@ public:
 
 	void set_current();
 
-	bool is_modal_popup_shown() const;
-
 	void vibrate_on_hover();
 	void set_hovered_item();
 	void set_controllers_enabled(bool value);
-	void tooltip(std::string_view text);
+	// anchor, if set, positions the tooltip above that display point instead of above the last item's rect
+	void tooltip(std::string_view text, std::optional<ImVec2> anchor = std::nullopt);
 	std::array<bool, 2> is_aim_interaction() const
 	{
 		return {aim_interaction[0] == 1, aim_interaction[1] == 1};
@@ -263,16 +265,3 @@ void ScrollWhenDragging();
 void CenterTextH(const std::string & text);
 
 void CenterTextHV(const std::string & text);
-
-void InputText(const char * label, std::string & text, const ImVec2 & size, ImGuiInputTextFlags flags);
-
-bool RadioButtonWithoutCheckBox(const std::string & label, bool active, ImVec2 size_arg);
-
-template <typename T, typename U>
-static bool RadioButtonWithoutCheckBox(const std::string & label, T & v, U v_button, ImVec2 size_arg)
-{
-	const bool pressed = RadioButtonWithoutCheckBox(label, v == v_button, size_arg);
-	if (pressed)
-		v = v_button;
-	return pressed;
-}

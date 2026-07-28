@@ -516,18 +516,18 @@ void scenes::stream::on_focused()
 	                .vp_size = {1800, 1000},
 	        },
 	        {
-	                // Popup window
-	                .space = xr::spaces::world,
-	                .size = {1.2, 0.6666},
-	                .vp_origin = {1800, 0},
-	                .vp_size = {1800, 1000},
-	        },
-	        {
 	                .space = xr::spaces::world,
 	                .size = {1.2, 0.1333},
 	                .vp_origin = {0, 1000},
 	                .vp_size = {1800, 200},
 	                .tooltip_viewport = true,
+	        },
+	        {
+	                // popup window for combos and modals, tracks the main panel each frame at the same pixel density
+	                .space = xr::spaces::world,
+	                .size = {1.2, 0.6666},
+	                .vp_origin = {1800, 0},
+	                .vp_size = {1800, 1000},
 	        },
 	};
 
@@ -540,11 +540,26 @@ void scenes::stream::on_focused()
 	                  std::move(vps),
 	                  image_cache);
 
-	if (application::get_config().enable_stream_gui)
+	// match the lobby's seasonal wordmark logo
 	{
-		plots_toggle_1 = get_action("plots_toggle_1").first;
-		plots_toggle_2 = get_action("plots_toggle_2").first;
+		auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		auto tm = std::localtime(&t);
+		switch (tm->tm_mon)
+		{
+			case 5:
+				wivrn_logo = imgui_ctx->load_texture("assets://wivrn-pride.ktx2");
+				break;
+			case 11:
+				wivrn_logo = imgui_ctx->load_texture("assets://wivrn-christmas.ktx2");
+				break;
+			default:
+				wivrn_logo = imgui_ctx->load_texture("assets://wivrn.ktx2");
+				break;
+		}
 	}
+
+	plots_toggle_1 = get_action("plots_toggle_1").first;
+	plots_toggle_2 = get_action("plots_toggle_2").first;
 	recenter_left = get_action("recenter_left").first;
 	recenter_right = get_action("recenter_right").first;
 	gui_distance_left = get_action("gui_distance_left").first;
@@ -787,7 +802,6 @@ bool scenes::stream::is_interactable(stream_tab tab)
 	{
 		case stream_tab::stats:
 		case stream_tab::settings:
-		case stream_tab::bitrate_settings:
 		case stream_tab::foveation_settings:
 		case stream_tab::applications:
 		case stream_tab::application_launcher:
@@ -1010,7 +1024,6 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		switch (gui_status)
 		{
 			case stream_tab::hidden:
-			case stream_tab::bitrate_settings:
 			case stream_tab::foveation_settings:
 			case stream_tab::compact:
 			case stream_tab::overlay_only:
@@ -1156,7 +1169,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	read_actions();
 
-	if (plots_toggle_1 and plots_toggle_2)
+	if (application::get_config().enable_stream_gui)
 	{
 		XrActionStateGetInfo get_info{
 		        .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -1171,7 +1184,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
 		{
-			// Arbitraty transitions can happen from network commands
+			// Arbitrary transitions can happen from network commands
 			// Ensure we can't have a set of 2 non interactable states
 			if (is_gui_interactable())
 				next_gui_status = stream_tab::hidden;

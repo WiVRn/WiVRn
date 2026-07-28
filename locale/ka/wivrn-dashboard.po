@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-16 15:49+0200\n"
+"POT-Creation-Date: 2026-07-11 14:46+0200\n"
 "PO-Revision-Date: 2026-07-01 16:04+0200\n"
 "Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <(nothing)>\n"
@@ -548,19 +548,19 @@ msgstr "სისტემის კონფიგურაციის შე�
 
 #: dashboard/qml/SettingsPage.qml:114
 #, kde-format
-msgid "Forward keyboard & mouse from headset"
-msgstr "კლავიატურისა და თაგუნას გადამისამართება ყურსასმენიდან"
+msgid "Expose forwarded input devices via uinput"
+msgstr ""
 
 #: dashboard/qml/SettingsPage.qml:117
 #, kde-format
 msgid ""
-"Keyboard and mouse connected to the client will act as if connected to the "
-"server. Client OS may reserve specific keys and combinations, which cannot "
-"be forwarded."
+"Replicate mouse, keyboard and gamepad connected to the headset as virtual "
+"devices on PC.\n"
+"Replicated devices will appear as if they were plugged to the PC, some keys "
+"may be reserved by the headset OS and not be available. Gamepad is also "
+"available without virtual devices for applications that access it through "
+"OpenXR."
 msgstr ""
-"კლავიატურა და თაგუნა დაკავშირებულია კლიენტთან ისე თითქოს, ისინი სერვერზეა "
-"მიერთებული. კლიენტ ოს-ს შეუძლია, მიიღოს სპეფიციკური ღილაკები და "
-"კომბინაციები, რომლების გადამისამართებაც შეუძლებელია."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -983,3 +983,17 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid "Forward keyboard & mouse from headset"
+#~ msgstr "კლავიატურისა და თაგუნას გადამისამართება ყურსასმენიდან"
+
+#, kde-format
+#~ msgid ""
+#~ "Keyboard and mouse connected to the client will act as if connected to "
+#~ "the server. Client OS may reserve specific keys and combinations, which "
+#~ "cannot be forwarded."
+#~ msgstr ""
+#~ "კლავიატურა და თაგუნა დაკავშირებულია კლიენტთან ისე თითქოს, ისინი სერვერზეა "
+#~ "მიერთებული. კლიენტ ოს-ს შეუძლია, მიიღოს სპეფიციკური ღილაკები და "
+#~ "კომბინაციები, რომლების გადამისამართებაც შეუძლებელია."

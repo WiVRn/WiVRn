@@ -56,6 +56,7 @@ class lobby : public scene_impl<lobby>
 	int add_server_window_port = wivrn::default_port;
 	bool add_server_tcp_only = false;
 	std::string add_server_cookie;
+	std::string delete_server_cookie; // server pending a delete confirmation
 
 	utils::future<std::unique_ptr<wivrn_session>, std::string> async_session;
 	std::optional<std::string> async_error;
@@ -118,9 +119,15 @@ class lobby : public scene_impl<lobby>
 	{
 		first_run,
 		server_list,
-		settings,
+		video,
+		audio,
+		streaming,
 		post_processing,
+		devices,
+		tracking,
+		system,
 		customize,
+		theme,
 #if WIVRN_CLIENT_DEBUG_MENU
 		debug,
 #endif
@@ -217,16 +224,22 @@ class lobby : public scene_impl<lobby>
 	std::pair<entt::entity, int> debug_primitive_to_highlight = {entt::null, 0};
 #endif
 
-	void draw_features_status(XrTime predicted_display_time);
 	void gui_connecting(locked_notifiable<pin_request_data> & request);
 	void gui_enter_pin(locked_notifiable<pin_request_data> & request);
 	void gui_connected(XrTime predicted_display_time);
 	void gui_disconnected();
 	void gui_server_list();
 	void gui_new_server();
-	void gui_settings();
+	void gui_video();
+	void gui_streaming();
+	void gui_audio();
+	void gui_devices();
+	void gui_tracking();
+	void gui_system();
 	void gui_post_processing();
 	void gui_customize(XrTime predicted_display_time);
+	void gui_theme();
+	void apply_theme_settings(); // push the saved theme config into the global theme
 	void gui_debug_node_hierarchy(entt::entity root = entt::null);
 	void gui_debug();
 	void gui_about();
