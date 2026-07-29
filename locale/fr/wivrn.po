@@ -17,11 +17,6 @@ msgstr ""
 "X-Generator: Lokalize 26.04.3\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: client/render/ui_theme.cpp:35
-msgctxt "theme name"
-msgid "Dark"
-msgstr "Sombre"
-
 #: client/render/ui_theme.cpp:71
 msgctxt "theme name"
 msgid "Midnight"
