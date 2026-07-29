@@ -35,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("--github-repository")
     parser.add_argument("--github-token")
     parser.add_argument("--manage-issues", action="store_true")
+    parser.add_argument("--fail-on", default="")
 
     args = parser.parse_args()
 
@@ -115,7 +116,8 @@ if __name__ == "__main__":
                         lang_issues[po].append(repr(i.msgid))
 
                 if missing > 0:
-                    print(f"::warning file={po}::{lang} {missing} translations missing")
+                    level = "error" if po in args.fail_on else "warning"
+                    print(f"::{level} file={po}::{lang} {missing} translations missing")
 
             if args.manage_issues:
                 issues = [
