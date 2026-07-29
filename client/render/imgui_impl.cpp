@@ -536,8 +536,8 @@ void imgui_context::initialize_fonts()
 		}
 	}
 
-	utils::mapped_file font_awesome_regular("assets://Font Awesome 6 Free-Regular-400.otf");
-	utils::mapped_file font_awesome_solid("assets://Font Awesome 6 Free-Solid-900.otf");
+	font_awesome_regular = utils::mapped_file("assets://Font Awesome 6 Free-Regular-400.otf");
+	font_awesome_solid = utils::mapped_file("assets://Font Awesome 6 Free-Solid-900.otf");
 
 	ImFontConfig config;
 	config.FontDataOwnedByAtlas = false;
