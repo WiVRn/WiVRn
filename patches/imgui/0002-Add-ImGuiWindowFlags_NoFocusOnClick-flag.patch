@@ -1,4 +1,4 @@
-From a5e267b54a8724f69bcebe23e669edfee63121e3 Mon Sep 17 00:00:00 2001
+From e5614d9ebd5a68c9ff1e76be9348c073d0a3aa2b Mon Sep 17 00:00:00 2001
 From: Guillaume Meunier <guillaume.meunier@centraliens.net>
 Date: Tue, 22 Oct 2024 15:09:14 +0200
 Subject: [PATCH 2/2] Add ImGuiWindowFlags_NoFocusOnClick flag
@@ -9,10 +9,10 @@ Subject: [PATCH 2/2] Add ImGuiWindowFlags_NoFocusOnClick flag
  2 files changed, 4 insertions(+)
 
 diff --git a/imgui.cpp b/imgui.cpp
-index 6a914bc3c..a5d45bc63 100644
+index 7ab41be89..def02c2a8 100644
 --- a/imgui.cpp
 +++ b/imgui.cpp
-@@ -5285,6 +5285,9 @@ void ImGui::UpdateMouseMovingWindowEndFrame()
+@@ -5326,6 +5326,9 @@ void ImGui::UpdateMouseMovingWindowEndFrame()
          // Handle the edge case of a popup being closed while clicking in its empty space.
          // If we try to focus it, FocusWindow() > ClosePopupsOverWindow() will accidentally close any parent popups because they are not linked together any more.
          ImGuiWindow* hovered_root = hovered_window ? hovered_window->RootWindow : NULL;
@@ -23,10 +23,10 @@ index 6a914bc3c..a5d45bc63 100644
  
          if (hovered_window != NULL && !is_closed_popup)
 diff --git a/imgui.h b/imgui.h
-index af1cb686d..cfaaec47b 100644
+index cae851232..fe887a1b2 100644
 --- a/imgui.h
 +++ b/imgui.h
-@@ -1182,6 +1182,7 @@ enum ImGuiWindowFlags_
+@@ -1185,6 +1185,7 @@ enum ImGuiWindowFlags_
      ImGuiWindowFlags_NoNavInputs            = 1 << 16,  // No keyboard/gamepad navigation within the window
      ImGuiWindowFlags_NoNavFocus             = 1 << 17,  // No focusing toward this window with keyboard/gamepad navigation (e.g. skipped by Ctrl+Tab)
      ImGuiWindowFlags_UnsavedDocument        = 1 << 18,  // Display a dot next to the title. When used in a tab/docking context, tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
