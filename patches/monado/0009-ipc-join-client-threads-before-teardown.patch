@@ -1,7 +1,7 @@
-From a149552933bda15ffab81460f38dbe90abd0dfe0 Mon Sep 17 00:00:00 2001
+From 3f4451bf117b197b0177844f8fa818a838ebf965 Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Sun, 28 Jun 2026 11:36:08 -0600
-Subject: [PATCH] ipc: join client threads before teardown
+Subject: [PATCH 9/9] ipc: join client threads before teardown
 
 On shutdown main_loop() returns as soon as s->running is cleared, but the
 per-client threads may still be in common_shutdown() destroying their
@@ -14,7 +14,7 @@ multi_compositor_destroy). Join the client threads first.
  1 file changed, 28 insertions(+)
 
 diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
-index caa82d05d..9dfffceaa 100644
+index 4f9a6e2a4..3cad2dab1 100644
 --- a/src/xrt/ipc/server/ipc_server_process.c
 +++ b/src/xrt/ipc/server/ipc_server_process.c
 @@ -163,11 +163,39 @@ print_linux_end_user_started_information(enum u_logging_level log_level)
@@ -58,5 +58,5 @@ index caa82d05d..9dfffceaa 100644
  
  	xrt_space_overseer_destroy(&s->xso);
 -- 
-2.54.0
+2.55.0
 
