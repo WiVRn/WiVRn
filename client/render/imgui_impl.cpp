@@ -183,7 +183,7 @@ static float distance_to_window(ImGuiWindow * window, ImVec2 position)
 static const std::array layout_bindings = {
         vk::DescriptorSetLayoutBinding{
                 .binding = 0,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorType = vk::DescriptorType::eSampledImage,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eFragment,
         }};
@@ -1170,12 +1170,12 @@ imgui_context::~imgui_context()
 	ImGui::DestroyContext(context);
 }
 
-ImTextureID imgui_textures::load_texture(const std::string & filename, vk::raii::Sampler && sampler)
+ImTextureID imgui_textures::load_texture(const std::string & filename)
 {
-	return load_texture(utils::mapped_file{filename}, std::move(sampler), filename);
+	return load_texture(utils::mapped_file{filename}, filename);
 }
 
-ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name)
+ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, const std::string & name)
 {
 	bool srgb = true;
 
@@ -1188,7 +1188,6 @@ ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & byte
 	std::shared_ptr<vk::raii::DescriptorSet> ds = descriptor_pool.allocate();
 
 	vk::DescriptorImageInfo image_info{
-	        .sampler = *sampler,
 	        .imageView = *image->image_view,
 	        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 	};
@@ -1196,7 +1195,7 @@ ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & byte
 	vk::WriteDescriptorSet ds_write{
 	        .dstSet = **ds,
 	        .descriptorCount = 1,
-	        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+	        .descriptorType = vk::DescriptorType::eSampledImage,
 	        .pImageInfo = &image_info};
 
 	device.updateDescriptorSets(ds_write, nullptr);
@@ -1206,49 +1205,11 @@ ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & byte
 	textures.emplace(
 	        id,
 	        texture_data{
-	                .sampler = std::move(sampler),
 	                .image = image,
 	                .descriptor_set = std::move(ds),
 	        });
 
 	return id;
-}
-
-ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, const std::string & name)
-{
-	return load_texture(
-	        bytes,
-	        vk::raii::Sampler{
-	                device,
-	                vk::SamplerCreateInfo{
-	                        .magFilter = vk::Filter::eLinear,
-	                        .minFilter = vk::Filter::eLinear,
-	                        .mipmapMode = vk::SamplerMipmapMode::eLinear,
-	                        .addressModeU = vk::SamplerAddressMode::eClampToEdge,
-	                        .addressModeV = vk::SamplerAddressMode::eClampToEdge,
-	                        .addressModeW = vk::SamplerAddressMode::eClampToEdge,
-	                        .borderColor = vk::BorderColor::eFloatTransparentBlack,
-	                },
-	        },
-	        name);
-}
-
-ImTextureID imgui_textures::load_texture(const std::string & filename)
-{
-	return load_texture(
-	        filename,
-	        vk::raii::Sampler{
-	                device,
-	                vk::SamplerCreateInfo{
-	                        .magFilter = vk::Filter::eLinear,
-	                        .minFilter = vk::Filter::eLinear,
-	                        .mipmapMode = vk::SamplerMipmapMode::eLinear,
-	                        .addressModeU = vk::SamplerAddressMode::eClampToEdge,
-	                        .addressModeV = vk::SamplerAddressMode::eClampToEdge,
-	                        .addressModeW = vk::SamplerAddressMode::eClampToEdge,
-	                        .borderColor = vk::BorderColor::eFloatTransparentBlack,
-	                },
-	        });
 }
 
 void imgui_textures::free_texture(ImTextureID texture)
