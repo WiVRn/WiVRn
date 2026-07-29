@@ -24,6 +24,7 @@
 #include "constants.h"
 #include "gui_common.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "lobby.h"
 #include "render/ui_theme.h"
 #include "render/ui_widgets.h"
@@ -31,7 +32,6 @@
 #include "utils/async.h"
 #include "utils/i18n.h"
 #include "utils/mapped_file.h"
-#include "utils/overloaded.h"
 #if WIVRN_CLIENT_DEBUG_MENU
 #include "utils/ranges.h"
 #endif
@@ -47,7 +47,6 @@
 #include <glm/geometric.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <imspinner.h>
 #include <magic_enum.hpp>
 #include <memory>
 #include <ranges>
