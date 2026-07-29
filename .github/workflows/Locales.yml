@@ -8,9 +8,13 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    - name: Apt dependencies
+      uses: awalsh128/cache-apt-pkgs-action@v1.6.1
+      with:
+        packages: gettext
+
     - name: Install dependencies
       run: |
-        sudo apt-get update && sudo apt-get install gettext
         pip install polib PyGithub
 
     - name: Check that .po files are up to date
