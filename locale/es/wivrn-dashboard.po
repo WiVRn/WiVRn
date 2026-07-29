@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Qt Linguist 6.11.0\n"
+"X-Generator: Qt Linguist 6.11.1\n"
 "X-Language: es_ES\n"
 "X-Source-Language: en_US\n"
 
