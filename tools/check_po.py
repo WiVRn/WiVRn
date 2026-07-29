@@ -4,6 +4,7 @@ import argparse
 import os
 import pathlib
 import subprocess
+import sys
 import tempfile
 
 import polib
@@ -156,4 +157,4 @@ if __name__ == "__main__":
                 else:
                     for issue in issues:
                         issue.edit(state="closed", body="All translations are up to date")
-        exit(return_code)
+        sys.exit(return_code)
