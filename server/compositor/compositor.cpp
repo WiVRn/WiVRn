@@ -596,6 +596,8 @@ xrt_result_t compositor::get_view_config(
 				};
 			}
 			return XRT_SUCCESS;
+		case XRT_VIEW_TYPE_QUAD:
+			return XRT_ERROR_UNSUPPORTED_VIEW_TYPE;
 	}
 	return XRT_ERROR_UNSUPPORTED_VIEW_TYPE;
 }
