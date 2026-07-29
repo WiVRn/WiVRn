@@ -22,7 +22,6 @@
 #include "vk/vk_allocator.h"
 #include <cstdint>
 #include <inplace_vector.hpp>
-#include <mutex>
 #include <pthread.h>
 #include <type_traits>
 #include <vector>
@@ -63,6 +62,7 @@ uint64_t vk_handle(const T & handle)
 
 struct vk_bundle
 {
+	static const uint32_t api_version = VK_API_VERSION_1_3;
 	// Lockable that can be redirected to a pthread_mutex_t owned by monado,
 	// so that all VkQueue submitters take the same lock.
 	class queue_mutex

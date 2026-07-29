@@ -144,7 +144,7 @@ wivrn::vk_bundle::vk_bundle() :
 	vk::ApplicationInfo app_info{
 	        .pApplicationName = "WiVRn server",
 	        .pEngineName = "WiVRn",
-	        .apiVersion = VK_API_VERSION_1_3,
+	        .apiVersion = api_version,
 	};
 	{
 		// Required extensions
