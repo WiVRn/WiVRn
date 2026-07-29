@@ -1,4 +1,4 @@
-From 226a83f9700f711f61217cce5c348a6a2b9a9908 Mon Sep 17 00:00:00 2001
+From 27bc503672721dad26deae568c7938b3998fb16a Mon Sep 17 00:00:00 2001
 From: Guillaume Meunier <guillaume.meunier@centraliens.net>
 Date: Wed, 16 Oct 2024 20:51:52 +0200
 Subject: [PATCH 1/2] Change ImGui::ButtonBehavior default flags when using
@@ -12,10 +12,10 @@ Subject: [PATCH 1/2] Change ImGui::ButtonBehavior default flags when using
  4 files changed, 14 insertions(+), 2 deletions(-)
 
 diff --git a/imgui.cpp b/imgui.cpp
-index 80720224a..7ab41be89 100644
+index 2edb22be2..e7eb77038 100644
 --- a/imgui.cpp
 +++ b/imgui.cpp
-@@ -10400,7 +10400,7 @@ static const char* GetInputSourceName(ImGuiInputSource source)
+@@ -10470,7 +10470,7 @@ static const char* GetInputSourceName(ImGuiInputSource source)
  }
  static const char* GetMouseSourceName(ImGuiMouseSource source)
  {
@@ -25,10 +25,10 @@ index 80720224a..7ab41be89 100644
      if (source < 0 || source >= ImGuiMouseSource_COUNT)
          return "Unknown";
 diff --git a/imgui.h b/imgui.h
-index 11e0ff8e7..cae851232 100644
+index 9fdce397d..66a58e1f0 100644
 --- a/imgui.h
 +++ b/imgui.h
-@@ -1984,6 +1984,8 @@ enum ImGuiMouseSource : int
+@@ -1987,6 +1987,8 @@ enum ImGuiMouseSource : int
      ImGuiMouseSource_Mouse = 0,         // Input is coming from an actual mouse.
      ImGuiMouseSource_TouchScreen,       // Input is coming from a touch screen (no hovering prior to initial press, less precise initial press aiming, dual-axis wheeling possible).
      ImGuiMouseSource_Pen,               // Input is coming from a pressure/magnetic pen (often used in conjunction with high-sampling rates).
@@ -38,10 +38,10 @@ index 11e0ff8e7..cae851232 100644
  };
  
 diff --git a/imgui_demo.cpp b/imgui_demo.cpp
-index cd95de76b..b6989294b 100644
+index 7d882f803..35fdd31c9 100644
 --- a/imgui_demo.cpp
 +++ b/imgui_demo.cpp
-@@ -7849,6 +7849,11 @@ static void DemoWindowInputs()
+@@ -7925,6 +7925,11 @@ static void DemoWindowInputs()
              ImGui::Text("Mouse clicked count:");
              for (int i = 0; i < IM_COUNTOF(io.MouseDown); i++) if (io.MouseClickedCount[i] > 0) { ImGui::SameLine(); ImGui::Text("b%d: %d", i, io.MouseClickedCount[i]); }
  
@@ -54,10 +54,10 @@ index cd95de76b..b6989294b 100644
              // displaying the data for old/new backends.
              // User code should never have to go through such hoops!
 diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
-index 23f139c5c..0eb1947a3 100644
+index ea792f9e8..3caee9aad 100644
 --- a/imgui_widgets.cpp
 +++ b/imgui_widgets.cpp
-@@ -557,7 +557,12 @@ bool ImGui::ButtonBehavior(const ImRect& bb, ImGuiID id, bool* out_hovered, bool
+@@ -559,7 +559,12 @@ bool ImGui::ButtonBehavior(const ImRect& bb, ImGuiID id, bool* out_hovered, bool
  
      // Default behavior requires click + release inside bounding box
      if ((flags & ImGuiButtonFlags_PressedOnMask_) == 0)
