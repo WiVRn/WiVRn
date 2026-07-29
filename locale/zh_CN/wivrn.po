@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-28 06:23+0800\n"
-"PO-Revision-Date: 2026-07-29 18:06+0800\n"
+"PO-Revision-Date: 2026-07-29 20:29+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -202,7 +202,6 @@ msgid "Video data rate sent to the headset."
 msgstr "发送到头显的视频码率。"
 
 #: client/scenes/gui_settings.cpp:408
-#, fuzzy
 msgctxt "setting name"
 msgid "Foveation center override"
 msgstr "注视点中心覆盖"
@@ -214,7 +213,6 @@ msgid ""
 msgstr "手动指定画质聚焦区域，用于替代中心或注视点。"
 
 #: client/scenes/gui_settings.cpp:421
-#, fuzzy
 msgctxt "setting name"
 msgid "Foveation center"
 msgstr "注视点中心"
@@ -340,7 +338,6 @@ msgid "Microphone streamed to the PC."
 msgstr "串流至电脑的麦克风。"
 
 #: client/scenes/gui_settings.cpp:541
-#, fuzzy
 msgctxt "setting name"
 msgid "Keyboard"
 msgstr "键盘"
@@ -350,7 +347,6 @@ msgid "Forward the keyboard from the headset to the PC."
 msgstr "将头显键盘输入转发至电脑。"
 
 #: client/scenes/gui_settings.cpp:551
-#, fuzzy
 msgctxt "setting name"
 msgid "Mouse"
 msgstr "鼠标"
@@ -360,10 +356,9 @@ msgid "Forward the mouse from the headset to the PC."
 msgstr "将头显鼠标输入转发至电脑。"
 
 #: client/scenes/gui_settings.cpp:561
-#, fuzzy
 msgctxt "setting name"
 msgid "Gamepad"
-msgstr "手柄"
+msgstr "游戏手柄"
 
 #: client/scenes/gui_settings.cpp:562
 msgid "Forward the gamepad from the headset to the PC."
@@ -501,7 +496,6 @@ msgid "Interface language."
 msgstr "界面语言"
 
 #: client/scenes/gui_settings.cpp:714
-#, fuzzy
 msgctxt "item in the interface language combobox"
 msgid "System language"
 msgstr "系统语言"
@@ -763,9 +757,8 @@ msgid "Incompatible server version"
 msgstr "服务器版本不兼容"
 
 #: client/scenes/lobby_gui.cpp:427
-#, fuzzy
 msgid "Looking for this server on your network"
-msgstr "正在网络中查找此服务端"
+msgstr "正在网络中查找此服务"
 
 #: client/scenes/lobby_gui.cpp:429
 #, fuzzy
@@ -778,31 +771,26 @@ msgid "Autoconnect"
 msgstr "自动连接"
 
 #: client/scenes/lobby_gui.cpp:438
-#, fuzzy
 msgctxt "item in action menu"
 msgid "Edit server"
 msgstr "编辑服务器"
 
 #: client/scenes/lobby_gui.cpp:439
-#, fuzzy
 msgctxt "item in action menu"
 msgid "Delete server"
 msgstr "移除服务器"
 
 #: client/scenes/lobby_gui.cpp:533
-#, fuzzy
 msgctxt "popup window title"
 msgid "Add server"
 msgstr "新增服务器"
 
 #: client/scenes/lobby_gui.cpp:533
-#, fuzzy
 msgctxt "popup window title"
 msgid "Edit server"
 msgstr "编辑服务器"
 
 #: client/scenes/lobby_gui.cpp:545
-#, fuzzy
 msgctxt "confirmation messagebox title"
 msgid "Delete server"
 msgstr "移除服务器"
@@ -926,7 +914,6 @@ msgid "Streaming"
 msgstr "串流"
 
 #: client/scenes/lobby_gui.cpp:1242 client/scenes/stream_gui.cpp:1032
-#, fuzzy
 msgctxt "tab label"
 msgid "Post-processing"
 msgstr "后处理"
@@ -962,25 +949,21 @@ msgid "Theme"
 msgstr "界面主题"
 
 #: client/scenes/lobby_gui.cpp:1257
-#, fuzzy
 msgctxt "tab label"
 msgid "Debug"
 msgstr "Debug"
 
 #: client/scenes/lobby_gui.cpp:1263
-#, fuzzy
 msgctxt "tab label"
 msgid "About"
 msgstr "关于"
 
 #: client/scenes/lobby_gui.cpp:1265
-#, fuzzy
 msgctxt "tab label"
 msgid "Licenses"
 msgstr "许可证"
 
 #: client/scenes/lobby_gui.cpp:1267
-#, fuzzy
 msgctxt "exit button in the lobby"
 msgid "Exit"
 msgstr "退出"
@@ -1224,7 +1207,6 @@ msgid "Distance {:.2f} m"
 msgstr "距离 {:.2f}m"
 
 #: client/scenes/stream_gui.cpp:544
-#, fuzzy
 msgctxt "page header title"
 msgid "Applications"
 msgstr "应用程序"
@@ -1283,25 +1265,21 @@ msgid "STREAM"
 msgstr "流"
 
 #: client/scenes/stream_gui.cpp:1006
-#, fuzzy
 msgctxt "tab label"
 msgid "Applications"
 msgstr "应用程序"
 
 #: client/scenes/stream_gui.cpp:1008
-#, fuzzy
 msgctxt "tab label"
 msgid "Start"
 msgstr "启动"
 
 #: client/scenes/stream_gui.cpp:1040
-#, fuzzy
 msgctxt "tab label"
 msgid "Statistics overlay"
 msgstr "统计数据叠加"
 
 #: client/scenes/stream_gui.cpp:1042
-#, fuzzy
 msgctxt "tab label"
 msgid "Compact view"
 msgstr "概览"
