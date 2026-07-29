@@ -306,6 +306,7 @@ if (WIVRN_BUILD_CLIENT)
 endif()
 
 if (WIVRN_BUILD_SERVER OR WIVRN_BUILD_SERVER_LIBRARY)
+    find_package(Python3 REQUIRED Interpreter)
     add_subdirectory(server)
 
     if (WIVRN_BUILD_SERVER)
