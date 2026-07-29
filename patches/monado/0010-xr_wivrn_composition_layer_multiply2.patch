@@ -1,0 +1,29 @@
+From 18f3761bcd6756a0103a22e21817d8a42c244615 Mon Sep 17 00:00:00 2001
+From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+Date: Wed, 29 Jul 2026 19:34:59 +0900
+Subject: [PATCH 1/1] st/oxr: fix fall-thru if
+ XR_FB_composition_layer_alpha_blend enabled
+
+---
+ src/xrt/state_trackers/oxr/oxr_session_frame_end.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/src/xrt/state_trackers/oxr/oxr_session_frame_end.c b/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
+index a9d5b7beb..5bc5d81fb 100644
+--- a/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
++++ b/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
+@@ -389,10 +389,8 @@ verify_blend_factors(struct oxr_logger *log,
+ 			                 layer_index, alphaBlend->dstFactorAlpha);
+ 		}
+ 	}
+-#else
+-	// Extension isn't enabled, always pass.
+-	return XR_SUCCESS;
+ #endif
++	return XR_SUCCESS;
+ }
+ 
+ static XrResult
+-- 
+2.54.0
+
