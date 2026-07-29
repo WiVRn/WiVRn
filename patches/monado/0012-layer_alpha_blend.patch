@@ -1,0 +1,656 @@
+From 61b5daa5fb125a6427c16f1cab54619a0ef16bca Mon Sep 17 00:00:00 2001
+From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+Date: Sat, 1 Aug 2026 00:51:07 +0900
+Subject: [PATCH 1/1] a/render: implement FB_composition_layer_alpha_blend and
+ MNDX_composition_layer_alpha_blend_system_ui
+
+Signed-off-by: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+---
+ CMakeLists.txt                                |   2 +
+ cmake/MonadoSetOptions.cmake                  |   1 +
+ scripts/mapping.imp                           |   1 +
+ ..._composition_layer_alpha_blend_system_ui.h |  30 +++++
+ src/xrt/auxiliary/render/render_interface.h   |  16 ++-
+ src/xrt/auxiliary/render/shaders/layer.comp   | 110 ++++++++++++++----
+ .../render/shaders/layer_defines.inc.glsl     |   8 ++
+ src/xrt/compositor/util/comp_render_cs.c      |   3 +-
+ src/xrt/compositor/util/comp_render_helpers.h |  20 +++-
+ .../include/xrt/xrt_config_build.h.cmake_in   |   1 +
+ src/xrt/include/xrt/xrt_openxr_includes.h     |   1 +
+ .../oxr_extension_support.py                  |   1 +
+ src/xrt/state_trackers/oxr/oxr_objects.h      |   2 +-
+ .../oxr/oxr_session_frame_end.c               |  48 ++++++--
+ src/xrt/state_trackers/oxr/oxr_system.c       |  18 ++-
+ 15 files changed, 224 insertions(+), 38 deletions(-)
+ create mode 100644 src/external/openxr_includes/openxr/XR_MNDX_composition_layer_alpha_blend_system_ui.h
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c4c06a042..c4bc3c450 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -456,6 +456,7 @@ option(XRT_FEATURE_OPENXR_LAYER_FB_IMAGE_LAYOUT "Enable XR_FB_composition_layer_
+ option(XRT_FEATURE_OPENXR_LAYER_FB_SETTINGS "Enable XR_FB_composition_layer_settings" OFF)
+ option(XRT_FEATURE_OPENXR_LAYER_FB_DEPTH_TEST "Enable XR_FB_composition_layer_depth_test" OFF)
+ option(XRT_FEATURE_OPENXR_LAYER_FB_PASSTHROUGH "Enable XR_FB_passthrough" OFF)
++option(XRT_FEATURE_OPENXR_LAYER_MNDX_ALPHA_BLEND_SYSTEM_UI "Enable XR_MNDX_composition_layer_alpha_blend_system_ui" ON)
+ 
+ # Defaults for OpenXR spaces
+ option(XRT_FEATURE_OPENXR_SPACE_LOCAL_FLOOR "Enable XR_EXT_local_floor" ON)
+@@ -714,6 +715,7 @@ if(XRT_MODULE_OPENXR_STATE_TRACKER)
+ 	message(STATUS "#    FEATURE_OPENXR_LAYER_FB_IMAGE_LAYOUT                   ${XRT_FEATURE_OPENXR_LAYER_FB_IMAGE_LAYOUT}")
+ 	message(STATUS "#    FEATURE_OPENXR_LAYER_FB_PASSTHROUGH:                   ${XRT_FEATURE_OPENXR_LAYER_FB_PASSTHROUGH}")
+ 	message(STATUS "#    FEATURE_OPENXR_LAYER_FB_SETTINGS:                      ${XRT_FEATURE_OPENXR_LAYER_FB_SETTINGS}")
++	message(STATUS "#    FEATURE_OPENXR_LAYER_MNDX_ALPHA_BLEND_SYSTEM_UI:       ${XRT_FEATURE_OPENXR_LAYER_MNDX_ALPHA_BLEND_SYSTEM_UI}")
+ 	message(STATUS "#    FEATURE_OPENXR_OVERLAY:                                ${XRT_FEATURE_OPENXR_OVERLAY}")
+ 	message(STATUS "#    FEATURE_OPENXR_PERFORMANCE_SETTINGS:                   ${XRT_FEATURE_OPENXR_PERFORMANCE_SETTINGS}")
+ 	message(STATUS "#    FEATURE_OPENXR_PLANE_DETECTION:                        ${XRT_FEATURE_OPENXR_PLANE_DETECTION}")
+diff --git a/cmake/MonadoSetOptions.cmake b/cmake/MonadoSetOptions.cmake
+index 8f7fa6f85..d6ad0b97d 100644
+--- a/cmake/MonadoSetOptions.cmake
++++ b/cmake/MonadoSetOptions.cmake
+@@ -156,6 +156,7 @@ function(monado_set_options)
+ 		XRT_FEATURE_OPENXR_LAYER_FB_IMAGE_LAYOUT
+ 		XRT_FEATURE_OPENXR_LAYER_FB_PASSTHROUGH
+ 		XRT_FEATURE_OPENXR_LAYER_FB_SETTINGS
++		XRT_FEATURE_OPENXR_LAYER_MNDX_ALPHA_BLEND_SYSTEM_UI
+ 		XRT_FEATURE_OPENXR_OVERLAY
+ 		XRT_FEATURE_OPENXR_PERFORMANCE_SETTINGS
+ 		XRT_FEATURE_OPENXR_PLANE_DETECTION
+diff --git a/scripts/mapping.imp b/scripts/mapping.imp
+index 15dd5d484..74d99a2bb 100644
+--- a/scripts/mapping.imp
++++ b/scripts/mapping.imp
+@@ -79,6 +79,7 @@
+ { symbol: ["XRT_FEATURE_OPENXR_LAYER_FB_IMAGE_LAYOUT", "public", "\"xrt/xrt_config_build.h\"", "public"] },
+ { symbol: ["XRT_FEATURE_OPENXR_LAYER_FB_SETTINGS", "public", "\"xrt/xrt_config_build.h\"", "public"] },
+ { symbol: ["XRT_FEATURE_OPENXR_LAYER_FB_PASSTHROUGH", "public", "\"xrt/xrt_config_build.h\"", "public"] },
++{ symbol: ["XRT_FEATURE_OPENXR_LAYER_MNDX_ALPHA_BLEND_SYSTEM_UI", "public", "\"xrt/xrt_config_build.h\"", "public"] },
+ { symbol: ["XRT_FEATURE_OPENXR_OVERLAY", "public", "\"xrt/xrt_config_build.h\"", "public"] },
+ { symbol: ["XRT_FEATURE_OPENXR_PLANE_DETECTION", "public", "\"xrt/xrt_config_build.h\"", "public"] },
+ { symbol: ["XRT_FEATURE_OPENXR_USER_PRESENCE", "public", "\"xrt/xrt_config_build.h\"", "public"] },
+diff --git a/src/external/openxr_includes/openxr/XR_MNDX_composition_layer_alpha_blend_system_ui.h b/src/external/openxr_includes/openxr/XR_MNDX_composition_layer_alpha_blend_system_ui.h
+new file mode 100644
+index 000000000..fbc32d260
+--- /dev/null
++++ b/src/external/openxr_includes/openxr/XR_MNDX_composition_layer_alpha_blend_system_ui.h
+@@ -0,0 +1,30 @@
++// Copyright 2026, galister
++// SPDX-License-Identifier: BSL-1.0
++/*!
++ * @file
++ * @brief  Preview header for XR_MNDX_composition_layer_alpha_blend_system_ui extension
++ * @author galister <galister-dev@pm.me>
++ * @ingroup external_openxr
++ */
++
++// This extension works as per revision 2 of XR_FB_composition_layer_alpha_blend_system_ui
++// It is mutually exclusive with XR_FB_composition_layer_alpha_blend_system_ui
++ 
++#ifndef XR_MNDX_COMPOSITION_LAYER_ALPHA_BLEND_SYSTEM_UI_H
++#define XR_MNDX_COMPOSITION_LAYER_ALPHA_BLEND_SYSTEM_UI_H 1
++
++#include <openxr/openxr.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#define XR_MNDX_composition_layer_alpha_blend_system_ui 1
++#define XR_MNDX_composition_layer_alpha_blend_system_ui_SPEC_VERSION 1
++#define XR_MNDX_COMPOSITION_LAYER_ALPHA_BLEND_SYSTEM_UI_EXTENSION_NAME "XR_MNDX_composition_layer_alpha_blend_system_ui"
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git a/src/xrt/auxiliary/render/render_interface.h b/src/xrt/auxiliary/render/render_interface.h
+index b665be428..a25e038f1 100644
+--- a/src/xrt/auxiliary/render/render_interface.h
++++ b/src/xrt/auxiliary/render/render_interface.h
+@@ -1243,6 +1243,17 @@ struct render_chroma_key_info
+ 	float despill;
+ };
+ 
++/*!
++ * Advanced blend factors sent to the compute layer shader.
++ */
++struct render_advanced_blend_info
++{
++	uint32_t src_factor_color;
++	uint32_t dst_factor_color;
++	uint32_t src_factor_alpha;
++	uint32_t dst_factor_alpha;
++};
++
+ /*!
+  * UBO data that is sent to the compute layer shaders.
+  *
+@@ -1276,9 +1287,12 @@ struct render_compute_layer_ubo_data
+ 			uint32_t layer_type;
+ 			uint32_t unpremultiplied_alpha;
+ 			uint32_t inverted_alpha;
+-			uint32_t _padding0;
++			uint32_t advanced_blending;
+ 		} layer_data;
+ 
++		//! Advanced blend factors.
++		struct render_advanced_blend_info advanced_blend;
++
+ 		/*!
+ 		 * Which image/sampler(s) correspond to each layer.
+ 		 *
+diff --git a/src/xrt/auxiliary/render/shaders/layer.comp b/src/xrt/auxiliary/render/shaders/layer.comp
+index d2b1a62af..537256a0d 100644
+--- a/src/xrt/auxiliary/render/shaders/layer.comp
++++ b/src/xrt/auxiliary/render/shaders/layer.comp
+@@ -20,9 +20,15 @@ struct layer_data
+ 	uint layer_type;
+ 	uint unpremultiplied_alpha;
+ 	uint inverted_alpha;
++	uint advanced_blending;
++};
+ 
+-	// This struct is used in an array, gets padded to vec4.
+-	uint _padding0;
++struct advanced_blend_info
++{
++	uint src_factor_color;
++	uint dst_factor_color;
++	uint src_factor_alpha;
++	uint dst_factor_alpha;
+ };
+ 
+ struct image_info
+@@ -71,6 +77,9 @@ struct Layer {
+ 	// Per-layer data.
+ 	layer_data layer_data;
+ 
++	// Advanced blend factors.
++	advanced_blend_info advanced_blend;
++
+ 	// which image/sampler(s) correspond to each layer
+ 	image_info image_info;
+ 
+@@ -211,8 +220,10 @@ vec2 transform_uv_subimage(vec2 uv, uint layer)
+ 	return values.xy;
+ }
+ 
+-vec4 do_cylinder(vec2 view_uv, uint layer)
++vec4 do_cylinder(vec2 view_uv, uint layer, out bool covered)
+ {
++	covered = false;
++
+ 	// Get ray position in model space.
+ 	const vec3 ray_origin = (LAYER.mv_inverse * vec4(0, 0, 0, 1)).xyz;
+ 
+@@ -295,6 +306,8 @@ vec4 do_cylinder(vec2 view_uv, uint layer)
+ 	const float ymax = height / 2;
+ 
+ 	if (y < ymax && y > ymin && lon < uhan && lon > lhan) {
++		covered = true;
++
+ 		// map configured display region to whole texture
+ 		vec2 offset = vec2(lhan, ymin);
+ 		vec2 extent = vec2(uhan - lhan, ymax - ymin);
+@@ -316,8 +329,10 @@ vec4 do_cylinder(vec2 view_uv, uint layer)
+ 	return out_color;
+ }
+ 
+-vec4 do_equirect2(vec2 view_uv, uint layer)
++vec4 do_equirect2(vec2 view_uv, uint layer, out bool covered)
+ {
++	covered = false;
++
+ 	// Get ray position in model space.
+ 	const vec3 ray_origin = (LAYER.mv_inverse * vec4(0, 0, 0, 1)).xyz;
+ 
+@@ -394,6 +409,8 @@ vec4 do_equirect2(vec2 view_uv, uint layer)
+ 	const float lvan = lower_vertical_angle / PI + 0.5f;
+ 
+ 	if (lat < uvan && lat > lvan && lon < uhan && lon > lhan) {
++		covered = true;
++
+ 		// map configured display region to whole texture
+ 		vec2 ll_offset = vec2(lhan, lvan);
+ 		vec2 ll_extent = vec2(uhan - lhan, uvan - lvan);
+@@ -415,7 +432,7 @@ vec4 do_equirect2(vec2 view_uv, uint layer)
+ 	return out_color;
+ }
+ 
+-vec4 do_projection_uv(vec2 view_uv, uint layer, out vec2 out_uv)
++vec4 do_projection_uv(vec2 view_uv, uint layer, out vec2 out_uv, out bool covered)
+ {
+ 	uint source_image_index = LAYER.image_info.color_image_index;
+ 
+@@ -431,10 +448,10 @@ vec4 do_projection_uv(vec2 view_uv, uint layer, out vec2 out_uv)
+ 	out_uv = view_uv;
+ 
+ 	// Reject coordinates outside the view frustum.
+-	bool in_frustum_bounds =
++	covered =
+ 		all(greaterThanEqual(view_uv, vec2(0.0))) &&
+ 		all(lessThan(view_uv, vec2(1.0)));
+-	if (!in_frustum_bounds) {
++	if (!covered) {
+ 		return vec4(0.0);
+ 	}
+ 
+@@ -450,7 +467,10 @@ vec4 do_projection_uv(vec2 view_uv, uint layer, out vec2 out_uv)
+ vec4 do_projection_inset(vec2 view_uv, uint layer, out float out_inset_blend_factor)
+ {
+ 	vec2 uv = vec2(0.0, 0.0);
+-	vec4 colour = do_projection_uv(view_uv, layer, uv);
++
++	// Covered is always true here, can ignore the out-argument
++	bool covered = false;
++	vec4 colour = do_projection_uv(view_uv, layer, uv, covered);
+ 
+ 	vec2 negative_edges = smoothstep(0, k_inset_blend_edge, uv);
+ 	vec2 positive_edges = smoothstep(1.0, 1.0 - k_inset_blend_edge, uv);
+@@ -460,10 +480,10 @@ vec4 do_projection_inset(vec2 view_uv, uint layer, out float out_inset_blend_fac
+ 	return colour;
+ }
+ 
+-vec4 do_projection(vec2 view_uv, uint layer)
++vec4 do_projection(vec2 view_uv, uint layer, out bool covered)
+ {
+ 	vec2 uv = vec2(0.5, 0.5);
+-	return do_projection_uv(view_uv, layer, uv);
++	return do_projection_uv(view_uv, layer, uv, covered);
+ }
+ 
+ vec3 get_direction(vec2 uv)
+@@ -485,8 +505,10 @@ vec3 get_direction(vec2 uv)
+ 	return direction;
+ }
+ 
+-vec4 do_quad(vec2 view_uv, uint layer)
++vec4 do_quad(vec2 view_uv, uint layer, out bool covered)
+ {
++	covered = false;
++
+ 	uint source_image_index = LAYER.image_info.color_image_index;
+ 
+ 	// center point of the plane in view space.
+@@ -544,6 +566,8 @@ vec4 do_quad(vec2 view_uv, uint layer)
+ 			intersection_ps.y <= LAYER.quad_extent.y / 2.;
+ 
+ 		if (in_plane_bounds) {
++			covered = true;
++
+ 			// intersection_ps is in [-quad_extent .. quad_extent]. Transform to  [0 .. quad_extent], then scale to [ 0 .. 1 ] for sampling
+ 			vec2 plane_uv = (intersection_ps.xy + LAYER.quad_extent / 2.) / LAYER.quad_extent;
+ 
+@@ -568,6 +592,26 @@ vec4 do_quad(vec2 view_uv, uint layer)
+ 	return vec4(colour);
+ }
+ 
++float get_blend_factor(uint factor, float src_alpha, float dst_alpha)
++{
++	switch (factor) {
++	case LAYER_BLEND_FACTOR_ZERO:
++		return 0.0;
++	case LAYER_BLEND_FACTOR_ONE:
++		return 1.0;
++	case LAYER_BLEND_FACTOR_SRC_ALPHA:
++		return src_alpha;
++	case LAYER_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA:
++		return 1.0 - src_alpha;
++	case LAYER_BLEND_FACTOR_DST_ALPHA:
++		return dst_alpha;
++	case LAYER_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:
++		return 1.0 - dst_alpha;
++	default:
++		return 0.0;
++	}
++}
++
+ vec4 do_layers(vec2 view_uv)
+ {
+ 	vec4 accum = vec4(0, 0, 0, 0);
+@@ -575,24 +619,25 @@ vec4 do_layers(vec2 view_uv)
+ 	int layer_count = ubo.layer_count.x;
+ 	for (uint layer = 0; layer < layer_count; layer++) {
+ 		vec4 rgba = vec4(0, 0, 0, 0);
++		bool covered = false;
+ 
+ 		switch (LAYER.layer_data.layer_type) {
+ 		case LAYER_COMP_TYPE_NOOP:
+ 			continue;
+ 		case LAYER_COMP_TYPE_QUAD:
+-			rgba = do_quad(view_uv, layer);
++			rgba = do_quad(view_uv, layer, covered);
+ 			// Quad alpha inversion is done inside
+ 			break;
+ 		case LAYER_COMP_TYPE_CYLINDER:
+-			rgba = do_cylinder(view_uv, layer);
++			rgba = do_cylinder(view_uv, layer, covered);
+ 			rgba.a = invert_alpha(rgba.a, layer);
+ 			break;
+ 		case LAYER_COMP_TYPE_EQUIRECT2:
+-			rgba = do_equirect2(view_uv, layer);
++			rgba = do_equirect2(view_uv, layer, covered);
+ 			rgba.a = invert_alpha(rgba.a, layer);
+ 			break;
+ 		case LAYER_COMP_TYPE_PROJECTION:
+-			rgba = do_projection(view_uv, layer);
++			rgba = do_projection(view_uv, layer, covered);
+ 			rgba.a = invert_alpha(rgba.a, layer);
+ 			rgba = apply_chroma_key(rgba, layer);
+ 			break;
+@@ -601,7 +646,9 @@ vec4 do_layers(vec2 view_uv)
+ 			continue;
+ 		case LAYER_COMP_TYPE_INSET:
+ 			float inset_blend_factor = 0.0;
+-			vec4 context_rgba = do_projection(view_uv, layer - 1);
++
++			// Covered is always true for LAYER_COMP_TYPE_INSET
++			vec4 context_rgba = do_projection(view_uv, layer - 1, covered);
+ 			vec4 inset_rgba = do_projection_inset(view_uv, layer, inset_blend_factor);
+ 
+ 			/*
+@@ -615,17 +662,36 @@ vec4 do_layers(vec2 view_uv)
+ 		default: break;
+ 		}
+ 
++		// Layers that don't cover this pixel must not participate in blending
++		if (!covered) {
++			continue;
++		}
++
+ 		// Apply color scale and bias
+ 		rgba = clamp(rgba * LAYER.color_scale + LAYER.color_bias, 0.0, 1.0);
+ 
+-		if (LAYER.layer_data.unpremultiplied_alpha != 0) {
+-			// Unpremultipled blend factor of src.a.
+-			accum.rgb = mix(accum.rgb, rgba.rgb, rgba.a);
++		if (LAYER.layer_data.advanced_blending != 0) {
++			float src_factor_color =
++				get_blend_factor(LAYER.advanced_blend.src_factor_color, rgba.a, accum.a);
++			float dst_factor_color =
++				get_blend_factor(LAYER.advanced_blend.dst_factor_color, rgba.a, accum.a);
++			float src_factor_alpha =
++				get_blend_factor(LAYER.advanced_blend.src_factor_alpha, rgba.a, accum.a);
++			float dst_factor_alpha =
++				get_blend_factor(LAYER.advanced_blend.dst_factor_alpha, rgba.a, accum.a);
++
++			accum.rgb = rgba.rgb * src_factor_color + accum.rgb * dst_factor_color;
++			accum.a = rgba.a * src_factor_alpha + accum.a * dst_factor_alpha;
+ 		} else {
+-			// Premultiplied blend factor of 1.
+-			accum.rgb = (accum.rgb * (1 - rgba.a)) + rgba.rgb;
++			float src_rgb_factor = mix(
++				1.0,
++				rgba.a,
++				LAYER.layer_data.unpremultiplied_alpha != 0u
++			);
++
++			accum.rgb = rgba.rgb * src_rgb_factor + accum.rgb * (1.0 - rgba.a);
++			accum.a = fma(1.0 - rgba.a, accum.a, rgba.a);
+ 		}
+-		accum.a = fma((1.f - rgba.a), accum.a, rgba.a);
+ 	}
+ 
+ 	return accum;
+diff --git a/src/xrt/auxiliary/render/shaders/layer_defines.inc.glsl b/src/xrt/auxiliary/render/shaders/layer_defines.inc.glsl
+index 6d6fbba63..29813d38f 100644
+--- a/src/xrt/auxiliary/render/shaders/layer_defines.inc.glsl
++++ b/src/xrt/auxiliary/render/shaders/layer_defines.inc.glsl
+@@ -23,4 +23,12 @@
+ //! Inset part of a split quad view projection layer.
+ #define LAYER_COMP_TYPE_INSET 6
+ 
++//! These values must match enum xrt_blend_factor.
++#define LAYER_BLEND_FACTOR_ZERO 0
++#define LAYER_BLEND_FACTOR_ONE 1
++#define LAYER_BLEND_FACTOR_SRC_ALPHA 2
++#define LAYER_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA 3
++#define LAYER_BLEND_FACTOR_DST_ALPHA 4
++#define LAYER_BLEND_FACTOR_ONE_MINUS_DST_ALPHA 5
++
+ #endif // LAYER_DEFINES_INC_GLSL
+diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
+index b68def90e..3ee8d0fd6 100644
+--- a/src/xrt/compositor/util/comp_render_cs.c
++++ b/src/xrt/compositor/util/comp_render_cs.c
+@@ -731,7 +731,8 @@ comp_render_cs_layer(struct render_compute *render,
+ 		ubo_data->layers[cur_layer].layer_data.layer_type = cs_layer_type;
+ 		ubo_data->layers[cur_layer].layer_data.unpremultiplied_alpha = is_layer_unpremultiplied(data);
+ 		ubo_data->layers[cur_layer].layer_data.inverted_alpha = is_layer_alpha_inverted(data);
+-
++		apply_advanced_blend_from_layer(data, &ubo_data->layers[cur_layer].layer_data.advanced_blending,
++		                                &ubo_data->layers[cur_layer].advanced_blend);
+ 		apply_bias_and_scale_from_layer(data, &ubo_data->layers[cur_layer].color_scale,
+ 		                                &ubo_data->layers[cur_layer].color_bias);
+ 
+diff --git a/src/xrt/compositor/util/comp_render_helpers.h b/src/xrt/compositor/util/comp_render_helpers.h
+index 25b4d8c15..e763b7c43 100644
+--- a/src/xrt/compositor/util/comp_render_helpers.h
++++ b/src/xrt/compositor/util/comp_render_helpers.h
+@@ -31,7 +31,9 @@ extern "C" {
+ static inline VkImageView
+ get_image_view(const struct comp_swapchain_image *image, enum xrt_layer_composition_flags flags, uint32_t array_index)
+ {
+-	if (flags & XRT_LAYER_COMPOSITION_BLEND_TEXTURE_SOURCE_ALPHA_BIT) {
++	const uint32_t compare_flags =
++	    XRT_LAYER_COMPOSITION_BLEND_TEXTURE_SOURCE_ALPHA_BIT | XRT_LAYER_COMPOSITION_ADVANCED_BLENDING_BIT;
++	if (flags & compare_flags) {
+ 		return image->views.alpha[array_index];
+ 	}
+ 
+@@ -159,6 +161,22 @@ apply_bias_and_scale_from_layer(const struct xrt_layer_data *data,
+ 	}
+ }
+ 
++static inline void
++apply_advanced_blend_from_layer(const struct xrt_layer_data *data,
++                                uint32_t *out_advanced_blending,
++                                struct render_advanced_blend_info *out_advanced_blend)
++{
++	*out_advanced_blending = (data->flags & XRT_LAYER_COMPOSITION_ADVANCED_BLENDING_BIT) != 0;
++	if (*out_advanced_blending == 0) {
++		return;
++	}
++
++	out_advanced_blend->src_factor_color = data->advanced_blend.src_factor_color;
++	out_advanced_blend->dst_factor_color = data->advanced_blend.dst_factor_color;
++	out_advanced_blend->src_factor_alpha = data->advanced_blend.src_factor_alpha;
++	out_advanced_blend->dst_factor_alpha = data->advanced_blend.dst_factor_alpha;
++}
++
+ 
+ /*
+  *
+diff --git a/src/xrt/include/xrt/xrt_config_build.h.cmake_in b/src/xrt/include/xrt/xrt_config_build.h.cmake_in
+index 873b15b0a..a425c52e1 100644
+--- a/src/xrt/include/xrt/xrt_config_build.h.cmake_in
++++ b/src/xrt/include/xrt/xrt_config_build.h.cmake_in
+@@ -98,6 +98,7 @@
+ #cmakedefine XRT_FEATURE_OPENXR_LAYER_FB_IMAGE_LAYOUT
+ #cmakedefine XRT_FEATURE_OPENXR_LAYER_FB_PASSTHROUGH
+ #cmakedefine XRT_FEATURE_OPENXR_LAYER_FB_SETTINGS
++#cmakedefine XRT_FEATURE_OPENXR_LAYER_MNDX_ALPHA_BLEND_SYSTEM_UI
+ #cmakedefine XRT_FEATURE_OPENXR_OVERLAY
+ #cmakedefine XRT_FEATURE_OPENXR_PLANE_DETECTION
+ #cmakedefine XRT_FEATURE_OPENXR_SPACE_LOCAL_FLOOR
+diff --git a/src/xrt/include/xrt/xrt_openxr_includes.h b/src/xrt/include/xrt/xrt_openxr_includes.h
+index e92948fb8..a1b73d018 100644
+--- a/src/xrt/include/xrt/xrt_openxr_includes.h
++++ b/src/xrt/include/xrt/xrt_openxr_includes.h
+@@ -67,6 +67,7 @@ typedef __eglMustCastToProperFunctionPointerType (*PFNEGLGETPROCADDRESSPROC)(con
+ 
+ #include "openxr/XR_MNDX_ball_on_a_stick_controller.h"
+ #include "openxr/XR_MNDX_blubur_s1.h"
++#include "openxr/XR_MNDX_composition_layer_alpha_blend_system_ui.h"
+ #include "openxr/XR_MNDX_oculus_remote.h"
+ #include "openxr/XR_MNDX_hydra.h"
+ #include "openxr/XR_MNDX_psvr2_interaction.h"
+diff --git a/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py b/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
+index e9be594f9..8bc251c4e 100644
+--- a/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
++++ b/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
+@@ -121,6 +121,7 @@ EXTENSIONS = (
+     ['XR_HTCX_vive_tracker_interaction', 'ALWAYS_DISABLED'],
+     ['XR_MNDX_ball_on_a_stick_controller', 'XRT_FEATURE_OPENXR_INTERACTION_MNDX'],
+     ['XR_MNDX_blubur_s1', 'XRT_FEATURE_OPENXR_INTERACTION_MNDX'],
++    ['XR_MNDX_composition_layer_alpha_blend_system_ui', 'XRT_FEATURE_OPENXR_LAYER_MNDX_ALPHA_BLEND_SYSTEM_UI'],
+     ['XR_MNDX_egl_enable', 'XR_USE_PLATFORM_EGL'],
+     ['XR_MNDX_flipvr', 'XRT_FEATURE_OPENXR_INTERACTION_MNDX'],
+     ['XR_MNDX_force_feedback_curl', 'XRT_FEATURE_OPENXR_FORCE_FEEDBACK_CURL'],
+diff --git a/src/xrt/state_trackers/oxr/oxr_objects.h b/src/xrt/state_trackers/oxr/oxr_objects.h
+index c8fbdadcd..983258ea6 100644
+--- a/src/xrt/state_trackers/oxr/oxr_objects.h
++++ b/src/xrt/state_trackers/oxr/oxr_objects.h
+@@ -1065,7 +1065,7 @@ struct oxr_view_config_properties
+ 	XrViewConfigurationView views[XRT_MAX_COMPOSITOR_VIEW_CONFIGS_VIEW_COUNT];
+ 
+ 	uint32_t blend_mode_count;
+-	XrEnvironmentBlendMode blend_modes[3];
++	XrEnvironmentBlendMode blend_modes[XRT_MAX_DEVICE_BLEND_MODES];
+ };
+ 
+ /*!
+diff --git a/src/xrt/state_trackers/oxr/oxr_session_frame_end.c b/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
+index 5bc5d81fb..064b09fad 100644
+--- a/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
++++ b/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
+@@ -101,7 +101,7 @@ convert_blend_mode(XrEnvironmentBlendMode blend_mode)
+ 	}
+ }
+ 
+-#ifdef OXR_HAVE_FB_composition_layer_alpha_blend
++#if defined(OXR_HAVE_FB_composition_layer_alpha_blend) || defined(OXR_HAVE_MNDX_composition_layer_alpha_blend_system_ui)
+ static enum xrt_blend_factor
+ convert_blend_factor(XrBlendFactorFB blend_factor)
+ {
+@@ -115,7 +115,7 @@ convert_blend_factor(XrBlendFactorFB blend_factor)
+ 	default: return XRT_BLEND_FACTOR_MAX_ENUM_FB;
+ 	}
+ }
+-#endif // OXR_HAVE_FB_composition_layer_alpha_blend
++#endif // OXR_HAVE_FB_composition_layer_alpha_blend || OXR_HAVE_MNDX_composition_layer_alpha_blend_system_ui
+ 
+ static enum xrt_layer_composition_flags
+ convert_layer_flags(struct oxr_session *sess, XrSwapchainUsageFlags xr_flags)
+@@ -270,12 +270,29 @@ fill_in_sub_image(const struct oxr_swapchain *sc, const XrSwapchainSubImage *oxr
+ 	xsub->norm_rect.y = (float)(rect->offset.h / (double)sc->height);
+ }
+ 
++#if defined(OXR_HAVE_FB_composition_layer_alpha_blend) || defined(OXR_HAVE_MNDX_composition_layer_alpha_blend_system_ui)
++static bool
++is_alpha_blend_enabled(struct oxr_session *sess)
++{
++	bool has_fb = false;
++#if defined(OXR_HAVE_FB_composition_layer_alpha_blend)
++	has_fb = sess->sys->inst->extensions.FB_composition_layer_alpha_blend;
++#endif
++
++	bool has_mndx = false;
++#if defined(OXR_HAVE_MNDX_composition_layer_alpha_blend_system_ui)
++	has_mndx = sess->sys->inst->extensions.MNDX_composition_layer_alpha_blend_system_ui;
++#endif
++
++	return has_fb || has_mndx;
++}
++#endif
++
+ static void
+ fill_in_blend_factors(struct oxr_session *sess, const XrCompositionLayerBaseHeader *layer, struct xrt_layer_data *data)
+ {
+-#ifdef OXR_HAVE_FB_composition_layer_alpha_blend
+-	// Is the extension enabled?
+-	if (!sess->sys->inst->extensions.FB_composition_layer_alpha_blend) {
++#if defined(OXR_HAVE_FB_composition_layer_alpha_blend) || defined(OXR_HAVE_MNDX_composition_layer_alpha_blend_system_ui)
++	if (!is_alpha_blend_enabled(sess)) {
+ 		return;
+ 	}
+ 	const XrCompositionLayerAlphaBlendFB *alphaBlend = OXR_GET_INPUT_FROM_CHAIN(
+@@ -358,8 +375,8 @@ verify_blend_factors(struct oxr_logger *log,
+                      uint32_t layer_index,
+                      const XrCompositionLayerBaseHeader *layer)
+ {
+-#ifdef OXR_HAVE_FB_composition_layer_alpha_blend
+-	if (!sess->sys->inst->extensions.FB_composition_layer_alpha_blend) {
++#if defined(OXR_HAVE_FB_composition_layer_alpha_blend) || defined(OXR_HAVE_MNDX_composition_layer_alpha_blend_system_ui)
++	if (!is_alpha_blend_enabled(sess)) {
+ 		return XR_SUCCESS;
+ 	}
+ 
+@@ -367,23 +384,23 @@ verify_blend_factors(struct oxr_logger *log,
+ 	    layer, (XrStructureType)XR_TYPE_COMPOSITION_LAYER_ALPHA_BLEND_FB, XrCompositionLayerAlphaBlendFB);
+ 
+ 	if (alphaBlend != NULL) {
+-		if (!u_verify_blend_factor_valid(alphaBlend->srcFactorColor)) {
++		if (!u_verify_blend_factor_valid((enum xrt_blend_factor)alphaBlend->srcFactorColor)) {
+ 			return oxr_error(
+ 			    log, XR_ERROR_VALIDATION_FAILURE,
+ 			    "(frameEndInfo->layers[%u]->pNext->srcFactorColor == 0x%08x) unknown blend factor",
+ 			    layer_index, alphaBlend->srcFactorColor);
+ 		}
+-		if (!u_verify_blend_factor_valid(alphaBlend->dstFactorColor)) {
++		if (!u_verify_blend_factor_valid((enum xrt_blend_factor)alphaBlend->dstFactorColor)) {
+ 			return oxr_error(log, XR_ERROR_VALIDATION_FAILURE,
+ 			                 "(frameEndInfo->layers[%u]->dstFactorColor == 0x%08x) unknown blend factor",
+ 			                 layer_index, alphaBlend->dstFactorColor);
+ 		}
+-		if (!u_verify_blend_factor_valid(alphaBlend->srcFactorAlpha)) {
++		if (!u_verify_blend_factor_valid((enum xrt_blend_factor)alphaBlend->srcFactorAlpha)) {
+ 			return oxr_error(log, XR_ERROR_VALIDATION_FAILURE,
+ 			                 "(frameEndInfo->layers[%u]->srcFactorAlpha == 0x%08x) unknown blend factor",
+ 			                 layer_index, alphaBlend->srcFactorAlpha);
+ 		}
+-		if (!u_verify_blend_factor_valid(alphaBlend->dstFactorAlpha)) {
++		if (!u_verify_blend_factor_valid((enum xrt_blend_factor)alphaBlend->dstFactorAlpha)) {
+ 			return oxr_error(log, XR_ERROR_VALIDATION_FAILURE,
+ 			                 "(frameEndInfo->layers[%u]->dstFactorAlpha == 0x%08x) unknown blend factor",
+ 			                 layer_index, alphaBlend->dstFactorAlpha);
+@@ -1832,6 +1849,15 @@ oxr_session_frame_end(struct oxr_logger *log, struct oxr_session *sess, const Xr
+ 		                 frameEndInfo->environmentBlendMode);
+ 	}
+ 
++#ifdef OXR_HAVE_FB_composition_layer_alpha_blend
++	if (sess->sys->inst->extensions.FB_composition_layer_alpha_blend &&
++	    frameEndInfo->environmentBlendMode != XR_ENVIRONMENT_BLEND_MODE_OPAQUE) {
++		return oxr_error(log, XR_ERROR_VALIDATION_FAILURE,
++		                 "(frameEndInfo->environmentBlendMode == %u) is not supported with "
++		                 "XR_FB_composition_layer_alpha_blend enabled.",
++		                 frameEndInfo->environmentBlendMode);
++	}
++#endif
+ 
+ 	/*
+ 	 * Early out for discarded frame if layer count is 0.
+diff --git a/src/xrt/state_trackers/oxr/oxr_system.c b/src/xrt/state_trackers/oxr/oxr_system.c
+index b29db63c6..14a6506b4 100644
+--- a/src/xrt/state_trackers/oxr/oxr_system.c
++++ b/src/xrt/state_trackers/oxr/oxr_system.c
+@@ -889,8 +889,24 @@ oxr_system_enumerate_blend_modes(struct oxr_logger *log,
+ 		return oxr_error(log, XR_ERROR_RUNTIME_FAILURE, "Didn't find view configs");
+ 	}
+ 
++#ifdef OXR_HAVE_FB_composition_layer_alpha_blend
++	bool filter_opaque_only = sys->inst->extensions.FB_composition_layer_alpha_blend;
++	XrEnvironmentBlendMode blend_modes[XRT_MAX_DEVICE_BLEND_MODES];
++	uint32_t blend_mode_count = 0;
++	for (uint32_t i = 0; i < props->blend_mode_count; i++) {
++		if (filter_opaque_only && props->blend_modes[i] != XR_ENVIRONMENT_BLEND_MODE_OPAQUE) {
++			continue;
++		}
++		blend_modes[blend_mode_count++] = props->blend_modes[i];
++	}
++#else
++	uint32_t blend_mode_count = props->blend_mode_count;
++	XrEnvironmentBlendMode *blend_modes = props->blend_modes;
++#endif
++
++
+ 	OXR_TWO_CALL_HELPER(log, environmentBlendModeCapacityInput, environmentBlendModeCountOutput,
+-	                    environmentBlendModes, props->blend_mode_count, props->blend_modes, XR_SUCCESS);
++	                    environmentBlendModes, blend_mode_count, blend_modes, XR_SUCCESS);
+ }
+ 
+ XrResult
+-- 
+2.55.0
+
