@@ -248,8 +248,8 @@ set(KTX_VERSION_FULL "v${KTX_VERSION}")
 FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/${KTX_VERSION_FULL}.tar.gz
                                    URL_HASH SHA256=9412cb45045a503005acd47d98f9e8b47154634a50b4df21e17a1dfa8971d323
                                    )
-FetchContent_Declare(implot        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/epezent/implot/archive/3da8bd34299965d3b0ab124df743fe3e076fa222.zip
-                                   URL_HASH SHA256=e9b439a94aa6f09fcf12ed9c2cd784efe5e99e96242122aa683e690b29f7a59f)
+FetchContent_Declare(implot        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/epezent/implot/releases/download/v1.0/implot-v1.0.tar.gz
+                                   URL_HASH SHA256=20ca14d5a46f36a650746096c74eba8bea99c9432cd3c877343b96b17a6ae566)
 file(GLOB IMGUI_PATCHES CONFIGURE_DEPENDS patches/imgui/*)
 FetchContent_Declare(imgui         EXCLUDE_FROM_ALL SYSTEM URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.9.tar.gz
                                    URL_HASH SHA256=af97ed649182c39314320514a672b82008ab462b9293fe23d37b30bfa5d05519

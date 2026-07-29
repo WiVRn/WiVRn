@@ -733,13 +733,18 @@ void scenes::lobby::gui_debug()
 
 		if (ImPlot::BeginPlot(_S("CPU time"), plot_size, ImPlotFlags_CanvasOnly))
 		{
-			auto col = ImPlot::GetColormapColor(0);
+			auto color = ImPlot::GetColormapColor(0);
 
 			ImPlot::SetupAxes(nullptr, _S("CPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
 			ImPlot::SetupAxesLimits(0, cpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
-			ImPlot::SetNextLineStyle(col);
-			ImPlot::SetNextFillStyle(col, 0.25);
-			ImPlot::PlotLine(_S("CPU time"), cpu_time.data(), cpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+			ImPlotSpec spec;
+			spec.LineColor = color;
+			spec.FillColor = color;
+			spec.FillAlpha = 0.25;
+			spec.Flags = ImPlotLineFlags_Shaded;
+			spec.Offset = offset;
+
+			ImPlot::PlotLine(_S("CPU time"), cpu_time.data(), cpu_time.size(), 1, 0, spec);
 			ImPlot::EndPlot();
 		}
 
@@ -747,13 +752,17 @@ void scenes::lobby::gui_debug()
 
 		if (ImPlot::BeginPlot(_S("GPU time"), plot_size, ImPlotFlags_CanvasOnly))
 		{
-			auto col = ImPlot::GetColormapColor(1);
+			auto color = ImPlot::GetColormapColor(1);
 
 			ImPlot::SetupAxes(nullptr, _S("GPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
 			ImPlot::SetupAxesLimits(0, gpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
-			ImPlot::SetNextLineStyle(col);
-			ImPlot::SetNextFillStyle(col, 0.25);
-			ImPlot::PlotLine(_S("GPU time"), gpu_time.data(), gpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+			ImPlotSpec spec;
+			spec.LineColor = color;
+			spec.FillColor = color;
+			spec.FillAlpha = 0.25;
+			spec.Flags = ImPlotLineFlags_Shaded;
+			spec.Offset = offset;
+			ImPlot::PlotLine(_S("GPU time"), gpu_time.data(), gpu_time.size(), 1, 0, spec);
 			ImPlot::EndPlot();
 		}
 		ImPlot::PopStyleColor(5);
