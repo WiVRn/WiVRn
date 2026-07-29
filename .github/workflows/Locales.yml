@@ -14,9 +14,15 @@ jobs:
         pip install polib PyGithub
 
     - name: Check that .po files are up to date
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
         if [[ "${{github.ref}}" == 'refs/heads/master' ]] ; then
           tools/check_po.py --manage-issues --github-repository "${{ github.repository }}" --github-token "${{ github.token }}"
+        elif [[ "${{github.base_ref}}" != "" ]] ; then
+          FILES=$(gh api repos/${{github.repository}}/pulls/${{github.event.pull_request.number}}/files | jq --raw-output '[.[].filename | select(. | startswith("locale/"))] | join(",")')
+          echo "Locale files changed by pull request: ${FILES}"
+          tools/check_po.py --fail-on "${FILES}"
         else
           tools/check_po.py
         fi

@@ -35,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("--github-repository")
     parser.add_argument("--github-token")
     parser.add_argument("--manage-issues", action="store_true")
+    parser.add_argument("--fail-on", default="")
 
     args = parser.parse_args()
 
@@ -50,6 +51,8 @@ if __name__ == "__main__":
         repo = gh.get_repo(args.github_repository)
 
     with tempfile.TemporaryDirectory() as tmpdir:
+        return_code = 0
+
         client_pot = os.path.join(tmpdir, "client.pot")
         dashboard_pot = os.path.join(tmpdir, "dashboard.pot")
 
@@ -115,7 +118,11 @@ if __name__ == "__main__":
                         lang_issues[po].append(repr(i.msgid))
 
                 if missing > 0:
-                    print(f"::warning file={po}::{lang} {missing} translations missing")
+                    level = "warning"
+                    if po in args.fail_on:
+                        level = "error"
+                        return_code = 1
+                    print(f"::{level} file={po}::{lang} {missing} translations missing")
 
             if args.manage_issues:
                 issues = [
@@ -149,3 +156,4 @@ if __name__ == "__main__":
                 else:
                     for issue in issues:
                         issue.edit(state="closed", body="All translations are up to date")
+        exit(return_code)
