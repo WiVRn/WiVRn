@@ -37,6 +37,8 @@
 #include "utils/method.h"
 #include "utils/wivrn_trace.h"
 
+#include <ranges>
+
 #include "xrt/xrt_config_build.h" // IWYU pragma: keep
 #ifdef XRT_FEATURE_RENDERDOC
 #include "renderdoc_app.h"
@@ -305,7 +307,11 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	images[i].frame_index = frame.rendering.id;
 	view_info = {
 	        .display_time = session.get_offset().to_headset(frame.rendering.predicted_display_time_ns),
-	        .alpha = layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND,
+	        .alpha = layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND ||
+	                 std::ranges::any_of(std::span(layer_accum.layers, layer_accum.layer_count),
+	                                     [](const auto & layer) {
+		                                     return layer.data.flags & XRT_LAYER_COMPOSITION_ADVANCED_BLENDING_BIT;
+	                                     }),
 	};
 
 	session.dump_time("begin", frame.rendering.id, os_monotonic_get_ns());
@@ -326,7 +332,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	// Check if we can pass a layer directly to foveation
 	if (layer_accum.layer_count == 1 and
 	    (layer_accum.layers[0].data.type == XRT_LAYER_PROJECTION or
-	     layer_accum.layers[0].data.type == XRT_LAYER_PROJECTION_DEPTH))
+	     layer_accum.layers[0].data.type == XRT_LAYER_PROJECTION_DEPTH) and
+	    not(layer_accum.layers[0].data.flags & XRT_LAYER_COMPOSITION_ADVANCED_BLENDING_BIT))
 	{
 		const auto & layer = layer_accum.layers[0];
 		for (int view = 0; view < 2; ++view)

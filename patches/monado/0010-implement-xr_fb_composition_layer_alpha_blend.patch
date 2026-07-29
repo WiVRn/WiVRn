@@ -1,0 +1,435 @@
+From 92e408aed3d1f7bca48fc6a8c50e792b21ae5df5 Mon Sep 17 00:00:00 2001
+From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+Date: Sat, 1 Aug 2026 00:51:07 +0900
+Subject: [PATCH] a/render: implement XR_FB_composition_layer_alpha_blend
+
+Signed-off-by: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+---
+ src/xrt/auxiliary/render/render_interface.h   |  16 ++-
+ src/xrt/auxiliary/render/shaders/layer.comp   | 132 +++++++++++++-----
+ .../render/shaders/layer_defines.inc.glsl     |   8 ++
+ src/xrt/compositor/util/comp_render_cs.c      |   3 +-
+ src/xrt/compositor/util/comp_render_helpers.h |  20 ++-
+ .../oxr/oxr_session_frame_end.c               |   8 +-
+ 6 files changed, 147 insertions(+), 40 deletions(-)
+
+diff --git a/src/xrt/auxiliary/render/render_interface.h b/src/xrt/auxiliary/render/render_interface.h
+index 94bfb92c53..8ccc459eb7 100644
+--- a/src/xrt/auxiliary/render/render_interface.h
++++ b/src/xrt/auxiliary/render/render_interface.h
+@@ -1238,6 +1238,17 @@ struct render_chroma_key_info
+ 	float despill;
+ };
+ 
++/*!
++ * Advanced blend factors sent to the compute layer shader.
++ */
++struct render_advanced_blend_info
++{
++	uint32_t src_factor_color;
++	uint32_t dst_factor_color;
++	uint32_t src_factor_alpha;
++	uint32_t dst_factor_alpha;
++};
++
+ /*!
+  * UBO data that is sent to the compute layer shaders.
+  *
+@@ -1271,9 +1282,12 @@ struct render_compute_layer_ubo_data
+ 			uint32_t layer_type;
+ 			uint32_t unpremultiplied_alpha;
+ 			uint32_t inverted_alpha;
+-			uint32_t _padding0;
++			uint32_t advanced_blending;
+ 		} layer_data;
+ 
++		//! Advanced blend factors.
++		struct render_advanced_blend_info advanced_blend;
++
+ 		/*!
+ 		 * Which image/sampler(s) correspond to each layer.
+ 		 *
+diff --git a/src/xrt/auxiliary/render/shaders/layer.comp b/src/xrt/auxiliary/render/shaders/layer.comp
+index 1459599b19..991af94bae 100644
+--- a/src/xrt/auxiliary/render/shaders/layer.comp
++++ b/src/xrt/auxiliary/render/shaders/layer.comp
+@@ -20,9 +20,15 @@ struct layer_data
+ 	uint layer_type;
+ 	uint unpremultiplied_alpha;
+ 	uint inverted_alpha;
++	uint advanced_blending;
++};
+ 
+-	// This struct is used in an array, gets padded to vec4.
+-	uint _padding0;
++struct advanced_blend_info
++{
++	uint src_factor_color;
++	uint dst_factor_color;
++	uint src_factor_alpha;
++	uint dst_factor_alpha;
+ };
+ 
+ struct image_info
+@@ -70,6 +76,9 @@ struct Layer {
+ 	// Per-layer data.
+ 	layer_data layer_data;
+ 
++	// Advanced blend factors.
++	advanced_blend_info advanced_blend;
++
+ 	// which image/sampler(s) correspond to each layer
+ 	image_info image_info;
+ 
+@@ -208,24 +217,22 @@ vec2 transform_uv_timewarp(vec2 uv, uint layer)
+ 	// From [-1, 1] to [0, 1]
+ 	values.xy = values.xy * 0.5 + 0.5;
+ 
+-	// To deal with OpenGL flip and sub image view.
+-	values.xy = fma(values.xy, LAYER.post_transform.zw, LAYER.post_transform.xy);
+-
+-	// Done.
+ 	return values.xy;
+ }
+ 
+-vec2 transform_uv(vec2 uv, uint layer)
++vec2 transform_projection_uv(vec2 uv, uint layer)
+ {
+ 	if (do_timewarp) {
+ 		return transform_uv_timewarp(uv, layer);
+ 	} else {
+-		return transform_uv_subimage(uv, layer);
++		return uv;
+ 	}
+ }
+ 
+-vec4 do_cylinder(vec2 view_uv, uint layer)
++vec4 do_cylinder(vec2 view_uv, uint layer, out bool covered)
+ {
++	covered = false;
++
+ 	// Get ray position in model space.
+ 	const vec3 ray_origin = (LAYER.mv_inverse * vec4(0, 0, 0, 1)).xyz;
+ 
+@@ -308,6 +315,8 @@ vec4 do_cylinder(vec2 view_uv, uint layer)
+ 	const float ymax = height / 2;
+ 
+ 	if (y < ymax && y > ymin && lon < uhan && lon > lhan) {
++		covered = true;
++
+ 		// map configured display region to whole texture
+ 		vec2 offset = vec2(lhan, ymin);
+ 		vec2 extent = vec2(uhan - lhan, ymax - ymin);
+@@ -329,8 +338,10 @@ vec4 do_cylinder(vec2 view_uv, uint layer)
+ 	return out_color;
+ }
+ 
+-vec4 do_equirect2(vec2 view_uv, uint layer)
++vec4 do_equirect2(vec2 view_uv, uint layer, out bool covered)
+ {
++	covered = false;
++
+ 	// Get ray position in model space.
+ 	const vec3 ray_origin = (LAYER.mv_inverse * vec4(0, 0, 0, 1)).xyz;
+ 
+@@ -407,6 +418,8 @@ vec4 do_equirect2(vec2 view_uv, uint layer)
+ 	const float lvan = lower_vertical_angle / PI + 0.5f;
+ 
+ 	if (lat < uvan && lat > lvan && lon < uhan && lon > lhan) {
++		covered = true;
++
+ 		// map configured display region to whole texture
+ 		vec2 ll_offset = vec2(lhan, lvan);
+ 		vec2 ll_extent = vec2(uhan - lhan, uvan - lvan);
+@@ -428,25 +441,34 @@ vec4 do_equirect2(vec2 view_uv, uint layer)
+ 	return out_color;
+ }
+ 
+-vec4 do_projection_uv(vec2 view_uv, uint layer, out vec2 out_uv)
++vec4 do_projection_uv(vec2 view_uv, uint layer, out vec2 out_uv, out bool covered)
+ {
+ 	uint source_image_index = LAYER.image_info.color_image_index;
+ 
+-	// Do any transformation needed.
+-	vec2 uv = transform_uv(view_uv, layer);
++	// Convert target pixel to coords in the submitted projection view (independent of imageRect)
++	vec2 projection_uv = transform_projection_uv(view_uv, layer);
++
++	// Reprojection can map a target pixel outside the submitted view's FOV
++	covered =
++		all(greaterThanEqual(projection_uv, vec2(0.0))) &&
++		all(lessThanEqual(projection_uv, vec2(1.0)));
++ 	if (!covered) {
++ 		return vec4(0.0);
++ 	}
+ 
+-	// Sample the source.
+-	vec4 colour = vec4(texture(source[source_image_index], uv).rgba);
++	// Map projection-local coord to normalized imageRect
++	vec2 image_uv = transform_uv_subimage(projection_uv, layer);
++	vec4 colour = texture(source[source_image_index], image_uv);
+ 
+-	out_uv = uv;
++	out_uv = projection_uv;
+ 
+ 	return colour;
+ }
+ 
+-vec4 do_projection_inset(vec2 view_uv, uint layer, out float out_inset_blend_factor)
++vec4 do_projection_inset(vec2 view_uv, uint layer, out float out_inset_blend_factor, out bool covered)
+ {
+ 	vec2 uv = vec2(0.0, 0.0);
+-	vec4 colour = do_projection_uv(view_uv, layer, uv);
++	vec4 colour = do_projection_uv(view_uv, layer, uv, covered);
+ 
+ 	vec2 negative_edges = smoothstep(0, INSET_BLEND_EDGE, uv);
+ 	vec2 positive_edges = smoothstep(1.0, 1.0 - INSET_BLEND_EDGE, uv);
+@@ -456,10 +478,10 @@ vec4 do_projection_inset(vec2 view_uv, uint layer, out float out_inset_blend_fac
+ 	return colour;
+ }
+ 
+-vec4 do_projection(vec2 view_uv, uint layer)
++vec4 do_projection(vec2 view_uv, uint layer, out bool covered)
+ {
+ 	vec2 uv = vec2(0.5, 0.5);
+-	return do_projection_uv(view_uv, layer, uv);
++	return do_projection_uv(view_uv, layer, uv, covered);
+ }
+ 
+ vec3 get_direction(vec2 uv)
+@@ -481,8 +503,10 @@ vec3 get_direction(vec2 uv)
+ 	return direction;
+ }
+ 
+-vec4 do_quad(vec2 view_uv, uint layer)
++vec4 do_quad(vec2 view_uv, uint layer, out bool covered)
+ {
++	covered = false;
++
+ 	uint source_image_index = LAYER.image_info.color_image_index;
+ 
+ 	// center point of the plane in view space.
+@@ -540,6 +564,8 @@ vec4 do_quad(vec2 view_uv, uint layer)
+ 			intersection_ps.y <= LAYER.quad_extent.y / 2.;
+ 
+ 		if (in_plane_bounds) {
++			covered = true;
++
+ 			// intersection_ps is in [-quad_extent .. quad_extent]. Transform to  [0 .. quad_extent], then scale to [ 0 .. 1 ] for sampling
+ 			vec2 plane_uv = (intersection_ps.xy + LAYER.quad_extent / 2.) / LAYER.quad_extent;
+ 
+@@ -564,6 +590,26 @@ vec4 do_quad(vec2 view_uv, uint layer)
+ 	return vec4(colour);
+ }
+ 
++float get_blend_factor(uint factor, float src_alpha, float dst_alpha)
++{
++	switch (factor) {
++	case LAYER_BLEND_FACTOR_ZERO:
++		return 0.0;
++	case LAYER_BLEND_FACTOR_ONE:
++		return 1.0;
++	case LAYER_BLEND_FACTOR_SRC_ALPHA:
++		return src_alpha;
++	case LAYER_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA:
++		return 1.0 - src_alpha;
++	case LAYER_BLEND_FACTOR_DST_ALPHA:
++		return dst_alpha;
++	case LAYER_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:
++		return 1.0 - dst_alpha;
++	default:
++		return 0.0;
++	}
++}
++
+ vec4 do_layers(vec2 view_uv)
+ {
+ 	vec4 accum = vec4(0, 0, 0, 0);
+@@ -571,24 +617,25 @@ vec4 do_layers(vec2 view_uv)
+ 	int layer_count = ubo.layer_count.x;
+ 	for (uint layer = 0; layer < layer_count; layer++) {
+ 		vec4 rgba = vec4(0, 0, 0, 0);
++		bool covered = false;
+ 
+ 		switch (LAYER.layer_data.layer_type) {
+ 		case LAYER_COMP_TYPE_NOOP:
+ 			continue;
+ 		case LAYER_COMP_TYPE_QUAD:
+-			rgba = do_quad(view_uv, layer);
++			rgba = do_quad(view_uv, layer, covered);
+ 			// Quad alpha inversion is done inside
+ 			break;
+ 		case LAYER_COMP_TYPE_CYLINDER:
+-			rgba = do_cylinder(view_uv, layer);
++			rgba = do_cylinder(view_uv, layer, covered);
+ 			rgba.a = invert_alpha(rgba.a, layer);
+ 			break;
+ 		case LAYER_COMP_TYPE_EQUIRECT2:
+-			rgba = do_equirect2(view_uv, layer);
++			rgba = do_equirect2(view_uv, layer, covered);
+ 			rgba.a = invert_alpha(rgba.a, layer);
+ 			break;
+ 		case LAYER_COMP_TYPE_PROJECTION:
+-			rgba = do_projection(view_uv, layer);
++			rgba = do_projection(view_uv, layer, covered);
+ 			rgba.a = invert_alpha(rgba.a, layer);
+ 			rgba = apply_chroma_key(rgba, layer);
+ 			break;
+@@ -597,8 +644,8 @@ vec4 do_layers(vec2 view_uv)
+ 			continue;
+ 		case LAYER_COMP_TYPE_INSET:
+ 			float inset_blend_factor = 0.0;
+-			vec4 context_rgba = do_projection(view_uv, layer - 1);
+-			vec4 inset_rgba = do_projection_inset(view_uv, layer, inset_blend_factor);
++			vec4 context_rgba = do_projection(view_uv, layer - 1, covered);
++			vec4 inset_rgba = do_projection_inset(view_uv, layer, inset_blend_factor, covered);
+ 
+ 			/*
+ 			 * We handle this here so that any additional effects
+@@ -611,17 +658,36 @@ vec4 do_layers(vec2 view_uv)
+ 		default: break;
+ 		}
+ 
++		// Layers that don't cover this pixel must not participate in blending
++		if (!covered) {
++			continue;
++		}
++
+ 		// Apply color scale and bias
+ 		rgba = clamp(rgba * LAYER.color_scale + LAYER.color_bias, 0.0, 1.0);
+ 
+-		if (LAYER.layer_data.unpremultiplied_alpha != 0) {
+-			// Unpremultipled blend factor of src.a.
+-			accum.rgb = mix(accum.rgb, rgba.rgb, rgba.a);
++		if (LAYER.layer_data.advanced_blending != 0) {
++			float src_factor_color =
++				get_blend_factor(LAYER.advanced_blend.src_factor_color, rgba.a, accum.a);
++			float dst_factor_color =
++				get_blend_factor(LAYER.advanced_blend.dst_factor_color, rgba.a, accum.a);
++			float src_factor_alpha =
++				get_blend_factor(LAYER.advanced_blend.src_factor_alpha, rgba.a, accum.a);
++			float dst_factor_alpha =
++				get_blend_factor(LAYER.advanced_blend.dst_factor_alpha, rgba.a, accum.a);
++
++			accum.rgb = rgba.rgb * src_factor_color + accum.rgb * dst_factor_color;
++			accum.a = rgba.a * src_factor_alpha + accum.a * dst_factor_alpha;
+ 		} else {
+-			// Premultiplied blend factor of 1.
+-			accum.rgb = (accum.rgb * (1 - rgba.a)) + rgba.rgb;
++			float src_rgb_factor = mix(
++				1.0,
++				rgba.a,
++				LAYER.layer_data.unpremultiplied_alpha != 0u
++			);
++
++			accum.rgb = rgba.rgb * src_rgb_factor + accum.rgb * (1.0 - rgba.a);
++			accum.a = fma(1.0 - rgba.a, accum.a, rgba.a);
+ 		}
+-		accum.a = fma((1.f - rgba.a), accum.a, rgba.a);
+ 	}
+ 
+ 	return accum;
+diff --git a/src/xrt/auxiliary/render/shaders/layer_defines.inc.glsl b/src/xrt/auxiliary/render/shaders/layer_defines.inc.glsl
+index 6d6fbba63b..29813d38fe 100644
+--- a/src/xrt/auxiliary/render/shaders/layer_defines.inc.glsl
++++ b/src/xrt/auxiliary/render/shaders/layer_defines.inc.glsl
+@@ -23,4 +23,12 @@
+ //! Inset part of a split quad view projection layer.
+ #define LAYER_COMP_TYPE_INSET 6
+ 
++//! These values must match enum xrt_blend_factor.
++#define LAYER_BLEND_FACTOR_ZERO 0
++#define LAYER_BLEND_FACTOR_ONE 1
++#define LAYER_BLEND_FACTOR_SRC_ALPHA 2
++#define LAYER_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA 3
++#define LAYER_BLEND_FACTOR_DST_ALPHA 4
++#define LAYER_BLEND_FACTOR_ONE_MINUS_DST_ALPHA 5
++
+ #endif // LAYER_DEFINES_INC_GLSL
+diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
+index 2d23c289ec..f3754eb739 100644
+--- a/src/xrt/compositor/util/comp_render_cs.c
++++ b/src/xrt/compositor/util/comp_render_cs.c
+@@ -727,7 +727,8 @@ comp_render_cs_layer(struct render_compute *render,
+ 		ubo_data->layers[cur_layer].layer_data.layer_type = cs_layer_type;
+ 		ubo_data->layers[cur_layer].layer_data.unpremultiplied_alpha = is_layer_unpremultiplied(data);
+ 		ubo_data->layers[cur_layer].layer_data.inverted_alpha = is_layer_alpha_inverted(data);
+-
++		apply_advanced_blend_from_layer(data, &ubo_data->layers[cur_layer].layer_data.advanced_blending,
++		                                &ubo_data->layers[cur_layer].advanced_blend);
+ 		apply_bias_and_scale_from_layer(data, &ubo_data->layers[cur_layer].color_scale,
+ 		                                &ubo_data->layers[cur_layer].color_bias);
+ 
+diff --git a/src/xrt/compositor/util/comp_render_helpers.h b/src/xrt/compositor/util/comp_render_helpers.h
+index 25b4d8c159..e763b7c432 100644
+--- a/src/xrt/compositor/util/comp_render_helpers.h
++++ b/src/xrt/compositor/util/comp_render_helpers.h
+@@ -31,7 +31,9 @@ extern "C" {
+ static inline VkImageView
+ get_image_view(const struct comp_swapchain_image *image, enum xrt_layer_composition_flags flags, uint32_t array_index)
+ {
+-	if (flags & XRT_LAYER_COMPOSITION_BLEND_TEXTURE_SOURCE_ALPHA_BIT) {
++	const uint32_t compare_flags =
++	    XRT_LAYER_COMPOSITION_BLEND_TEXTURE_SOURCE_ALPHA_BIT | XRT_LAYER_COMPOSITION_ADVANCED_BLENDING_BIT;
++	if (flags & compare_flags) {
+ 		return image->views.alpha[array_index];
+ 	}
+ 
+@@ -159,6 +161,22 @@ apply_bias_and_scale_from_layer(const struct xrt_layer_data *data,
+ 	}
+ }
+ 
++static inline void
++apply_advanced_blend_from_layer(const struct xrt_layer_data *data,
++                                uint32_t *out_advanced_blending,
++                                struct render_advanced_blend_info *out_advanced_blend)
++{
++	*out_advanced_blending = (data->flags & XRT_LAYER_COMPOSITION_ADVANCED_BLENDING_BIT) != 0;
++	if (*out_advanced_blending == 0) {
++		return;
++	}
++
++	out_advanced_blend->src_factor_color = data->advanced_blend.src_factor_color;
++	out_advanced_blend->dst_factor_color = data->advanced_blend.dst_factor_color;
++	out_advanced_blend->src_factor_alpha = data->advanced_blend.src_factor_alpha;
++	out_advanced_blend->dst_factor_alpha = data->advanced_blend.dst_factor_alpha;
++}
++
+ 
+ /*
+  *
+diff --git a/src/xrt/state_trackers/oxr/oxr_session_frame_end.c b/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
+index a9d5b7bebc..09e32950d6 100644
+--- a/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
++++ b/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
+@@ -367,23 +367,23 @@ verify_blend_factors(struct oxr_logger *log,
+ 	    layer, (XrStructureType)XR_TYPE_COMPOSITION_LAYER_ALPHA_BLEND_FB, XrCompositionLayerAlphaBlendFB);
+ 
+ 	if (alphaBlend != NULL) {
+-		if (!u_verify_blend_factor_valid(alphaBlend->srcFactorColor)) {
++		if (!u_verify_blend_factor_valid((enum xrt_blend_factor)alphaBlend->srcFactorColor)) {
+ 			return oxr_error(
+ 			    log, XR_ERROR_VALIDATION_FAILURE,
+ 			    "(frameEndInfo->layers[%u]->pNext->srcFactorColor == 0x%08x) unknown blend factor",
+ 			    layer_index, alphaBlend->srcFactorColor);
+ 		}
+-		if (!u_verify_blend_factor_valid(alphaBlend->dstFactorColor)) {
++		if (!u_verify_blend_factor_valid((enum xrt_blend_factor)alphaBlend->dstFactorColor)) {
+ 			return oxr_error(log, XR_ERROR_VALIDATION_FAILURE,
+ 			                 "(frameEndInfo->layers[%u]->dstFactorColor == 0x%08x) unknown blend factor",
+ 			                 layer_index, alphaBlend->dstFactorColor);
+ 		}
+-		if (!u_verify_blend_factor_valid(alphaBlend->srcFactorAlpha)) {
++		if (!u_verify_blend_factor_valid((enum xrt_blend_factor)alphaBlend->srcFactorAlpha)) {
+ 			return oxr_error(log, XR_ERROR_VALIDATION_FAILURE,
+ 			                 "(frameEndInfo->layers[%u]->srcFactorAlpha == 0x%08x) unknown blend factor",
+ 			                 layer_index, alphaBlend->srcFactorAlpha);
+ 		}
+-		if (!u_verify_blend_factor_valid(alphaBlend->dstFactorAlpha)) {
++		if (!u_verify_blend_factor_valid((enum xrt_blend_factor)alphaBlend->dstFactorAlpha)) {
+ 			return oxr_error(log, XR_ERROR_VALIDATION_FAILURE,
+ 			                 "(frameEndInfo->layers[%u]->dstFactorAlpha == 0x%08x) unknown blend factor",
+ 			                 layer_index, alphaBlend->dstFactorAlpha);
+-- 
+GitLab
+
