@@ -253,11 +253,11 @@ if (WIVRN_BUILD_SERVER)
 		wivrn-server
 		PRIVATE
 			aux_os
+			aux_render
 			aux_util
 			aux_vk
 			base
 			comp_multi
-			comp_render
 			comp_util
 			ipc_server
 			target_helpers
@@ -277,7 +277,7 @@ if (WIVRN_BUILD_SERVER)
 	wivrn_compile_glsl(wivrn-server
 		TARGET_ENV vulkan1.3
 		SHADERS
-			"${_monado_src}/src/xrt/compositor/shaders/layer.comp"
+			"${_monado_src}/src/xrt/auxiliary/render/shaders/layer.comp"
 			"${CMAKE_CURRENT_SOURCE_DIR}/compositor/shaders/foveation.comp"
 		)
 

@@ -40,7 +40,7 @@
 
 #include "main/comp_compositor.h"
 #include "math/m_space.h"
-#include "shaders/layer_defines.inc.glsl"
+#include "render/shaders/layer_defines.inc.glsl"
 #include "util/comp_layer_accum.h"
 #include "util/comp_render_helpers.h"
 
