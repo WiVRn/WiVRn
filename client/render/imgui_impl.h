@@ -21,6 +21,7 @@
 #include "image_loader.h"
 #include "render/growable_descriptor_pool.h"
 #include "utils/cache.h"
+#include "utils/mapped_file.h"
 #include "utils/thread_safe.h"
 #include "wivrn_config.h"
 #include "xr/hand_tracker.h"
@@ -203,6 +204,8 @@ private:
 	bool show_demo_window = true;
 #endif
 
+	utils::mapped_file font_awesome_regular;
+	utils::mapped_file font_awesome_solid;
 	void initialize_fonts();
 
 	std::vector<controller_state> read_controllers_state(XrTime display_time);
