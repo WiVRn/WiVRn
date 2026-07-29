@@ -326,6 +326,7 @@ if (WIVRN_BUILD_SERVER_LIBRARY)
 		RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}/wivrn
 		LIBMONADO monado_wivrn
 		OUT_FILENAME ${_filename}
+		MANIFEST_TEMPLATE "${CMAKE_CURRENT_SOURCE_DIR}/dist/openxr_manifest.in.json"
 		)
 
 	install(TARGETS ${RUNTIME_TARGET} monado
