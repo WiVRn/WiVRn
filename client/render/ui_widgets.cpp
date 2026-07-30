@@ -127,7 +127,7 @@ bool begin_card_impl(const char * id, ImVec2 padding)
 		card.w *= background_alpha(); // card fill follows the panel opacity
 		window->DrawList->AddRectFilled(cf.origin, bb_max, t.col(card), t.card_rounding);
 		if (t.border_size > 0)
-			window->DrawList->AddRect(cf.origin, bb_max, t.col(t.border), t.card_rounding, 0, t.border_size);
+			window->DrawList->AddRect(cf.origin, bb_max, t.col(t.border), t.card_rounding, t.border_size);
 	}
 
 	ImGui::PushID(id);
@@ -450,7 +450,7 @@ bool cancel_progress_button(const char * id, float fraction, const ImVec2 & size
 
 	// faint full ring as the track
 	draw->PathArcTo(center, radius, 0, 2 * IM_PI, 48);
-	draw->PathStroke(t.col(t.control), ImDrawFlags_None, thickness);
+	draw->PathStroke(t.col(t.control), thickness);
 
 	const ImU32 accent = t.col(t.accent);
 	if (fraction >= 0)
@@ -458,14 +458,14 @@ bool cancel_progress_button(const char * id, float fraction, const ImVec2 & size
 		// determinate arc, clockwise from the top
 		const float a0 = -IM_PI * 0.5f;
 		draw->PathArcTo(center, radius, a0, a0 + ImClamp(fraction, 0.f, 1.f) * 2 * IM_PI, 48);
-		draw->PathStroke(accent, ImDrawFlags_None, thickness);
+		draw->PathStroke(accent, thickness);
 	}
 	else
 	{
 		// indeterminate: a rotating quarter arc
 		const float a0 = float(g.Time) * 3.5f;
 		draw->PathArcTo(center, radius, a0, a0 + IM_PI * 0.5f, 24);
-		draw->PathStroke(accent, ImDrawFlags_None, thickness);
+		draw->PathStroke(accent, thickness);
 	}
 
 	// stop glyph in the centre, brightening on hover to read as a cancel target
@@ -787,7 +787,7 @@ bool combo_impl(const char * id, const std::string & title, const char * preview
 	ImDrawList * draw = window->DrawList;
 	draw->AddRectFilled(bb.Min, bb.Max, t.col(box), t.rounding);
 	if (t.border_size > 0)
-		draw->AddRect(bb.Min, bb.Max, t.col(t.border), t.rounding, 0, t.border_size);
+		draw->AddRect(bb.Min, bb.Max, t.col(t.border), t.rounding, t.border_size);
 
 	const int sel = selected ? ImClamp(*selected, 0, int(items.size()) - 1) : -1;
 
@@ -1429,7 +1429,7 @@ void sidebar_footer()
 	::ScrollWhenDragging(); // drag to scroll the nav list, like the rest of the GUI
 	ImGui::EndChild();      // TabsScroll
 	// pin the footer to the bottom of the sidebar
-	ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - sidebar_footer_height);
+	ImGui::SetCursorPosY(ImGui::GetContentRegionAvail().y + ImGui::GetCursorScreenPos().y - ImGui::GetWindowPos().y - sidebar_footer_height);
 }
 
 void end_sidebar()

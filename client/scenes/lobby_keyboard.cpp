@@ -393,7 +393,7 @@ virtual_keyboard::key_status virtual_keyboard::draw_single_key(const key & k, in
 
 	const ImU32 col = ImGui::GetColorU32(active ? ImGuiCol_ButtonActive : status.hovered ? ImGuiCol_ButtonHovered
 	                                                                                     : ImGuiCol_Button);
-	ImGui::RenderNavHighlight(bb, id);
+	ImGui::RenderNavCursor(bb, id);
 	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
 
 	ImGui::RenderTextClippedEx(
