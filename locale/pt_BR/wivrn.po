@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-28 00:23+0200\n"
-"PO-Revision-Date: 2026-07-29 23:28+0200\n"
+"PO-Revision-Date: 2026-07-30 23:56+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <kde-i18n-doc@kde.org>\n"
 "Language: pt_BR\n"
@@ -128,11 +128,15 @@ msgstr "SpaceWarp da Aplicação"
 
 #: client/scenes/gui_settings.cpp:289
 msgid "Renders at half the refresh rate. The headset may synthesise frames."
-msgstr "Renderiza na metade da taxa de atualização. O headset pode sintetizar quadros."
+msgstr ""
+"Renderiza na metade da taxa de atualização. O headset pode sintetizar "
+"quadros."
 
 #: client/scenes/gui_settings.cpp:295
 msgid "Set a refresh rate other than auto to enable this setting."
-msgstr "Configure uma taxa de atualização diferente de auto para habilitar este ajuste."
+msgstr ""
+"Configure uma taxa de atualização diferente de auto para habilitar este "
+"ajuste."
 
 #: client/scenes/gui_settings.cpp:299
 msgctxt "page header title"
@@ -211,18 +215,17 @@ msgid "Video data rate sent to the headset."
 msgstr "Taxa de dados de vídeo enviada ao headset."
 
 #: client/scenes/gui_settings.cpp:408
-#, fuzzy
 msgctxt "setting name"
 msgid "Foveation center override"
-msgstr "Ajuste do centro de foveação"
+msgstr "Ajuste do centro de foveamento"
 
 #: client/scenes/gui_settings.cpp:409
 msgid ""
 "Manually set where image quality is focused, instead of the center or your "
 "gaze."
 msgstr ""
-"Manualmente ajusta onde a qualidade de imagem está focalizada, ao invés "
-"de no centro do seu olhar."
+"Manualmente ajusta onde a qualidade de imagem está focalizada, ao invés de "
+"no centro do seu olhar."
 
 #: client/scenes/gui_settings.cpp:421
 msgctxt "setting name"
@@ -235,14 +238,13 @@ msgid "Height {:.1f} °, distance {:.2f} m"
 msgstr "Altura {:.1f} °, distância {:.2f} m"
 
 #: client/scenes/gui_settings.cpp:424
-#, fuzzy
 msgctxt "button label to change the foveation center"
 msgid "Change"
 msgstr "Modificar"
 
 #: client/scenes/gui_settings.cpp:427
 msgid "Enable foveation center override to change this setting."
-msgstr "Habilite sobreposição do centro de foveamento para alterar este ajuste."
+msgstr "Habilite ajuste do centro de foveamento para alterar este ajuste."
 
 #: client/scenes/gui_settings.cpp:431
 msgctxt "page header title"
@@ -300,8 +302,8 @@ msgid ""
 "Reduce flicker for high contrast edges. Useful when the input resolution is "
 "high compared to the headset display."
 msgstr ""
-"Reduzir oscilação para arestas de alto contraste. Útil quando a resolução "
-"de entrada é alta comparada à tela do headset."
+"Reduzir oscilação para arestas de alto contraste. Útil quando a resolução de "
+"entrada é alta comparada à tela do headset."
 
 #: client/scenes/gui_settings.cpp:491
 msgid "Sharpening"
@@ -312,8 +314,8 @@ msgid ""
 "Improve clarity of high contrast edges and counteract blur. Useful when the "
 "input resolution is low compared to the headset display."
 msgstr ""
-"Melhora a clareza de arestas de alto contraste e reduz o embaçamento. "
-"Útil quando a resolução é baixa comparada à tela do headset."
+"Melhora a clareza de arestas de alto contraste e reduz o embaçamento. Útil "
+"quando a resolução é baixa comparada à tela do headset."
 
 #: client/scenes/gui_settings.cpp:494
 msgid "Post-processing"
@@ -353,7 +355,6 @@ msgid "Microphone streamed to the PC."
 msgstr "Microfone transmitido ao PC."
 
 #: client/scenes/gui_settings.cpp:541
-#, fuzzy
 msgctxt "setting name"
 msgid "Keyboard"
 msgstr "Teclado"
@@ -363,7 +364,6 @@ msgid "Forward the keyboard from the headset to the PC."
 msgstr "Repassa o teclado do headset para o PC."
 
 #: client/scenes/gui_settings.cpp:551
-#, fuzzy
 msgctxt "setting name"
 msgid "Mouse"
 msgstr "Mouse"
@@ -373,7 +373,6 @@ msgid "Forward the mouse from the headset to the PC."
 msgstr "Repassa o mouse do headset para o PC."
 
 #: client/scenes/gui_settings.cpp:561
-#, fuzzy
 msgctxt "setting name"
 msgid "Gamepad"
 msgstr "Gamepad"
@@ -475,18 +474,17 @@ msgid ""
 "headset positions."
 msgstr ""
 "Requer 'Rastreamento de mãos e corpo' habilitado nos ajustes de rastreamento "
-"de movimento do Quest, de outra forma os dados serão inferidos pelas posições "
-"dos controles e headset."
+"de movimento do Quest, de outra forma os dados serão inferidos pelas "
+"posições dos controles e headset."
 
 #: client/scenes/gui_settings.cpp:637
 msgid "Stream body joint positions to the PC."
 msgstr "Transmite posições de juntas corporais para o PC."
 
 #: client/scenes/gui_settings.cpp:648 client/scenes/gui_settings.cpp:662
-#, fuzzy
 msgctxt "setting name"
 msgid "Virtual body trackers"
-msgstr "Rastreadores de corpo virtuais"
+msgstr "Rastreadores de corpo virtual"
 
 #: client/scenes/gui_settings.cpp:649
 msgid "Create virtual tracker devices."
@@ -517,10 +515,9 @@ msgid "Interface language."
 msgstr "Linguagem da interface."
 
 #: client/scenes/gui_settings.cpp:714
-#, fuzzy
 msgctxt "item in the interface language combobox"
 msgid "System language"
-msgstr "Linguagem do Sistema"
+msgstr "Linguagem do sistema"
 
 #: client/scenes/gui_settings.cpp:724
 msgctxt "setting name"
@@ -553,8 +550,8 @@ msgid ""
 "Enables the configuration window to be shown while the game is streaming. If "
 "enabled, the window is activated by pressing both thumbsticks."
 msgstr ""
-"Habilita a janela de configuração a ser exibido enquanto o jogo está transmitindo. "
-"Se habilitado, a janela é ativada clicando ambos os analógicos."
+"Habilita a janela de configuração a ser exibido enquanto o jogo está "
+"transmitindo. Se habilitado, a janela é ativada clicando ambos os analógicos."
 
 #: client/scenes/gui_settings.cpp:766
 msgctxt "page header title"
@@ -805,7 +802,6 @@ msgid "Delete server"
 msgstr "Remover servidor"
 
 #: client/scenes/lobby_gui.cpp:533
-#, fuzzy
 msgctxt "popup window title"
 msgid "Add server"
 msgstr "Adicionar servidor"
@@ -939,7 +935,6 @@ msgid "Streaming"
 msgstr "Transmissão"
 
 #: client/scenes/lobby_gui.cpp:1242 client/scenes/stream_gui.cpp:1032
-#, fuzzy
 msgctxt "tab label"
 msgid "Post-processing"
 msgstr "Pós-processamento"
@@ -975,25 +970,21 @@ msgid "Theme"
 msgstr "Tema"
 
 #: client/scenes/lobby_gui.cpp:1257
-#, fuzzy
 msgctxt "tab label"
 msgid "Debug"
 msgstr "Depurar"
 
 #: client/scenes/lobby_gui.cpp:1263
-#, fuzzy
 msgctxt "tab label"
 msgid "About"
 msgstr "Sobre"
 
 #: client/scenes/lobby_gui.cpp:1265
-#, fuzzy
 msgctxt "tab label"
 msgid "Licenses"
 msgstr "Licenças"
 
 #: client/scenes/lobby_gui.cpp:1267
-#, fuzzy
 msgctxt "exit button in the lobby"
 msgid "Exit"
 msgstr "Sair"
@@ -1236,10 +1227,9 @@ msgid "Distance {:.2f} m"
 msgstr "Distância {:.2f} m"
 
 #: client/scenes/stream_gui.cpp:544
-#, fuzzy
 msgctxt "page header title"
 msgid "Applications"
-msgstr "Aplicativos"
+msgstr "Aplicações"
 
 #: client/scenes/stream_gui.cpp:544
 msgctxt "page header subtitle"
@@ -1294,28 +1284,24 @@ msgid "STREAM"
 msgstr "TRANSMITIR"
 
 #: client/scenes/stream_gui.cpp:1006
-#, fuzzy
 msgctxt "tab label"
 msgid "Applications"
-msgstr "Aplicativos"
+msgstr "Aplicações"
 
 #: client/scenes/stream_gui.cpp:1008
-#, fuzzy
 msgctxt "tab label"
 msgid "Start"
 msgstr "Iniciar"
 
 #: client/scenes/stream_gui.cpp:1040
-#, fuzzy
 msgctxt "tab label"
 msgid "Statistics overlay"
-msgstr "Overlay de estatísticas"
+msgstr "Camada de estatísticas"
 
 #: client/scenes/stream_gui.cpp:1042
-#, fuzzy
 msgctxt "tab label"
 msgid "Compact view"
-msgstr "Visualização compacta"
+msgstr "Visão compacta"
 
 #: client/wivrn_client.cpp:98 client/wivrn_client.cpp:202
 msgid "Timeout"
