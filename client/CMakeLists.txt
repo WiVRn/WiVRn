@@ -144,6 +144,7 @@ target_link_libraries(wivrn
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_definitions(wivrn PRIVATE -DGLM_ENABLE_EXPERIMENTAL)
+target_compile_definitions(wivrn PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
 target_include_directories(wivrn PRIVATE .)
 
