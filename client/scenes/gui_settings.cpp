@@ -21,7 +21,6 @@
 // ui:: widget for each, rebuilt every frame so dynamic options/descriptions just work
 // same pages serve the lobby and the in-stream window, gated by ctx.in_game
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "scenes/gui_common.h"
 
 #include "gui_settings.h"
