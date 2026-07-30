@@ -83,7 +83,7 @@ bool app_tile(const std::string & id, const std::string & name, ImTextureID text
 	                                                                                      : t.control),
 	                  t.card_rounding);
 	if (hovered)
-		dl->AddRect(bb.Min, bb.Max, t.col(t.accent), t.card_rounding, 0, t.border_size * 2);
+		dl->AddRect(bb.Min, bb.Max, t.col(t.accent), t.card_rounding, t.border_size * 2);
 
 	const ImVec2 image_min{(bb.Min.x + bb.Max.x - image_size) / 2, bb.Min.y + pad};
 	dl->AddImage(texture, image_min, image_min + ImVec2{image_size, image_size});
@@ -175,7 +175,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 	const float disconnect_w = ui::button_width(cancel);
 
 	// title row stays fixed: view/size toggles then disconnect, right-aligned, disconnect stays enabled while an app starts
-	const float right = ImGui::GetContentRegionMax().x;
+	const float right = ImGui::GetContentRegionAvail().x + ImGui::GetCursorScreenPos().x - ImGui::GetWindowPos().x;
 	ImGui::SetCursorPos({right - disconnect_w, header_top});
 	if (ui::button(cancel, ui::button_style::danger))
 		res = clicked::Cancel;
