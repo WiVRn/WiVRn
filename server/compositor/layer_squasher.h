@@ -24,6 +24,8 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
+#include <atomic>
+
 struct comp_layer;
 struct comp_layer_accum;
 struct comp_frame;
@@ -40,6 +42,7 @@ class layer_squasher
 {
 	const bool partially_bound_desc;
 	const uint32_t image_array_size;
+	std::atomic<uint32_t> sample_count;
 	vk::raii::Sampler clamp_to_border_black;
 	vk::raii::Sampler clamp_to_edge;
 	std::array<buffer_allocation, 2> ubo;
@@ -53,7 +56,7 @@ class layer_squasher
 	std::array<vk::DescriptorSet, 2> descriptor_sets;
 
 public:
-	layer_squasher(vk_bundle &, vk::Extent3D target_size);
+	layer_squasher(vk_bundle &, vk::Extent3D target_size, uint32_t sample_count);
 
 	std::tuple<std::array<xrt_pose, 2>,
 	           std::array<xrt_fov, 2>,
@@ -71,6 +74,11 @@ public:
 	vk::Image get_image()
 	{
 		return render_target;
+	}
+
+	void set_sample_count(uint32_t count)
+	{
+		sample_count = count;
 	}
 
 	uint32_t max_layers(const vk::PhysicalDeviceProperties &) const;

@@ -346,6 +346,7 @@ const std::vector<config_field> & configuration::config_fields()
 	        scalar("stream_scale", &configuration::stream_scale),
 	        scalar("codec", &configuration::codec),
 	        scalar("bit_depth", &configuration::bit_depth),
+	        scalar("composition_sample_count", &configuration::composition_sample_count),
 	};
 	return fields;
 }

@@ -281,6 +281,24 @@ void settings_video(const settings_context & ctx)
 		});
 	}
 
+	{
+		list.push_back({
+		        .id = "##supersampling",
+		        .label = _C("Compositor supersampling setting name", "Supersampling"),
+		        .description = _("Reduce flicker for high contrast edges during compositing. Useful for applications with high resolution outputs. (e.g. overlays)"),
+		        .ui = ui_kind::segmented,
+		        .get_int = [&config] { return std::log2(config.composition_sample_count); },
+		        .set_int = [&ctx, &config](int v) { config.composition_sample_count = 1u << v; config.save(); if (ctx.on_streaming_changed) ctx.on_streaming_changed(); },
+		        .options = [] {
+					std::vector<std::string> opts;
+					opts.push_back(_C("Disable compositor supersampling, use a short string", "None"));
+					for (uint32_t i = 2; i <= 16; i <<= 1)
+						opts.push_back(fmt::format("{}x", i));
+					return opts; },
+		        .default_int = 2, // 4x
+		});
+	}
+
 	if (ctx.instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 	{
 		list.push_back({
@@ -487,7 +505,7 @@ void settings_post_processing(const settings_context & ctx)
 			});
 		};
 
-		flag_combo("##supersampling", _("Supersampling"), _("Reduce flicker for high contrast edges. Useful when the input resolution is high compared to the headset display."), {0, XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB, XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB}, &configuration::openxr_post_processing_settings::super_sampling);
+		flag_combo("##supersampling", _C("Post-processing supersampling setting name", "Supersampling"), _("Reduce flicker for high contrast edges after decoding. Useful when the input resolution is high compared to the headset display."), {0, XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB, XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB}, &configuration::openxr_post_processing_settings::super_sampling);
 		flag_combo("##sharpening", _("Sharpening"), _("Improve clarity of high contrast edges and counteract blur. Useful when the input resolution is low compared to the headset display."), {0, XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB, XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB}, &configuration::openxr_post_processing_settings::sharpening);
 	}
 
