@@ -118,7 +118,10 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 	XrTime production_timestamp;
 
 	if (!enabled)
+	{
+		*res = XRT_SPACE_RELATION_ZERO;
 		return XRT_ERROR_INPUT_UNSUPPORTED;
+	}
 
 	if (name == XRT_INPUT_GENERIC_TRACKER_POSE)
 	{
