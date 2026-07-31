@@ -653,11 +653,12 @@ bool settings_tracking(const settings_context & ctx)
 			        return config.body_part_mask & underlying; },
 		        .set_multi = [&config, &body_parts_bit, &changed](int index, bool value) {
 			        const auto underlying = std::to_underlying(body_parts_bit[index]);
-				if (value)
-					config.body_part_mask |= underlying;
-				else
-					config.body_part_mask &= ~underlying;
-				changed = true; },
+					if (value)
+						config.body_part_mask |= underlying;
+					else
+						config.body_part_mask &= ~underlying;
+					config.save();
+					changed = true; },
 		        .options = [&body_parts_names]() { return body_parts_names; },
 		        .title = _C("setting name", "Virtual body trackers"),
 		        .default_multi = body_parts_default,
