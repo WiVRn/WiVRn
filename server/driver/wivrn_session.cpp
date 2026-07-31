@@ -388,14 +388,9 @@ void wivrn_session::pause_session()
 
 	// notify clients about session pause
 
-	update_client_states(false, false);
-
 	if (get_info().user_presence)
-	{
-		(*this)(from_headset::user_presence_changed{
-		        .present = false,
-		});
-	}
+		hmd.update_presence(false, os_monotonic_get_ns());
+	update_client_states(false, false);
 
 	// pause session components
 
@@ -444,13 +439,6 @@ void wivrn_session::resume_session()
 
 	compositor.resume();
 
-	if (get_info().user_presence)
-	{
-		(*this)(from_headset::user_presence_changed{
-		        .present = true,
-		});
-	}
-
 	(*this)(from_headset::get_application_list{
 	        .language = get_info().language,
 	        .country = get_info().country,
@@ -461,6 +449,7 @@ void wivrn_session::resume_session()
 
 	worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
 	update_client_states(true, true);
+	hmd.update_presence(false, os_monotonic_get_ns());
 }
 
 clock_offset wivrn_session::get_offset()
@@ -847,14 +836,9 @@ void wivrn_session::operator()(from_headset::session_state_changed && event)
 }
 void wivrn_session::operator()(from_headset::user_presence_changed && event)
 {
-	if (hmd.update_presence(event.present))
-		push_event(
-		        {
-		                .presence_change = {
-		                        .type = XRT_SESSION_EVENT_USER_PRESENCE_CHANGE,
-		                        .is_user_present = event.present,
-		                },
-		        });
+	clock_offset o = offset_est.get_offset();
+	U_LOG_I("user presence changed to %s", event.present ? "true" : "false");
+	hmd.update_presence(event.present, o ? o.from_headset(event.change_time) : os_monotonic_get_ns());
 }
 
 void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
