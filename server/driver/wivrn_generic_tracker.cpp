@@ -23,50 +23,21 @@
 #include "utils/method.h"
 #include "wivrn_session.h"
 
-#include "math/m_api.h"
-#include "math/m_eigen_interop.hpp"
-#include "math/m_space.h"
-#include "math/m_vec3.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_results.h"
 #include <format>
-
-using namespace xrt::auxiliary::math;
 
 namespace wivrn
 {
 
 xrt_space_relation tracker_pose_list::interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)
 {
-	xrt_space_relation result;
-	xrt_space_relation_flags flags = xrt_space_relation_flags(a.relation_flags & b.relation_flags);
-	m_space_relation_interpolate(const_cast<xrt_space_relation *>(&a), const_cast<xrt_space_relation *>(&b), t, flags, &result);
-	return result;
+	return pose_list::interpolate(a, b, t);
 }
 
 xrt_space_relation tracker_pose_list::extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, int64_t ta, int64_t tb, int64_t t)
 {
-	float h = (tb - ta) / 1.e9;
-
-	xrt_space_relation res = t < ta ? a : b;
-
-	xrt_vec3 lin_vel = res.relation_flags & XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT ? res.linear_velocity : (b.pose.position - a.pose.position) / h;
-
-	float dt = (t - tb) / 1.e9;
-
-	float dt2_over_2 = dt * dt / 2;
-	res.pose.position = res.pose.position + lin_vel * dt;
-
-	if (res.relation_flags & XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT)
-	{
-		xrt_vec3 dtheta = res.angular_velocity * dt;
-		xrt_quat dq;
-		math_quat_exp(&dtheta, &dq);
-
-		map_quat(res.pose.orientation) = map_quat(res.pose.orientation) * map_quat(dq);
-	}
-
-	return res;
+	return pose_list::extrapolate(a, b, ta, tb, t);
 }
 
 void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const xrt_space_relation & pose, const clock_offset & offset)
