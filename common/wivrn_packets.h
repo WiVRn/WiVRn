@@ -650,6 +650,7 @@ struct session_state_changed
 struct user_presence_changed
 {
 	bool present;
+	XrTime change_time;
 };
 
 struct stream_tab_changed

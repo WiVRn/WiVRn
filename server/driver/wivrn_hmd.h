@@ -24,6 +24,8 @@
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_tracking.h"
 
+#include <inplace_vector.hpp>
+
 #include "view_list.h"
 
 #include <array>
@@ -33,12 +35,15 @@ namespace wivrn
 {
 class wivrn_session;
 
+struct wivrn_hmd_presence_data
+{
+	bool value;
+	int64_t change_time;
+};
+
 class wivrn_hmd : public xrt_device
 {
-	xrt_input pose_input{
-	        .active = true,
-	        .name = XRT_INPUT_GENERIC_HEAD_POSE,
-	};
+	beman::inplace_vector::inplace_vector<xrt_input, 2> inputs_array;
 	xrt_hmd_parts hmd_parts{};
 	xrt_tracking_origin tracking_origin{
 	        .name = "WiVRn origin",
@@ -51,7 +56,7 @@ class wivrn_hmd : public xrt_device
 	view_list views;
 	thread_safe<from_headset::battery> battery{};
 
-	std::atomic<bool> presence{true};
+	thread_safe<wivrn_hmd_presence_data> presence;
 	thread_safe<std::array<std::optional<from_headset::visibility_mask_changed::masks>, 2>> visibility_mask;
 
 	wivrn::wivrn_session * cnx;
@@ -65,8 +70,8 @@ public:
 
 	void set_foveated_size(uint32_t width, uint32_t height);
 
+	xrt_result_t update_inputs();
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation *);
-	xrt_result_t get_presence(bool * out_presence);
 	xrt_result_t get_view_poses(const xrt_vec3 * default_eye_relation,
 	                            int64_t at_timestamp_ns,
 	                            xrt_view_type view_type,
@@ -81,6 +86,6 @@ public:
 	void update_battery(const from_headset::battery &);
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	void update_visibility_mask(const from_headset::visibility_mask_changed &);
-	bool update_presence(bool);
+	void update_presence(bool new_presence, int64_t timestamp);
 };
 } // namespace wivrn

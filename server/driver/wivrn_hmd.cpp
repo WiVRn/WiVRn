@@ -76,22 +76,20 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
                 .serial = "WiVRn HMD",
                 .hmd = &hmd_parts,
                 .tracking_origin = &tracking_origin,
-                .input_count = 1,
-                .inputs = &pose_input,
                 .supported = {
                         .orientation_tracking = true,
                         .position_tracking = true,
                         .presence = info.user_presence,
                         .battery_status = true,
                 },
-                .update_inputs = [](xrt_device *) { return XRT_SUCCESS; },
+                .update_inputs = method_pointer<&wivrn_hmd::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_hmd::get_tracked_pose>,
-                .get_presence = method_pointer<&wivrn_hmd::get_presence>,
                 .get_view_poses = method_pointer<&wivrn_hmd::get_view_poses>,
                 .get_visibility_mask = method_pointer<&wivrn_hmd::get_visibility_mask>,
                 .get_battery_status = method_pointer<&wivrn_hmd::get_battery_status>,
                 .destroy = [](xrt_device *) {},
         },
+        presence(true, os_monotonic_get_ns()),
         cnx(cnx)
 {
 	const auto config = configuration();
@@ -100,6 +98,13 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	eye_width = ((eye_width + 3) / 4) * 4;
 	auto eye_height = info.render_eye_height;
 	eye_height = ((eye_height + 3) / 4) * 4;
+
+	inputs_array.emplace_back(true, 0, XRT_INPUT_GENERIC_HEAD_POSE);
+	if (info.user_presence)
+		inputs_array.emplace_back(true, presence.get_unsafe().change_time, XRT_INPUT_GENERIC_HEAD_DETECT);
+
+	input_count = inputs_array.size();
+	inputs = inputs_array.data();
 
 	// Setup info.
 	hmd->view_count = 2;
@@ -127,6 +132,18 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	hmd->distortion.fov[1] = xrt_cast(info.fov[1]);
 }
 
+xrt_result_t wivrn_hmd::update_inputs()
+{
+	if (not supported.presence)
+		return XRT_SUCCESS;
+
+	auto p = presence.lock();
+	xrt_input & input = inputs_array.at(1);
+	input.value.boolean = p->value;
+	input.timestamp = p->change_time;
+	return XRT_SUCCESS;
+}
+
 xrt_result_t wivrn_hmd::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * res)
 {
 	if (name != XRT_INPUT_GENERIC_HEAD_POSE)
@@ -152,13 +169,6 @@ void wivrn_hmd::update_battery(const from_headset::battery & new_battery)
 {
 	// We will only request a new sample if the current one is consumed
 	*battery.lock() = new_battery;
-}
-
-xrt_result_t wivrn_hmd::get_presence(bool * out_presence)
-{
-	*out_presence = presence;
-
-	return XRT_SUCCESS;
 }
 
 xrt_result_t wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
@@ -238,13 +248,10 @@ void wivrn_hmd::update_visibility_mask(const from_headset::visibility_mask_chang
 	m->at(mask.view_index) = mask.data;
 }
 
-bool wivrn_hmd::update_presence(bool new_presence)
+void wivrn_hmd::update_presence(bool new_presence, int64_t timestamp)
 {
-	if (this->presence.exchange(new_presence) != new_presence)
-	{
-		U_LOG_I("user presence changed to %s", new_presence ? "true" : "false");
-		return true;
-	}
-	return false;
+	auto p = presence.lock();
+	p->value = new_presence;
+	p->change_time = timestamp;
 }
 } // namespace wivrn

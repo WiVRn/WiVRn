@@ -1380,6 +1380,7 @@ void scenes::stream::on_xr_event(const xr::event & event)
 		case XR_TYPE_EVENT_DATA_USER_PRESENCE_CHANGED_EXT:
 			network_session->send_control(from_headset::user_presence_changed{
 			        .present = (bool)event.user_presence_changed.isUserPresent,
+			        .change_time = instance.now(),
 			});
 			break;
 		case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
