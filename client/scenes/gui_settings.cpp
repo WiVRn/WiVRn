@@ -657,6 +657,7 @@ bool settings_tracking(const settings_context & ctx)
 					config.body_part_mask |= underlying;
 				else
 					config.body_part_mask &= ~underlying;
+				config.save();
 				changed = true; },
 		        .options = [&body_parts_names]() { return body_parts_names; },
 		        .title = _C("setting name", "Virtual body trackers"),
