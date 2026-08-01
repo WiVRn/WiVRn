@@ -1,0 +1,112 @@
+From 88071e5e62d156f03280a0548f2d88fe5f669a02 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Wed, 26 Aug 2026 04:07:59 -0500
+Subject: [PATCH 2/8] d/solarxr: Consume battery status for generic trackers
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/solarxr_device.c | 55 ++++++++++++++++++++++++
+ 1 file changed, 55 insertions(+)
+
+diff --git a/src/xrt/drivers/solarxr/solarxr_device.c b/src/xrt/drivers/solarxr/solarxr_device.c
+index d5627743e..dc42b6ccb 100644
+--- a/src/xrt/drivers/solarxr/solarxr_device.c
++++ b/src/xrt/drivers/solarxr/solarxr_device.c
+@@ -34,6 +34,8 @@ struct solarxr_generic_tracker
+ 	uint32_t index;
+ 	struct m_relation_history *history; // weak reference
+ 	enum solarxr_body_part role;
++	float charge; // -1.f == no battery info
++	bool charging;
+ };
+ 
+ struct solarxr_device
+@@ -682,6 +684,15 @@ solarxr_network_thread(void *const ptr)
+ 					    solarxr_handshake_status_to_str(header.message.handshake_response.status));
+ 					device->shook_hands = false;
+ 					atomic_store(&device->enabled_bones, 0);
++					for (size_t i = 0; i < ARRAY_SIZE(device->tracker_refs); ++i) {
++						struct solarxr_generic_tracker *const tracker = device->tracker_refs[i];
++						if (tracker == NULL)
++							break;
++
++						os_mutex_lock(&tracker->mutex);
++						tracker->charge = -1.f;
++						os_mutex_unlock(&tracker->mutex);
++					}
+ 					feeder_mark_unsent(&device->feeder);
+ 				}
+ 				break;
+@@ -705,6 +716,22 @@ solarxr_network_thread(void *const ptr)
+ 					bones.data = header.message.skeleton_update.bones.data;
+ 				}
+ 				break;
++			case SOLARXR_DRIVER_MESSAGE_TYPE_BONE_BATTERY_UPDATE:
++				for (size_t i = 0; i < ARRAY_SIZE(device->tracker_refs); ++i) {
++					struct solarxr_generic_tracker *const tracker = device->tracker_refs[i];
++					if (tracker == NULL)
++						break;
++					if (tracker->role != header.message.bone_battery_update.bone)
++						continue;
++
++					os_mutex_lock(&tracker->mutex);
++					tracker->charge =
++					    (float)header.message.bone_battery_update.battery_level / 100.f;
++					tracker->charging = header.message.bone_battery_update.charging;
++					os_mutex_unlock(&tracker->mutex);
++					break;
++				}
++				break;
+ 			default:;
+ 			}
+ 		}
+@@ -826,6 +853,31 @@ solarxr_generic_tracker_get_tracked_pose(struct xrt_device *const xdev,
+ 	return result;
+ }
+ 
++static xrt_result_t
++solarxr_generic_tracker_get_battery_status(struct xrt_device *const xdev,
++                                           bool *const out_present,
++                                           bool *const out_charging,
++                                           float *const out_charge)
++{
++	struct solarxr_generic_tracker *const device = solarxr_generic_tracker(xdev);
++	assert(device != NULL);
++
++	os_mutex_lock(&device->mutex);
++
++	if (device->charge == -1.f) {
++		*out_present = false;
++		goto end;
++	}
++
++	*out_present = true;
++	*out_charge = device->charge;
++	*out_charging = device->charging;
++
++end:
++	os_mutex_unlock(&device->mutex);
++	return XRT_SUCCESS;
++}
++
+ static void
+ solarxr_generic_tracker_destroy(struct xrt_device *const xdev)
+ {
+@@ -943,11 +995,14 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 			tracker->base.tracking_origin = device->base.tracking_origin;
+ 			tracker->base.supported.orientation_tracking = true;
+ 			tracker->base.supported.position_tracking = true;
++			tracker->base.supported.battery_status = true;
+ 			tracker->base.update_inputs = solarxr_generic_tracker_update_inputs;
+ 			tracker->base.get_tracked_pose = solarxr_generic_tracker_get_tracked_pose;
++			tracker->base.get_battery_status = solarxr_generic_tracker_get_battery_status;
+ 			tracker->base.destroy = solarxr_generic_tracker_destroy;
+ 			tracker->base.inputs[0].name = XRT_INPUT_GENERIC_TRACKER_POSE;
+ 			tracker->role = body_part;
++			tracker->charge = -1.f;
+ 
+ 			assert(trackers_len < ARRAY_SIZE(trackers));
+ 			m_relation_history_create(&device->trackers[trackers_len]);
+-- 
+2.55.0
+

@@ -1,0 +1,37 @@
+From f31dd78cba9aa474350232948c05e9075d44e802 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Wed, 26 Aug 2026 04:30:16 -0500
+Subject: [PATCH 6/8] d/solarxr: Name the network thread
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/solarxr_device.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/xrt/drivers/solarxr/solarxr_device.c b/src/xrt/drivers/solarxr/solarxr_device.c
+index 85c16008c..93d792d72 100644
+--- a/src/xrt/drivers/solarxr/solarxr_device.c
++++ b/src/xrt/drivers/solarxr/solarxr_device.c
+@@ -15,6 +15,7 @@
+ #include "util/u_debug.h"
+ #include "util/u_device.h"
+ #include "util/u_time.h"
++#include "util/u_trace_marker.h"
+ 
+ #include <endian.h>
+ #include <stdatomic.h>
+@@ -348,6 +349,11 @@ solarxr_network_thread(void *const ptr)
+ {
+ 	struct solarxr_device *const device = (struct solarxr_device *)ptr;
+ 
++	const char *const thread_name = "SolarXR Network";
++
++	U_TRACE_SET_THREAD_NAME(thread_name);
++	os_thread_name(&device->thread, thread_name);
++
+ 	static const char driver_name[] = "Monado";
+ 	struct
+ 	{
+-- 
+2.55.0
+

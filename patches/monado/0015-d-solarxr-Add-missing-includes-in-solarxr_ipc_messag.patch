@@ -1,0 +1,27 @@
+From 427f01d33770b6010d349166bda3b86fade49d14 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Wed, 26 Aug 2026 02:53:26 -0500
+Subject: [PATCH 5/8] d/solarxr: Add missing includes in solarxr_ipc_message
+ header
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/solarxr_ipc_message.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/xrt/drivers/solarxr/solarxr_ipc_message.h b/src/xrt/drivers/solarxr/solarxr_ipc_message.h
+index 72eeb381e..7d827a7b8 100644
+--- a/src/xrt/drivers/solarxr/solarxr_ipc_message.h
++++ b/src/xrt/drivers/solarxr/solarxr_ipc_message.h
+@@ -3,6 +3,8 @@
+ 
+ #pragma once
+ #include <endian.h>
++#include <stdbool.h>
++#include <stdint.h>
+ #include <string.h>
+ 
+ #ifdef __cplusplus
+-- 
+2.55.0
+

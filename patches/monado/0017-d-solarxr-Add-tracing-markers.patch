@@ -1,0 +1,88 @@
+From 64a67da421164399260cc2a2f1af12fcafb54c88 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Wed, 26 Aug 2026 18:57:37 -0500
+Subject: [PATCH 7/8] d/solarxr: Add tracing markers
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/feeder.c         | 8 ++++++++
+ src/xrt/drivers/solarxr/solarxr_device.c | 6 ++++++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/src/xrt/drivers/solarxr/feeder.c b/src/xrt/drivers/solarxr/feeder.c
+index 524bc4aa7..a763b5091 100644
+--- a/src/xrt/drivers/solarxr/feeder.c
++++ b/src/xrt/drivers/solarxr/feeder.c
+@@ -12,6 +12,7 @@
+ #include "solarxr_ipc_message.h"
+ 
+ #include "util/u_hashmap.h"
++#include "util/u_trace_marker.h"
+ #include "xrt/xrt_device.h"
+ 
+ #include <math.h>
+@@ -728,6 +729,8 @@ feeder_device_send_feedback_cb(const uint64_t key, const void *const value, void
+ 	struct send_feedback_userdata *const data = (struct send_feedback_userdata *)userptr;
+ 	enum solarxr_tracker_status status = SOLARXR_TRACKER_STATUS_DISCONNECTED;
+ 
++	XRT_TRACE_MARKER();
++
+ 	if (xdev == NULL) {
+ 		device->next_to_erase = data->to_erase;
+ 		data->to_erase = device;
+@@ -778,6 +781,8 @@ feeder_device_send_feedback_cb(const uint64_t key, const void *const value, void
+ void
+ feeder_send_feedback(struct feeder *const feeder)
+ {
++	XRT_TRACE_MARKER();
++
+ 	os_mutex_lock(&feeder->mutex);
+ 
+ 	struct send_feedback_userdata data;
+@@ -785,7 +790,10 @@ feeder_send_feedback(struct feeder *const feeder)
+ 	data.time = os_monotonic_get_ns();
+ 	data.log_level = feeder->socket->log_level;
+ 	data.packet_end = data.packet;
++
++	XRT_TRACE_BEGIN(feeder_device_send_feedback_foreach);
+ 	u_hashmap_int_for_each(feeder->devices, feeder_device_send_feedback_cb, &data);
++	XRT_TRACE_END(feeder_device_send_feedback_foreach);
+ 
+ 	// flush queued messages to socket
+ 	if (data.packet_end != data.packet) {
+diff --git a/src/xrt/drivers/solarxr/solarxr_device.c b/src/xrt/drivers/solarxr/solarxr_device.c
+index 93d792d72..2410f3342 100644
+--- a/src/xrt/drivers/solarxr/solarxr_device.c
++++ b/src/xrt/drivers/solarxr/solarxr_device.c
+@@ -294,8 +294,11 @@ static void
+ solarxr_device_handle_bones(struct solarxr_device *const device,
+                             const struct solarxr_bone bones[ARRAY_SIZE(device->bones)])
+ {
++	XRT_TRACE_MARKER();
++
+ 	os_mutex_lock(&device->mutex);
+ 
++	XRT_TRACE_BEGIN(solarxr_device_handle_generic_trackers);
+ 	for (size_t i = 0; i < ARRAY_SIZE(device->tracker_refs); ++i) {
+ 		const struct solarxr_generic_tracker *const tracker = device->tracker_refs[i];
+ 		if (tracker == NULL || tracker->role == SOLARXR_BODY_PART_NONE) {
+@@ -324,6 +327,7 @@ solarxr_device_handle_bones(struct solarxr_device *const device,
+ 		};
+ 		m_relation_history_push(history, &relation, device->socket.timestamp);
+ 	}
++	XRT_TRACE_END(solarxr_device_handle_generic_trackers);
+ 
+ 	bool generation_increased = false;
+ 	for (uint32_t i = 0; i < ARRAY_SIZE(device->bones); ++i) {
+@@ -639,6 +643,8 @@ solarxr_network_thread(void *const ptr)
+ 			continue;
+ 		}
+ 
++		XRT_TRACE_IDENT(solarxr_network_frame);
++
+ 		struct solarxr_message_bundle bundle;
+ 		if (!read_solarxr_message_bundle(&bundle, buffer.data, buffer.length,
+ 		                                 (const solarxr_message_bundle_t *)buffer.data)) {
+-- 
+2.55.0
+

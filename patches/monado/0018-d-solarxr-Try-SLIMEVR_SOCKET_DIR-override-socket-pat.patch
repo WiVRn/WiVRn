@@ -1,0 +1,36 @@
+From ddab214d6f36de22134c332cd74dc189191f7228 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Tue, 1 Sep 2026 02:50:08 -0500
+Subject: [PATCH 8/8] d/solarxr: Try SLIMEVR_SOCKET_DIR override socket path
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/solarxr_ipc_socket.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/src/xrt/drivers/solarxr/solarxr_ipc_socket.c b/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
+index 9492df71f..2d833223b 100644
+--- a/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
++++ b/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
+@@ -115,6 +115,18 @@ solarxr_ipc_socket_find(const enum u_logging_level log_level, const char filenam
+ 		return (struct sockaddr_un){0};
+ 	}
+ 
++	// try override path
++	const char *override_env;
++	int override_path_len = 0;
++	if ((override_env = getenv("SLIMEVR_SOCKET_DIR")) != NULL) {
++		override_path_len = snprintf(addr.sun_path, sizeof(addr.sun_path), "%s/%s", override_env, filename);
++	}
++
++	if (override_path_len > 0 && (unsigned)override_path_len < sizeof(addr.sun_path) &&
++	    check_socket_path(log_level, addr.sun_path)) {
++		return addr;
++	}
++
+ 	const ssize_t runtime_dir_len =
+ 	    u_file_get_path_in_runtime_dir("", addr.sun_path, sizeof(addr.sun_path) - 1 - filename_len);
+ 	if (runtime_dir_len <= 0 || (size_t)runtime_dir_len >= sizeof(addr.sun_path) - 1 - filename_len) {
+-- 
+2.55.0
+

@@ -1,0 +1,79 @@
+From 7fcc80e07e585d4a0e6b7a4adde49d9368cc5aa0 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Mon, 3 Aug 2026 02:52:06 -0500
+Subject: [PATCH 4/8] d/solarxr: Reconnect to IPC sockets when connection
+ breaks
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/solarxr_device.c     | 37 +++++++++++++++++++-
+ src/xrt/drivers/solarxr/solarxr_ipc_socket.c |  2 --
+ 2 files changed, 36 insertions(+), 3 deletions(-)
+
+diff --git a/src/xrt/drivers/solarxr/solarxr_device.c b/src/xrt/drivers/solarxr/solarxr_device.c
+index dc42b6ccb..85c16008c 100644
+--- a/src/xrt/drivers/solarxr/solarxr_device.c
++++ b/src/xrt/drivers/solarxr/solarxr_device.c
+@@ -591,10 +591,45 @@ solarxr_network_thread(void *const ptr)
+ 	        },
+ 	};
+ 
+-	while (solarxr_ipc_socket_wait_timeout(&device->socket, -1)) {
++	bool lost_connection = false;
++	while (solarxr_ipc_socket_is_connected(&device->socket)) {
++		if (!solarxr_ipc_socket_wait_timeout(&device->socket, -1)) {
++			if (!solarxr_ipc_socket_is_connected(&device->socket)) {
++				// We were woke up from wait_timeout when destroying the socket
++				break;
++			}
++
++			if (!lost_connection) {
++				U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
++				            "solarxr_ipc_socket_wait_timeout failed; attempting socket reconnect");
++				lost_connection = true;
++				device->shook_hands = false;
++				atomic_store(&device->enabled_bones, 0);
++				for (size_t i = 0; i < ARRAY_SIZE(device->tracker_refs); ++i) {
++					struct solarxr_generic_tracker *const tracker = device->tracker_refs[i];
++					if (tracker == NULL)
++						break;
++
++					os_mutex_lock(&tracker->mutex);
++					tracker->charge = -1.f;
++					os_mutex_unlock(&tracker->mutex);
++				}
++				feeder_mark_unsent(&device->feeder);
++			}
++
++			//! @todo Maybe write a better way to silence the logs than passing in RAW log level?
++			const struct sockaddr_un path = solarxr_ipc_socket_find(U_LOGGING_RAW, "SlimeVRRpc");
++			if (solarxr_ipc_socket_connect(&device->socket, path)) {
++				lost_connection = false;
++			} else {
++				os_nanosleep(U_TIME_1S_IN_NS);
++			}
++			continue;
++		}
+ 		const struct span buffer = {solarxr_ipc_socket_receive(&device->socket), device->socket.buffer};
+ 
+ 		if (buffer.length == 0) {
++			U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "solarxr_ipc_socket_receive failed");
+ 			continue;
+ 		}
+ 
+diff --git a/src/xrt/drivers/solarxr/solarxr_ipc_socket.c b/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
+index 8a38a990c..9492df71f 100644
+--- a/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
++++ b/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
+@@ -161,8 +161,6 @@ solarxr_ipc_socket_find(const enum u_logging_level log_level, const char filenam
+ bool
+ solarxr_ipc_socket_connect(struct solarxr_ipc_socket *const state, const struct sockaddr_un addr)
+ {
+-	solarxr_ipc_socket_close(state);
+-
+ 	xrt_ipc_handle_t ipc_handle = XRT_IPC_HANDLE_INVALID;
+ 	if (addr.sun_family != AF_UNIX) {
+ 		goto fail;
+-- 
+2.55.0
+
