@@ -1,0 +1,41 @@
+From 28a49ba3f3b1c6342597398b8c51e156edcd2ac1 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Thu, 30 Jul 2026 19:03:29 -0500
+Subject: [PATCH 2/4] d/solarxr: Use {LEFT,RIGHT}_HAND roles in feeder
+
+SlimeVR server-rewrite doesn't support the controller roles, since they
+are no longer used.
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/feeder.c | 12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
+
+diff --git a/src/xrt/drivers/solarxr/feeder.c b/src/xrt/drivers/solarxr/feeder.c
+index 501ededc9..67c45303a 100644
+--- a/src/xrt/drivers/solarxr/feeder.c
++++ b/src/xrt/drivers/solarxr/feeder.c
+@@ -70,16 +70,12 @@ feeder_add_device(struct feeder *const feeder, struct xrt_device *const xdev)
+ 		role_name = "HMD";
+ 	} break;
+ 	case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER: {
+-		role = 14;
+-		role_name = "RIGHT_CONTROLLER";
++		role = 12;
++		role_name = "RIGHT_HAND";
+ 	} break;
+ 	case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER: {
+-		role = 13;
+-		role_name = "LEFT_CONTROLLER";
+-	} break;
+-	case XRT_DEVICE_TYPE_ANY_HAND_CONTROLLER: {
+-		role = 21;
+-		role_name = "GENERIC_CONTROLLER";
++		role = 11;
++		role_name = "LEFT_HAND";
+ 	} break;
+ 	default:;
+ 	}
+-- 
+2.55.0
+

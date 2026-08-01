@@ -1,0 +1,1573 @@
+From 95ce864812a6afff4511868dd3fd152a8929b082 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Thu, 30 Jul 2026 18:59:54 -0500
+Subject: [PATCH 1/4] d/solarxr: Fix driver after SolarXR breaking changes in
+ server-rewrite
+
+In server-rewrite, SlimeVR no longer sends computed trackers in the
+`DataFeedUpdate::synthetic_trackers` field (which no longer exists).
+Now we use the bones from the data feed update as the data source for
+skeletal body tracking extensions and the xdevs.
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/feeder.c         |   8 +-
+ src/xrt/drivers/solarxr/protocol.c       | 161 ++---
+ src/xrt/drivers/solarxr/protocol.h       | 233 ++++---
+ src/xrt/drivers/solarxr/solarxr_device.c | 749 ++++++-----------------
+ 4 files changed, 409 insertions(+), 742 deletions(-)
+
+diff --git a/src/xrt/drivers/solarxr/feeder.c b/src/xrt/drivers/solarxr/feeder.c
+index 3c79eef8b..501ededc9 100644
+--- a/src/xrt/drivers/solarxr/feeder.c
++++ b/src/xrt/drivers/solarxr/feeder.c
+@@ -44,8 +44,12 @@ feeder_add_device(struct feeder *const feeder, struct xrt_device *const xdev)
+ 
+ 	bool result = false;
+ 	if (!solarxr_ipc_socket_is_connected(&feeder->socket) &&
+-	    !solarxr_ipc_socket_connect(&feeder->socket,
+-	                                solarxr_ipc_socket_find(feeder->socket.log_level, "SlimeVRInput"))) {
++	    !solarxr_ipc_socket_connect(
++	        &feeder->socket,
++	        solarxr_ipc_socket_find(
++	            feeder->socket.log_level,
++	            "SlimeVRDriver"))) // FIXME: change this back to SlimeVRInput when server side is fixed
++	{
+ 		goto unlock;
+ 	}
+ 
+diff --git a/src/xrt/drivers/solarxr/protocol.c b/src/xrt/drivers/solarxr/protocol.c
+index 1cb6a1f49..957c9f39c 100644
+--- a/src/xrt/drivers/solarxr/protocol.c
++++ b/src/xrt/drivers/solarxr/protocol.c
+@@ -193,7 +193,7 @@ read_solarxr_data_feed_message_header(struct solarxr_data_feed_message_header *c
+ 
+ 	switch (header.data[header_vtable[0]]) {
+ 	case SOLARXR_DATA_FEED_MESSAGE_DATA_FEED_UPDATE: {
+-		uint16_t update_vtable[3];
++		uint16_t update_vtable[2];
+ 		const struct table_data update = read_flatbuffers_table(
+ 		    buffer, buffer_len, (const flatbuffers_uoffset_t *)&header.data[header_vtable[1]], update_vtable,
+ 		    ARRAY_SIZE(update_vtable));
+@@ -209,15 +209,8 @@ read_solarxr_data_feed_message_header(struct solarxr_data_feed_message_header *c
+ 		}
+ 
+ 		if (update_vtable[1] != 0 && update_vtable[1] + sizeof(flatbuffers_uoffset_t) <= update.length) {
+-			out->message.data_feed_update.synthetic_trackers =
+-			    flatbuffers_vector_solarxr_tracker_data(read_flatbuffers_vector(
+-			        buffer, buffer_len, (const flatbuffers_uoffset_t *)&update.data[update_vtable[1]],
+-			        sizeof(*out->message.data_feed_update.synthetic_trackers.data)));
+-		}
+-
+-		if (update_vtable[2] != 0 && update_vtable[2] + sizeof(flatbuffers_uoffset_t) <= update.length) {
+ 			out->message.data_feed_update.bones = flatbuffers_vector_solarxr_bone(read_flatbuffers_vector(
+-			    buffer, buffer_len, (const flatbuffers_uoffset_t *)&update.data[update_vtable[2]],
++			    buffer, buffer_len, (const flatbuffers_uoffset_t *)&update.data[update_vtable[1]],
+ 			    sizeof(*out->message.data_feed_update.bones.data)));
+ 		}
+ 
+@@ -251,67 +244,20 @@ read_solarxr_rpc_message_header(struct solarxr_rpc_message_header *const out,
+ 	out->message_type = header.data[header_vtable[1]];
+ 
+ 	switch (header.data[header_vtable[1]]) {
+-	case SOLARXR_RPC_MESSAGE_TYPE_SETTINGS_RESPONSE: {
+-		uint16_t message_vtable[1];
++	case SOLARXR_RPC_MESSAGE_TYPE_BONE_ROUTING_SETTINGS_RESPONSE: {
++		uint16_t message_vtable[2];
+ 		const struct table_data message = read_flatbuffers_table(
+ 		    buffer, buffer_len, (const flatbuffers_uoffset_t *)&header.data[header_vtable[2]], message_vtable,
+ 		    ARRAY_SIZE(message_vtable));
+-		if (message.length == 0 || message_vtable[0] == 0 ||
+-		    message_vtable[0] + sizeof(flatbuffers_uoffset_t) > message.length) {
+-			break;
+-		}
+-
+-		uint16_t trackers_vtable[15];
+-		const struct table_data trackers = read_flatbuffers_table(
+-		    buffer, buffer_len, (const flatbuffers_uoffset_t *)&message.data[message_vtable[0]],
+-		    trackers_vtable, ARRAY_SIZE(trackers_vtable));
+-		if (trackers.length == 0) {
++		if (message.length == 0 || message_vtable[1] == 0 ||
++		    message_vtable[1] + sizeof(flatbuffers_uoffset_t) > message.length) {
+ 			break;
+ 		}
+ 
+-		if (trackers_vtable[0] != 0) {
+-			out->message.settings_response.steam_vr_trackers.waist = trackers.data[trackers_vtable[0]];
+-		}
+-
+-		if (trackers_vtable[1] != 0) {
+-			out->message.settings_response.steam_vr_trackers.chest = trackers.data[trackers_vtable[1]];
+-		}
+-
+-		if (trackers_vtable[7] != 0) {
+-			out->message.settings_response.steam_vr_trackers.left_foot = trackers.data[trackers_vtable[7]];
+-		}
+-
+-		if (trackers_vtable[8] != 0) {
+-			out->message.settings_response.steam_vr_trackers.right_foot = trackers.data[trackers_vtable[8]];
+-		}
+-
+-		if (trackers_vtable[9] != 0) {
+-			out->message.settings_response.steam_vr_trackers.left_knee = trackers.data[trackers_vtable[9]];
+-		}
+-
+-		if (trackers_vtable[10] != 0) {
+-			out->message.settings_response.steam_vr_trackers.right_knee =
+-			    trackers.data[trackers_vtable[10]];
+-		}
+-
+-		if (trackers_vtable[11] != 0) {
+-			out->message.settings_response.steam_vr_trackers.left_elbow =
+-			    trackers.data[trackers_vtable[11]];
+-		}
+-
+-		if (trackers_vtable[12] != 0) {
+-			out->message.settings_response.steam_vr_trackers.right_elbow =
+-			    trackers.data[trackers_vtable[12]];
+-		}
+-
+-		if (trackers_vtable[13] != 0) {
+-			out->message.settings_response.steam_vr_trackers.left_hand = trackers.data[trackers_vtable[13]];
+-		}
+-
+-		if (trackers_vtable[14] != 0) {
+-			out->message.settings_response.steam_vr_trackers.right_hand =
+-			    trackers.data[trackers_vtable[14]];
+-		}
++		out->message.bone_routing_settings_response.routes =
++		    flatbuffers_vector_solarxr_bone_route(read_flatbuffers_vector(
++		        buffer, buffer_len, (const flatbuffers_uoffset_t *)&message.data[message_vtable[1]],
++		        sizeof(*out->message.bone_routing_settings_response.routes.data)));
+ 
+ 		break;
+ 	}
+@@ -335,8 +281,9 @@ read_solarxr_device_data(struct solarxr_device_data *const out,
+ 		return false;
+ 	}
+ 
+-	if (data_vtable[0] != 0) {
+-		out->id = data.data[data_vtable[0]];
++	if (data_vtable[0] != 0 && data_vtable[0] + sizeof(out->id) <= data.length) {
++		memcpy(&out->id, &data.data[data_vtable[0]], sizeof(out->id));
++		out->id = le16toh(out->id);
+ 	}
+ 
+ 	if (data_vtable[4] != 0 && data_vtable[4] + sizeof(flatbuffers_uoffset_t) <= data.length) {
+@@ -355,51 +302,46 @@ read_solarxr_tracker_data(struct solarxr_tracker_data *const out,
+                           const solarxr_tracker_data_t *const ref)
+ {
+ 	*out = (struct solarxr_tracker_data){0};
+-	uint16_t data_vtable[9];
++	uint16_t data_vtable[10];
+ 	const struct table_data data =
+ 	    read_flatbuffers_table(buffer, buffer_len, &ref->offset, data_vtable, ARRAY_SIZE(data_vtable));
+ 	if (data.length == 0) {
+ 		return false;
+ 	}
+ 
+-	if (data_vtable[0] != 0 && data_vtable[0] + sizeof(flatbuffers_uoffset_t) <= data.length) {
+-		uint16_t id_vtable[2];
+-		const struct table_data id = read_flatbuffers_table(
+-		    buffer, buffer_len, (const flatbuffers_uoffset_t *)&data.data[data_vtable[0]], id_vtable,
+-		    ARRAY_SIZE(id_vtable));
+-		if (id_vtable[0] != 0) {
+-			out->tracker_id.has_device_id = true;
+-			out->tracker_id.device_id = id.data[id_vtable[0]];
+-		}
+-
+-		if (id_vtable[1] != 0) {
+-			out->tracker_id.tracker_num = id.data[id_vtable[1]];
+-		}
++	if (data_vtable[0] != 0 && data_vtable[0] + sizeof(out->device_id) <= data.length) {
++		out->has_device_id = true;
++		memcpy(&out->device_id, &data.data[data_vtable[0]], sizeof(out->device_id));
++		out->device_id = le16toh(out->device_id);
++	}
++	if (data_vtable[1] != 0 && data_vtable[1] + sizeof(out->tracker_id) <= data.length) {
++		memcpy(&out->tracker_id, &data.data[data_vtable[1]], sizeof(out->tracker_id));
++		out->tracker_id = le16toh(out->tracker_id);
+ 	}
+ 
+-	if (data_vtable[1] != 0 && data_vtable[1] + sizeof(flatbuffers_uoffset_t) <= data.length) {
+-		uint16_t info_vtable[8];
++	if (data_vtable[2] != 0 && data_vtable[2] + sizeof(flatbuffers_uoffset_t) <= data.length) {
++		uint16_t info_vtable[5];
+ 		const struct table_data info = read_flatbuffers_table(
+-		    buffer, buffer_len, (const flatbuffers_uoffset_t *)&data.data[data_vtable[1]], info_vtable,
++		    buffer, buffer_len, (const flatbuffers_uoffset_t *)&data.data[data_vtable[2]], info_vtable,
+ 		    ARRAY_SIZE(info_vtable));
+ 		out->has_info = true;
+-		if (info_vtable[1] != 0) {
+-			out->info.body_part = info.data[info_vtable[1]];
++		if (info_vtable[2] != 0) {
++			out->info.body_part = info.data[info_vtable[2]];
+ 		}
+ 
+-		if (info_vtable[7] != 0) {
++		if (info_vtable[4] != 0) {
+ 			out->info.display_name = flatbuffers_vector_char(read_flatbuffers_vector(
+-			    buffer, buffer_len, (const flatbuffers_uoffset_t *)&info.data[info_vtable[7]],
++			    buffer, buffer_len, (const flatbuffers_uoffset_t *)&info.data[info_vtable[4]],
+ 			    sizeof(*out->info.display_name.data)));
+ 		}
+ 	}
+ 
+-	out->has_rotation = read_solarxr_quat(&out->rotation, data.data, data.length, data_vtable[3]);
+-	out->has_position = read_solarxr_vec3f(&out->position, data.data, data.length, data_vtable[4]);
++	out->has_rotation = read_solarxr_quat(&out->rotation, data.data, data.length, data_vtable[4]);
++	out->has_position = read_solarxr_vec3f(&out->position, data.data, data.length, data_vtable[5]);
+ 	out->has_raw_angular_velocity =
+-	    read_solarxr_vec3f(&out->raw_angular_velocity, data.data, data.length, data_vtable[5]);
++	    read_solarxr_vec3f(&out->raw_angular_velocity, data.data, data.length, data_vtable[6]);
+ 	out->has_linear_acceleration =
+-	    read_solarxr_vec3f(&out->linear_acceleration, data.data, data.length, data_vtable[8]);
++	    read_solarxr_vec3f(&out->linear_acceleration, data.data, data.length, data_vtable[9]);
+ 
+ 	return true;
+ }
+@@ -411,7 +353,7 @@ read_solarxr_bone(struct solarxr_bone *const out,
+                   const solarxr_bone_t *const ref)
+ {
+ 	*out = (struct solarxr_bone){0};
+-	uint16_t bone_vtable[4];
++	uint16_t bone_vtable[5];
+ 	const struct table_data bone =
+ 	    read_flatbuffers_table(buffer, buffer_len, &ref->offset, bone_vtable, ARRAY_SIZE(bone_vtable));
+ 	if (bone.length == 0) {
+@@ -422,11 +364,38 @@ read_solarxr_bone(struct solarxr_bone *const out,
+ 		out->body_part = bone.data[bone_vtable[0]];
+ 	}
+ 
+-	read_solarxr_quat(&out->rotation_g, bone.data, bone.length, bone_vtable[1]);
+-	if (bone_vtable[2] != 0 && bone_vtable[2] + sizeof(out->bone_length) <= bone.length) {
+-		memcpy(&out->bone_length, &bone.data[bone_vtable[2]], sizeof(out->bone_length));
++	read_solarxr_quat(&out->rotation_g, bone.data, bone.length, bone_vtable[2]);
++	if (bone_vtable[3] != 0 && bone_vtable[3] + sizeof(out->bone_length) <= bone.length) {
++		memcpy(&out->bone_length, &bone.data[bone_vtable[3]], sizeof(out->bone_length));
++	}
++
++	read_solarxr_vec3f(&out->head_position_g, bone.data, bone.length, bone_vtable[4]);
++	return true;
++}
++
++bool
++read_solarxr_bone_route(struct solarxr_bone_route *out,
++                        const uint8_t *buffer,
++                        size_t buffer_len,
++                        const solarxr_bone_route_t *ref)
++{
++	*out = (struct solarxr_bone_route){0};
++	uint16_t route_vtable[2];
++	const struct table_data route =
++	    read_flatbuffers_table(buffer, buffer_len, &ref->offset, route_vtable, ARRAY_SIZE(route_vtable));
++	if (route.length == 0) {
++		return false;
++	}
++
++	if (route_vtable[0] != 0) {
++		out->bone = route.data[route_vtable[0]];
++	}
++
++	if (route_vtable[1] != 0) {
++		out->outputs = flatbuffers_vector_solarxr_routing_output(read_flatbuffers_vector(
++		    buffer, buffer_len, (const flatbuffers_uoffset_t *)&route.data[route_vtable[1]],
++		    sizeof(*out->outputs.data)));
+ 	}
+ 
+-	read_solarxr_vec3f(&out->head_position_g, bone.data, bone.length, bone_vtable[3]);
+ 	return true;
+ }
+diff --git a/src/xrt/drivers/solarxr/protocol.h b/src/xrt/drivers/solarxr/protocol.h
+index cf2a6aa06..6912e2bd2 100644
+--- a/src/xrt/drivers/solarxr/protocol.h
++++ b/src/xrt/drivers/solarxr/protocol.h
+@@ -22,59 +22,126 @@ enum solarxr_body_part
+ 	SOLARXR_BODY_PART_NONE = 0,
+ 	SOLARXR_BODY_PART_HEAD = 1,
+ 	SOLARXR_BODY_PART_NECK = 2,
+-	SOLARXR_BODY_PART_CHEST = 3,
+-	SOLARXR_BODY_PART_WAIST = 4,
+-	SOLARXR_BODY_PART_HIP = 5,
+-	SOLARXR_BODY_PART_LEFT_UPPER_LEG = 6,
+-	SOLARXR_BODY_PART_RIGHT_UPPER_LEG = 7,
+-	SOLARXR_BODY_PART_LEFT_LOWER_LEG = 8,
+-	SOLARXR_BODY_PART_RIGHT_LOWER_LEG = 9,
+-	SOLARXR_BODY_PART_LEFT_FOOT = 10,
+-	SOLARXR_BODY_PART_RIGHT_FOOT = 11,
+-	SOLARXR_BODY_PART_LEFT_LOWER_ARM = 14,
+-	SOLARXR_BODY_PART_RIGHT_LOWER_ARM = 15,
+-	SOLARXR_BODY_PART_LEFT_UPPER_ARM = 16,
+-	SOLARXR_BODY_PART_RIGHT_UPPER_ARM = 17,
+-	SOLARXR_BODY_PART_LEFT_HAND = 18,
+-	SOLARXR_BODY_PART_RIGHT_HAND = 19,
+-	SOLARXR_BODY_PART_LEFT_SHOULDER = 20,
+-	SOLARXR_BODY_PART_RIGHT_SHOULDER = 21,
+-	SOLARXR_BODY_PART_UPPER_CHEST = 22,
+-	SOLARXR_BODY_PART_LEFT_HIP = 23,
+-	SOLARXR_BODY_PART_RIGHT_HIP = 24,
+-	SOLARXR_BODY_PART_LEFT_THUMB_PROXIMAL = 25,
+-	SOLARXR_BODY_PART_LEFT_THUMB_INTERMEDIATE = 26,
+-	SOLARXR_BODY_PART_LEFT_THUMB_DISTAL = 27,
+-	SOLARXR_BODY_PART_LEFT_INDEX_PROXIMAL = 28,
+-	SOLARXR_BODY_PART_LEFT_INDEX_INTERMEDIATE = 29,
+-	SOLARXR_BODY_PART_LEFT_INDEX_DISTAL = 30,
+-	SOLARXR_BODY_PART_LEFT_MIDDLE_PROXIMAL = 31,
+-	SOLARXR_BODY_PART_LEFT_MIDDLE_INTERMEDIATE = 32,
+-	SOLARXR_BODY_PART_LEFT_MIDDLE_DISTAL = 33,
+-	SOLARXR_BODY_PART_LEFT_RING_PROXIMAL = 34,
+-	SOLARXR_BODY_PART_LEFT_RING_INTERMEDIATE = 35,
+-	SOLARXR_BODY_PART_LEFT_RING_DISTAL = 36,
+-	SOLARXR_BODY_PART_LEFT_LITTLE_PROXIMAL = 37,
+-	SOLARXR_BODY_PART_LEFT_LITTLE_INTERMEDIATE = 38,
+-	SOLARXR_BODY_PART_LEFT_LITTLE_DISTAL = 39,
+-	SOLARXR_BODY_PART_RIGHT_THUMB_PROXIMAL = 40,
+-	SOLARXR_BODY_PART_RIGHT_THUMB_INTERMEDIATE = 41,
+-	SOLARXR_BODY_PART_RIGHT_THUMB_DISTAL = 42,
+-	SOLARXR_BODY_PART_RIGHT_INDEX_PROXIMAL = 43,
+-	SOLARXR_BODY_PART_RIGHT_INDEX_INTERMEDIATE = 44,
+-	SOLARXR_BODY_PART_RIGHT_INDEX_DISTAL = 45,
+-	SOLARXR_BODY_PART_RIGHT_MIDDLE_PROXIMAL = 46,
+-	SOLARXR_BODY_PART_RIGHT_MIDDLE_INTERMEDIATE = 47,
+-	SOLARXR_BODY_PART_RIGHT_MIDDLE_DISTAL = 48,
+-	SOLARXR_BODY_PART_RIGHT_RING_PROXIMAL = 49,
+-	SOLARXR_BODY_PART_RIGHT_RING_INTERMEDIATE = 50,
+-	SOLARXR_BODY_PART_RIGHT_RING_DISTAL = 51,
+-	SOLARXR_BODY_PART_RIGHT_LITTLE_PROXIMAL = 52,
+-	SOLARXR_BODY_PART_RIGHT_LITTLE_INTERMEDIATE = 53,
+-	SOLARXR_BODY_PART_RIGHT_LITTLE_DISTAL = 54,
++	SOLARXR_BODY_PART_UPPER_CHEST = 3,
++	SOLARXR_BODY_PART_CHEST = 4,
++	SOLARXR_BODY_PART_WAIST = 5,
++	SOLARXR_BODY_PART_HIP = 6,
++	SOLARXR_BODY_PART_LEFT_HIP = 21,
++	SOLARXR_BODY_PART_RIGHT_HIP = 22,
++	SOLARXR_BODY_PART_LEFT_UPPER_LEG = 7,
++	SOLARXR_BODY_PART_RIGHT_UPPER_LEG = 8,
++	SOLARXR_BODY_PART_LEFT_LOWER_LEG = 9,
++	SOLARXR_BODY_PART_RIGHT_LOWER_LEG = 10,
++	SOLARXR_BODY_PART_LEFT_FOOT = 11,
++	SOLARXR_BODY_PART_RIGHT_FOOT = 12,
++	SOLARXR_BODY_PART_LEFT_SHOULDER = 19,
++	SOLARXR_BODY_PART_RIGHT_SHOULDER = 20,
++	SOLARXR_BODY_PART_LEFT_UPPER_ARM = 13,
++	SOLARXR_BODY_PART_RIGHT_UPPER_ARM = 14,
++	SOLARXR_BODY_PART_LEFT_LOWER_ARM = 15,
++	SOLARXR_BODY_PART_RIGHT_LOWER_ARM = 16,
++	SOLARXR_BODY_PART_LEFT_HAND = 17,
++	SOLARXR_BODY_PART_RIGHT_HAND = 18,
++	SOLARXR_BODY_PART_LEFT_THUMB_METACARPAL = 23,
++	SOLARXR_BODY_PART_LEFT_THUMB_PROXIMAL = 24,
++	SOLARXR_BODY_PART_LEFT_THUMB_DISTAL = 25,
++	SOLARXR_BODY_PART_LEFT_INDEX_PROXIMAL = 26,
++	SOLARXR_BODY_PART_LEFT_INDEX_INTERMEDIATE = 27,
++	SOLARXR_BODY_PART_LEFT_INDEX_DISTAL = 28,
++	SOLARXR_BODY_PART_LEFT_MIDDLE_PROXIMAL = 29,
++	SOLARXR_BODY_PART_LEFT_MIDDLE_INTERMEDIATE = 30,
++	SOLARXR_BODY_PART_LEFT_MIDDLE_DISTAL = 31,
++	SOLARXR_BODY_PART_LEFT_RING_PROXIMAL = 32,
++	SOLARXR_BODY_PART_LEFT_RING_INTERMEDIATE = 33,
++	SOLARXR_BODY_PART_LEFT_RING_DISTAL = 34,
++	SOLARXR_BODY_PART_LEFT_LITTLE_PROXIMAL = 35,
++	SOLARXR_BODY_PART_LEFT_LITTLE_INTERMEDIATE = 36,
++	SOLARXR_BODY_PART_LEFT_LITTLE_DISTAL = 37,
++	SOLARXR_BODY_PART_RIGHT_THUMB_METACARPAL = 38,
++	SOLARXR_BODY_PART_RIGHT_THUMB_PROXIMAL = 39,
++	SOLARXR_BODY_PART_RIGHT_THUMB_DISTAL = 40,
++	SOLARXR_BODY_PART_RIGHT_INDEX_PROXIMAL = 41,
++	SOLARXR_BODY_PART_RIGHT_INDEX_INTERMEDIATE = 42,
++	SOLARXR_BODY_PART_RIGHT_INDEX_DISTAL = 43,
++	SOLARXR_BODY_PART_RIGHT_MIDDLE_PROXIMAL = 44,
++	SOLARXR_BODY_PART_RIGHT_MIDDLE_INTERMEDIATE = 45,
++	SOLARXR_BODY_PART_RIGHT_MIDDLE_DISTAL = 46,
++	SOLARXR_BODY_PART_RIGHT_RING_PROXIMAL = 47,
++	SOLARXR_BODY_PART_RIGHT_RING_INTERMEDIATE = 48,
++	SOLARXR_BODY_PART_RIGHT_RING_DISTAL = 49,
++	SOLARXR_BODY_PART_RIGHT_LITTLE_PROXIMAL = 50,
++	SOLARXR_BODY_PART_RIGHT_LITTLE_INTERMEDIATE = 51,
++	SOLARXR_BODY_PART_RIGHT_LITTLE_DISTAL = 52,
+ 	SOLARXR_BODY_PART_MAX_ENUM,
+ };
+ 
++static inline const char *
++solarxr_body_part_to_str(enum solarxr_body_part body_part)
++{
++	switch (body_part) {
++	case SOLARXR_BODY_PART_NONE: return "NONE";
++	case SOLARXR_BODY_PART_HEAD: return "HEAD";
++	case SOLARXR_BODY_PART_NECK: return "NECK";
++	case SOLARXR_BODY_PART_UPPER_CHEST: return "UPPER_CHEST";
++	case SOLARXR_BODY_PART_CHEST: return "CHEST";
++	case SOLARXR_BODY_PART_WAIST: return "WAIST";
++	case SOLARXR_BODY_PART_HIP: return "HIP";
++	case SOLARXR_BODY_PART_LEFT_HIP: return "LEFT_HIP";
++	case SOLARXR_BODY_PART_RIGHT_HIP: return "RIGHT_HIP";
++	case SOLARXR_BODY_PART_LEFT_UPPER_LEG: return "LEFT_UPPER_LEG";
++	case SOLARXR_BODY_PART_RIGHT_UPPER_LEG: return "RIGHT_UPPER_LEG";
++	case SOLARXR_BODY_PART_LEFT_LOWER_LEG: return "LEFT_LOWER_LEG";
++	case SOLARXR_BODY_PART_RIGHT_LOWER_LEG: return "RIGHT_LOWER_LEG";
++	case SOLARXR_BODY_PART_LEFT_FOOT: return "LEFT_FOOT";
++	case SOLARXR_BODY_PART_RIGHT_FOOT: return "RIGHT_FOOT";
++	case SOLARXR_BODY_PART_LEFT_SHOULDER: return "LEFT_SHOULDER";
++	case SOLARXR_BODY_PART_RIGHT_SHOULDER: return "RIGHT_SHOULDER";
++	case SOLARXR_BODY_PART_LEFT_UPPER_ARM: return "LEFT_UPPER_ARM";
++	case SOLARXR_BODY_PART_RIGHT_UPPER_ARM: return "RIGHT_UPPER_ARM";
++	case SOLARXR_BODY_PART_LEFT_LOWER_ARM: return "LEFT_LOWER_ARM";
++	case SOLARXR_BODY_PART_RIGHT_LOWER_ARM: return "RIGHT_LOWER_ARM";
++	case SOLARXR_BODY_PART_LEFT_HAND: return "LEFT_HAND";
++	case SOLARXR_BODY_PART_RIGHT_HAND: return "RIGHT_HAND";
++	case SOLARXR_BODY_PART_LEFT_THUMB_METACARPAL: return "LEFT_THUMB_METACARPAL";
++	case SOLARXR_BODY_PART_LEFT_THUMB_PROXIMAL: return "LEFT_THUMB_PROXIMAL";
++	case SOLARXR_BODY_PART_LEFT_THUMB_DISTAL: return "LEFT_THUMB_DISTAL";
++	case SOLARXR_BODY_PART_LEFT_INDEX_PROXIMAL: return "LEFT_INDEX_PROXIMAL";
++	case SOLARXR_BODY_PART_LEFT_INDEX_INTERMEDIATE: return "LEFT_INDEX_INTERMEDIATE";
++	case SOLARXR_BODY_PART_LEFT_INDEX_DISTAL: return "LEFT_INDEX_DISTAL";
++	case SOLARXR_BODY_PART_LEFT_MIDDLE_PROXIMAL: return "LEFT_MIDDLE_PROXIMAL";
++	case SOLARXR_BODY_PART_LEFT_MIDDLE_INTERMEDIATE: return "LEFT_MIDDLE_INTERMEDIATE";
++	case SOLARXR_BODY_PART_LEFT_MIDDLE_DISTAL: return "LEFT_MIDDLE_DISTAL";
++	case SOLARXR_BODY_PART_LEFT_RING_PROXIMAL: return "LEFT_RING_PROXIMAL";
++	case SOLARXR_BODY_PART_LEFT_RING_INTERMEDIATE: return "LEFT_RING_INTERMEDIATE";
++	case SOLARXR_BODY_PART_LEFT_RING_DISTAL: return "LEFT_RING_DISTAL";
++	case SOLARXR_BODY_PART_LEFT_LITTLE_PROXIMAL: return "LEFT_LITTLE_PROXIMAL";
++	case SOLARXR_BODY_PART_LEFT_LITTLE_INTERMEDIATE: return "LEFT_LITTLE_INTERMEDIATE";
++	case SOLARXR_BODY_PART_LEFT_LITTLE_DISTAL: return "LEFT_LITTLE_DISTAL";
++	case SOLARXR_BODY_PART_RIGHT_THUMB_METACARPAL: return "RIGHT_THUMB_METACARPAL";
++	case SOLARXR_BODY_PART_RIGHT_THUMB_PROXIMAL: return "RIGHT_THUMB_PROXIMAL";
++	case SOLARXR_BODY_PART_RIGHT_THUMB_DISTAL: return "RIGHT_THUMB_DISTAL";
++	case SOLARXR_BODY_PART_RIGHT_INDEX_PROXIMAL: return "RIGHT_INDEX_PROXIMAL";
++	case SOLARXR_BODY_PART_RIGHT_INDEX_INTERMEDIATE: return "RIGHT_INDEX_INTERMEDIATE";
++	case SOLARXR_BODY_PART_RIGHT_INDEX_DISTAL: return "RIGHT_INDEX_DISTAL";
++	case SOLARXR_BODY_PART_RIGHT_MIDDLE_PROXIMAL: return "RIGHT_MIDDLE_PROXIMAL";
++	case SOLARXR_BODY_PART_RIGHT_MIDDLE_INTERMEDIATE: return "RIGHT_MIDDLE_INTERMEDIATE";
++	case SOLARXR_BODY_PART_RIGHT_MIDDLE_DISTAL: return "RIGHT_MIDDLE_DISTAL";
++	case SOLARXR_BODY_PART_RIGHT_RING_PROXIMAL: return "RIGHT_RING_PROXIMAL";
++	case SOLARXR_BODY_PART_RIGHT_RING_INTERMEDIATE: return "RIGHT_RING_INTERMEDIATE";
++	case SOLARXR_BODY_PART_RIGHT_RING_DISTAL: return "RIGHT_RING_DISTAL";
++	case SOLARXR_BODY_PART_RIGHT_LITTLE_PROXIMAL: return "RIGHT_LITTLE_PROXIMAL";
++	case SOLARXR_BODY_PART_RIGHT_LITTLE_INTERMEDIATE: return "RIGHT_LITTLE_INTERMEDIATE";
++	case SOLARXR_BODY_PART_RIGHT_LITTLE_DISTAL: return "RIGHT_LITTLE_DISTAL";
++	default:;
++	}
++	return "UNKNOWN";
++}
++
++enum solarxr_routing_output
++{
++	SOLARXR_ROUTING_OUTPUT_DRIVER = 0,
++};
++
+ #define DEFINE_FLATBUFFERS_VECTOR(type_, name_)                                                                        \
+ 	static inline struct name_                                                                                     \
+ 	{                                                                                                              \
+@@ -87,17 +154,14 @@ enum solarxr_body_part
+ 
+ DEFINE_FLATBUFFERS_VECTOR(void, flatbuffers_vector)
+ 
+-struct solarxr_tracker_id
+-{ // table solarxr_protocol.datatypes.TrackerId
+-	bool has_device_id;
+-	uint8_t device_id;
+-	uint8_t tracker_num;
+-};
+-
+ DEFINE_FLATBUFFERS_VECTOR(char, flatbuffers_vector_char)
+ 
++DEFINE_FLATBUFFERS_VECTOR(uint8_t, flatbuffers_vector_solarxr_body_part)
++
++DEFINE_FLATBUFFERS_VECTOR(uint8_t, flatbuffers_vector_solarxr_routing_output)
++
+ struct solarxr_tracker_info
+-{ // table solarxr_protocol.data_feed.tracker.TrackerInfo
++{ // table solarxr_protocol.data_feed.tracker_data.TrackerInfo
+ 	enum solarxr_body_part body_part;
+ 	struct flatbuffers_vector_char display_name;
+ };
+@@ -108,13 +172,15 @@ typedef struct
+ } solarxr_tracker_data_t;
+ 
+ struct solarxr_tracker_data
+-{ // table solarxr_protocol.data_feed.tracker.TrackerData
++{ // table solarxr_protocol.data_feed.tracker_data.TrackerData
+ 	bool has_info;
+ 	bool has_rotation;
+ 	bool has_position;
+ 	bool has_raw_angular_velocity;
+ 	bool has_linear_acceleration;
+-	struct solarxr_tracker_id tracker_id;
++	bool has_device_id;
++	uint16_t device_id;
++	uint16_t tracker_id;
+ 	struct solarxr_tracker_info info;
+ 	struct xrt_quat rotation;
+ 	struct xrt_vec3 position;
+@@ -131,7 +197,7 @@ DEFINE_FLATBUFFERS_VECTOR(solarxr_tracker_data_t, flatbuffers_vector_solarxr_tra
+ 
+ struct solarxr_device_data
+ { // table solarxr_protocol.data_feed.device_data.DeviceData
+-	uint8_t id;
++	uint16_t id;
+ 	struct flatbuffers_vector_solarxr_tracker_data trackers; // solarxr_protocol.data_feed.tracker.TrackerData[]
+ };
+ 
+@@ -154,9 +220,7 @@ DEFINE_FLATBUFFERS_VECTOR(solarxr_bone_t, flatbuffers_vector_solarxr_bone)
+ struct solarxr_data_feed_update
+ {                                                              // table solarxr_protocol.data_feed.DataFeedUpdate
+ 	struct flatbuffers_vector_solarxr_device_data devices; // solarxr_protocol.data_feed.device_data.DeviceData[]
+-	struct flatbuffers_vector_solarxr_tracker_data
+-	    synthetic_trackers;                       // solarxr_protocol.data_feed.tracker.TrackerData[]
+-	struct flatbuffers_vector_solarxr_bone bones; // solarxr_protocol.data_feed.Bone[]
++	struct flatbuffers_vector_solarxr_bone bones;          // solarxr_protocol.data_feed.Bone[]
+ };
+ 
+ enum solarxr_data_feed_message_type
+@@ -181,33 +245,32 @@ struct solarxr_data_feed_message_header
+ 	union solarxr_data_feed_message message;
+ };
+ 
+-struct solarxr_steamvr_trackers_setting
+-{ // table solarxr_protocol.rpc.SteamVRTrackersSetting
+-	bool waist;
+-	bool chest;
+-	bool left_foot;
+-	bool right_foot;
+-	bool left_knee;
+-	bool right_knee;
+-	bool left_elbow;
+-	bool right_elbow;
+-	bool left_hand;
+-	bool right_hand;
++typedef struct
++{
++	flatbuffers_uoffset_t offset;
++} solarxr_bone_route_t;
++
++struct solarxr_bone_route
++{ // table solarxr_protocol.rpc.BoneRoute
++	enum solarxr_body_part bone;
++	struct flatbuffers_vector_solarxr_routing_output outputs;
+ };
+ 
+-struct solarxr_settings_response
+-{ // table solarxr_protocol.rpc.SettingsResponse
+-	struct solarxr_steamvr_trackers_setting steam_vr_trackers;
++DEFINE_FLATBUFFERS_VECTOR(solarxr_bone_route_t, flatbuffers_vector_solarxr_bone_route)
++
++struct solarxr_bone_routing_settings_response
++{ // table solarxr_protocol.rpc.BoneRoutingSettingsResponse
++	struct flatbuffers_vector_solarxr_bone_route routes;
+ };
+ 
+ enum solarxr_rpc_message_type
+ {
+-	SOLARXR_RPC_MESSAGE_TYPE_SETTINGS_REQUEST = 6,
+-	SOLARXR_RPC_MESSAGE_TYPE_SETTINGS_RESPONSE = 7,
++	SOLARXR_RPC_MESSAGE_TYPE_BONE_ROUTING_SETTINGS_REQUEST = 111,
++	SOLARXR_RPC_MESSAGE_TYPE_BONE_ROUTING_SETTINGS_RESPONSE = 112,
+ };
+ 
+ union solarxr_rpc_message { // union solarxr_protocol.rpc.RpcMessage
+-	struct solarxr_settings_response settings_response;
++	struct solarxr_bone_routing_settings_response bone_routing_settings_response;
+ };
+ 
+ typedef struct
+@@ -266,6 +329,12 @@ read_solarxr_tracker_data(struct solarxr_tracker_data *out,
+ bool
+ read_solarxr_bone(struct solarxr_bone *out, const uint8_t buffer[], size_t buffer_len, const solarxr_bone_t *ref);
+ 
++bool
++read_solarxr_bone_route(struct solarxr_bone_route *out,
++                        const uint8_t buffer[],
++                        size_t buffer_len,
++                        const solarxr_bone_route_t *ref);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/src/xrt/drivers/solarxr/solarxr_device.c b/src/xrt/drivers/solarxr/solarxr_device.c
+index e9af3543d..45a70e95c 100644
+--- a/src/xrt/drivers/solarxr/solarxr_device.c
++++ b/src/xrt/drivers/solarxr/solarxr_device.c
+@@ -24,8 +24,6 @@
+ #define MAX_GENERIC_TRACKERS 32
+ 
+ DEBUG_GET_ONCE_LOG_OPTION(solarxr_log, "SOLARXR_LOG", U_LOGGING_INFO)
+-DEBUG_GET_ONCE_BOOL_OPTION(solarxr_raw_trackers, "SOLARXR_RAW_TRACKERS", false)
+-DEBUG_GET_ONCE_NUM_OPTION(solarxr_startup_timeout_ms, "SOLARXR_STARTUP_TIMEOUT_MS", 4000)
+ DEBUG_GET_ONCE_NUM_OPTION(solarxr_sync_period_ms, "SOLARXR_SYNC_PERIOD_MS", 1)
+ 
+ struct solarxr_device;
+@@ -54,7 +52,6 @@ struct solarxr_device
+ 		struct xrt_pose pose;
+ 		float length;
+ 	} bones[SOLARXR_BODY_PART_MAX_ENUM];
+-	wchar_t tracker_ids[MAX_GENERIC_TRACKERS];
+ 	struct m_relation_history *trackers[MAX_GENERIC_TRACKERS];
+ 	struct solarxr_generic_tracker *tracker_refs[MAX_GENERIC_TRACKERS];
+ 	bool use_trackers;
+@@ -91,20 +88,6 @@ solarxr_generic_tracker(struct xrt_device *const xdev)
+ 	return (struct solarxr_generic_tracker *)xdev;
+ }
+ 
+-// returns an arbitrary unique value to identify trackers by
+-static inline wchar_t
+-solarxr_tracker_id_to_wchar(struct solarxr_tracker_id id)
+-{
+-	if (!id.has_device_id) {
+-		id.device_id = 0;
+-	}
+-
+-	wchar_t out = 0;
+-	static_assert(sizeof(id) <= sizeof(out), "");
+-	memcpy(&out, &id, sizeof(id));
+-	return le32toh(out);
+-}
+-
+ static xrt_result_t
+ solarxr_device_update_inputs(struct xrt_device *const xdev)
+ {
+@@ -220,6 +203,7 @@ solarxr_device_get_body_joints(struct xrt_device *const xdev,
+ 	static const uint32_t jointMap[SOLARXR_BODY_PART_MAX_ENUM] = {
+ 	    [SOLARXR_BODY_PART_HEAD] = XRT_BODY_JOINT_HEAD_FB,
+ 	    [SOLARXR_BODY_PART_NECK] = XRT_BODY_JOINT_NECK_FB,
++	    [SOLARXR_BODY_PART_UPPER_CHEST] = XRT_BODY_JOINT_CHEST_FB,
+ 	    [SOLARXR_BODY_PART_CHEST] = XRT_BODY_JOINT_SPINE_UPPER_FB,
+ 	    [SOLARXR_BODY_PART_WAIST] = XRT_BODY_JOINT_SPINE_LOWER_FB,
+ 	    [SOLARXR_BODY_PART_HIP] = XRT_BODY_JOINT_HIPS_FB,
+@@ -229,15 +213,14 @@ solarxr_device_get_body_joints(struct xrt_device *const xdev,
+ 	    [SOLARXR_BODY_PART_RIGHT_LOWER_LEG] = XRT_FULL_BODY_JOINT_RIGHT_LOWER_LEG_META,
+ 	    [SOLARXR_BODY_PART_LEFT_FOOT] = XRT_FULL_BODY_JOINT_LEFT_FOOT_TRANSVERSE_META,
+ 	    [SOLARXR_BODY_PART_RIGHT_FOOT] = XRT_FULL_BODY_JOINT_RIGHT_FOOT_TRANSVERSE_META,
+-	    [SOLARXR_BODY_PART_LEFT_LOWER_ARM] = XRT_BODY_JOINT_LEFT_ARM_LOWER_FB,
+-	    [SOLARXR_BODY_PART_RIGHT_LOWER_ARM] = XRT_BODY_JOINT_RIGHT_ARM_LOWER_FB,
++	    [SOLARXR_BODY_PART_LEFT_SHOULDER] = XRT_BODY_JOINT_LEFT_SHOULDER_FB,
++	    [SOLARXR_BODY_PART_RIGHT_SHOULDER] = XRT_BODY_JOINT_RIGHT_SHOULDER_FB,
+ 	    [SOLARXR_BODY_PART_LEFT_UPPER_ARM] = XRT_BODY_JOINT_LEFT_ARM_UPPER_FB,
+ 	    [SOLARXR_BODY_PART_RIGHT_UPPER_ARM] = XRT_BODY_JOINT_RIGHT_ARM_UPPER_FB,
++	    [SOLARXR_BODY_PART_LEFT_LOWER_ARM] = XRT_BODY_JOINT_LEFT_ARM_LOWER_FB,
++	    [SOLARXR_BODY_PART_RIGHT_LOWER_ARM] = XRT_BODY_JOINT_RIGHT_ARM_LOWER_FB,
+ 	    [SOLARXR_BODY_PART_LEFT_HAND] = XRT_BODY_JOINT_LEFT_HAND_WRIST_FB,
+ 	    [SOLARXR_BODY_PART_RIGHT_HAND] = XRT_BODY_JOINT_RIGHT_HAND_WRIST_FB,
+-	    [SOLARXR_BODY_PART_LEFT_SHOULDER] = XRT_BODY_JOINT_LEFT_SHOULDER_FB,
+-	    [SOLARXR_BODY_PART_RIGHT_SHOULDER] = XRT_BODY_JOINT_RIGHT_SHOULDER_FB,
+-	    [SOLARXR_BODY_PART_UPPER_CHEST] = XRT_BODY_JOINT_CHEST_FB,
+ 	    // LEFT_HIP
+ 	    // RIGHT_HIP
+ 	};
+@@ -300,57 +283,54 @@ solarxr_device_get_body_joints(struct xrt_device *const xdev,
+ }
+ 
+ static void
+-solarxr_device_handle_trackers(struct solarxr_device *const device,
+-                               const struct span buffer,
+-                               const solarxr_tracker_data_t trackers[const],
+-                               const uint32_t trackers_len)
++solarxr_device_handle_bones(struct solarxr_device *const device,
++                            const struct solarxr_bone bones[ARRAY_SIZE(device->bones)])
+ {
+-	for (uint32_t i = 0; i < trackers_len; ++i) {
+-		struct solarxr_tracker_data data;
+-		if (!read_solarxr_tracker_data(&data, buffer.data, buffer.length, &trackers[i])) {
+-			U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "read_solarxr_device_data() failed");
+-			continue;
+-		}
++	for (size_t i = 0; i < ARRAY_SIZE(device->tracker_refs); ++i) {
++		const struct solarxr_generic_tracker *tracker = device->tracker_refs[i];
++		if (tracker == NULL || tracker->role == SOLARXR_BODY_PART_NONE)
++			break;
+ 
+-		// `wmemchr()` should be SIMD optimized, making it faster than a hash lookup in this case despite being
+-		// O(n^2)
+-		const wchar_t *const match = wmemchr(device->tracker_ids, solarxr_tracker_id_to_wchar(data.tracker_id),
+-		                                     ARRAY_SIZE(device->tracker_ids));
+-		if (match == NULL) {
+-			continue;
+-		}
+-
+-		struct m_relation_history *const history = device->trackers[match - device->tracker_ids];
++		struct m_relation_history *const history = device->trackers[i];
+ 		if (history == NULL) {
+ 			continue;
+ 		}
+ 
+-		struct xrt_space_relation relation = {.pose.orientation.w = 1};
+-		if (data.has_rotation) {
+-			relation.relation_flags |=
+-			    XRT_SPACE_RELATION_ORIENTATION_VALID_BIT | XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
+-			relation.pose.orientation = data.rotation;
+-		}
++		const struct solarxr_bone *bone = &bones[tracker->role];
+ 
+-		if (data.has_position) {
+-			relation.relation_flags |=
+-			    XRT_SPACE_RELATION_POSITION_VALID_BIT | XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
+-			relation.pose.position = data.position;
+-		}
++		struct xrt_vec3 towards_tail = {0.f, -bone->bone_length, 0.f};
++		struct xrt_vec3 t_head_tail;
++		math_quat_rotate_vec3(&bone->rotation_g, &towards_tail, &t_head_tail);
+ 
+-		if (data.has_raw_angular_velocity) {
+-			relation.relation_flags |= XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT;
+-			relation.angular_velocity = data.raw_angular_velocity;
+-		}
++		struct xrt_vec3 tail = m_vec3_add(bone->head_position_g, t_head_tail);
+ 
+-		if (data.has_linear_acceleration) {
+-			relation.relation_flags |= XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT;
+-			relation.linear_velocity = data.linear_acceleration;
+-		}
++		struct xrt_space_relation relation = {
++		    .relation_flags = XRT_SPACE_RELATION_ORIENTATION_VALID_BIT |
++		                      XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT |
++		                      XRT_SPACE_RELATION_POSITION_VALID_BIT | XRT_SPACE_RELATION_POSITION_TRACKED_BIT,
++		    .pose =
++		        (struct xrt_pose){
++		            .orientation = bones[tracker->role].rotation_g,
++		            .position = tail,
++		        },
++		};
++		m_relation_history_push(history, &relation, device->socket.timestamp);
++	}
+ 
+-		if (relation.relation_flags != 0) {
+-			m_relation_history_push(history, &relation, device->socket.timestamp);
++	bool generation_increased = false;
++	for (uint32_t i = 0; i < ARRAY_SIZE(device->bones); ++i) {
++		const struct solarxr_bone *bone = &bones[i];
++		if (!generation_increased &&
++		    memcmp(&bone->bone_length, &device->bones[i].length, sizeof(bone->bone_length)) != 0) {
++			++device->generation;
++			generation_increased = true;
+ 		}
++
++		device->bones[i].pose = (struct xrt_pose){
++		    .orientation = bone->rotation_g,
++		    .position = bone->head_position_g,
++		};
++		device->bones[i].length = bone->bone_length;
+ 	}
+ }
+ 
+@@ -366,13 +346,32 @@ solarxr_network_thread(void *const ptr)
+ 			struct start_packet
+ 			{
+ 				uint32_t _root;
+-				uint16_t _table_shared[3];
++				uint16_t _table_bundle[4];
+ 				struct
+ 				{ // table MessageBundle
+ 					int32_t _table;
+ 					uint32_t data_feed_msgs; // vector*
++					uint32_t rpc_msgs;       // vector*
+ 				} bundle;
+ 				struct
++				{ // vector<table RpcMessageHeader>
++					uint32_t length;
++					uint32_t values[1]; // table*
++				} rpc_msgs;
++				uint16_t _table_rpc_msgs_0[5];
++				struct
++				{ // table RpcMessageHeader
++					int32_t _table;
++					uint32_t message;     // table*
++					uint8_t message_type; // enum RpcMessage
++					uint8_t _pad[3];
++				} rpc_msgs_0;
++				uint16_t _table_request[2];
++				struct
++				{ // table OutputTrackersSettingsRequest
++					int32_t _table;
++				} request;
++				struct
+ 				{ // vector<table DataFeedMessageHeader>
+ 					uint32_t length;
+ 					uint32_t values[1]; // table*
+@@ -385,6 +384,7 @@ solarxr_network_thread(void *const ptr)
+ 					uint8_t message_type; // enum DataFeedMessage
+ 					uint8_t _pad[3];
+ 				} data_feed_msgs_0;
++				uint16_t _table_message[3];
+ 				struct
+ 				{ // table StartDataFeed
+ 					int32_t _table;
+@@ -399,40 +399,73 @@ solarxr_network_thread(void *const ptr)
+ 				struct
+ 				{ // table DataFeedConfig
+ 					int32_t _table;
+-					uint32_t trackers_mask; // table*
++					uint32_t bone_mask; // table*
+ 					uint16_t minimum_time_since_last;
+-					bool bone_mask;
+-					uint8_t _pad;
+ 				} configs_0;
++				uint16_t _table_bone_mask[7];
+ 				struct
+-				{ // table DeviceDataMask
++				{ // table BoneMask
+ 					int32_t _table;
+-					uint32_t tracker_data; // table*
+-				} data_mask;
+-				uint16_t _table_synthetic_trackers_mask[10];
+-				struct
+-				{ // table TrackerDataMask
+-					int32_t _table;
+-					bool rotation, position, raw_angular_velocity, linear_acceleration;
+-				} synthetic_trackers_mask;
++					bool body_part, rotation_g, bone_length, head_position_g;
++				} bone_mask;
+ 			} body;
+ 		} const start_packet =
+ 		    {
+ 		        .body =
+ 		            {
+ 		                ._root = htole32(offsetof(struct start_packet, bundle)),
+-		                ._table_shared =
++		                ._table_bundle =
+ 		                    {
+-		                        htole16(sizeof(start_packet.body._table_shared)),
+-		                        htole16(8),
+-		                        htole16(4),
++		                        htole16(sizeof(start_packet.body._table_bundle)),
++		                        htole16(sizeof(start_packet.body.bundle)),
++		                        htole16(offsetof(struct start_packet, bundle.data_feed_msgs) -
++		                                offsetof(struct start_packet, bundle)),
++		                        htole16(offsetof(struct start_packet, bundle.rpc_msgs) -
++		                                offsetof(struct start_packet, bundle)),
+ 		                    },
+ 		                .bundle =
+ 		                    {
+ 		                        ._table = htole32(offsetof(struct start_packet, bundle) -
+-		                                          offsetof(struct start_packet, _table_shared)),
++		                                          offsetof(struct start_packet, _table_bundle)),
+ 		                        .data_feed_msgs = htole32(offsetof(struct start_packet, data_feed_msgs) -
+ 		                                                  offsetof(struct start_packet, bundle.data_feed_msgs)),
++		                        .rpc_msgs = htole32(offsetof(struct start_packet, rpc_msgs) -
++		                                            offsetof(struct start_packet, bundle.rpc_msgs)),
++		                    },
++		                .rpc_msgs =
++		                    {
++		                        .length = htole32(ARRAY_SIZE(start_packet.body.rpc_msgs.values)),
++		                        .values = {htole32(offsetof(struct start_packet, rpc_msgs_0) -
++		                                           offsetof(struct start_packet, rpc_msgs.values[0]))},
++		                    },
++		                ._table_rpc_msgs_0 =
++		                    {
++		                        htole16(sizeof(start_packet.body._table_rpc_msgs_0)),
++		                        htole16(sizeof(start_packet.body.rpc_msgs_0) -
++		                                sizeof(start_packet.body.rpc_msgs_0._pad)),
++		                        0,
++		                        htole16(offsetof(struct start_packet, rpc_msgs_0.message_type) -
++		                                offsetof(struct start_packet, rpc_msgs_0)),
++		                        htole16(offsetof(struct start_packet, rpc_msgs_0.message) -
++		                                offsetof(struct start_packet, rpc_msgs_0)),
++		                    },
++		                .rpc_msgs_0 =
++		                    {
++		                        ._table = htole32(offsetof(struct start_packet, rpc_msgs_0) -
++		                                          offsetof(struct start_packet, _table_rpc_msgs_0)),
++		                        .message = htole32(offsetof(struct start_packet, request) -
++		                                           offsetof(struct start_packet, rpc_msgs_0.message)),
++		                        .message_type = SOLARXR_RPC_MESSAGE_TYPE_BONE_ROUTING_SETTINGS_REQUEST,
++		                    },
++		                ._table_request =
++		                    {
++		                        htole16(sizeof(start_packet.body._table_request)),
++		                        htole16(sizeof(start_packet.body.request)),
++		                    },
++		                .request =
++		                    {
++		                        ._table = htole32(offsetof(struct start_packet, request) -
++		                                          offsetof(struct start_packet, _table_request)),
+ 		                    },
+ 		                .data_feed_msgs =
+ 		                    {
+@@ -458,10 +491,17 @@ solarxr_network_thread(void *const ptr)
+ 		                                           offsetof(struct start_packet, data_feed_msgs_0.message)),
+ 		                        .message_type = SOLARXR_DATA_FEED_MESSAGE_START_DATA_FEED,
+ 		                    },
++		                ._table_message =
++		                    {
++		                        htole16(sizeof(start_packet.body._table_message)),
++		                        htole16(sizeof(start_packet.body.message)),
++		                        htole16(offsetof(struct start_packet, message.configs) -
++		                                offsetof(struct start_packet, message)),
++		                    },
+ 		                .message =
+ 		                    {
+ 		                        ._table = htole32(offsetof(struct start_packet, message) -
+-		                                          offsetof(struct start_packet, _table_shared)),
++		                                          offsetof(struct start_packet, _table_message)),
+ 		                        .configs = htole32(offsetof(struct start_packet, configs) -
+ 		                                           offsetof(struct start_packet, message.configs)),
+ 		                    },
+@@ -474,17 +514,10 @@ solarxr_network_thread(void *const ptr)
+ 		                ._table_configs_0 =
+ 		                    {
+ 		                        htole16(sizeof(start_packet.body._table_configs_0)),
+-		                        htole16(sizeof(start_packet.body.configs_0) -
+-		                                sizeof(start_packet.body.configs_0._pad)),
++		                        htole16(sizeof(start_packet.body.configs_0)),
+ 		                        htole16(offsetof(struct start_packet, configs_0.minimum_time_since_last) -
+ 		                                offsetof(struct start_packet, configs_0)),
+-		                        htole16((device->use_trackers && debug_get_bool_option_solarxr_raw_trackers()) *
+-		                                (offsetof(struct start_packet, configs_0.trackers_mask) -
+-		                                 offsetof(struct start_packet, configs_0))),
+-		                        htole16((device->use_trackers &&
+-		                                 !debug_get_bool_option_solarxr_raw_trackers()) *
+-		                                (offsetof(struct start_packet, configs_0.trackers_mask) -
+-		                                 offsetof(struct start_packet, configs_0))),
++		                        0,
+ 		                        htole16(offsetof(struct start_packet, configs_0.bone_mask) -
+ 		                                offsetof(struct start_packet, configs_0)),
+ 		                    },
+@@ -492,62 +525,41 @@ solarxr_network_thread(void *const ptr)
+ 		                    {
+ 		                        ._table = htole32(offsetof(struct start_packet, configs_0) -
+ 		                                          offsetof(struct start_packet, _table_configs_0)),
+-		                        .trackers_mask =
+-		                            htole32((debug_get_bool_option_solarxr_raw_trackers()
+-		                                         ? offsetof(struct start_packet, data_mask)
+-		                                         : offsetof(struct start_packet, synthetic_trackers_mask)) -
+-		                                    offsetof(struct start_packet, configs_0.trackers_mask)),
++		                        .bone_mask = htole32(offsetof(struct start_packet, bone_mask) -
++		                                             offsetof(struct start_packet, configs_0.bone_mask)),
+ 		                        .minimum_time_since_last =
+ 		                            htole16(
+ 		                                CLAMP(debug_get_num_option_solarxr_sync_period_ms(), 0, UINT16_MAX)),
+-		                        .bone_mask = true,
+ 		                    },
+-		                .data_mask =
++		                ._table_bone_mask =
+ 		                    {
+-		                        ._table = htole32(offsetof(struct start_packet, data_mask) -
+-		                                          offsetof(struct start_packet, _table_shared)),
+-		                        .tracker_data = htole32(offsetof(struct start_packet, synthetic_trackers_mask) -
+-		                                                offsetof(struct start_packet, data_mask.tracker_data)),
+-		                    },
+-		                ._table_synthetic_trackers_mask =
+-		                    {
+-		                        htole16(sizeof(start_packet.body._table_synthetic_trackers_mask)),
+-		                        htole16(sizeof(start_packet.body.synthetic_trackers_mask)),
+-		                        0,
+-		                        0,
+-		                        htole16(offsetof(struct start_packet, synthetic_trackers_mask.rotation) -
+-		                                offsetof(struct start_packet, synthetic_trackers_mask)),
+-		                        htole16(offsetof(struct start_packet, synthetic_trackers_mask.position) -
+-		                                offsetof(struct start_packet, synthetic_trackers_mask)),
+-		                        htole16(offsetof(struct start_packet,
+-		                                         synthetic_trackers_mask.raw_angular_velocity) -
+-		                                offsetof(struct start_packet, synthetic_trackers_mask)),
++		                        htole16(sizeof(start_packet.body._table_bone_mask)),
++		                        htole16(sizeof(start_packet.body.bone_mask)),
++		                        htole16(offsetof(struct start_packet, bone_mask.body_part) -
++		                                offsetof(struct start_packet, bone_mask)),
+ 		                        0,
+-		                        0,
+-		                        htole16(offsetof(struct start_packet,
+-		                                         synthetic_trackers_mask.linear_acceleration) -
+-		                                offsetof(struct start_packet, synthetic_trackers_mask)),
++		                        htole16(offsetof(struct start_packet, bone_mask.rotation_g) -
++		                                offsetof(struct start_packet, bone_mask)),
++		                        htole16(offsetof(struct start_packet, bone_mask.bone_length) -
++		                                offsetof(struct start_packet, bone_mask)),
++		                        htole16(offsetof(struct start_packet, bone_mask.head_position_g) -
++		                                offsetof(struct start_packet, bone_mask)),
+ 		                    },
+-		                .synthetic_trackers_mask =
++		                .bone_mask =
+ 		                    {
+-		                        ._table =
+-		                            htole32(offsetof(struct start_packet, synthetic_trackers_mask) -
+-		                                    offsetof(struct start_packet, _table_synthetic_trackers_mask)),
+-		                        .rotation = true,
+-		                        .position = true,
+-		                        .raw_angular_velocity = true,
+-		                        .linear_acceleration = true,
++		                        ._table = htole32(offsetof(struct start_packet, bone_mask) -
++		                                          offsetof(struct start_packet, _table_bone_mask)),
++		                        .body_part = true,
++		                        .rotation_g = true,
++		                        .bone_length = true,
++		                        .head_position_g = true,
+ 		                    },
+ 		            },
+ 		    };
+ 
+ 		// start streaming
+-		solarxr_ipc_socket_send_raw(
+-		    &device->socket, (const uint8_t *)&start_packet,
+-		    solarxr_ipc_message_inline((uint8_t *)&start_packet,
+-		                               device->use_trackers ? sizeof(start_packet)
+-		                                                    : sizeof(start_packet.head) +
+-		                                                          offsetof(struct start_packet, data_mask)));
++		solarxr_ipc_socket_send_raw(&device->socket, (const uint8_t *)&start_packet,
++		                            solarxr_ipc_message_inline((uint8_t *)&start_packet, sizeof(start_packet)));
+ 	}
+ 
+ 	while (solarxr_ipc_socket_wait_timeout(&device->socket, -1)) {
+@@ -564,9 +576,7 @@ solarxr_network_thread(void *const ptr)
+ 			continue;
+ 		}
+ 
+-		bool toggles_changed = false;
+-		struct solarxr_steamvr_trackers_setting toggles;
+-
++		struct flatbuffers_vector_solarxr_bone_route routes = {0};
+ 		for (uint32_t i = 0; i < bundle.rpc_msgs.length; ++i) {
+ 			struct solarxr_rpc_message_header header;
+ 			if (!read_solarxr_rpc_message_header(&header, buffer.data, buffer.length,
+@@ -575,46 +585,31 @@ solarxr_network_thread(void *const ptr)
+ 				            "read_solarxr_rpc_message_header() failed");
+ 				continue;
+ 			}
+-
+-			if (header.message_type != SOLARXR_RPC_MESSAGE_TYPE_SETTINGS_RESPONSE) {
++			if (header.message_type != SOLARXR_RPC_MESSAGE_TYPE_BONE_ROUTING_SETTINGS_RESPONSE) {
+ 				continue;
+ 			}
+ 
+-			toggles = header.message.settings_response.steam_vr_trackers;
+-			toggles_changed = true;
++			routes.length = header.message.bone_routing_settings_response.routes.length;
++			routes.data = header.message.bone_routing_settings_response.routes.data;
+ 		}
+ 
+-		if (toggles_changed) {
+-			// `SOLARXR_BODY_PART_HEAD` always disabled
+-			uint64_t bones = 1llu << SOLARXR_BODY_PART_NECK;
+-			bones |= (1llu << SOLARXR_BODY_PART_CHEST) * toggles.chest;
+-			bones |= (1llu << SOLARXR_BODY_PART_WAIST) * toggles.waist;
+-			bones |= (1llu << SOLARXR_BODY_PART_HIP) * toggles.waist;
+-			bones |= (1llu << SOLARXR_BODY_PART_LEFT_UPPER_LEG) * toggles.left_knee;
+-			bones |= (1llu << SOLARXR_BODY_PART_RIGHT_UPPER_LEG) * toggles.right_knee;
+-			bones |= (1llu << SOLARXR_BODY_PART_LEFT_LOWER_LEG) * (toggles.left_knee && toggles.left_foot);
+-			bones |=
+-			    (1llu << SOLARXR_BODY_PART_RIGHT_LOWER_LEG) * (toggles.right_knee && toggles.right_foot);
+-			bones |= (1llu << SOLARXR_BODY_PART_LEFT_FOOT) * toggles.left_foot;
+-			bones |= (1llu << SOLARXR_BODY_PART_RIGHT_FOOT) * toggles.right_foot;
+-			bones |= (1llu << SOLARXR_BODY_PART_LEFT_LOWER_ARM) * (toggles.left_elbow && toggles.left_hand);
+-			bones |=
+-			    (1llu << SOLARXR_BODY_PART_RIGHT_LOWER_ARM) * (toggles.right_elbow && toggles.right_hand);
+-			bones |= (1llu << SOLARXR_BODY_PART_LEFT_UPPER_ARM) * toggles.left_elbow;
+-			bones |= (1llu << SOLARXR_BODY_PART_RIGHT_UPPER_ARM) * toggles.right_elbow;
+-			bones |= (1llu << SOLARXR_BODY_PART_LEFT_HAND) * toggles.left_hand;
+-			bones |= (1llu << SOLARXR_BODY_PART_RIGHT_HAND) * toggles.right_hand;
+-			bones |= (1llu << SOLARXR_BODY_PART_LEFT_SHOULDER) * toggles.left_elbow;
+-			bones |= (1llu << SOLARXR_BODY_PART_RIGHT_SHOULDER) * toggles.right_elbow;
+-			bones |= (1llu << SOLARXR_BODY_PART_UPPER_CHEST) * toggles.chest;
+-			bones |= (1llu << SOLARXR_BODY_PART_LEFT_HIP) * toggles.waist;
+-			bones |= (1llu << SOLARXR_BODY_PART_RIGHT_HIP) * toggles.waist;
+-			bones |= ((2llu << SOLARXR_BODY_PART_LEFT_LITTLE_DISTAL) -
+-			          (1llu << SOLARXR_BODY_PART_LEFT_THUMB_PROXIMAL)) *
+-			         toggles.left_hand;
+-			bones |= ((2llu << SOLARXR_BODY_PART_RIGHT_LITTLE_DISTAL) -
+-			          (1llu << SOLARXR_BODY_PART_RIGHT_THUMB_PROXIMAL)) *
+-			         toggles.right_hand;
++		if (routes.length != 0) {
++			uint64_t bones = 0;
++			for (size_t i = 0; i < routes.length; ++i) {
++				struct solarxr_bone_route route;
++				if (!read_solarxr_bone_route(&route, buffer.data, buffer.length, &routes.data[i])) {
++					U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
++					            "read_solarxr_bone_route() failed");
++					continue;
++				}
++
++				for (size_t j = 0; j < route.outputs.length; ++j) {
++					if (route.outputs.data[j] == SOLARXR_ROUTING_OUTPUT_DRIVER) {
++						bones |= 1llu << route.bone;
++						break;
++					}
++				}
++			}
+ 
+ 			const uint64_t old_bones = atomic_exchange(&device->enabled_bones, bones);
+ 			if (old_bones != bones) {
+@@ -635,7 +630,7 @@ solarxr_network_thread(void *const ptr)
+ 		for (uint32_t i = 0; i < bundle.data_feed_msgs.length; ++i) {
+ 			struct solarxr_data_feed_message_header header;
+ 			if (!read_solarxr_data_feed_message_header(&header, buffer.data, buffer.length,
+-			                                           &bundle.data_feed_msgs.data[0])) {
++			                                           &bundle.data_feed_msgs.data[i])) {
+ 				U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+ 				            "read_solarxr_data_feed_message_header() failed");
+ 				continue;
+@@ -645,25 +640,6 @@ solarxr_network_thread(void *const ptr)
+ 				continue;
+ 			}
+ 
+-			if (debug_get_bool_option_solarxr_raw_trackers()) {
+-				for (uint32_t j = 0; j < header.message.data_feed_update.devices.length; ++j) {
+-					struct solarxr_device_data device_data;
+-					if (!read_solarxr_device_data(
+-					        &device_data, buffer.data, buffer.length,
+-					        &header.message.data_feed_update.devices.data[j])) {
+-						U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+-						            "read_solarxr_device_data() failed");
+-						continue;
+-					}
+-					solarxr_device_handle_trackers(device, buffer, device_data.trackers.data,
+-					                               device_data.trackers.length);
+-				}
+-			} else {
+-				solarxr_device_handle_trackers(
+-				    device, buffer, header.message.data_feed_update.synthetic_trackers.data,
+-				    header.message.data_feed_update.synthetic_trackers.length);
+-			}
+-
+ 			if (header.message.data_feed_update.bones.length != 0) {
+ 				bones.length = header.message.data_feed_update.bones.length;
+ 				bones.data = header.message.data_feed_update.bones.data;
+@@ -673,7 +649,7 @@ solarxr_network_thread(void *const ptr)
+ 		if (bones.length != 0) {
+ 			atomic_store(&device->timestamp, device->socket.timestamp);
+ 
+-			struct solarxr_device_bone newBones[ARRAY_SIZE(device->bones)] = {0};
++			struct solarxr_bone newBones[ARRAY_SIZE(device->bones)] = {0};
+ 			for (size_t i = 0; i < bones.length; ++i) {
+ 				struct solarxr_bone bone;
+ 				if (!read_solarxr_bone(&bone, buffer.data, buffer.length, &bones.data[i])) {
+@@ -690,23 +666,9 @@ solarxr_network_thread(void *const ptr)
+ 					}
+ 					continue;
+ 				}
+-
+-				newBones[bone.body_part].pose = (struct xrt_pose){
+-				    .orientation = bone.rotation_g,
+-				    .position = bone.head_position_g,
+-				};
+-				newBones[bone.body_part].length = bone.bone_length;
++				memcpy(&newBones[bone.body_part], &bone, sizeof(bone));
+ 			}
+-
+-			for (uint32_t i = 0; i < ARRAY_SIZE(device->bones); ++i) {
+-				if (memcmp(&newBones[i].length, &device->bones[i].length, sizeof(newBones[i].length)) !=
+-				    0) {
+-					++device->generation;
+-					break;
+-				}
+-			}
+-
+-			memcpy(device->bones, newBones, sizeof(device->bones));
++			solarxr_device_handle_bones(device, newBones);
+ 		}
+ 
+ 		os_mutex_unlock(&device->mutex);
+@@ -866,7 +828,6 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 	device->use_trackers = use_trackers;
+ 
+ 	solarxr_ipc_socket_init(&device->socket, debug_get_log_option_solarxr_log());
+-	memset(device->tracker_ids, 0xff, sizeof(device->tracker_ids));
+ 
+ 	uint32_t trackers_len = 0;
+ 	struct solarxr_generic_tracker *trackers[ARRAY_SIZE(device->trackers)];
+@@ -885,346 +846,25 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 	memcpy(device->base.serial, path.sun_path,
+ 	       MIN(sizeof(device->base.serial) - sizeof(char), sizeof(path.sun_path)));
+ 
+-	struct
+-	{
+-		uint8_t head[sizeof(struct solarxr_ipc_message)];
+-		struct request_packet
+-		{
+-			uint32_t _root;
+-			uint16_t _table_bundle[4];
+-			struct
+-			{ // table MessageBundle
+-				int32_t _table;
+-				uint32_t data_feed_msgs; // vector*
+-				uint32_t rpc_msgs;       // vector*
+-			} bundle;
+-			struct
+-			{ // vector<table RpcMessageHeader>
+-				uint32_t length;
+-				uint32_t values[1]; // table*
+-			} rpc_msgs;
+-			uint16_t _table_rpc_msgs_0[5];
+-			struct
+-			{ // table RpcMessageHeader
+-				int32_t _table;
+-				uint32_t message;     // table*
+-				uint8_t message_type; // enum RpcMessage
+-				uint8_t _pad[3];
+-			} rpc_msgs_0;
+-			uint16_t _table_request[2];
+-			struct
+-			{ // table SettingsRequest
+-				int32_t _table;
+-			} request;
+-			struct
+-			{ // vector<table DataFeedMessageHeader>
+-				uint32_t length;
+-				uint32_t values[1]; // table*
+-			} data_feed_msgs;
+-			uint16_t _table_data_feed_msgs_0[4];
+-			struct
+-			{ // table DataFeedMessageHeader
+-				int32_t _table;
+-				uint32_t message;     // table*
+-				uint8_t message_type; // enum DataFeedMessage
+-				uint8_t _pad[3];
+-			} data_feed_msgs_0;
+-			uint16_t _table_shared[3];
+-			struct
+-			{ // table PollDataFeed
+-				int32_t _table;
+-				uint32_t config; // table*
+-			} message;
+-			uint16_t _table_config[6];
+-			struct
+-			{ // table DataFeedConfig
+-				int32_t _table;
+-				uint32_t trackers_mask; // table*
+-				bool bone_mask;
+-				uint8_t _pad[3];
+-			} config;
+-			struct
+-			{ // table DeviceDataMask
+-				int32_t _table;
+-				uint32_t tracker_data; // table*
+-			} data_mask;
+-			uint16_t _table_synthetic_trackers_mask[3];
+-			struct
+-			{ // table TrackerDataMask
+-				int32_t _table;
+-				bool info;
+-			} synthetic_trackers_mask;
+-		} body;
+-	} const request_packet =
+-	    {
+-	        .body =
+-	            {
+-	                ._root = htole32(offsetof(struct request_packet, bundle)),
+-	                ._table_bundle =
+-	                    {
+-	                        htole16(sizeof(request_packet.body._table_bundle)),
+-	                        htole16(sizeof(request_packet.body.bundle)),
+-	                        htole16(use_trackers * (offsetof(struct request_packet, bundle.data_feed_msgs) -
+-	                                                offsetof(struct request_packet, bundle))),
+-	                        htole16(offsetof(struct request_packet, bundle.rpc_msgs) -
+-	                                offsetof(struct request_packet, bundle)),
+-	                    },
+-	                .bundle =
+-	                    {
+-	                        ._table = htole32(offsetof(struct request_packet, bundle) -
+-	                                          offsetof(struct request_packet, _table_bundle)),
+-	                        .data_feed_msgs =
+-	                            htole32(use_trackers * (offsetof(struct request_packet, data_feed_msgs) -
+-	                                                    offsetof(struct request_packet, bundle.data_feed_msgs))),
+-	                        .rpc_msgs = htole32(offsetof(struct request_packet, rpc_msgs) -
+-	                                            offsetof(struct request_packet, bundle.rpc_msgs)),
+-	                    },
+-	                .rpc_msgs =
+-	                    {
+-	                        .length = htole32(ARRAY_SIZE(request_packet.body.rpc_msgs.values)),
+-	                        .values = {htole32(offsetof(struct request_packet, rpc_msgs_0) -
+-	                                           offsetof(struct request_packet, rpc_msgs.values[0]))},
+-	                    },
+-	                ._table_rpc_msgs_0 =
+-	                    {
+-	                        htole16(sizeof(request_packet.body._table_rpc_msgs_0)),
+-	                        htole16(sizeof(request_packet.body.rpc_msgs_0) -
+-	                                sizeof(request_packet.body.rpc_msgs_0._pad)),
+-	                        0,
+-	                        htole16(offsetof(struct request_packet, rpc_msgs_0.message_type) -
+-	                                offsetof(struct request_packet, rpc_msgs_0)),
+-	                        htole16(offsetof(struct request_packet, rpc_msgs_0.message) -
+-	                                offsetof(struct request_packet, rpc_msgs_0)),
+-	                    },
+-	                .rpc_msgs_0 =
+-	                    {
+-	                        ._table = htole32(offsetof(struct request_packet, rpc_msgs_0) -
+-	                                          offsetof(struct request_packet, _table_rpc_msgs_0)),
+-	                        .message = htole32(offsetof(struct request_packet, request) -
+-	                                           offsetof(struct request_packet, rpc_msgs_0.message)),
+-	                        .message_type = SOLARXR_RPC_MESSAGE_TYPE_SETTINGS_REQUEST,
+-	                    },
+-	                ._table_request =
+-	                    {
+-	                        htole16(sizeof(request_packet.body._table_request)),
+-	                        htole16(sizeof(request_packet.body.request)),
+-	                    },
+-	                .request =
+-	                    {
+-	                        ._table = htole32(offsetof(struct request_packet, request) -
+-	                                          offsetof(struct request_packet, _table_request)),
+-	                    },
+-	                .data_feed_msgs =
+-	                    {
+-	                        .length = htole32(ARRAY_SIZE(request_packet.body.data_feed_msgs.values)),
+-	                        .values = {htole32(offsetof(struct request_packet, data_feed_msgs_0) -
+-	                                           offsetof(struct request_packet, data_feed_msgs.values[0]))},
+-	                    },
+-	                ._table_data_feed_msgs_0 =
+-	                    {
+-	                        htole16(sizeof(request_packet.body._table_data_feed_msgs_0)),
+-	                        htole16(sizeof(request_packet.body.data_feed_msgs_0) -
+-	                                sizeof(request_packet.body.data_feed_msgs_0._pad)),
+-	                        htole16(offsetof(struct request_packet, data_feed_msgs_0.message_type) -
+-	                                offsetof(struct request_packet, data_feed_msgs_0)),
+-	                        htole16(offsetof(struct request_packet, data_feed_msgs_0.message) -
+-	                                offsetof(struct request_packet, data_feed_msgs_0)),
+-	                    },
+-	                .data_feed_msgs_0 =
+-	                    {
+-	                        ._table = htole32(offsetof(struct request_packet, data_feed_msgs_0) -
+-	                                          offsetof(struct request_packet, _table_data_feed_msgs_0)),
+-	                        .message = htole32(offsetof(struct request_packet, message) -
+-	                                           offsetof(struct request_packet, data_feed_msgs_0.message)),
+-	                        .message_type = SOLARXR_DATA_FEED_MESSAGE_POLL_DATA_FEED,
+-	                    },
+-	                ._table_shared =
+-	                    {
+-	                        htole16(sizeof(request_packet.body._table_shared)),
+-	                        htole16(8),
+-	                        htole16(4),
+-	                    },
+-	                .message =
+-	                    {
+-	                        ._table = htole32(offsetof(struct request_packet, message) -
+-	                                          offsetof(struct request_packet, _table_shared)),
+-	                        .config = htole32(offsetof(struct request_packet, config) -
+-	                                          offsetof(struct request_packet, message.config)),
+-	                    },
+-	                ._table_config =
+-	                    {
+-	                        htole16(sizeof(request_packet.body._table_config)),
+-	                        htole16(sizeof(request_packet.body.config) - sizeof(request_packet.body.config._pad)),
+-	                        0,
+-	                        htole16((device->use_trackers && debug_get_bool_option_solarxr_raw_trackers()) *
+-	                                (offsetof(struct request_packet, config.trackers_mask) -
+-	                                 offsetof(struct request_packet, config))),
+-	                        htole16((device->use_trackers && !debug_get_bool_option_solarxr_raw_trackers()) *
+-	                                (offsetof(struct request_packet, config.trackers_mask) -
+-	                                 offsetof(struct request_packet, config))),
+-	                        htole16(offsetof(struct request_packet, config.bone_mask) -
+-	                                offsetof(struct request_packet, config)),
+-	                    },
+-	                .config =
+-	                    {
+-	                        ._table = htole32(offsetof(struct request_packet, config) -
+-	                                          offsetof(struct request_packet, _table_config)),
+-	                        .trackers_mask =
+-	                            htole32((debug_get_bool_option_solarxr_raw_trackers()
+-	                                         ? offsetof(struct request_packet, data_mask)
+-	                                         : offsetof(struct request_packet, synthetic_trackers_mask)) -
+-	                                    offsetof(struct request_packet, config.trackers_mask)),
+-	                        .bone_mask = true,
+-	                    },
+-	                .data_mask =
+-	                    {
+-	                        ._table = htole32(offsetof(struct request_packet, data_mask) -
+-	                                          offsetof(struct request_packet, _table_shared)),
+-	                        .tracker_data = htole32(offsetof(struct request_packet, synthetic_trackers_mask) -
+-	                                                offsetof(struct request_packet, data_mask.tracker_data)),
+-	                    },
+-	                ._table_synthetic_trackers_mask =
+-	                    {
+-	                        htole16(sizeof(request_packet.body._table_synthetic_trackers_mask)),
+-	                        htole16(sizeof(request_packet.body.synthetic_trackers_mask)),
+-	                        htole16(offsetof(struct request_packet, synthetic_trackers_mask.info) -
+-	                                offsetof(struct request_packet, synthetic_trackers_mask)),
+-	                    },
+-	                .synthetic_trackers_mask =
+-	                    {
+-	                        ._table = htole32(offsetof(struct request_packet, synthetic_trackers_mask) -
+-	                                          offsetof(struct request_packet, _table_synthetic_trackers_mask)),
+-	                        .info = true,
+-	                    },
+-	            },
+-	    };
+-
+-	if (!solarxr_ipc_socket_send_raw(
+-	        &device->socket, (const uint8_t *)&request_packet,
+-	        solarxr_ipc_message_inline((uint8_t *)&request_packet,
+-	                                   use_trackers ? sizeof(request_packet)
+-	                                                : sizeof(request_packet.head) +
+-	                                                      offsetof(struct request_packet, data_feed_msgs)))) {
+-		U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "solarxr_ipc_socket_send_raw() failed");
+-		goto fail;
+-	}
+-
+ 	if (use_trackers) {
+-		struct span buffer;
+-		const timepoint_ns startTime = os_monotonic_get_ns();
+-		for (time_duration_ns waited = 0, timeout = CLAMP(debug_get_num_option_solarxr_startup_timeout_ms(), 0,
+-		                                                  INT64_MAX / U_TIME_1MS_IN_NS) *
+-		                                            U_TIME_1MS_IN_NS;
+-		     true;) {
+-			if (!solarxr_ipc_socket_wait_timeout(&device->socket, timeout - waited)) {
+-				U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+-				            "solarxr_ipc_socket_wait_timeout() failed");
+-				goto fail;
+-			}
+-
+-			buffer = (struct span){solarxr_ipc_socket_receive(&device->socket), device->socket.buffer};
+-			if (buffer.length != 0) {
+-				break;
+-			}
+-
+-			waited = os_monotonic_get_ns() - startTime;
+-			if (waited >= timeout) {
+-				U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "receive timeout");
+-				goto fail;
+-			}
+-		}
+-
+-		struct solarxr_message_bundle bundle;
+-		if (!read_solarxr_message_bundle(&bundle, buffer.data, buffer.length,
+-		                                 (const solarxr_message_bundle_t *)buffer.data)) {
+-			U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "read_solarxr_message_bundle() failed");
+-			goto fail;
+-		}
+-
+-		if (bundle.data_feed_msgs.length != 1) {
+-			U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "Unexpected data feed count");
+-			goto fail;
+-		}
+-
+-		struct solarxr_data_feed_message_header header;
+-		if (!read_solarxr_data_feed_message_header(&header, buffer.data, buffer.length,
+-		                                           &bundle.data_feed_msgs.data[0])) {
+-			U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+-			            "read_solarxr_data_feed_message_header() failed");
+-			goto fail;
+-		}
+-
+-		if (header.message_type != SOLARXR_DATA_FEED_MESSAGE_DATA_FEED_UPDATE) {
+-			U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "Unexpected data feed message type");
+-			goto fail;
+-		}
+-
+-		uint32_t tracker_datas_len = 0;
+-		struct solarxr_tracker_data tracker_datas[ARRAY_SIZE(device->trackers)];
+-		if (debug_get_bool_option_solarxr_raw_trackers()) {
+-			const struct flatbuffers_vector_solarxr_device_data devices =
+-			    header.message.data_feed_update.devices;
+-			for (const solarxr_device_data_t *device = devices.data, *const devices_end =
+-			                                                             &device[devices.length];
+-			     device < devices_end; ++device) {
+-				struct solarxr_device_data device_data;
+-				if (!read_solarxr_device_data(&device_data, buffer.data, buffer.length, device)) {
+-					U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+-					            "read_solarxr_device_data() failed");
+-					continue;
+-				}
+-				for (const solarxr_tracker_data_t *tracker = device_data.trackers.data,
+-				                                  *const end = &tracker[device_data.trackers.length];
+-				     tracker < end; ++tracker) {
+-					if (tracker_datas_len >= ARRAY_SIZE(tracker_datas)) {
+-						device = devices_end - 1; // break outer
+-						break;
+-					}
+-					if (!read_solarxr_tracker_data(&tracker_datas[tracker_datas_len], buffer.data,
+-					                               buffer.length, tracker)) {
+-						U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+-						            "read_solarxr_tracker_data() failed");
+-						continue;
+-					}
+-					++tracker_datas_len;
+-				}
+-			}
+-		} else {
+-			const struct flatbuffers_vector_solarxr_tracker_data synthetic_trackers =
+-			    header.message.data_feed_update.synthetic_trackers;
+-			for (const solarxr_tracker_data_t *tracker = synthetic_trackers.data,
+-			                                  *const end = &tracker[synthetic_trackers.length];
+-			     tracker < end; ++tracker) {
+-				if (tracker_datas_len >= ARRAY_SIZE(tracker_datas)) {
+-					break;
+-				}
+-				if (!read_solarxr_tracker_data(&tracker_datas[tracker_datas_len], buffer.data,
+-				                               buffer.length, tracker)) {
+-					U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+-					            "read_solarxr_tracker_data() failed");
+-					continue;
+-				}
+-				if (tracker_datas[tracker_datas_len].tracker_id.has_device_id) {
+-					continue; // filter out loopback feeder devices
+-				}
+-				++tracker_datas_len;
+-			}
+-		}
+-
+-		U_LOG_IFL_I(debug_get_log_option_solarxr_log(), "Enumerated %" PRIu32 " SolarXR %s trackers",
+-		            tracker_datas_len, debug_get_bool_option_solarxr_raw_trackers() ? "physical" : "synthetic");
++		static const enum solarxr_body_part whitelisted_body_parts[] = {
++		    SOLARXR_BODY_PART_UPPER_CHEST,    SOLARXR_BODY_PART_HIP,
++		    SOLARXR_BODY_PART_LEFT_UPPER_LEG, SOLARXR_BODY_PART_RIGHT_UPPER_LEG,
++		    SOLARXR_BODY_PART_LEFT_FOOT,      SOLARXR_BODY_PART_RIGHT_FOOT,
++		    SOLARXR_BODY_PART_LEFT_UPPER_ARM, SOLARXR_BODY_PART_RIGHT_UPPER_ARM,
++		};
++		uint32_t num_trackers = ARRAY_SIZE(whitelisted_body_parts);
+ 
+-		if (tracker_datas_len > out_xdevs_cap - 1) {
++		if (num_trackers > out_xdevs_cap - 1) {
+ 			U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+ 			            "Not enough xdev slots! Omitting %" PRIu32 " trackers",
+-			            tracker_datas_len - (out_xdevs_cap - 1));
+-			tracker_datas_len = out_xdevs_cap - 1;
++			            num_trackers - (out_xdevs_cap - 1));
++			num_trackers = out_xdevs_cap - 1;
+ 		}
+ 
+-		for (const struct solarxr_tracker_data *data = tracker_datas, *const end = &data[tracker_datas_len];
+-		     data < end; ++data) {
+-			const wchar_t id = solarxr_tracker_id_to_wchar(data->tracker_id);
+-
++		for (uint32_t i = 0; i < num_trackers; ++i) {
++			enum solarxr_body_part body_part = whitelisted_body_parts[i];
++			const char *const body_part_name = solarxr_body_part_to_str(body_part);
+ 			struct solarxr_generic_tracker *const tracker =
+ 			    U_DEVICE_ALLOCATE(struct solarxr_generic_tracker, U_DEVICE_ALLOC_NO_FLAGS, 1, 0);
+ 			if (os_mutex_init(&tracker->mutex) != 0) {
+@@ -1234,10 +874,9 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 
+ 			tracker->base.name = XRT_DEVICE_VIVE_TRACKER;
+ 			tracker->base.device_type = XRT_DEVICE_TYPE_GENERIC_TRACKER;
+-			snprintf(tracker->base.str, sizeof(tracker->base.str), "SolarXR Tracker %06" PRIx32,
+-			         (uint32_t)id);
+-			snprintf(tracker->base.serial, sizeof(tracker->base.serial), "SOLARXR-%06" PRIx32,
+-			         (uint32_t)id);
++			snprintf(tracker->base.str, sizeof(tracker->base.str), "SolarXR \"%s\" Tracker",
++			         body_part_name);
++			snprintf(tracker->base.serial, sizeof(tracker->base.serial), "SOLARXR-%s", body_part_name);
+ 			tracker->base.tracking_origin = device->base.tracking_origin;
+ 			tracker->base.supported.orientation_tracking = true;
+ 			tracker->base.supported.position_tracking = true;
+@@ -1245,10 +884,9 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 			tracker->base.get_tracked_pose = solarxr_generic_tracker_get_tracked_pose;
+ 			tracker->base.destroy = solarxr_generic_tracker_destroy;
+ 			tracker->base.inputs[0].name = XRT_INPUT_GENERIC_TRACKER_POSE;
+-			tracker->role = SOLARXR_BODY_PART_NONE;
++			tracker->role = body_part;
+ 
+ 			assert(trackers_len < ARRAY_SIZE(trackers));
+-			device->tracker_ids[trackers_len] = id;
+ 			m_relation_history_create(&device->trackers[trackers_len]);
+ 			tracker->parent = device;
+ 			tracker->index = trackers_len;
+@@ -1256,19 +894,6 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 			device->tracker_refs[trackers_len] = tracker;
+ 
+ 			trackers[trackers_len++] = tracker;
+-
+-			if (!data->has_info) {
+-				continue;
+-			}
+-
+-			if (data->info.body_part < ARRAY_SIZE(device->bones)) {
+-				tracker->role = data->info.body_part;
+-			}
+-
+-			if (data->info.display_name.length != 0) {
+-				snprintf(tracker->base.str, sizeof(tracker->base.str), "SolarXR Tracker \"%.*s\"",
+-				         (unsigned)data->info.display_name.length, data->info.display_name.data);
+-			}
+ 		}
+ 	}
+ 
+-- 
+2.55.0
+

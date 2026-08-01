@@ -1,0 +1,27 @@
+From 820fb9951aa4a08f813162e5f8c63f0651f92360 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Mon, 3 Aug 2026 02:48:40 -0500
+Subject: [PATCH 3/4] d/solarxr: Check for hang up event when polling IPC
+ sockets
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/drivers/solarxr/solarxr_ipc_socket.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/xrt/drivers/solarxr/solarxr_ipc_socket.c b/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
+index 85e9cad37..8a38a990c 100644
+--- a/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
++++ b/src/xrt/drivers/solarxr/solarxr_ipc_socket.c
+@@ -239,7 +239,7 @@ solarxr_ipc_socket_wait_timeout(struct solarxr_ipc_socket *const state, const ti
+ 	    .tv_nsec = timeout % U_TIME_1S_IN_NS,
+ 	};
+ 	const bool result = (ppoll(&fd, 1, (timeout >= 0) ? &timeout_ts : NULL, NULL) != -1)
+-	                        ? (fd.revents & POLLERR) == 0
++	                        ? (fd.revents & (POLLERR | POLLHUP)) == 0
+ 	                        : errno == EINTR;
+ 
+ 	xrt_reference_dec(&state->reference);
+-- 
+2.55.0
+
