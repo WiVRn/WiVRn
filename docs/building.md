@@ -67,7 +67,7 @@ See [Server](#server-pc) for the server compile options.
 # Client (headset)
 
 #### Build dependencies
-As Arch package names: git pkgconf glslang cmake jdk17-openjdk librsvg cli11 ktx_software-git ([AUR](https://aur.archlinux.org/packages/ktx_software-git))
+As Arch package names: git pkgconf glslang cmake jdk17-openjdk librsvg cli11 ktx-software-bin ([AUR](https://aur.archlinux.org/packages/ktx-software-bin))
 
 OpenSSL build dependencies are also needed, as described [here](https://github.com/openssl/openssl/blob/master/INSTALL.md#prerequisites), in particular perl 5.
 
