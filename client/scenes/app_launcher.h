@@ -23,7 +23,7 @@
 #include "render/imgui_impl.h"
 #include "wivrn_packets.h"
 #include <chrono>
-#include <unordered_map>
+#include <map>
 
 namespace scenes
 {
@@ -36,7 +36,7 @@ class app_launcher
 	{
 		std::string id;
 		std::string name;
-		std::vector<std::byte> image;
+		std::vector<wivrn::to_headset::sized_icon> images; // size in pixels (largest dimension), PNG data
 	};
 
 	std::chrono::steady_clock::time_point start_time{};
@@ -44,7 +44,7 @@ class app_launcher
 	scenes::stream & stream;
 	imgui_textures textures;
 	ImTextureID default_icon;
-	std::unordered_map<std::string, ImTextureID> app_icons;
+	std::map<std::pair<std::string, int>, ImTextureID> app_icons;
 	// Last application list received from server
 	thread_safe<std::vector<app>> applications;
 
@@ -65,5 +65,5 @@ public:
 	}
 
 	void operator()(wivrn::to_headset::application_list && apps);
-	void operator()(wivrn::to_headset::application_icon && icon);
+	void operator()(wivrn::to_headset::application_icons && icon);
 };

@@ -159,7 +159,7 @@ void scenes::stream::operator()(to_headset::application_list && l)
 	apps(std::move(l));
 }
 
-void scenes::stream::operator()(to_headset::application_icon && icon)
+void scenes::stream::operator()(to_headset::application_icons && icon)
 {
 	apps(std::move(icon));
 }

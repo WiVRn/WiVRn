@@ -242,7 +242,7 @@ public:
 	void operator()(to_headset::refresh_rate_change &&);
 	void operator()(to_headset::stream_tab_change &&);
 	void operator()(to_headset::application_list &&);
-	void operator()(to_headset::application_icon &&);
+	void operator()(to_headset::application_icons &&);
 	void operator()(to_headset::running_applications &&);
 	void operator()(audio_data &&);
 

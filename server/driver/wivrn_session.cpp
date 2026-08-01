@@ -899,23 +899,12 @@ void wivrn_session::operator()(from_headset::get_application_list && request)
 		{
 			try
 			{
-				const auto & icons = load_icon(*app.icon_path);
+				to_headset::application_icons icons{.id = id};
+				for (const auto & icon: load_icon(*app.icon_path))
+					icons.images.emplace_back(std::max(icon.width, icon.height), icon.png_data);
 
-				if (icons.empty())
-					continue;
-
-				const auto & largest_icon = std::ranges::max(icons, [](const wivrn::icon & a, const wivrn::icon & b) {
-					if (a.bpp < b.bpp)
-						return true;
-					if (a.bpp > b.bpp)
-						return false;
-					return a.width * a.height < b.width * b.height;
-				});
-
-				send_control(to_headset::application_icon{
-				        .id = id,
-				        .image = largest_icon.png_data,
-				});
+				if (not icons.images.empty())
+					send_control(std::move(icons));
 			}
 			catch (std::exception & e)
 			{

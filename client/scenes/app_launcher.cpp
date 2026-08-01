@@ -124,21 +124,26 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 
 	// resolve an app's icon, uploading lazily and capped per frame to stay responsive
 	auto texture_for = [&](app & a) -> ImTextureID {
-		if (a.image.empty())
+		if (a.images.empty())
 			return default_icon;
-		auto it = app_icons.find(a.id);
+
+		auto it = app_icons.find({a.id, config.app_icon_size});
 		if (it == app_icons.end())
 		{
 			if (std::chrono::steady_clock::now() - t0 > 10ms)
 				return default_icon;
 			try
 			{
-				it = app_icons.emplace(a.id, textures.load_texture(a.image)).first;
+				auto it2 = std::ranges::min_element(a.images, [&](const wivrn::to_headset::sized_icon & l, const wivrn::to_headset::sized_icon & r) {
+					return labs(l.size - (int)config.app_icon_size) > labs(r.size - (int)config.app_icon_size);
+				});
+
+				it = app_icons.emplace(std::pair{a.id, config.app_icon_size}, textures.load_texture(it2->image)).first;
 			}
 			catch (std::exception & e)
 			{
 				spdlog::warn("Unable to load icon for \"{}\": {}", a.id, e.what());
-				a.image.clear();
+				a.images.clear();
 				return default_icon;
 			}
 		}
@@ -254,9 +259,9 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		ImGui::PopStyleVar();
 
 		// drop textures for apps no longer listed
-		std::vector<std::string> stale;
+		std::vector<std::pair<std::string, int>> stale;
 		for (const auto & [app_id, app_icon]: app_icons)
-			if (not std::ranges::contains(*apps, app_id, &app::id))
+			if (not std::ranges::contains(*apps, app_id.first, &app::id))
 				stale.push_back(app_id);
 		for (const auto & app_id: stale)
 		{
@@ -298,9 +303,9 @@ void app_launcher::operator()(to_headset::application_list && apps)
 	}
 }
 
-void app_launcher::operator()(to_headset::application_icon && icon)
+void app_launcher::operator()(to_headset::application_icons && icon)
 {
 	auto locked = applications.lock();
 	if (auto it = std::ranges::find(*locked, icon.id, &app::id); it != locked->end())
-		it->image = std::move(icon.image);
+		it->images = std::move(icon.images);
 }

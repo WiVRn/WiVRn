@@ -916,10 +916,16 @@ struct application_list
 	std::vector<application> applications;
 };
 
-struct application_icon
+struct sized_icon
+{
+	int size;                     // size in pixels (largest dimension)
+	std::vector<std::byte> image; // PNG data
+};
+
+struct application_icons
 {
 	std::string id;
-	std::vector<std::byte> image; // In PNG
+	std::vector<sized_icon> images;
 };
 
 struct running_applications
@@ -951,7 +957,7 @@ using packets = std::variant<
         refresh_rate_change,
         stream_tab_change,
         application_list,
-        application_icon,
+        application_icons,
         running_applications>;
 } // namespace to_headset
 } // namespace wivrn

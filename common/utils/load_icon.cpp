@@ -75,7 +75,7 @@ std::span<const T> read(std::span<const std::byte> & buffer, size_t count)
 	return value;
 }
 
-std::vector<wivrn::icon> try_load_svg(const std::vector<std::byte> & data, int size)
+std::vector<wivrn::icon> try_load_svg(const std::vector<std::byte> & data, std::span<const int> sizes)
 {
 	// TODO check if aspect ratio needs to be handled, dpi
 
@@ -107,40 +107,47 @@ std::vector<wivrn::icon> try_load_svg(const std::vector<std::byte> & data, int s
 	if (!handle)
 		throw std::runtime_error{std::string{"Could not open: "} + error->message};
 
-	// Create a Cairo image surface and a rendering context for it
-	cairo_surface_t_ptr surface{cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size)};
-	cairo_t_ptr cr{cairo_create(surface.get())};
+	std::vector<wivrn::icon> icons;
 
-	// Set the dots-per-inch
-	rsvg_handle_set_dpi(handle.get(), 96.0);
+	for (int size: sizes)
+	{
+		// Create a Cairo image surface and a rendering context for it
+		cairo_surface_t_ptr surface{cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size)};
+		cairo_t_ptr cr{cairo_create(surface.get())};
 
-	// Render the handle scaled proportionally into that whole surface
-	RsvgRectangle viewport = {
-	        .x = 0.0,
-	        .y = 0.0,
-	        .width = (double)size,
-	        .height = (double)size,
-	};
+		// Set the dots-per-inch
+		rsvg_handle_set_dpi(handle.get(), 96.0);
 
-	if (!rsvg_handle_render_document(handle.get(), cr.get(), &viewport, &error))
-		throw std::runtime_error{std::string{"Could not render: "} + error->message};
+		// Render the handle scaled proportionally into that whole surface
+		RsvgRectangle viewport = {
+		        .x = 0.0,
+		        .y = 0.0,
+		        .width = (double)size,
+		        .height = (double)size,
+		};
 
-	// Write a PNG file
-	std::vector<std::byte> png;
-	auto cb = [](void * closure, const unsigned char * data, unsigned int length) -> cairo_status_t {
-		std::vector<std::byte> & png = *reinterpret_cast<std::vector<std::byte> *>(closure);
+		if (!rsvg_handle_render_document(handle.get(), cr.get(), &viewport, &error))
+			throw std::runtime_error{std::string{"Could not render: "} + error->message};
 
-		size_t old_size = png.size();
-		png.resize(old_size + length);
-		memcpy(&png[old_size], data, length);
+		// Write a PNG file
+		std::vector<std::byte> png;
+		auto cb = [](void * closure, const unsigned char * data, unsigned int length) -> cairo_status_t {
+			std::vector<std::byte> & png = *reinterpret_cast<std::vector<std::byte> *>(closure);
 
-		return CAIRO_STATUS_SUCCESS;
-	};
+			size_t old_size = png.size();
+			png.resize(old_size + length);
+			memcpy(&png[old_size], data, length);
 
-	if (auto status = cairo_surface_write_to_png_stream(surface.get(), cb, &png); status != CAIRO_STATUS_SUCCESS)
-		throw std::runtime_error{std::string{"Could not write output: "} + cairo_status_to_string(status)};
+			return CAIRO_STATUS_SUCCESS;
+		};
 
-	return {{size, size, 32, std::move(png)}};
+		if (auto status = cairo_surface_write_to_png_stream(surface.get(), cb, &png); status != CAIRO_STATUS_SUCCESS)
+			throw std::runtime_error{std::string{"Could not write output: "} + cairo_status_to_string(status)};
+
+		icons.push_back(wivrn::icon{size, size, 32, std::move(png)});
+	}
+
+	return icons;
 }
 
 std::vector<wivrn::icon> try_load_ico(const std::vector<std::byte> & ico)
@@ -570,7 +577,7 @@ const std::vector<wivrn::icon> & wivrn::load_icon(const std::filesystem::path & 
 
 	try
 	{
-		return icon_cache.emplace(filename, try_load_svg(data, 256)).first->second;
+		return icon_cache.emplace(filename, try_load_svg(data, {{120, 176, 240}})).first->second;
 	}
 	catch (...)
 	{}
