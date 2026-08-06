@@ -62,7 +62,7 @@ set(XRT_HAVE_DBUS                    OFF)
 set(XRT_HAVE_LIBUDEV                 OFF)
 set(XRT_HAVE_ONNXRUNTIME             OFF)
 
-set(XRT_HAVE_SYSTEMD ${WIVRN_USE_SYSTEMD})
+set(XRT_HAVE_SYSTEMD                 OFF)
 set(XRT_INSTALL_SYSTEMD_UNIT_FILES   OFF)
 
 set(BUILD_DOC                        OFF)
@@ -97,6 +97,7 @@ if (WIVRN_BUILD_SERVER)
 			main.cpp
 			sleep_inhibitor.cpp
 			start_application.cpp
+			start_systemd_unit.cpp
 			ipc_server_cb.cpp
 			target_instance_wivrn.cpp
 			wivrn_ipc.cpp
@@ -206,10 +207,6 @@ if (WIVRN_BUILD_SERVER)
 		endif()
 	endif()
 
-	if(WIVRN_USE_SYSTEMD)
-		target_link_libraries(wivrn-server PRIVATE PkgConfig::SYSTEMD)
-	endif()
-
 	if(WIVRN_USE_PIPEWIRE)
 		target_sources(
 			wivrn-server
@@ -233,21 +230,15 @@ if (WIVRN_BUILD_SERVER)
 	target_link_libraries(wivrn-server PUBLIC wivrn-server-dbus)
 	target_link_libraries(wivrn-server PUBLIC PkgConfig::libnotify)
 
-	if(WIVRN_USE_SYSTEMD)
-		add_custom_command(OUTPUT systemd_manager.c systemd_manager.h
-				   COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml --interface-prefix org.freedesktop.systemd1 --generate-c-code systemd_manager --c-namespace systemd
-				   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml )
-		add_custom_command(OUTPUT systemd_unit.c systemd_unit.h
-			COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Unit.xml --interface-prefix org.freedesktop.systemd1 --generate-c-code systemd_unit --c-namespace unit
-				   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml )
-		target_sources(wivrn-server-dbus PRIVATE
-			${CMAKE_CURRENT_BINARY_DIR}/systemd_manager.c ${CMAKE_CURRENT_BINARY_DIR}/systemd_manager.h
-			${CMAKE_CURRENT_BINARY_DIR}/systemd_unit.c ${CMAKE_CURRENT_BINARY_DIR}/systemd_unit.h)
-		target_sources(
-			wivrn-server
-			PRIVATE start_systemd_unit.cpp
-			)
-	endif()
+	add_custom_command(OUTPUT systemd_manager.c systemd_manager.h
+			   COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml --interface-prefix org.freedesktop.systemd1 --generate-c-code systemd_manager --c-namespace systemd
+			   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml )
+	add_custom_command(OUTPUT systemd_unit.c systemd_unit.h
+		COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Unit.xml --interface-prefix org.freedesktop.systemd1 --generate-c-code systemd_unit --c-namespace unit
+			   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml )
+	target_sources(wivrn-server-dbus PRIVATE
+		${CMAKE_CURRENT_BINARY_DIR}/systemd_manager.c ${CMAKE_CURRENT_BINARY_DIR}/systemd_manager.h
+		${CMAKE_CURRENT_BINARY_DIR}/systemd_unit.c ${CMAKE_CURRENT_BINARY_DIR}/systemd_unit.h)
 
 	target_link_libraries(
 		wivrn-server
