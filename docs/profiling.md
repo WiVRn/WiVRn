@@ -131,6 +131,11 @@ tools/perfetto/pftrace_summary.py nvenc.pftrace                 # one trace
 tools/perfetto/pftrace_summary.py nvenc.pftrace vulkan.pftrace  # diff with Δmean
 ```
 
+## Automated encoder comparison (headless)
+
+`tools/perfetto/encoder_profile.py` profiles each encoder with no headset and diffs the results,
+auto-selecting encoders from the GPUs present. See [docs/headless.md](headless.md).
+
 ## Tracing Monado too
 
 Monado's own `u_trace` (built on percetto) can join the same session. Build with

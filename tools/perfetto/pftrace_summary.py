@@ -123,8 +123,10 @@ def _stats(dur_list, span):
     )
 
 
-def summarize(path):
+def summarize(path, exclude=()):
     durations, span, size = parse(path)
+    if exclude:
+        durations = {n: d for n, d in durations.items() if n not in exclude}
     print(f"\n=== {path} ===")
     print(f"  file size:     {size:,} bytes")
     print(f"  trace span:    {span / 1e9:.3f} s")
@@ -151,9 +153,12 @@ def summarize(path):
             print(f"  {name:<32} {st[0]:>6} {st[5]:>8.1f}")
 
 
-def compare(path_a, path_b):
+def compare(path_a, path_b, exclude=()):
     dur_a, span_a, size_a = parse(path_a)
     dur_b, span_b, size_b = parse(path_b)
+    if exclude:
+        dur_a = {n: d for n, d in dur_a.items() if n not in exclude}
+        dur_b = {n: d for n, d in dur_b.items() if n not in exclude}
 
     label_a = path_a.rsplit("/", 1)[-1]
     label_b = path_b.rsplit("/", 1)[-1]
@@ -224,12 +229,21 @@ def compare(path_a, path_b):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("usage: pftrace_summary.py <trace.pftrace> [second.pftrace]", file=sys.stderr)
+    argv = sys.argv[1:]
+    exclude = ()
+    if "--exclude" in argv:  # --exclude name1,name2 : drop those slices from the report
+        i = argv.index("--exclude")
+        exclude = tuple(x for x in argv[i + 1].split(",") if x) if i + 1 < len(argv) else ()
+        del argv[i : i + 2]
+    if not argv:
+        print(
+            "usage: pftrace_summary.py [--exclude n1,n2] <trace.pftrace> [second.pftrace]",
+            file=sys.stderr,
+        )
         sys.exit(2)
-    if len(sys.argv) == 3:
-        compare(sys.argv[1], sys.argv[2])
+    if len(argv) == 2:
+        compare(argv[0], argv[1], exclude=exclude)
     else:
-        for p in sys.argv[1:]:
-            summarize(p)
+        for p in argv:
+            summarize(p, exclude=exclude)
     print("\n  open in https://ui.perfetto.dev for the visual timeline")
