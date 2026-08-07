@@ -200,6 +200,9 @@ configuration::configuration()
 		if (auto it = json.find("use-steamvr-lh"); it != json.end())
 			use_steamvr_lh = *it;
 
+		if (auto it = json.find("lh-stick-deadzone"); it != json.end())
+			lh_stick_deadzone = *it;
+
 		if (auto it = json.find("bit-depth"); it != json.end())
 			bit_depth = *it;
 

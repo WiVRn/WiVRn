@@ -121,6 +121,7 @@ void Settings::emitAllChanged()
 	openvrChanged();
 	debugGuiChanged();
 	steamVrLhChanged();
+	lhStickDeadzoneChanged();
 	hidForwardingChanged();
 	portChanged();
 	hostnameChanged();
@@ -416,6 +417,22 @@ void Settings::set_steamVrLh(const bool & value)
 		steamVrLhChanged();
 }
 
+float Settings::lhStickDeadzone() const
+{
+	auto it = m_jsonSettings.find("lh-stick-deadzone");
+	if (it != m_jsonSettings.end() and it->is_number())
+		return static_cast<float>(*it);
+	return 0.0f;
+}
+
+void Settings::set_lhStickDeadzone(const float & value)
+{
+	auto old = lhStickDeadzone();
+	m_jsonSettings["lh-stick-deadzone"] = value;
+	if (old != value)
+		lhStickDeadzoneChanged();
+}
+
 bool Settings::tcpOnly() const
 {
 	auto it = m_jsonSettings.find("tcp-only");
@@ -539,6 +556,7 @@ void Settings::restore_defaults()
 	m_jsonSettings.erase("hid-forwarding");
 	m_jsonSettings.erase("debug-gui");
 	m_jsonSettings.erase("use-steamvr-lh");
+	m_jsonSettings.erase("lh-stick-deadzone");
 	m_jsonSettings.erase("tcp-only");
 	m_jsonSettings.erase("application");
 	m_jsonSettings.erase("port");

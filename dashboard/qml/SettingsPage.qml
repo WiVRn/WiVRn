@@ -132,6 +132,26 @@ Kirigami.ScrollablePage {
                     toolTipText: i18n("Allows the use of lighthouse-based controllers and trackers.\nRequires SteamVR to be installed.\nDevices must be be powered on before connecting to WiVRn.\nAn external tool such as motoc is needed for calibration.")
                 }
             }
+            RowLayout {
+                visible: Settings.steamvr_lh_supported && steamvr_lh.checked
+                Kirigami.FormData.label: i18n("SteamVR joystick deadzone")
+                Controls.Slider {
+                    id: lh_stick_deadzone
+                    Layout.fillWidth: true
+                    from: 0.0
+                    to: 0.9
+                    stepSize: 0.05
+                    value: Settings.lhStickDeadzone
+                }
+                Controls.Label {
+                    text: lh_stick_deadzone.value.toFixed(2)
+                    Layout.preferredWidth: 35
+                    Layout.alignment: Qt.AlignRight
+                }
+                Kirigami.ContextualHelpButton {
+                    toolTipText: i18n("Deadzone to apply to joysticks on lighthouse-tracked controllers, such as Index.\nFor standalone controllers, deadzones may be adjusted via the headset's system settings.")
+                }
+            }
 
             Controls.CheckBox {
                 id: adb_custom
@@ -289,6 +309,7 @@ Kirigami.ScrollablePage {
 
         Settings.debugGui = debug_gui.checked;
         Settings.steamVrLh = steamvr_lh.checked;
+        Settings.lhStickDeadzone = lh_stick_deadzone.value;
         Settings.hidForwarding = hid_forwarding.checked;
 
         DashboardSettings.auto_connect_usb = auto_connect_usb.checked;
@@ -298,6 +319,7 @@ Kirigami.ScrollablePage {
         select_game.load();
         debug_gui.checked = Settings.debugGui;
         steamvr_lh.checked = Settings.steamVrLh;
+        lh_stick_deadzone.value = Settings.lhStickDeadzone;
         hid_forwarding.checked = Settings.hidForwarding;
 
         auto_connect_usb.checked = DashboardSettings.auto_connect_usb;
