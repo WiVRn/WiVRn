@@ -47,6 +47,7 @@
 #include "b_hand_tracker.h"
 #include "b_system.h"
 #include "target_builder_helpers.h"
+#include "util/u_device_id.h"
 #include "util/u_logging.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
@@ -250,6 +251,12 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		roles.right_profile = static_xdevs[roles.right]->name;
 	if (roles.gamepad >= 0)
 		roles.gamepad_profile = static_xdevs[roles.gamepad]->name;
+
+	for (uint32_t i = 0; i < static_xdev_count; ++i)
+	{
+		if (static_xdevs[i]->id.val == 0)
+			u_device_id_assign(static_xdevs[i]);
+	}
 
 	if (auto system_name = get_info().system_name; !system_name.empty())
 	{
