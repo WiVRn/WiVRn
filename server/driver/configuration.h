@@ -57,6 +57,7 @@ struct configuration
 	std::vector<std::string> application;
 	bool debug_gui = false;
 	bool use_steamvr_lh = false;
+	std::optional<float> lh_stick_deadzone;
 	bool hid_forwarding = false;
 	bool tcp_only = false;
 	int port = wivrn::default_port;

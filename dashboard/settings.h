@@ -76,6 +76,7 @@ public:
 	Q_PROPERTY(bool hidForwarding READ hidForwarding WRITE set_hidForwarding NOTIFY hidForwardingChanged)
 	Q_PROPERTY(bool debugGui READ debugGui WRITE set_debugGui NOTIFY debugGuiChanged)
 	Q_PROPERTY(bool steamVrLh READ steamVrLh WRITE set_steamVrLh NOTIFY steamVrLhChanged)
+	Q_PROPERTY(float lhStickDeadzone READ lhStickDeadzone WRITE set_lhStickDeadzone NOTIFY lhStickDeadzoneChanged)
 
 	Q_PROPERTY(bool flatpak READ flatpak CONSTANT)
 	Q_PROPERTY(int default_port READ default_port CONSTANT)
@@ -91,6 +92,7 @@ public:
 	SETTER_GETTER_NOTIFY(bool, hidForwarding)
 	SETTER_GETTER_NOTIFY(bool, debugGui)
 	SETTER_GETTER_NOTIFY(bool, steamVrLh)
+	SETTER_GETTER_NOTIFY(float, lhStickDeadzone)
 	SETTER_GETTER_NOTIFY(bool, tcpOnly)
 	SETTER_GETTER_NOTIFY(int, port)
 	SETTER_GETTER_NOTIFY(QString, hostname)
