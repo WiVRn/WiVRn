@@ -23,6 +23,7 @@
 #include "wivrn_packets.h"
 #include "wivrn_session.h"
 
+#include "util/u_device_id.h"
 #include "util/u_logging.h"
 #include "utils/method.h"
 #include "xrt/xrt_defines.h"
@@ -38,6 +39,7 @@ namespace wivrn
 wivrn_fb_face2_tracker::wivrn_fb_face2_tracker(xrt_device * hmd,
                                                wivrn::wivrn_session & cnx) :
         xrt_device{
+                .id = u_device_id_generate(),
                 .name = XRT_DEVICE_FB_FACE_TRACKING2,
                 .device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
                 .str = "WiVRn FB v2 Face Tracker",

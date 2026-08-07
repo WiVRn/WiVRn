@@ -25,6 +25,7 @@
 #include "xrt/xrt_device.h"
 
 #include "os/os_time.h"
+#include "util/u_device_id.h"
 #include "util/u_logging.h"
 #include "utils/method.h"
 
@@ -35,6 +36,7 @@ static_assert(gp_count == 18);
 
 wivrn_gamepad::wivrn_gamepad(wivrn::wivrn_session & cnx) :
         xrt_device{
+                .id = u_device_id_generate(),
                 .name = XRT_DEVICE_XBOX_CONTROLLER,
                 .device_type = XRT_DEVICE_TYPE_GAMEPAD,
                 .str = "WiVRn Gamepad",

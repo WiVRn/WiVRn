@@ -19,7 +19,6 @@
  */
 
 #include "wivrn_generic_tracker.h"
-#include "util/u_logging.h"
 #include "utils/method.h"
 #include "wivrn_session.h"
 
@@ -27,8 +26,11 @@
 #include "math/m_eigen_interop.hpp"
 #include "math/m_space.h"
 #include "math/m_vec3.h"
+#include "util/u_device_id.h"
+#include "util/u_logging.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_results.h"
+
 #include <format>
 
 using namespace xrt::auxiliary::math;
@@ -76,6 +78,7 @@ void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timest
 
 wivrn_generic_tracker::wivrn_generic_tracker(std::string name, xrt_device * hmd, wivrn_session & cnx) :
         xrt_device{
+                .id = u_device_id_generate(),
                 .name = XRT_DEVICE_VIVE_TRACKER,
                 .device_type = XRT_DEVICE_TYPE_GENERIC_TRACKER,
                 .hmd = nullptr,

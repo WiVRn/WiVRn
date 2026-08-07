@@ -21,15 +21,17 @@
 #include "wivrn_body_tracker.h"
 #include "driver/pose_list.h"
 #include "driver/wivrn_generic_tracker.h"
-#include "util/u_logging.h"
 #include "utils/method.h"
 #include "utils/overloaded.h"
 #include "wivrn_packets.h"
 #include "wivrn_session.h"
 #include "xrt_cast.h"
 
+#include "util/u_device_id.h"
+#include "util/u_logging.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_results.h"
+
 #include <unordered_map>
 
 static_assert(std::to_underlying(XR_BODY_JOINT_COUNT_FB) == std::to_underlying(XRT_BODY_JOINT_COUNT_FB));
@@ -249,6 +251,7 @@ void body_joints_list::update_tracking(const wivrn::from_headset::bd_body & trac
 
 wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & cnx, std::function<void(xrt_device &)> device_add_callback) :
         xrt_device{
+                .id = u_device_id_generate(),
                 .name = XRT_DEVICE_FB_BODY_TRACKING, // FIXME: replace with something more appropriate, when there is one
                 .device_type = XRT_DEVICE_TYPE_BODY_TRACKER,
                 .tracking_origin = hmd->tracking_origin,

@@ -21,21 +21,22 @@
 #include "wivrn_controller.h"
 #include "configuration.h"
 #include "driver/xrt_cast.h"
-#include "math/m_api.h"
 #include "utils/method.h"
 #include "wivrn_config.h"
 #include "wivrn_session.h"
 
+#include "math/m_api.h"
 #include "os/os_time.h"
+#include "util/u_device_id.h"
 #include "util/u_logging.h"
+#include "xrt/xrt_defines.h"
+
 #include <array>
 #include <format>
 #include <magic_enum.hpp>
 #include <numbers>
 #include <optional>
 #include <stdexcept>
-
-#include "xrt/xrt_defines.h"
 
 namespace wivrn
 {
@@ -593,6 +594,7 @@ wivrn_controller::wivrn_controller(xrt_device_name name,
                                    xrt_device * hmd,
                                    wivrn::wivrn_session * cnx) :
         xrt_device{
+                .id = u_device_id_generate(),
                 .name = name,
                 .device_type = hand_id == 0 ? XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER : XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER,
                 .hmd = nullptr,

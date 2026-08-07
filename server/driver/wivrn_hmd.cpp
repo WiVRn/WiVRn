@@ -26,6 +26,7 @@
 #include "xrt/xrt_device.h"
 
 #include "util/u_device.h"
+#include "util/u_device_id.h"
 #include "util/u_logging.h"
 #include "utils/method.h"
 
@@ -70,6 +71,7 @@ xrt_result_t wivrn_hmd::get_visibility_mask(xrt_visibility_mask_type type, uint3
 wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
                      const from_headset::headset_info_packet & info) :
         xrt_device{
+                .id = u_device_id_generate(),
                 .name = XRT_DEVICE_GENERIC_HMD,
                 .device_type = XRT_DEVICE_TYPE_HMD,
                 .str = "WiVRn HMD",
