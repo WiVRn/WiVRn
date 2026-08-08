@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-28 00:23+0200\n"
+"POT-Creation-Date: 2026-08-03 05:17+0200\n"
 "PO-Revision-Date: 2025-11-19 20:23+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish <>\n"
@@ -480,7 +480,7 @@ msgstr ""
 msgid "Stream body joint positions to the PC."
 msgstr "Transmitir las posiciones de las uniones del cuerpo al PC."
 
-#: client/scenes/gui_settings.cpp:648 client/scenes/gui_settings.cpp:662
+#: client/scenes/gui_settings.cpp:648 client/scenes/gui_settings.cpp:663
 msgctxt "setting name"
 msgid "Virtual body trackers"
 msgstr "Trackers de cuerpo virtuales"
@@ -489,51 +489,51 @@ msgstr "Trackers de cuerpo virtuales"
 msgid "Create virtual tracker devices."
 msgstr "Crear dispositivos virtuales de seguimiento."
 
-#: client/scenes/gui_settings.cpp:668
+#: client/scenes/gui_settings.cpp:669
 msgctxt "page header title"
 msgid "Tracking"
 msgstr "Seguimiento"
 
-#: client/scenes/gui_settings.cpp:668
+#: client/scenes/gui_settings.cpp:669
 msgctxt "page header subtitle"
 msgid "Body and input tracking sent to the PC."
 msgstr "Seguimiento de cuerpo y entrada enviados al PC."
 
-#: client/scenes/gui_settings.cpp:681
+#: client/scenes/gui_settings.cpp:682
 msgctxt "language selection, replace with the name of the language"
 msgid "English"
 msgstr "Español"
 
-#: client/scenes/gui_settings.cpp:704 client/scenes/gui_settings.cpp:718
+#: client/scenes/gui_settings.cpp:705 client/scenes/gui_settings.cpp:719
 msgid "Language"
 msgstr "Idioma"
 
-#: client/scenes/gui_settings.cpp:705
+#: client/scenes/gui_settings.cpp:706
 msgctxt "setting name"
 msgid "Interface language."
 msgstr "Idioma de la interfaz."
 
-#: client/scenes/gui_settings.cpp:714
+#: client/scenes/gui_settings.cpp:715
 msgctxt "item in the interface language combobox"
 msgid "System language"
 msgstr "Idioma del sistema"
 
-#: client/scenes/gui_settings.cpp:724
+#: client/scenes/gui_settings.cpp:725
 msgctxt "setting name"
 msgid "Extended configuration"
 msgstr "Configuración extendida"
 
-#: client/scenes/gui_settings.cpp:725
+#: client/scenes/gui_settings.cpp:726
 msgid "Allows unsafe configuration values, use at your own risk."
 msgstr ""
 "Permitir valores de configuración inseguros, usar bajo propia "
 "responsabilidad."
 
-#: client/scenes/gui_settings.cpp:736
+#: client/scenes/gui_settings.cpp:737
 msgid "High power mode"
 msgstr "Modo de alto rendimiento"
 
-#: client/scenes/gui_settings.cpp:737
+#: client/scenes/gui_settings.cpp:738
 msgid ""
 "Increase power usage to allow higher resolution and refresh rate. Drains "
 "battery and runs hot."
@@ -541,12 +541,12 @@ msgstr ""
 "Aumenta el uso de energía para permitir una mayor resolución y frecuencia de "
 "actualización. Drena la batería y se calienta."
 
-#: client/scenes/gui_settings.cpp:749
+#: client/scenes/gui_settings.cpp:750
 msgctxt "setting name"
 msgid "In-stream window"
 msgstr "Ventana mientras se juega"
 
-#: client/scenes/gui_settings.cpp:750
+#: client/scenes/gui_settings.cpp:751
 msgid ""
 "Enables the configuration window to be shown while the game is streaming. If "
 "enabled, the window is activated by pressing both thumbsticks."
@@ -554,81 +554,81 @@ msgstr ""
 "Permite que se muestre la ventana de configuración mientras se transmite el "
 "juego. Si está habilitado, la ventana se activa presionando ambos joysticks."
 
-#: client/scenes/gui_settings.cpp:766
+#: client/scenes/gui_settings.cpp:767
 msgctxt "page header title"
 msgid "System"
 msgstr "Sistema"
 
-#: client/scenes/gui_settings.cpp:766
+#: client/scenes/gui_settings.cpp:767
 msgctxt "page header suibtitle"
 msgid "Language and advanced options."
 msgstr "Idioma y ajustes avanzados."
 
-#: client/scenes/gui_settings.cpp:779
+#: client/scenes/gui_settings.cpp:780
 msgctxt "page header title"
 msgid "Theme"
 msgstr "Tema"
 
-#: client/scenes/gui_settings.cpp:779
+#: client/scenes/gui_settings.cpp:780
 msgctxt "page header subtitle"
 msgid "Accent color, palette and sizing of the interface."
 msgstr "Color de acento, paleta y tamaño de la interfaz."
 
-#: client/scenes/gui_settings.cpp:787
+#: client/scenes/gui_settings.cpp:788
 msgctxt "setting name"
 msgid "Accent color"
 msgstr "Color de acento"
 
-#: client/scenes/gui_settings.cpp:821
+#: client/scenes/gui_settings.cpp:822
 msgctxt "setting name"
 msgid "Preset"
 msgstr "Preajuste"
 
-#: client/scenes/gui_settings.cpp:821
+#: client/scenes/gui_settings.cpp:822
 msgctxt "setting description"
 msgid "Surface and background palette"
 msgstr "Paleta de superficie y fondo"
 
-#: client/scenes/gui_settings.cpp:822
+#: client/scenes/gui_settings.cpp:823
 msgid "Theme preset"
 msgstr "Tema preestablecido"
 
-#: client/scenes/gui_settings.cpp:841
+#: client/scenes/gui_settings.cpp:842
 msgctxt "setting label"
 msgid "Rounding"
 msgstr "Redondeado"
 
-#: client/scenes/gui_settings.cpp:841
+#: client/scenes/gui_settings.cpp:842
 msgctxt "setting description"
 msgid "Corner radius of controls"
 msgstr "Radio de esquina de los controles"
 
-#: client/scenes/gui_settings.cpp:853
+#: client/scenes/gui_settings.cpp:854
 msgctxt "setting label"
 msgid "Card rounding"
 msgstr "Redondeado de la tarjeta"
 
-#: client/scenes/gui_settings.cpp:853
+#: client/scenes/gui_settings.cpp:854
 msgctxt "setting description"
 msgid "Corner radius of panels"
 msgstr "Radio de esquina de los paneles"
 
-#: client/scenes/gui_settings.cpp:866
+#: client/scenes/gui_settings.cpp:867
 msgctxt "setting name"
 msgid "Text size"
 msgstr "Tamaño del texto"
 
-#: client/scenes/gui_settings.cpp:866
+#: client/scenes/gui_settings.cpp:867
 msgctxt "setting description"
 msgid "Global font scale"
 msgstr "Escala global de la fuente"
 
-#: client/scenes/gui_settings.cpp:879
+#: client/scenes/gui_settings.cpp:880
 msgctxt "setting name"
 msgid "Panel opacity"
 msgstr "Opacidad del panel"
 
-#: client/scenes/gui_settings.cpp:879
+#: client/scenes/gui_settings.cpp:880
 msgctxt "setting description"
 msgid "Opacity of the panel and card backgrounds"
 msgstr "Opacidad de los fondos del panel y de la tarjeta"
