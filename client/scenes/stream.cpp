@@ -266,6 +266,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		}
 
 		info.settings.bitrate_bps = config.bitrate_bps;
+		info.settings.composition_sample_count = config.composition_sample_count;
 		info.settings.mirror_gamepad = config.forward_gamepad;
 		info.settings.enabled_body_parts = config.body_part_mask;
 

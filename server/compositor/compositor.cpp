@@ -693,7 +693,7 @@ compositor::compositor(wivrn_session & session) :
         sem{make_semaphore(vk)},
         frame_rate(settings[0].fps),
         pacer(U_TIME_1S_IN_NS / frame_rate),
-        squasher(vk, render_extent(session.get_info())),
+        squasher(vk, render_extent(session.get_info()), session.get_settings()->composition_sample_count),
         foveation(vk, images[0].image.info().extent)
 {
 	comp_base * c_base = this;
@@ -811,6 +811,11 @@ void compositor::set_framerate(float hz)
 	pacer.set_frame_duration(U_TIME_1S_IN_NS / hz);
 	for (auto & encoder: encoders)
 		encoder->set_framerate(hz);
+}
+
+void compositor::set_sample_count(uint32_t sample_count)
+{
+	squasher.set_sample_count(sample_count);
 }
 
 void compositor::update_tracking(const from_headset::tracking & tracking)
