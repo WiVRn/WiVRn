@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-08 19:10+0200\n"
-"PO-Revision-Date: 2026-07-09 03:58+0200\n"
+"POT-Creation-Date: 2026-08-07 21:01+0200\n"
+"PO-Revision-Date: 2026-08-08 06:30+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <kde-i18n-doc@kde.org>\n"
 "Language: pt_BR\n"
@@ -563,10 +563,10 @@ msgid ""
 msgstr ""
 "Replicar mouse, teclado e gamepad conectados ao headset como dispositivos "
 "virtuais no PC.\n"
-"Dispositivos replicados aparecerão como se estivessem ligados ao PC, algumas teclas "
-"podem estar reservadas pelo SO do headset e não estar disponíveis. O Gamepad "
-"também fica disponível sem dispositivos virtuais para aplicações que o acessem pelo "
-"OpenXR."
+"Dispositivos replicados aparecerão como se estivessem ligados ao PC, algumas "
+"teclas podem estar reservadas pelo SO do headset e não estar disponíveis. O "
+"Gamepad também fica disponível sem dispositivos virtuais para aplicações que "
+"o acessem pelo OpenXR."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -591,49 +591,67 @@ msgstr ""
 "Os dispositivos precisam estar ligados antes de se conectar ao WiVRn.\n"
 "Uma ferramenta externa como o motoc é necessária para calibração."
 
-#: dashboard/qml/SettingsPage.qml:140
+#: dashboard/qml/SettingsPage.qml:137
+#, kde-format
+msgid "SteamVR joystick deadzone"
+msgstr "Zona morta do joystick SteamVR"
+
+#: dashboard/qml/SettingsPage.qml:152
+#, kde-format
+msgid ""
+"Deadzone to apply to joysticks on lighthouse-tracked controllers, such as "
+"Index.\n"
+"For standalone controllers, deadzones may be adjusted via the headset's "
+"system settings."
+msgstr ""
+"Zona morta a se aplicar aos analógicos de controles rastreados por bases, "
+"tal como o Index.\n"
+"Para controles independentes, as zonas mortas podem ser ajustadas pelos "
+"ajustes de sistema do headset."
+
+#: dashboard/qml/SettingsPage.qml:160
 #, kde-format
 msgid "Custom adb location"
 msgstr "Caminho personalizado do adb"
 
-#: dashboard/qml/SettingsPage.qml:151
+#: dashboard/qml/SettingsPage.qml:171
 #, kde-format
 msgid "Adb location:"
 msgstr "Caminho do adb:"
 
-#: dashboard/qml/SettingsPage.qml:160
+#: dashboard/qml/SettingsPage.qml:180
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Navegar"
 
-#: dashboard/qml/SettingsPage.qml:170
+#: dashboard/qml/SettingsPage.qml:190
 #, kde-format
 msgid "Default"
 msgstr "Default"
 
-#: dashboard/qml/SettingsPage.qml:184
+#: dashboard/qml/SettingsPage.qml:204
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SettingsPage.qml:189
+#: dashboard/qml/SettingsPage.qml:209
 #, kde-format
 msgid "Disabled"
 msgstr "Desativado"
 
-#: dashboard/qml/SettingsPage.qml:205
+#: dashboard/qml/SettingsPage.qml:225
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Biblioteca de compatibilidade OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:235
+#: dashboard/qml/SettingsPage.qml:255
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Caminho da biblioteca, excluindo bin/linux64/vrclient.so"
 
-#: dashboard/qml/SettingsPage.qml:240
+#: dashboard/qml/SettingsPage.qml:260
 #, kde-format
 msgctxt "browse to choose the OpenVR compatility to use"
 msgid "Browse"
