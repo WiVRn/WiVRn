@@ -55,7 +55,7 @@
 class scene;
 
 #ifdef __ANDROID__
-extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj);
+extern "C" void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj);
 #endif
 
 struct application_info
@@ -77,7 +77,7 @@ class application : public singleton<application>
 
 private:
 #ifdef __ANDROID__
-	friend __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj);
+	friend void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj);
 #endif
 
 	application_info app_info;

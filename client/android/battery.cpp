@@ -35,7 +35,7 @@ battery_status get_battery_status()
 	return last_status;
 }
 
-extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_BroadcastReceiver_onReceive(JNIEnv * env, jobject instance, jobject ctxt_obj, jobject intent_obj)
+extern "C" void Java_org_meumeu_wivrn_BroadcastReceiver_onReceive(JNIEnv * env, jobject instance, jobject ctxt_obj, jobject intent_obj)
 {
 	jni::jni_thread::setup_thread(env);
 	jni::object<"android/content/Intent"> intent{intent_obj};

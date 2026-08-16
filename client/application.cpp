@@ -1487,7 +1487,7 @@ std::pair<XrAction, XrActionType> application::get_action(std::string_view reque
 }
 
 #ifdef __ANDROID__
-extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj)
+extern "C" void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj)
 {
 	jni::jni_thread::setup_thread(env);
 	jni::object<"android/content/Intent"> intent{intent_obj};

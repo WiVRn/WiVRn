@@ -93,7 +93,7 @@ void request_permission(const char * permission, std::function<void(bool)> callb
 	}
 }
 
-extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult(
+extern "C" void Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult(
         JNIEnv * env,
         jobject instance,
         int requestCode,

@@ -106,8 +106,6 @@ endif()
 #
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
 
-set_target_properties(wivrn PROPERTIES CXX_VISIBILITY_PRESET hidden)
-
 file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
     "*.cpp"
     "decoder/*.cpp"
