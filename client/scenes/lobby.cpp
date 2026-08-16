@@ -64,6 +64,10 @@
 #include "vk/renderdoc.h"
 #endif
 
+#ifdef __ANDROID__
+#include "android/usb.h"
+#endif
+
 using namespace std::chrono_literals;
 
 static bool force_autoconnect = false;
@@ -198,6 +202,16 @@ static std::string ip_address_to_string(const in6_addr & addr)
 	return buf;
 }
 
+static std::string ip_address_to_string(const sockaddr_in & addr)
+{
+	return ip_address_to_string(addr.sin_addr);
+}
+
+static std::string ip_address_to_string(const sockaddr_in6 & addr)
+{
+	return ip_address_to_string(addr.sin6_addr);
+}
+
 std::unique_ptr<wivrn_session> scenes::lobby::connect_to_session(wivrn_discover::service service, bool manual_connection)
 {
 	if (!manual_connection)
@@ -239,12 +253,18 @@ std::unique_ptr<wivrn_session> scenes::lobby::connect_to_session(wivrn_discover:
 		{
 			switch (i->ai_family)
 			{
-				case AF_INET:
-					service.addresses.push_back(((sockaddr_in *)i->ai_addr)->sin_addr);
-					break;
-				case AF_INET6:
-					service.addresses.push_back(((sockaddr_in6 *)i->ai_addr)->sin6_addr);
-					break;
+				case AF_INET: {
+					auto addr = (sockaddr_in *)i->ai_addr;
+					addr->sin_port = htons(service.port);
+					service.addresses.push_back({.address = *addr});
+				}
+				break;
+				case AF_INET6: {
+					auto addr = (sockaddr_in6 *)i->ai_addr;
+					addr->sin6_port = htons(service.port);
+					service.addresses.push_back({.address = *addr});
+				}
+				break;
 			}
 		}
 
@@ -252,22 +272,22 @@ std::unique_ptr<wivrn_session> scenes::lobby::connect_to_session(wivrn_discover:
 	}
 
 	std::string error;
-	for (const std::variant<in_addr, in6_addr> & address: service.addresses)
+	for (const auto & entry: service.addresses)
 	{
-		std::string address_string = std::visit([](auto & address) {
+		std::string address_string = std::visit([](const auto & address) {
 			return ip_address_to_string(address);
 		},
-		                                        address);
+		                                        entry.address);
 
 		struct connection_cancelled
 		{};
 
 		try
 		{
-			spdlog::debug("Connection to {}", address_string);
+			spdlog::info("Connection to {}", address_string);
 
 			return std::visit([this, &service](auto & address) {
-				return std::make_unique<wivrn_session>(address, service.port, service.tcp_only, keypair, [&](int fd) {
+				return std::make_unique<wivrn_session>(address, service.tcp_only, keypair, [&](int fd) {
 					auto request = pin_request.lock();
 					request->pin_requested = true;
 					request->pin_cancelled = false;
@@ -309,7 +329,7 @@ std::unique_ptr<wivrn_session> scenes::lobby::connect_to_session(wivrn_discover:
 					return request->pin;
 				});
 			},
-			                  address);
+			                  entry.address);
 		}
 		catch (connection_cancelled)
 		{
@@ -339,6 +359,11 @@ void scenes::lobby::update_server_list()
 {
 	if (not discover)
 		return;
+
+#ifdef __ANDROID__
+	if (usb_link_properties_changed())
+		discover.emplace();
+#endif
 
 	std::vector<wivrn_discover::service> discovered_services = discover->get_services();
 

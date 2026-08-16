@@ -114,6 +114,8 @@ public:
 	bool high_power_mode = true;
 	uint32_t fps_divider = 1;
 
+	bool usb_network = false;
+
 	// Allow unsafe config values
 	bool extended_config = false;
 

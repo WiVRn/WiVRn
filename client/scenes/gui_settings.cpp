@@ -719,6 +719,19 @@ void settings_system(const settings_context & ctx)
 	        .default_int = language_index(default_config),
 	});
 
+#ifdef __ANDROID__
+	if (application::get_hmd_traits().usb_net)
+		list.push_back({
+		        .id = "##usbnet",
+		        .label = _C("setting name", "USB networking"),
+		        .description = _("Enables connection by USB without ADB or developer mode.\nMake sure the server allows IPv6 link-local only connections."),
+		        .ui = ui_kind::toggle,
+		        .get_bool = [&config] { return config.usb_network; },
+		        .set_bool = [&config](bool v) { config.usb_network = v;config.save(); application::instance().set_usb_networking(v); },
+		        .default_bool = default_config.usb_network,
+		});
+#endif
+
 	list.push_back({
 	        .id = "##extended",
 	        .label = _C("setting name", "Extended configuration"),

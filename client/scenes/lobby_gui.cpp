@@ -56,6 +56,7 @@
 #include <vulkan/vulkan_to_string.hpp>
 
 #include "IconsFontAwesome7.h"
+#include "IconsFontAwesome7Brands.h"
 
 using namespace std::chrono_literals;
 
@@ -427,7 +428,19 @@ void scenes::lobby::gui_server_list()
 			const ImVec2 chip_sz = ui::chip_size(chip_label);
 			float trailing = bh + gap + cw + (data.autoconnect ? gap + chip_sz.x : 0) + ui::metrics::list_row_pad;
 
-			const auto row = ui::begin_list_row("##row", ICON_FA_SERVER, 0, name, sub, false, trailing);
+			const auto server_icon = [](const wivrn_discover::service & service) {
+				if (not service.addresses.empty())
+				{
+					const auto & interface = service.addresses.front().interface;
+					if (interface.starts_with("usb"))
+						return ICON_FA_USB;
+					if (interface.starts_with("w"))
+						return ICON_FA_TOWER_BROADCAST;
+				}
+				return ICON_FA_SERVER;
+			}(data.service);
+
+			const auto row = ui::begin_list_row("##row", server_icon, 0, name, sub, false, trailing);
 			float x = row.max.x;
 
 			// overflow menu

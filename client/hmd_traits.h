@@ -55,6 +55,7 @@ public:
 	bool hand_interaction_grip_surface = true;
 	bool pico_face_tracker = false;
 	bool discard_frame = true; // can do xrBeginFrame twice to discard the first one
+	bool usb_net = false;
 	std::unordered_map<std::string, std::string> override_shader;
 	std::unordered_set<std::string> blacklisted_extensions;
 #ifndef NDEBUG

@@ -190,11 +190,27 @@ void hmd_traits::init()
 		{
 			panel_width_override = 2064; // Quest 3
 			controller_profile = "meta-quest-touch-plus";
+			usb_net = true;
 		}
 		else if (device == "panther") // Quest 3S
 		{
 			panel_width_override = 1832;
 			controller_profile = "meta-quest-touch-plus";
+		}
+
+		if (auto v = get_property("ro.hzos.build.display_name"))
+		{
+			auto digits = utils::split(*v, ".");
+			try
+			{
+				auto major = std::stoi(digits.at(0));
+				auto minor = std::stoi(digits.at(1));
+				usb_net = major > 2 or (major == 2 and minor >= 6);
+			}
+			catch (...)
+			{
+				spdlog::warn("Failed to parse Horizon OS version {}", *v);
+			}
 		}
 	}
 

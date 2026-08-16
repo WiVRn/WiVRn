@@ -260,7 +260,8 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 
 	if (client_port >= 0)
 	{
-		stream.connect(client_address.sin6_addr, client_port);
+		client_address.sin6_port = htons(client_port);
+		stream.connect(client_address);
 		stream.set_send_buffer_size(1024 * 1024 * 5);
 	}
 	else

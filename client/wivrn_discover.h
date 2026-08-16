@@ -19,12 +19,17 @@ class wivrn_discover
 public:
 	struct service
 	{
+		struct address
+		{
+			std::string interface;
+			std::variant<sockaddr_in, sockaddr_in6> address;
+		};
 		std::string name;
 		std::string hostname;
 		int port;
 		bool tcp_only = false;
 
-		std::vector<std::variant<in_addr, in6_addr>> addresses;
+		std::vector<address> addresses;
 		std::map<std::string, std::string> txt;
 		std::chrono::steady_clock::time_point ttl;
 		std::string pin;

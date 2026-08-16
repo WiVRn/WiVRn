@@ -118,8 +118,8 @@ public:
 	size_t send_raw(serialization_packet && packet);
 	size_t send_many_raw(std::span<serialization_packet> packets);
 
-	void connect(in6_addr address, int port);
-	void connect(in_addr address, int port);
+	void connect(sockaddr_in6 address);
+	void connect(sockaddr_in address);
 	void bind(sockaddr_in6 address);
 	void subscribe_multicast(in6_addr address);
 	void unsubscribe_multicast(in6_addr address);
@@ -144,8 +144,8 @@ class TCP : public fd_base
 
 public:
 	TCP() = default;
-	TCP(in6_addr address, int port);
-	TCP(in_addr address, int port);
+	TCP(sockaddr_in6 address);
+	TCP(sockaddr_in address);
 	explicit TCP(int fd);
 
 	deserialization_packet receive_raw();

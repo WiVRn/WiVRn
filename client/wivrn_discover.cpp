@@ -60,6 +60,16 @@ static bool operator==(const in6_addr & a, const in6_addr & b)
 	return memcmp(&a, &b, sizeof(a)) == 0;
 }
 
+static bool operator==(const sockaddr_in & a, const sockaddr_in & b)
+{
+	return a.sin_addr == b.sin_addr and a.sin_port == b.sin_port;
+}
+
+static bool operator==(const sockaddr_in6 & a, const sockaddr_in6 & b)
+{
+	return a.sin6_addr == b.sin6_addr and a.sin6_port == b.sin6_port;
+}
+
 class dnssd_cache
 {
 public:
@@ -70,8 +80,8 @@ public:
 		int port;
 		bool operator==(const srv &) const noexcept = default;
 	};
-	using a = in_addr;
-	using aaaa = in6_addr;
+	using a = sockaddr_in;
+	using aaaa = sockaddr_in6;
 	struct txt
 	{
 		std::string key;
@@ -85,6 +95,7 @@ private:
 		steady_clock::time_point timeout;
 		std::string name;
 		std::variant<ptr, srv, a, aaaa, txt> record;
+		std::string if_name;
 
 		bool operator==(const cache_entry & other) const noexcept
 		{
@@ -95,6 +106,8 @@ private:
 	std::vector<cache_entry> cache;
 	std::vector<std::tuple<steady_clock::time_point, mdns_record_type, std::string>> last_queries;
 
+	std::map<int, std::string> if_names;
+
 	// pollfds[0] is used for inter-thread communication, the others are for mDNS
 	std::vector<pollfd> pollfds;
 	int itc_fd;
@@ -102,7 +115,6 @@ private:
 	void open_client_sockets(int port = 0)
 	{
 		close_client_sockets();
-		std::vector<int> sockets;
 
 		ifaddrs * addresses;
 		if (getifaddrs(&addresses) < 0)
@@ -113,9 +125,6 @@ private:
 
 		const int required_flags = IFF_UP | IFF_MULTICAST;
 		const int forbidden_flags = IFF_LOOPBACK;
-
-		// std::vector<std::string> interfaces_ipv4;
-		// std::vector<std::string> interfaces_ipv6;
 
 		for (ifaddrs * i = addresses; i; i = i->ifa_next)
 		{
@@ -131,16 +140,7 @@ private:
 
 			if (i->ifa_addr->sa_family == AF_INET6)
 			{
-				// if (std::any_of(interfaces_ipv6.begin(), interfaces_ipv6.end(), [&](const auto & j) { return j == i->ifa_name; }))
-				// continue;
-
 				struct sockaddr_in6 * saddr = (struct sockaddr_in6 *)i->ifa_addr;
-				// Ignore link-local addresses
-				if (saddr->sin6_scope_id)
-				{
-					spdlog::debug("Ignoring link-local address {}", ip_address_to_string(i->ifa_addr));
-					continue;
-				}
 				static const unsigned char localhost[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
 				static const unsigned char localhost_mapped[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1};
 				if (memcmp(saddr->sin6_addr.s6_addr, localhost, 16) &&
@@ -150,10 +150,9 @@ private:
 					int sock = mdns_socket_open_ipv6(saddr);
 					if (sock >= 0)
 					{
-						sockets.push_back(sock);
+						if_names.emplace(sock, i->ifa_name);
 
 						spdlog::info("Local IPv6 address: {}", ip_address_to_string(i->ifa_addr));
-						// interfaces_ipv6.push_back(i->ifa_name);
 					}
 					else
 					{
@@ -165,9 +164,6 @@ private:
 			}
 			else if (i->ifa_addr->sa_family == AF_INET)
 			{
-				// if (std::any_of(interfaces_ipv4.begin(), interfaces_ipv4.end(), [&](const auto & j) { return j == i->ifa_name; }))
-				// continue;
-
 				struct sockaddr_in * saddr = (struct sockaddr_in *)i->ifa_addr;
 				if (saddr->sin_addr.s_addr != htonl(INADDR_LOOPBACK))
 				{
@@ -175,10 +171,9 @@ private:
 					int sock = mdns_socket_open_ipv4(saddr);
 					if (sock >= 0)
 					{
-						sockets.push_back(sock);
+						if_names.emplace(sock, i->ifa_name);
 
 						spdlog::info("Local IPv4 address: {}", ip_address_to_string(i->ifa_addr));
-						// interfaces_ipv4.push_back(i->ifa_name);
 					}
 					else
 					{
@@ -196,7 +191,7 @@ private:
 
 		freeifaddrs(addresses);
 
-		pollfds.reserve(sockets.size() + 1);
+		pollfds.reserve(if_names.size() + 1);
 
 		int fds[2];
 		if (pipe(fds) < 0)
@@ -208,7 +203,7 @@ private:
 		itc_fd = fds[1];
 		pollfds.push_back({.fd = fds[0], .events = POLLIN});
 
-		for (int socket: sockets)
+		for (auto [socket, _]: if_names)
 			pollfds.push_back(pollfd{.fd = socket, .events = POLLIN});
 	}
 
@@ -218,6 +213,7 @@ private:
 			mdns_socket_close(socket.fd);
 
 		pollfds.clear();
+		if_names.clear();
 		itc_fd = -1;
 	}
 
@@ -240,13 +236,13 @@ private:
 		{
 			type = "A";
 			auto addr = std::get<a>(entry.record);
-			record = ip_address_to_string(addr);
+			record = ip_address_to_string(addr.sin_addr);
 		}
 		else if (std::holds_alternative<aaaa>(entry.record))
 		{
 			type = "AAAA";
 			auto addr = std::get<aaaa>(entry.record);
-			record = ip_address_to_string(addr);
+			record = ip_address_to_string(addr.sin6_addr);
 		}
 		else if (std::holds_alternative<txt>(entry.record))
 		{
@@ -285,7 +281,7 @@ private:
 		spdlog::info("Sending query for {}, type {}", service_name, record_type_name(record_type));
 	}
 
-	void update(mdns_string_t entry, std::variant<ptr, srv, a, aaaa, txt> record, int ttl)
+	void update(mdns_string_t entry, std::variant<ptr, srv, a, aaaa, txt> record, int ttl, std::string if_name)
 	{
 		auto now = steady_clock::now();
 
@@ -294,6 +290,7 @@ private:
 		                .timeout = now + seconds(ttl),
 		                .name = std::string(entry.str, entry.length),
 		                .record = std::move(record),
+		                .if_name = std::move(if_name),
 		        };
 
 		// log_entry(e);
@@ -342,26 +339,28 @@ private:
 			case MDNS_RECORDTYPE_PTR: {
 				char namebuffer[256];
 				auto ptr_record = mdns_record_parse_ptr(data, size, record_offset, record_length, namebuffer, sizeof(namebuffer));
-				self->update(entrystr, std::string{ptr_record.str, ptr_record.length}, ttl);
+				self->update(entrystr, std::string{ptr_record.str, ptr_record.length}, ttl, self->if_names[sock]);
 				break;
 			}
 
 			case MDNS_RECORDTYPE_SRV: {
 				char namebuffer[256];
 				auto srv_record = mdns_record_parse_srv(data, size, record_offset, record_length, namebuffer, sizeof(namebuffer));
-				self->update(entrystr, srv{{srv_record.name.str, srv_record.name.length}, srv_record.port}, ttl);
+				self->update(entrystr, srv{{srv_record.name.str, srv_record.name.length}, srv_record.port}, ttl, self->if_names[sock]);
 				break;
 			}
 
 			case MDNS_RECORDTYPE_A: {
 				sockaddr_in ipv4_buffer;
-				self->update(entrystr, mdns_record_parse_a(data, size, record_offset, record_length, &ipv4_buffer)->sin_addr, ttl);
+				self->update(entrystr, *mdns_record_parse_a(data, size, record_offset, record_length, &ipv4_buffer), ttl, self->if_names[sock]);
 				break;
 			}
 
 			case MDNS_RECORDTYPE_AAAA: {
 				sockaddr_in6 ipv6_buffer;
-				self->update(entrystr, mdns_record_parse_aaaa(data, size, record_offset, record_length, &ipv6_buffer)->sin6_addr, ttl);
+				mdns_record_parse_aaaa(data, size, record_offset, record_length, &ipv6_buffer);
+				ipv6_buffer.sin6_scope_id = ((sockaddr_in6 *)from)->sin6_scope_id;
+				self->update(entrystr, ipv6_buffer, ttl, self->if_names[sock]);
 				break;
 			}
 
@@ -373,7 +372,7 @@ private:
 				{
 					std::string key{txt_buffer[i].key.str, txt_buffer[i].key.length};
 					std::string value{txt_buffer[i].value.str, txt_buffer[i].value.length};
-					self->update(entrystr, txt{key, value}, ttl);
+					self->update(entrystr, txt{key, value}, ttl, self->if_names[sock]);
 				}
 				break;
 			}
@@ -448,9 +447,9 @@ public:
 	}
 
 	template <typename T>
-	std::vector<std::pair<T, steady_clock::time_point>> read(const std::string & name)
+	std::vector<std::tuple<T, std::string, steady_clock::time_point>> read(const std::string & name)
 	{
-		std::vector<std::pair<T, steady_clock::time_point>> entries;
+		std::vector<std::tuple<T, std::string, steady_clock::time_point>> entries;
 		auto now = steady_clock::now();
 
 		std::erase_if(cache, [now](const cache_entry & i) {
@@ -460,7 +459,7 @@ public:
 		for (const auto & i: cache)
 		{
 			if (i.name == name && std::holds_alternative<T>(i.record))
-				entries.emplace_back(std::get<T>(i.record), i.timeout);
+				entries.emplace_back(std::get<T>(i.record), i.if_name, i.timeout);
 		}
 
 		return entries;
@@ -503,7 +502,7 @@ void wivrn_discover::discover(std::string service_name)
 		}
 		poll_timeout = std::min(poll_timeout, duration_cast<milliseconds>(next_query - now));
 
-		for (auto [ptr, ttl]: cache->read<dnssd_cache::ptr>(service_name))
+		for (auto [ptr, _, ttl]: cache->read<dnssd_cache::ptr>(service_name))
 		{
 			bool srv_found = false;
 			auto srv_min_ttl = milliseconds::max();
@@ -515,7 +514,9 @@ void wivrn_discover::discover(std::string service_name)
 			else
 				s.name = ptr;
 
-			for (auto [srv, ttl]: cache->read<dnssd_cache::srv>(ptr))
+			std::multimap<std::string, decltype(service::address::address)> addr_by_if_name;
+
+			for (auto [srv, _, ttl]: cache->read<dnssd_cache::srv>(ptr))
 			{
 				srv_found = true;
 				srv_min_ttl = std::min(duration_cast<milliseconds>(ttl - now), srv_min_ttl);
@@ -533,21 +534,26 @@ void wivrn_discover::discover(std::string service_name)
 
 				bool address_found = false;
 				auto address_min_ttl = milliseconds::max();
-				for (auto [a, ttl]: cache->read<dnssd_cache::a>(srv.hostname))
+				for (auto [a, if_name, ttl]: cache->read<dnssd_cache::a>(srv.hostname))
 				{
 					address_found = true;
 					address_min_ttl = std::min(duration_cast<milliseconds>(ttl - now), address_min_ttl);
-					s.addresses.push_back(a);
+					a.sin_port = htons(srv.port);
+					addr_by_if_name.emplace(if_name, a);
 				}
 
-				for (auto [aaaa, ttl]: cache->read<dnssd_cache::aaaa>(srv.hostname))
+				for (auto [aaaa, if_name, ttl]: cache->read<dnssd_cache::aaaa>(srv.hostname))
 				{
 					address_found = true;
 					address_min_ttl = std::min(duration_cast<milliseconds>(ttl - now), address_min_ttl);
-					s.addresses.push_back(aaaa);
+					aaaa.sin6_port = htons(srv.port);
+					addr_by_if_name.emplace(if_name, aaaa);
 				}
 
-				for (auto [txt_record, ttl]: cache->read<dnssd_cache::txt>(ptr))
+				for (auto && [if_name, addr]: addr_by_if_name)
+					s.addresses.push_back({.interface = std::move(if_name), .address = addr});
+
+				for (auto [txt_record, _, ttl]: cache->read<dnssd_cache::txt>(ptr))
 				{
 					s.txt[txt_record.key] = txt_record.value;
 				}
