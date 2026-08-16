@@ -7,14 +7,15 @@
 # SPDX-FileCopyrightText: 2025 myghi63 <myghi63@disroot.org>
 # Claudio Sampaio <patola@gmail.com>, 2025.
 #
+# SPDX-FileCopyrightText: 2026 notblanky <me@notblanky.dev>
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-28 00:23+0200\n"
-"PO-Revision-Date: 2026-07-30 23:56+0200\n"
-"Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
-"Language-Team: Portuguese <kde-i18n-doc@kde.org>\n"
+"POT-Creation-Date: 2026-08-03 04:17+0100\n"
+"PO-Revision-Date: 2026-08-16 03:18+0100\n"
+"Last-Translator: notblanky <me@notblanky.dev>\n"
+"Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -93,7 +94,7 @@ msgstr "Aguardando por aplicação no servidor"
 #: client/scenes/gui_settings.cpp:502 client/scenes/gui_settings.cpp:580
 msgctxt "tooltip for disabled settings"
 msgid "Disconnect to change this setting."
-msgstr "Desconecte pra mudar este ajuste."
+msgstr "Desconecte para mudar este ajuste."
 
 #: client/scenes/gui_settings.cpp:233
 msgid "Refresh rate"
@@ -157,15 +158,15 @@ msgid ""
 "Higher values focus image quality where you look at, improving latency, "
 "power efficiency and quality."
 msgstr ""
-"Valores mais altos focalizam qualidade de imagem aonde você olha, melhorando "
-"latência, eficiência energética e qualidade."
+"Valores mais altos focam a qualidade de imagem para onde você olha, "
+"melhorando latência, eficiência energética e qualidade."
 
 #: client/scenes/gui_settings.cpp:315
 msgid ""
 "Higher values focus image quality at the center, improving latency, power "
 "efficiency and quality."
 msgstr ""
-"Valores mais altos focalizam qualidade de imagem no centro, melhorando "
+"Valores mais altos focam a qualidade de imagem no centro, melhorando "
 "latência, eficiência energética e qualidade."
 
 #: client/scenes/gui_settings.cpp:333 client/scenes/gui_settings.cpp:345
@@ -224,8 +225,8 @@ msgid ""
 "Manually set where image quality is focused, instead of the center or your "
 "gaze."
 msgstr ""
-"Manualmente ajusta onde a qualidade de imagem está focalizada, ao invés de "
-"no centro do seu olhar."
+"Ajuste manualmente onde a qualidade de imagem está focalizada, ao invés de "
+"no centro ou para onde você olha."
 
 #: client/scenes/gui_settings.cpp:421
 msgctxt "setting name"
@@ -324,7 +325,7 @@ msgstr "Pós-processamento"
 #: client/scenes/gui_settings.cpp:494
 msgctxt "page header subtitle"
 msgid "OpenXR layer supersampling and sharpening."
-msgstr "Superamostragem e afiamento da camada OpenXR."
+msgstr "Supersampling e aumento de nitidez da camada OpenXR."
 
 #: client/scenes/gui_settings.cpp:507
 msgctxt "setting name"
@@ -393,7 +394,7 @@ msgstr "Repassa dispositivos de entrada para o PC."
 
 #: client/scenes/gui_settings.cpp:573 client/scenes/stream_network.cpp:91
 msgid "The server does not allow forwarded input devices"
-msgstr "O servidor n~ao permite dispositivos de entrada repassados"
+msgstr "O servidor não permite dispositivos de entrada repassados"
 
 #: client/scenes/gui_settings.cpp:598
 msgctxt "setting name"
@@ -411,7 +412,8 @@ msgstr "Rastreamento de olhos"
 
 #: client/scenes/gui_settings.cpp:601
 msgid "Used by foveated encoding to focus quality where you look."
-msgstr "Usado pela codificação foveada pra focalizar a qualidade aonde você olha."
+msgstr ""
+"Usado pela codificação foveada para focar a qualidade para onde você olha."
 
 #: client/scenes/gui_settings.cpp:604
 msgctxt "setting name"
@@ -481,7 +483,7 @@ msgstr ""
 msgid "Stream body joint positions to the PC."
 msgstr "Transmite posições de juntas corporais para o PC."
 
-#: client/scenes/gui_settings.cpp:648 client/scenes/gui_settings.cpp:662
+#: client/scenes/gui_settings.cpp:648 client/scenes/gui_settings.cpp:663
 msgctxt "setting name"
 msgid "Virtual body trackers"
 msgstr "Rastreadores de corpo virtual"
@@ -490,49 +492,49 @@ msgstr "Rastreadores de corpo virtual"
 msgid "Create virtual tracker devices."
 msgstr "Cria dispositivos de rastreamento virtuais."
 
-#: client/scenes/gui_settings.cpp:668
+#: client/scenes/gui_settings.cpp:669
 msgctxt "page header title"
 msgid "Tracking"
 msgstr "Rastreamento"
 
-#: client/scenes/gui_settings.cpp:668
+#: client/scenes/gui_settings.cpp:669
 msgctxt "page header subtitle"
 msgid "Body and input tracking sent to the PC."
 msgstr "Rastreamento corporal e de entrada enviado para o PC."
 
-#: client/scenes/gui_settings.cpp:681
+#: client/scenes/gui_settings.cpp:682
 msgctxt "language selection, replace with the name of the language"
 msgid "English"
 msgstr "Português (Brasil)"
 
-#: client/scenes/gui_settings.cpp:704 client/scenes/gui_settings.cpp:718
+#: client/scenes/gui_settings.cpp:705 client/scenes/gui_settings.cpp:719
 msgid "Language"
 msgstr "Linguagem"
 
-#: client/scenes/gui_settings.cpp:705
+#: client/scenes/gui_settings.cpp:706
 msgctxt "setting name"
 msgid "Interface language."
 msgstr "Linguagem da interface."
 
-#: client/scenes/gui_settings.cpp:714
+#: client/scenes/gui_settings.cpp:715
 msgctxt "item in the interface language combobox"
 msgid "System language"
 msgstr "Linguagem do sistema"
 
-#: client/scenes/gui_settings.cpp:724
+#: client/scenes/gui_settings.cpp:725
 msgctxt "setting name"
 msgid "Extended configuration"
 msgstr "Configuração estendida"
 
-#: client/scenes/gui_settings.cpp:725
+#: client/scenes/gui_settings.cpp:726
 msgid "Allows unsafe configuration values, use at your own risk."
 msgstr "Permite valores de configuração inseguros, use por sua conta e risco."
 
-#: client/scenes/gui_settings.cpp:736
+#: client/scenes/gui_settings.cpp:737
 msgid "High power mode"
 msgstr "Modo de alta potência"
 
-#: client/scenes/gui_settings.cpp:737
+#: client/scenes/gui_settings.cpp:738
 msgid ""
 "Increase power usage to allow higher resolution and refresh rate. Drains "
 "battery and runs hot."
@@ -540,12 +542,12 @@ msgstr ""
 "Aumenta uso energético para permitir resolução e taxa de atualização maior. "
 "Drena a bateria e esquenta."
 
-#: client/scenes/gui_settings.cpp:749
+#: client/scenes/gui_settings.cpp:750
 msgctxt "setting name"
 msgid "In-stream window"
 msgstr "Janela durante a transmissão"
 
-#: client/scenes/gui_settings.cpp:750
+#: client/scenes/gui_settings.cpp:751
 msgid ""
 "Enables the configuration window to be shown while the game is streaming. If "
 "enabled, the window is activated by pressing both thumbsticks."
@@ -553,81 +555,81 @@ msgstr ""
 "Habilita a janela de configuração a ser exibido enquanto o jogo está "
 "transmitindo. Se habilitado, a janela é ativada clicando ambos os analógicos."
 
-#: client/scenes/gui_settings.cpp:766
+#: client/scenes/gui_settings.cpp:767
 msgctxt "page header title"
 msgid "System"
 msgstr "Sistema"
 
-#: client/scenes/gui_settings.cpp:766
+#: client/scenes/gui_settings.cpp:767
 msgctxt "page header suibtitle"
 msgid "Language and advanced options."
 msgstr "Linguagem e opções avançadas."
 
-#: client/scenes/gui_settings.cpp:779
+#: client/scenes/gui_settings.cpp:780
 msgctxt "page header title"
 msgid "Theme"
 msgstr "Tema"
 
-#: client/scenes/gui_settings.cpp:779
+#: client/scenes/gui_settings.cpp:780
 msgctxt "page header subtitle"
 msgid "Accent color, palette and sizing of the interface."
 msgstr "Cor do friso, palheta e tamanho da interface."
 
-#: client/scenes/gui_settings.cpp:787
+#: client/scenes/gui_settings.cpp:788
 msgctxt "setting name"
 msgid "Accent color"
 msgstr "Cor do friso"
 
-#: client/scenes/gui_settings.cpp:821
+#: client/scenes/gui_settings.cpp:822
 msgctxt "setting name"
 msgid "Preset"
 msgstr "Predefinição"
 
-#: client/scenes/gui_settings.cpp:821
+#: client/scenes/gui_settings.cpp:822
 msgctxt "setting description"
 msgid "Surface and background palette"
 msgstr "Palheta da superfície e fundo"
 
-#: client/scenes/gui_settings.cpp:822
+#: client/scenes/gui_settings.cpp:823
 msgid "Theme preset"
 msgstr "Predefinição do tema"
 
-#: client/scenes/gui_settings.cpp:841
+#: client/scenes/gui_settings.cpp:842
 msgctxt "setting label"
 msgid "Rounding"
 msgstr "Arredondamento"
 
-#: client/scenes/gui_settings.cpp:841
+#: client/scenes/gui_settings.cpp:842
 msgctxt "setting description"
 msgid "Corner radius of controls"
 msgstr "Raio dos cantos dos controles"
 
-#: client/scenes/gui_settings.cpp:853
+#: client/scenes/gui_settings.cpp:854
 msgctxt "setting label"
 msgid "Card rounding"
 msgstr "Arredondamento de cartões"
 
-#: client/scenes/gui_settings.cpp:853
+#: client/scenes/gui_settings.cpp:854
 msgctxt "setting description"
 msgid "Corner radius of panels"
 msgstr "Raio do canto dos painéis"
 
-#: client/scenes/gui_settings.cpp:866
+#: client/scenes/gui_settings.cpp:867
 msgctxt "setting name"
 msgid "Text size"
 msgstr "Tamanho do texto"
 
-#: client/scenes/gui_settings.cpp:866
+#: client/scenes/gui_settings.cpp:867
 msgctxt "setting description"
 msgid "Global font scale"
 msgstr "Escala global de fonte"
 
-#: client/scenes/gui_settings.cpp:879
+#: client/scenes/gui_settings.cpp:880
 msgctxt "setting name"
 msgid "Panel opacity"
 msgstr "Opacidade do painel"
 
-#: client/scenes/gui_settings.cpp:879
+#: client/scenes/gui_settings.cpp:880
 msgctxt "setting description"
 msgid "Opacity of the panel and card backgrounds"
 msgstr "Opacidade do fundo de cartões e painéis"
@@ -1063,7 +1065,7 @@ msgstr "Este recurso não é suportado pelo seu headset"
 #, c++-format
 msgctxt "confirmation message"
 msgid "Permanently delete {}?"
-msgstr "Permanentemente remover {}?"
+msgstr "Remover permanentemente {}?"
 
 #: client/scenes/lobby_gui_customize.cpp:510
 msgctxt "confirmation messagebox title"
@@ -1219,7 +1221,7 @@ msgstr "Pressione A para salvar ou B para cancelar"
 #: client/scenes/stream_gui.cpp:490
 #, c++-format
 msgid "Height {:.1f} °"
-msgstr "Altura {:.1f} graus"
+msgstr "Altura {:.1f} °"
 
 #: client/scenes/stream_gui.cpp:491
 #, c++-format
