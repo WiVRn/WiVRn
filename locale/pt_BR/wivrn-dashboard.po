@@ -6,14 +6,15 @@
 #
 # SPDX-FileCopyrightText: 2025 myghi63 <myghi63@disroot.org>
 #
+# SPDX-FileCopyrightText: 2026 notblanky <me@notblanky.dev>
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-07 21:01+0200\n"
-"PO-Revision-Date: 2026-08-08 06:30+0200\n"
-"Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
-"Language-Team: Portuguese <kde-i18n-doc@kde.org>\n"
+"PO-Revision-Date: 2026-08-16 03:17+0100\n"
+"Last-Translator: notblanky <me@notblanky.dev>\n"
+"Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -131,7 +132,8 @@ msgstr "ABD não está instalado"
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
 msgid "Connect a headset and make sure developer mode is enabled"
-msgstr "Conecte um headset e assegure que o modo desenvolvedor esteja habilitado"
+msgstr ""
+"Conecte um headset e assegure que o modo desenvolvedor esteja habilitado"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -242,7 +244,8 @@ msgstr "Inicie o aplicativo do WiVRn no seu headset e use o PIN: %1"
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
 msgid "Enable pairing to allow your headset to connect to this computer"
-msgstr "Ative o pareamento para permitir que seu headset conecte-se a esse computador"
+msgstr ""
+"Ative o pareamento para permitir que seu headset conecte-se a esse computador"
 
 #: dashboard/qml/HeadsetsPage.qml:171 dashboard/qml/TroubleshootPage.qml:45
 #, kde-format
@@ -301,8 +304,10 @@ msgstr "O firewall pode não permitir a porta 9757"
 
 #: dashboard/qml/Main.qml:179
 #, kde-format
-msgid "NVIDIA GPUs require at least driver version 565.77, current version is %1"
-msgstr "GPUs NVIDIA requerem pelo menos o driver versão 565.77, a versão atual é %1"
+msgid ""
+"NVIDIA GPUs require at least driver version 565.77, current version is %1"
+msgstr ""
+"GPUs NVIDIA requerem pelo menos o driver versão 565.77, a versão atual é %1"
 
 #: dashboard/qml/Main.qml:185
 #, kde-format
@@ -336,7 +341,7 @@ msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
 "Install xrizer or OpenComposite."
 msgstr ""
-"Nenhuma compatibilidade com OpenVR foi detectada. Os jogos do Steam não "
+"Nenhuma compatibilidade com OpenVR foi detectada. Os jogos da Steam não "
 "conseguirão carregar em VR.\n"
 "Instale o xrizer ou o OpenComposite."
 
@@ -347,13 +352,15 @@ msgstr "A Steam está instalada como snap. Snaps não são compatíveis com WiVR
 
 #: dashboard/qml/Main.qml:225
 #, kde-format
-msgid "Steam is installed as a flatpak but does not have sufficient permissions."
+msgid ""
+"Steam is installed as a flatpak but does not have sufficient permissions."
 msgstr "A Steam está instalada como flatpak e não tem permissões suficientes."
 
 #: dashboard/qml/Main.qml:240
 #, kde-format
 msgid "Restart the server for configuration changes to take effect"
-msgstr "Reinicie o servidor para que as alterações de configuração tenham efeito"
+msgstr ""
+"Reinicie o servidor para que as alterações de configuração tenham efeito"
 
 #: dashboard/qml/Main.qml:246
 #, kde-format
@@ -425,7 +432,8 @@ msgstr "Conectar (por cabo)"
 #: dashboard/qml/Main.qml:383 dashboard/qml/WizardPage.qml:339
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
-msgstr "Nenhum headset está conectado ou seu headset não está em modo desenvolvedor"
+msgstr ""
+"Nenhum headset está conectado ou seu headset não está em modo desenvolvedor"
 
 #: dashboard/qml/Main.qml:404
 #, kde-format
@@ -534,7 +542,7 @@ msgstr "Autoiniciar aplicação:"
 #: dashboard/qml/SettingsPage.qml:94
 #, kde-format
 msgid "Auto connect from USB"
-msgstr "Autoconectar pela USB"
+msgstr "Autoconectar via USB"
 
 #: dashboard/qml/SettingsPage.qml:102
 #, kde-format
@@ -695,7 +703,7 @@ msgid ""
 "If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Se você instalou o WiVRN por USB em um headset Pico ou Meta, a aplicação "
+"Se você instalou o WiVRn via USB em um headset Pico ou Meta, a aplicação "
 "está na seção de \"fontes desconhecidas\"."
 
 #: dashboard/qml/TroubleshootPage.qml:24
@@ -706,7 +714,8 @@ msgstr "Não consigo ver meu computador no aplicativo do WiVRn"
 #: dashboard/qml/TroubleshootPage.qml:25
 #, kde-format
 msgid "If you have a firewall, make sure that port 5353/UDP is open."
-msgstr "Se você tem firewall, se certifique que a porta 5353/UDP esteja aberta."
+msgstr ""
+"Se você tem firewall, se certifique que a porta 5353/UDP esteja aberta."
 
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
@@ -755,7 +764,7 @@ msgid ""
 "another headset, you must enable pairing before connecting."
 msgstr ""
 "Se você reinstalou o servidor ou o cliente ou se você quer conectar outro "
-"headset, você deve atviar o pareamento antes de conectar."
+"headset, você deve ativar o pareamento antes de conectar."
 
 #: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
@@ -857,7 +866,7 @@ msgid ""
 msgstr ""
 "Para usar o WiVRn, você precisa instalar o aplicativo do cliente em seu "
 "headset.\n"
-"Você pode instalá-lo pela loja Meta ou diretamente pela USB."
+"Você pode instalá-lo pela loja Meta ou diretamente via USB."
 
 #: dashboard/qml/WizardPage.qml:148
 #, kde-format
@@ -900,7 +909,7 @@ msgstr "Ou"
 #: dashboard/qml/WizardPage.qml:187
 #, kde-format
 msgid "Install over USB"
-msgstr "Instalar pela USB"
+msgstr "Instalar via USB"
 
 #: dashboard/qml/WizardPage.qml:219
 #, kde-format
@@ -944,12 +953,12 @@ msgstr ""
 #: dashboard/qml/WizardPage.qml:326
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
-msgstr "Para conectar pela USB, clique em \"Conectar pela USB\"."
+msgstr "Para conectar via USB, clique em \"Conectar via USB\"."
 
 #: dashboard/qml/WizardPage.qml:329
 #, kde-format
 msgid "Connect by USB"
-msgstr "Conectar pela USB"
+msgstr "Conectar via USB"
 
 #: dashboard/qml/WizardPage.qml:349
 #, kde-format
