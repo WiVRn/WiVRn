@@ -89,6 +89,7 @@ struct Void
 struct Int
 {
 	constexpr static auto static_field = &_JNIEnv::GetStaticIntField;
+	constexpr static auto obj_field = &_JNIEnv::GetIntField;
 	constexpr static const auto call_method = &_JNIEnv::CallIntMethod;
 	constexpr static const auto call_static_method = &_JNIEnv::CallStaticIntMethod;
 
@@ -277,6 +278,7 @@ struct object
 	}
 	std::unique_ptr<std::remove_pointer_t<jobject>, details::deleter> self;
 
+	constexpr static auto obj_field = &_JNIEnv::GetObjectField;
 	constexpr static const auto call_method = &_JNIEnv::CallObjectMethod;
 	constexpr static const auto call_static_method = &_JNIEnv::CallStaticObjectMethod;
 
@@ -335,6 +337,14 @@ struct object
 		                    handles));
 	}
 
+	template <typename T>
+	T field(const std::string & name)
+	{
+		auto & env = jni_thread::env();
+		jfieldID id = env.GetFieldID(klass(), name.c_str(), T::type().c_str());
+		return T((env.*T::obj_field)(*this, id));
+	}
+
 	jobject handle() const
 	{
 		return *this;
@@ -374,6 +384,7 @@ struct string : public string_t
 {
 	using string_t::type;
 	constexpr static auto static_field = &_JNIEnv::GetStaticObjectField;
+	constexpr static auto obj_field = &_JNIEnv::GetObjectField;
 
 	operator jstring()
 	{
