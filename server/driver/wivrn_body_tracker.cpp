@@ -341,12 +341,13 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
 	for (auto & [joint, body_part]: joint_body_parts)
 	{
 		auto & name = body_part_pretty_names.at(body_part);
-		auto [it, success] = virtual_trackers.emplace(std::piecewise_construct,
-		                                              std::forward_as_tuple(joint),
-		                                              std::forward_as_tuple(name, hmd, cnx));
+		[[maybe_unused]] auto [it, success] = virtual_trackers.emplace(std::piecewise_construct,
+		                                                               std::forward_as_tuple(joint),
+		                                                               std::forward_as_tuple(name, hmd, cnx));
 		assert(success);
-		device_add_callback(it->second);
 	}
+	for (auto & [_, dev]: virtual_trackers)
+		device_add_callback(dev);
 	(*this)(*cnx.get_settings());
 }
 
