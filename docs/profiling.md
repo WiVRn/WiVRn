@@ -1,6 +1,6 @@
 # Profiling WiVRn
 
-Performance analysis for WiVRn: per-frame timing CSV and [Perfetto](https://perfetto.dev/) tracing.
+Performance analysis for WiVRn: [Perfetto](https://perfetto.dev/) tracing.
 For general debugging see [docs/debugging.md](debugging.md).
 
 ## Quick start
@@ -27,15 +27,6 @@ tools/perfetto/wivrn_capture.py       # WiVRn-only; --full adds Monado + ftrace
 `WIVRN_USE_PERFETTO` defaults `OFF`; even built `ON`, tracing is inert until `WIVRN_TRACING` is set.
 The Perfetto amalgamated SDK must be installed where CMake looks (`/usr/share/perfetto/sdk`, override
 with `-DPERFETTO_SDK_DIR=<dir>`); no automatic fetch.
-
-## Timing analysis (CSV)
-
-Per-frame timing without any Perfetto setup — same events as the `wivrn_feedback` track, one row each:
-```bash
-WIVRN_DUMP_TIMINGS=/tmp/wivrn-timings.csv wivrn-server
-```
-CSV and Perfetto are independent; set either, neither, or both. See
-[CSV ↔ Perfetto](#csv--perfetto-alignment).
 
 ## HMD profiling
 
@@ -180,11 +171,3 @@ the emit (a literal is fine). Place the span at the operation's semantic start, 
 | `encoder` | `wivrn_encoder` | WiVRn encoder |
 | `compositor` | `wivrn_compositor` | WiVRn compositor |
 | `network` | `wivrn_network` | WiVRn network |
-
-## CSV ↔ Perfetto alignment
-
-`WIVRN_DUMP_TIMINGS` (CSV) and the `wivrn_feedback` track read the **same** `dump_time` stream, clock
-(`CLOCK_MONOTONIC`), and event names (`wake_up`, `encode_begin`, `send_end`, `display`, …) — so
-`grep encode_begin` over the CSV and `name = "encode_begin"` in Perfetto select the same frames at
-the same timestamps. Perfetto additionally carries the CPU/GPU spans the CSV does not. Use the CSV
-for offline scripting, the trace for a visual timeline.

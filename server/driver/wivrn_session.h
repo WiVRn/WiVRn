@@ -40,7 +40,6 @@
 #include "wivrn_uinput.h"
 #include "xrt/xrt_results.h"
 #include "xrt/xrt_system.h"
-#include <fstream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -109,9 +108,6 @@ class wivrn_session : public xrt_system_devices
 
 	clock_offset_estimator offset_est;
 	std::atomic<XrDuration> tracking_latency; // production to reception time
-
-	std::mutex csv_mutex;
-	std::ofstream feedback_csv;
 
 	std::unique_ptr<audio_device> audio_handle;
 
@@ -216,8 +212,6 @@ public:
 	xrt_result_t push_event(const xrt_session_event &);
 
 	void set_foveated_size(uint32_t width, uint32_t height);
-
-	void dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream = -1, const char * extra = "");
 
 private:
 	void run_net(std::stop_token stop);

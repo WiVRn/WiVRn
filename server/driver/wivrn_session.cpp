@@ -355,12 +355,6 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 		}
 	}
 
-	auto dump_file = std::getenv("WIVRN_DUMP_TIMINGS");
-	if (dump_file)
-	{
-		self->feedback_csv.open(dump_file);
-	}
-
 	*out_xsysd = self.release();
 	return XRT_SUCCESS;
 }
@@ -788,17 +782,17 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 	compositor.on_feedback(feedback, o);
 
 	if (feedback.received_first_packet)
-		dump_time("receive_begin", feedback.frame_index, o.from_headset(feedback.received_first_packet), feedback.stream_index);
+		trace::instant_feedback("receive_begin", o.from_headset(feedback.received_first_packet), feedback.frame_index, feedback.stream_index);
 	if (feedback.received_last_packet)
-		dump_time("receive_end", feedback.frame_index, o.from_headset(feedback.received_last_packet), feedback.stream_index);
+		trace::instant_feedback("receive_end", o.from_headset(feedback.received_last_packet), feedback.frame_index, feedback.stream_index);
 	if (feedback.sent_to_decoder)
-		dump_time("decode_begin", feedback.frame_index, o.from_headset(feedback.sent_to_decoder), feedback.stream_index);
+		trace::instant_feedback("decode_begin", o.from_headset(feedback.sent_to_decoder), feedback.frame_index, feedback.stream_index);
 	if (feedback.received_from_decoder)
-		dump_time("decode_end", feedback.frame_index, o.from_headset(feedback.received_from_decoder), feedback.stream_index);
+		trace::instant_feedback("decode_end", o.from_headset(feedback.received_from_decoder), feedback.frame_index, feedback.stream_index);
 	if (feedback.blitted)
-		dump_time("blit", feedback.frame_index, o.from_headset(feedback.blitted), feedback.stream_index);
+		trace::instant_feedback("blit", o.from_headset(feedback.blitted), feedback.frame_index, feedback.stream_index);
 	if (feedback.displayed)
-		dump_time("display", feedback.frame_index, o.from_headset(feedback.displayed), feedback.stream_index);
+		trace::instant_feedback("display", o.from_headset(feedback.displayed), feedback.frame_index, feedback.stream_index);
 }
 
 void wivrn_session::operator()(from_headset::battery && battery)
@@ -1149,16 +1143,6 @@ xrt_result_t wivrn_session::push_event(const xrt_session_event & event)
 void wivrn_session::set_foveated_size(uint32_t width, uint32_t height)
 {
 	hmd.set_foveated_size(width, height);
-}
-
-void wivrn_session::dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream, const char * extra)
-{
-	trace::instant_feedback(event.c_str(), time, frame, stream);
-	if (feedback_csv)
-	{
-		std::lock_guard lock(csv_mutex);
-		feedback_csv << std::quoted(event) << "," << frame << "," << time << "," << (int)stream << extra << std::endl;
-	}
 }
 
 void wivrn_session::quit_if_no_client()

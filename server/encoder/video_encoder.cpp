@@ -287,8 +287,6 @@ void video_encoder::encode(wivrn_session & cnx,
 	shard.timing_info.reset();
 
 	auto data = encode(encode_slot, frame_index);
-	cnx.dump_time("encode_begin", frame_index, encode_begin, stream_idx);
-	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx);
 	if (data)
 	{
 		timing_info.encode_end = clock.to_headset(os_monotonic_get_ns());
@@ -304,7 +302,6 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 	{
 		// One SendData call per NAL; span the whole frame, not each call.
 		wivrn::trace::cpu_begin(wivrn::trace::cpu_track::network, stream_idx, shard.frame_idx, "SendData");
-		cnx->dump_time("send_begin", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
 		timing_info.send_begin = clock.to_headset(os_monotonic_get_ns());
 	}
 	if (end_of_frame)
@@ -346,10 +343,7 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 		begin = next;
 	}
 	if (end_of_frame)
-	{
-		cnx->dump_time("send_end", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
 		wivrn::trace::cpu_end(wivrn::trace::cpu_track::network, stream_idx, shard.frame_idx, "SendData");
-	}
 }
 
 } // namespace wivrn

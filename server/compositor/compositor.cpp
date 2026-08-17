@@ -265,7 +265,7 @@ xrt_result_t compositor::mark_frame(int64_t frame_id,
 	switch (point)
 	{
 		case XRT_COMPOSITOR_FRAME_POINT_WOKE:
-			session.dump_time("wake_up", frame_id, when_ns);
+			trace::instant_feedback("wake_up", when_ns, frame_id);
 			return XRT_SUCCESS;
 		default:
 			assert(false);
@@ -308,7 +308,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        .alpha = layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND,
 	};
 
-	session.dump_time("begin", frame.rendering.id, os_monotonic_get_ns());
+	trace::instant_feedback("begin", frame.rendering.id, os_monotonic_get_ns());
 
 	cmd_pool.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});

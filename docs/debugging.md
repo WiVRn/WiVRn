@@ -254,8 +254,8 @@ adb logcat '*:F' | grep -A 50 wivrn
 
 ## Performance Profiling
 
-WiVRn supports timing analysis via CSV dumps and detailed system-wide
-profiling with Perfetto. See [docs/profiling.md](profiling.md) for capturing
+WiVRn supports timing analysis and detailed system-wide profiling with Perfetto.
+See [docs/profiling.md](profiling.md) for capturing
 timing data, profiling the HMD client and server, and comparing the Vulkan,
 NVENC, and VAAPI encoder paths.
 
@@ -327,7 +327,6 @@ The log is located at `$XDG_STATE_HOME/xrizer/xrizer.txt`, or `$HOME/.local/stat
 | Variable | Description |
 |----------|-------------|
 | `WIVRN_DUMP_VIDEO` | Path to dump video frames (e.g., `/tmp/video-dump`) |
-| `WIVRN_DUMP_TIMINGS` | Path to dump timing CSV (e.g., `/tmp/wivrn-timings.csv`) |
 | `WIVRN_LOGLEVEL` | Log level for the native client |
 | `WIVRN_AUTOCONNECT` | Auto-connect to the first discovered server |
 | `WIVRN_TRACING` | Enable WiVRn Perfetto tracing: `system` / `inprocess`. Requires `WIVRN_USE_PERFETTO=ON` at build time. See [docs/profiling.md](profiling.md). |

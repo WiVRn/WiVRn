@@ -57,7 +57,7 @@ void set_calibration_source(::vk_bundle * monado_vk);
 
 // Instant on the feedback track at an explicit monotonic timestamp.
 // name is copied at emit time (perfetto::DynamicString), so it need not outlive the call.
-void instant_feedback(const char * name, int64_t time_ns, uint64_t frame, uint8_t stream);
+void instant_feedback(const char * name, int64_t time_ns, uint64_t frame, uint8_t stream = -1);
 
 // GPU-hardware-timestamped slice on the WiVRn encoder track.
 // begin_ns/end_ns must come from GPU query pools (gpu_timestamp_pool::collect),
