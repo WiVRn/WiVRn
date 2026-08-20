@@ -373,13 +373,27 @@ void wivrn_session::stop()
 	worker_thread = std::jthread();
 }
 
-bool wivrn_session::request_stop()
+void wivrn_session::request_stop()
 {
-	assert(mnd_ipc_server);
-	bool b = net_thread.request_stop();
+	stop_application(std::nullopt, 2l * U_TIME_1S_IN_NS);
+
+	int64_t end = os_monotonic_get_ns() + 3l * U_TIME_1S_IN_NS;
+	while (os_monotonic_get_ns() < end)
+	{
+		{
+			scoped_lock lock(xrt_system.sessions.mutex);
+			if (xrt_system.sessions.count == 0)
+			{
+				U_LOG_I("No more sessions, exiting");
+				break;
+			}
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+
+	net_thread.request_stop();
 	worker_thread.request_stop();
 	ipc_server_stop(mnd_ipc_server);
-	return b;
 }
 
 void wivrn_session::pause_session()
@@ -952,30 +966,7 @@ void wivrn_session::operator()(const from_headset::set_active_application & req)
 
 void wivrn_session::operator()(const from_headset::stop_application & req)
 {
-	assert(mnd_ipc_server);
-	scoped_lock lock(mnd_ipc_server->global_state.lock);
-	for (auto & t: mnd_ipc_server->threads)
-	{
-		if (t.ics.client_state.id == req.id)
-		{
-			if (!t.ics.xs)
-			{
-				U_LOG_W("Unable to stop app %s: no session!", t.ics.client_state.info.application_name);
-				break;
-			}
-
-			U_LOG_I("Request exit for application %s", t.ics.client_state.info.application_name);
-			xrt_result_t xret = xrt_session_request_exit(t.ics.xs);
-			if (xret != XRT_SUCCESS)
-			{
-				U_LOG_W("Failed to request exit for application %s: %s", t.ics.client_state.info.application_name, u_str_xrt_result(xret));
-			}
-
-			auto when = os_monotonic_get_ns() + 10l * U_TIME_1S_IN_NS;
-			session_loss.lock()->emplace(req.id, when);
-			break;
-		}
-	}
+	stop_application(req.id, 10l * U_TIME_1S_IN_NS);
 }
 
 void wivrn_session::operator()(audio_data && data)
@@ -1310,6 +1301,38 @@ void wivrn_session::reconnect(std::stop_token stop)
 		catch (std::exception & e)
 		{
 			U_LOG_W("Exception while connecting headset: %s", e.what());
+		}
+	}
+}
+
+void wivrn_session::stop_application(std::optional<uint32_t> id, int64_t timeout_ns)
+{
+	assert(mnd_ipc_server);
+	scoped_lock lock(mnd_ipc_server->global_state.lock);
+	for (auto & t: mnd_ipc_server->threads)
+	{
+		// Monado doesn't set state to IPC_THREAD_RUNNING
+		if (t.state != IPC_THREAD_STARTING)
+			continue;
+
+		uint32_t client_id = t.ics.client_state.id;
+		if (not id.has_value() or client_id == *id)
+		{
+			if (!t.ics.xs)
+			{
+				U_LOG_W("Unable to stop app %s: no session!", t.ics.client_state.info.application_name);
+				continue;
+			}
+
+			U_LOG_I("Request exit for application %s", t.ics.client_state.info.application_name);
+			xrt_result_t xret = xrt_session_request_exit(t.ics.xs);
+			if (xret != XRT_SUCCESS)
+			{
+				U_LOG_W("Failed to request exit for application %s: %s", t.ics.client_state.info.application_name, u_str_xrt_result(xret));
+			}
+
+			auto when = os_monotonic_get_ns() + timeout_ns;
+			session_loss.lock()->emplace(client_id, when);
 		}
 	}
 }

@@ -253,6 +253,9 @@ void start_server(configuration config)
 	}
 	else if (server_pid == 0)
 	{
+		if (do_fork)
+			setsid();
+
 		setenv("AMD_DEBUG", "lowlatencyenc", false);
 
 		// https://github.com/WiVRn/WiVRn/issues/695
@@ -316,7 +319,7 @@ void kill_server()
 	wivrn_ipc_socket_main_loop->send(to_monado::stop{});
 
 	// Send SIGTERM after 1s if it is still running
-	server_kill_watch = g_timeout_add(1000, [](void *) {
+	server_kill_watch = g_timeout_add(3500, [](void *) {
 		assert(server_pid > 0);
 		kill(-server_pid, SIGTERM);
 		return G_SOURCE_REMOVE; }, 0);

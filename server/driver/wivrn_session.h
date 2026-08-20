@@ -132,7 +132,7 @@ public:
 	void start(ipc_server *);
 	void stop();
 
-	bool request_stop();
+	void request_stop();
 	void quit_if_no_client();
 
 	clock_offset get_offset();
@@ -220,6 +220,9 @@ private:
 
 	void pause_session();
 	void resume_session();
+
+	// nullopt for id stops all apps
+	void stop_application(std::optional<uint32_t> id, int64_t timeout_ns);
 
 	void update_client_states(bool visible, bool focused);
 	void poll_session_loss();
