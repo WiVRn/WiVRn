@@ -4,8 +4,6 @@ Description=OpenXR streaming server
 [Service]
 Type=simple
 ExecStart=@CMAKE_INSTALL_PREFIX@/bin/wivrn-server
-CapabilityBoundingSet=CAP_SYS_NICE
-AmbientCapabilities=CAP_SYS_NICE
 LockPersonality=true
 NoNewPrivileges=true
 PrivateTmp=true
