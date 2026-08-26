@@ -1,0 +1,138 @@
+From 99722fde70de23bad66f47ab7a53748ce0e498d0 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Wed, 26 Aug 2026 06:14:13 -0500
+Subject: [PATCH 1/2] a/math: Add m_relation_history_get_clamped
+
+Signed-off-by: Sapphire <imsapphire0@gmail.com>
+---
+ src/xrt/auxiliary/math/m_relation_history.cpp | 33 ++++++++++++++++---
+ src/xrt/auxiliary/math/m_relation_history.h   | 23 ++++++++++++-
+ 2 files changed, 50 insertions(+), 6 deletions(-)
+
+diff --git a/src/xrt/auxiliary/math/m_relation_history.cpp b/src/xrt/auxiliary/math/m_relation_history.cpp
+index 700f9e7fc..47a61ed6d 100644
+--- a/src/xrt/auxiliary/math/m_relation_history.cpp
++++ b/src/xrt/auxiliary/math/m_relation_history.cpp
+@@ -84,15 +84,20 @@ m_relation_history_push(struct m_relation_history *rh, struct xrt_space_relation
+ }
+ 
+ enum m_relation_history_result
+-m_relation_history_get(const struct m_relation_history *rh,
+-                       int64_t at_timestamp_ns,
+-                       struct xrt_space_relation *out_relation)
++m_relation_history_get_clamped(const struct m_relation_history *rh,
++                               int64_t at_timestamp_ns,
++                               int64_t max_extrapolation_ns,
++                               int64_t *out_timestamp_ns,
++                               struct xrt_space_relation *out_relation)
+ {
+ 	XRT_TRACE_MARKER();
+ 	std::unique_lock<os::Mutex> lock(rh->mutex);
+ 	try {
+ 		if (rh->impl.empty() || at_timestamp_ns == 0) {
+ 			// Do nothing. You push nothing to the buffer you get nothing from the buffer.
++			if (out_timestamp_ns) {
++				*out_timestamp_ns = 0;
++			}
+ 			*out_relation = {};
+ 			return M_RELATION_HISTORY_RESULT_INVALID;
+ 		}
+@@ -111,18 +116,26 @@ m_relation_history_get(const struct m_relation_history *rh,
+ 			// The desired timestamp is after what our buffer contains.
+ 			// (pose-prediction)
+ 			// Output flags match the most recent buffer entry.
+-			int64_t diff_prediction_ns = static_cast<int64_t>(at_timestamp_ns) - rh->impl.back().timestamp;
++			int64_t diff_prediction_ns = MIN(
++			    static_cast<int64_t>(at_timestamp_ns) - rh->impl.back().timestamp, max_extrapolation_ns);
+ 			double delta_s = time_ns_to_s(diff_prediction_ns);
+ 
+ 			U_LOG_T("Extrapolating %f s past the back of the buffer!", delta_s);
+ 
+ 			m_predict_relation(&rh->impl.back().relation, delta_s, out_relation);
++			if (out_timestamp_ns) {
++				// We extrapolated to the requested timestamp.
++				*out_timestamp_ns = at_timestamp_ns + diff_prediction_ns;
++			}
+ 			return M_RELATION_HISTORY_RESULT_PREDICTED;
+ 		}
+ 		if (at_timestamp_ns == it->timestamp) {
+ 			// exact match:
+ 			// Flags copied directly along with everything else.
+ 			U_LOG_T("Exact match in the buffer!");
++			if (out_timestamp_ns) {
++				*out_timestamp_ns = at_timestamp_ns;
++			}
+ 			*out_relation = it->relation;
+ 			return M_RELATION_HISTORY_RESULT_EXACT;
+ 		}
+@@ -131,10 +144,16 @@ m_relation_history_get(const struct m_relation_history *rh,
+ 			// The desired timestamp is before what our buffer contains.
+ 			// (an edge case where somebody asks for a really old pose and we do our best)
+ 			// Output flags are the same as the input flags for the history entry we use
+-			int64_t diff_prediction_ns = static_cast<int64_t>(at_timestamp_ns) - rh->impl.front().timestamp;
++			int64_t diff_prediction_ns =
++			    -MIN(abs(static_cast<int64_t>(at_timestamp_ns) - rh->impl.front().timestamp),
++			         max_extrapolation_ns);
+ 			double delta_s = time_ns_to_s(diff_prediction_ns);
+ 			U_LOG_T("Extrapolating %f s before the front of the buffer!", delta_s);
+ 			m_predict_relation(&rh->impl.front().relation, delta_s, out_relation);
++			if (out_timestamp_ns) {
++				// We extrapolated to the requested timestamp.
++				*out_timestamp_ns = at_timestamp_ns + diff_prediction_ns;
++			}
+ 			return M_RELATION_HISTORY_RESULT_REVERSE_PREDICTED;
+ 		}
+ 		U_LOG_T("Interpolating within buffer!");
+@@ -174,6 +193,10 @@ m_relation_history_get(const struct m_relation_history *rh,
+ 			result.linear_velocity = m_vec3_lerp(predecessor.relation.linear_velocity,
+ 			                                     successor.relation.linear_velocity, amount_to_lerp);
+ 		}
++		if (out_timestamp_ns) {
++			// We interpolated to the requested timestamp.
++			*out_timestamp_ns = at_timestamp_ns;
++		}
+ 		*out_relation = result;
+ 		return M_RELATION_HISTORY_RESULT_INTERPOLATED;
+ 
+diff --git a/src/xrt/auxiliary/math/m_relation_history.h b/src/xrt/auxiliary/math/m_relation_history.h
+index 86e08ef5e..5aaa94404 100644
+--- a/src/xrt/auxiliary/math/m_relation_history.h
++++ b/src/xrt/auxiliary/math/m_relation_history.h
+@@ -83,12 +83,33 @@ m_relation_history_push_with_motion_estimation(struct m_relation_history *rh,
+  * Read-only operation - doesn't remove anything from the buffer or anything like that - you can call this as often
+  * as you want.
+  *
++ * @param max_extrapolation_ns Maximum time the pose may be extrapolated to. INT64_MAX means extrapolation is unlimited.
++ * @param out_timestamp_ns Optional out parameter for the timestamp of the pose.
++ * @param out_relation Out parameter for the resulting @ref xrt_space_relation.
++ *
+  * @public @memberof m_relation_history
+  */
+ enum m_relation_history_result
++m_relation_history_get_clamped(const struct m_relation_history *rh,
++                               int64_t at_timestamp_ns,
++                               int64_t max_extrapolation_ns,
++                               int64_t *out_timestamp_ns,
++                               struct xrt_space_relation *out_relation);
++
++/*!
++ * Wrapper for @ref m_relation_history_get_clamped with unlimited extrapolation.
++ *
++ * @copydoc m_relation_history_get_clamped
++ *
++ * @public @memberof m_relation_history
++ */
++static inline enum m_relation_history_result
+ m_relation_history_get(const struct m_relation_history *rh,
+                        int64_t at_timestamp_ns,
+-                       struct xrt_space_relation *out_relation);
++                       struct xrt_space_relation *out_relation)
++{
++	return m_relation_history_get_clamped(rh, at_timestamp_ns, INT64_MAX, NULL, out_relation);
++}
+ 
+ /*!
+  * Get the latest report in the buffer, if any.
+-- 
+2.55.0
+

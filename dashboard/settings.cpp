@@ -121,6 +121,8 @@ void Settings::emitAllChanged()
 	openvrChanged();
 	debugGuiChanged();
 	steamVrLhChanged();
+	lhMaxExtrapolationEnabledChanged();
+	lhMaxExtrapolationChanged();
 	lhStickDeadzoneChanged();
 	hidForwardingChanged();
 	portChanged();
@@ -415,6 +417,39 @@ void Settings::set_steamVrLh(const bool & value)
 	m_jsonSettings["use-steamvr-lh"] = value;
 	if (old != value)
 		steamVrLhChanged();
+}
+
+bool Settings::lhMaxExtrapolationEnabled() const
+{
+	auto it = m_jsonSettings.find("lh-max-extrapolation");
+	return it != m_jsonSettings.end() and it->is_number();
+}
+
+int64_t Settings::lhMaxExtrapolation() const
+{
+	auto it = m_jsonSettings.find("lh-max-extrapolation");
+	if (it != m_jsonSettings.end() and it->is_number())
+		return static_cast<int64_t>(*it);
+	return 50;
+}
+
+void Settings::set_lhMaxExtrapolation(const int64_t & value)
+{
+	auto old = lhMaxExtrapolation();
+	if (value != -1)
+	{
+		m_jsonSettings["lh-max-extrapolation"] = value;
+	}
+	else
+	{
+		m_jsonSettings.erase("lh-max-extrapolation");
+	}
+
+	if (old != value)
+	{
+		lhMaxExtrapolationEnabledChanged();
+		lhMaxExtrapolationChanged();
+	}
 }
 
 float Settings::lhStickDeadzone() const
