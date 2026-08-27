@@ -1138,8 +1138,12 @@ void wivrn_session::set_foveated_size(uint32_t width, uint32_t height)
 
 void wivrn_session::quit_if_no_client()
 {
-	scoped_lock lock(xrt_system.sessions.mutex);
-	if (xrt_system.sessions.count == 0)
+	uint32_t count;
+	{
+		scoped_lock lock(xrt_system.sessions.mutex);
+		count = xrt_system.sessions.count;
+	}
+	if (count == 0)
 	{
 		U_LOG_I("No OpenXR client connected, exiting");
 		request_stop();
