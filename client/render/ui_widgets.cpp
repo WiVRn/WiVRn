@@ -23,7 +23,7 @@
 #include "imgui_internal.h"
 #include "ui_theme.h"
 
-#include "IconsFontAwesome6.h"
+#include "IconsFontAwesome7.h"
 
 #include <algorithm>
 #include <cmath>

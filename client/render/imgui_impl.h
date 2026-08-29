@@ -31,6 +31,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <imgui.h>
 #include <implot.h>
+#include <inplace_vector.hpp>
 #include <optional>
 #include <span>
 #include <unordered_map>
@@ -201,8 +202,7 @@ private:
 	bool show_demo_window = true;
 #endif
 
-	utils::mapped_file font_awesome_regular;
-	utils::mapped_file font_awesome_solid;
+	beman::inplace_vector::inplace_vector<utils::mapped_file, 3> font_awesome;
 	void initialize_fonts();
 
 	std::vector<controller_state> read_controllers_state(XrTime display_time);

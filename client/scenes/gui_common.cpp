@@ -24,7 +24,7 @@
 #include "render/ui_widgets.h"
 
 #include "imgui.h"
-#include <IconsFontAwesome6.h>
+#include <IconsFontAwesome7.h>
 #include <cmath>
 #include <spdlog/fmt/fmt.h>
 

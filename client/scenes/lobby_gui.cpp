@@ -55,7 +55,7 @@
 #include <utils/strings.h>
 #include <vulkan/vulkan_to_string.hpp>
 
-#include "IconsFontAwesome6.h"
+#include "IconsFontAwesome7.h"
 
 using namespace std::chrono_literals;
 

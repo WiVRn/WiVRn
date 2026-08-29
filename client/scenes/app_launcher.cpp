@@ -29,7 +29,7 @@
 #include "utils/i18n.h"
 #include "utils/ranges.h"
 
-#include <IconsFontAwesome6.h>
+#include <IconsFontAwesome7.h>
 #include <algorithm>
 #include <imspinner.h>
 #include <spdlog/fmt/fmt.h>

@@ -29,7 +29,7 @@
 #include <uni_algo/ranges_grapheme.h>
 #include <utility>
 
-#include "IconsFontAwesome6.h"
+#include "IconsFontAwesome7.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "render/ui_theme.h"

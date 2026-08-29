@@ -31,7 +31,7 @@
 #include "render/ui_widgets.h"
 #include "utils/i18n.h"
 #include "utils/ranges.h"
-#include <IconsFontAwesome6.h>
+#include <IconsFontAwesome7.h>
 #include <chrono>
 #include <cmath>
 #include <glm/ext.hpp>

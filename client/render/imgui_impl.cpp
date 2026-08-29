@@ -535,8 +535,9 @@ void imgui_context::initialize_fonts()
 		}
 	}
 
-	font_awesome_regular = utils::mapped_file("assets://Font Awesome 6 Free-Regular-400.otf");
-	font_awesome_solid = utils::mapped_file("assets://Font Awesome 6 Free-Solid-900.otf");
+	assert(font_awesome.empty());
+	font_awesome.emplace_back("assets://Font Awesome 7 Free-Regular-400.otf");
+	font_awesome.emplace_back("assets://Font Awesome 7 Free-Solid-900.otf");
 
 	ImFontConfig config;
 	config.FontDataOwnedByAtlas = false;
@@ -550,8 +551,8 @@ void imgui_context::initialize_fonts()
 
 	config.MergeMode = true;
 	config.GlyphMinAdvanceX = 40; // Use if you want to make the icon monospaced
-	io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(font_awesome_regular.data()), font_awesome_regular.size(), constants::gui::font_size_small, &config);
-	io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(font_awesome_solid.data()), font_awesome_solid.size(), constants::gui::font_size_small, &config);
+	for (auto & fa: font_awesome)
+		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(fa.data()), fa.size(), constants::gui::font_size_small, &config);
 }
 
 std::vector<imgui_context::controller_state> imgui_context::read_controllers_state(XrTime display_time)
