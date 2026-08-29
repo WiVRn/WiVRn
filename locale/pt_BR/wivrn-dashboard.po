@@ -11,16 +11,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-07 21:01+0200\n"
-"PO-Revision-Date: 2026-08-16 03:17+0100\n"
-"Last-Translator: notblanky <me@notblanky.dev>\n"
-"Language-Team: Portuguese <>\n"
+"POT-Creation-Date: 2026-08-29 22:24+0200\n"
+"PO-Revision-Date: 2026-08-30 01:41+0200\n"
+"Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
+"Language-Team: Portuguese <kde-i18n-doc@kde.org>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Lokalize 26.04.3\n"
+"X-Generator: Lokalize 26.08.0\n"
 
 #: dashboard/apk_installer.cpp:133
 #, kde-format
@@ -132,8 +132,7 @@ msgstr "ABD não está instalado"
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
 msgid "Connect a headset and make sure developer mode is enabled"
-msgstr ""
-"Conecte um headset e assegure que o modo desenvolvedor esteja habilitado"
+msgstr "Conecte um headset e assegure que o modo desenvolvedor esteja habilitado"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -244,8 +243,7 @@ msgstr "Inicie o aplicativo do WiVRn no seu headset e use o PIN: %1"
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
 msgid "Enable pairing to allow your headset to connect to this computer"
-msgstr ""
-"Ative o pareamento para permitir que seu headset conecte-se a esse computador"
+msgstr "Ative o pareamento para permitir que seu headset conecte-se a esse computador"
 
 #: dashboard/qml/HeadsetsPage.qml:171 dashboard/qml/TroubleshootPage.qml:45
 #, kde-format
@@ -304,10 +302,8 @@ msgstr "O firewall pode não permitir a porta 9757"
 
 #: dashboard/qml/Main.qml:179
 #, kde-format
-msgid ""
-"NVIDIA GPUs require at least driver version 565.77, current version is %1"
-msgstr ""
-"GPUs NVIDIA requerem pelo menos o driver versão 565.77, a versão atual é %1"
+msgid "NVIDIA GPUs require at least driver version 565.77, current version is %1"
+msgstr "GPUs NVIDIA requerem pelo menos o driver versão 565.77, a versão atual é %1"
 
 #: dashboard/qml/Main.qml:185
 #, kde-format
@@ -352,15 +348,13 @@ msgstr "A Steam está instalada como snap. Snaps não são compatíveis com WiVR
 
 #: dashboard/qml/Main.qml:225
 #, kde-format
-msgid ""
-"Steam is installed as a flatpak but does not have sufficient permissions."
+msgid "Steam is installed as a flatpak but does not have sufficient permissions."
 msgstr "A Steam está instalada como flatpak e não tem permissões suficientes."
 
 #: dashboard/qml/Main.qml:240
 #, kde-format
 msgid "Restart the server for configuration changes to take effect"
-msgstr ""
-"Reinicie o servidor para que as alterações de configuração tenham efeito"
+msgstr "Reinicie o servidor para que as alterações de configuração tenham efeito"
 
 #: dashboard/qml/Main.qml:246
 #, kde-format
@@ -432,8 +426,7 @@ msgstr "Conectar (por cabo)"
 #: dashboard/qml/Main.qml:383 dashboard/qml/WizardPage.qml:339
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
-msgstr ""
-"Nenhum headset está conectado ou seu headset não está em modo desenvolvedor"
+msgstr "Nenhum headset está conectado ou seu headset não está em modo desenvolvedor"
 
 #: dashboard/qml/Main.qml:404
 #, kde-format
@@ -599,12 +592,41 @@ msgstr ""
 "Os dispositivos precisam estar ligados antes de se conectar ao WiVRn.\n"
 "Uma ferramenta externa como o motoc é necessária para calibração."
 
-#: dashboard/qml/SettingsPage.qml:137
+#: dashboard/qml/SettingsPage.qml:138
+#, kde-format
+msgid "Clamp extrapolation for SteamVR tracked devices"
+msgstr "Fixar extrapolação para dispositivos rastreados SteamVR"
+
+#: dashboard/qml/SettingsPage.qml:142
+#, kde-format
+msgid "SteamVR max pose extrapolation"
+msgstr "Máxima extrapolação de pose SteamVR"
+
+#: dashboard/qml/SettingsPage.qml:152
+#, kde-format
+msgctxt "value display for SteamVR max pose extrapolation"
+msgid "%1ms"
+msgid_plural "%1ms"
+msgstr[0] "%1ms"
+msgstr[1] "%1ms"
+
+#: dashboard/qml/SettingsPage.qml:157
+#, kde-format
+msgid ""
+"Maximum time in milliseconds that poses may be extrapolated ahead for "
+"SteamVR tracked devices. Tune this value if you experience jittery or wobbly "
+"tracking."
+msgstr ""
+"Tempo máximo em milissegundos em que as poses podem ser "
+"extrapoladas à frente para dispositivos rastreados SteamVR. Ajuste "
+"esse valor se você sentir rastreamento instável ou com tremidas."
+
+#: dashboard/qml/SettingsPage.qml:162
 #, kde-format
 msgid "SteamVR joystick deadzone"
 msgstr "Zona morta do joystick SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:152
+#: dashboard/qml/SettingsPage.qml:177
 #, kde-format
 msgid ""
 "Deadzone to apply to joysticks on lighthouse-tracked controllers, such as "
@@ -617,49 +639,49 @@ msgstr ""
 "Para controles independentes, as zonas mortas podem ser ajustadas pelos "
 "ajustes de sistema do headset."
 
-#: dashboard/qml/SettingsPage.qml:160
+#: dashboard/qml/SettingsPage.qml:185
 #, kde-format
 msgid "Custom adb location"
 msgstr "Caminho personalizado do adb"
 
-#: dashboard/qml/SettingsPage.qml:171
+#: dashboard/qml/SettingsPage.qml:196
 #, kde-format
 msgid "Adb location:"
 msgstr "Caminho do adb:"
 
-#: dashboard/qml/SettingsPage.qml:180
+#: dashboard/qml/SettingsPage.qml:205
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Navegar"
 
-#: dashboard/qml/SettingsPage.qml:190
+#: dashboard/qml/SettingsPage.qml:215
 #, kde-format
 msgid "Default"
 msgstr "Default"
 
-#: dashboard/qml/SettingsPage.qml:204
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SettingsPage.qml:209
+#: dashboard/qml/SettingsPage.qml:234
 #, kde-format
 msgid "Disabled"
 msgstr "Desativado"
 
-#: dashboard/qml/SettingsPage.qml:225
+#: dashboard/qml/SettingsPage.qml:250
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Biblioteca de compatibilidade OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:255
+#: dashboard/qml/SettingsPage.qml:280
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Caminho da biblioteca, excluindo bin/linux64/vrclient.so"
 
-#: dashboard/qml/SettingsPage.qml:260
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgctxt "browse to choose the OpenVR compatility to use"
 msgid "Browse"
@@ -714,8 +736,7 @@ msgstr "Não consigo ver meu computador no aplicativo do WiVRn"
 #: dashboard/qml/TroubleshootPage.qml:25
 #, kde-format
 msgid "If you have a firewall, make sure that port 5353/UDP is open."
-msgstr ""
-"Se você tem firewall, se certifique que a porta 5353/UDP esteja aberta."
+msgstr "Se você tem firewall, se certifique que a porta 5353/UDP esteja aberta."
 
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
