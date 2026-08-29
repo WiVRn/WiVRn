@@ -26,6 +26,7 @@
 #include <boost/pfr.hpp>
 #include <cassert>
 #include <cctype>
+#include <concepts>
 #include <cstdlib>
 #include <cstring>
 #include <format>
@@ -140,6 +141,42 @@ std::optional<std::unordered_set<std::string>> env(std::string_view name)
 	return std::unordered_set<std::string>{std::from_range, utils::split(*values, ",")};
 }
 
+template <>
+std::optional<std::vector<float>> env(std::string_view name)
+{
+	const auto value = env<std::string>(name);
+	if (not value)
+		return std::nullopt;
+
+	std::vector<float> result;
+	for (const auto & i: utils::split(*value, ","))
+	{
+		try
+		{
+			result.push_back(std::stof(i));
+		}
+		catch (std::exception & e)
+		{
+			spdlog::warn("failed to parse {} (value: {}): {}", name, *value, e.what());
+		}
+	}
+
+	return result;
+}
+
+// A trait field that is a list of values, overridden as a whole
+template <typename T>
+concept trait_container = requires(T & t, const typename T::value_type & v) {
+	typename T::value_type;
+	t.begin();
+	t.end();
+	t.insert(t.end(), v);
+} and (std::same_as<typename T::value_type, std::string> or std::same_as<typename T::value_type, float>);
+
+// Set-like containers support removing values prefixed with '-'
+template <typename T>
+concept trait_set = trait_container<T> and requires(T & t, const typename T::value_type & v) { t.erase(v); };
+
 void hmd_traits::init()
 {
 #ifndef NDEBUG
@@ -170,6 +207,28 @@ void hmd_traits::init()
 		// Quest breaks spec and does not support grip_surface for ext/hand_interaction_ext
 		hand_interaction_grip_surface = false;
 
+		// HorizonOS version, e.g. "2.7.0"
+		std::optional<std::pair<int, int>> hzos_version;
+		if (auto v = get_property("ro.hzos.build.display_name"))
+		{
+			auto digits = utils::split(*v, ".");
+			try
+			{
+				hzos_version = std::pair{std::stoi(digits.at(0)), std::stoi(digits.at(1))};
+			}
+			catch (...)
+			{
+				spdlog::warn("Failed to parse Horizon OS version {}", *v);
+			}
+		}
+
+		auto hzos_at_least = [&hzos_version](int major, int minor) {
+			if (not hzos_version)
+				return false;
+			auto [actual_major, actual_minor] = *hzos_version;
+			return actual_major > major or (actual_major == major and actual_minor >= minor);
+		};
+
 		if (device == "monterey") // Quest 1
 		{
 			panel_width_override = 1440;
@@ -191,6 +250,18 @@ void hmd_traits::init()
 			panel_width_override = 2064; // Quest 3
 			controller_profile = "meta-quest-touch-plus";
 			usb_net = true;
+
+			// The runtime may not report extended refresh rates even though
+			// it accepts them: Quest 3 supports any integer rate from 72 to
+			// 207 Hz with HorizonOS 2.7 and later, up to 240 Hz with display
+			// scaling enabled
+			// https://developers.meta.com/horizon/documentation/native/android/mobile-display-refresh-rate/
+			if (hzos_at_least(2, 7))
+			{
+				extra_refresh_rates = {144, 165, 185, 200, 207};
+				if (get_property("debug.oculus.forceDisplayScaling").value_or("") == "1")
+					extra_refresh_rates.push_back(240);
+			}
 		}
 		else if (device == "panther") // Quest 3S
 		{
@@ -198,20 +269,8 @@ void hmd_traits::init()
 			controller_profile = "meta-quest-touch-plus";
 		}
 
-		if (auto v = get_property("ro.hzos.build.display_name"))
-		{
-			auto digits = utils::split(*v, ".");
-			try
-			{
-				auto major = std::stoi(digits.at(0));
-				auto minor = std::stoi(digits.at(1));
-				usb_net = major > 2 or (major == 2 and minor >= 6);
-			}
-			catch (...)
-			{
-				spdlog::warn("Failed to parse Horizon OS version {}", *v);
-			}
-		}
+		if (hzos_version)
+			usb_net = hzos_at_least(2, 6);
 	}
 
 	else if (model == "Lynx-R1")
@@ -357,16 +416,26 @@ void hmd_traits::init()
 		                }
 	                },
 
-	                [](std::string_view name, std::unordered_set<std::string> & field) {
-		                if (auto val = env<std::unordered_set<std::string>>(name))
+	                [](std::string_view name, trait_container auto & field) {
+		                using field_type = std::remove_cvref_t<decltype(field)>;
+
+		                if (auto val = env<field_type>(name))
 		                {
-			                for (const auto & i: *val)
+			                spdlog::info("\t{} override", name);
+
+			                if constexpr (trait_set<field_type>)
 			                {
-				                if (i.starts_with("-"))
-					                field.erase(i.substr(1));
-				                else
-					                field.insert(i);
+				                // values prefixed with '-' are removed from the set
+				                for (const auto & i: *val)
+				                {
+					                if (i.starts_with("-"))
+						                field.erase(i.substr(1));
+					                else
+						                field.insert(field.end(), i);
+				                }
 			                }
+			                else
+				                field = std::move(*val);
 		                }
 
 		                for (const auto & i: field)
