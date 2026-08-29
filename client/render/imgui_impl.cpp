@@ -538,6 +538,7 @@ void imgui_context::initialize_fonts()
 	assert(font_awesome.empty());
 	font_awesome.emplace_back("assets://Font Awesome 7 Free-Regular-400.otf");
 	font_awesome.emplace_back("assets://Font Awesome 7 Free-Solid-900.otf");
+	font_awesome.emplace_back("assets://Font Awesome 7 Brands-Regular-400.otf");
 
 	ImFontConfig config;
 	config.FontDataOwnedByAtlas = false;
