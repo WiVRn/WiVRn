@@ -32,7 +32,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
     <!-- Required for WiFi locking, see https://developer.android.com/reference/android/net/wifi/WifiManager.WifiLock -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
