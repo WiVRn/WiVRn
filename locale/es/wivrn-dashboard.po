@@ -615,7 +615,7 @@ msgctxt "value display for SteamVR max pose extrapolation"
 msgid "%1ms"
 msgid_plural "%1ms"
 msgstr[0] "%1ms"
-msgstr[1] ""
+msgstr[1] "%1ms%n"
 
 #: dashboard/qml/SettingsPage.qml:157
 #, kde-format
