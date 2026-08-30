@@ -47,6 +47,7 @@ extern "C" void Java_org_meumeu_wivrn_NetworkInfoCallback_onLosing(JNIEnv * env,
 extern "C" void Java_org_meumeu_wivrn_NetworkInfoCallback_onLost(JNIEnv * env, jobject instance, jobject network)
 {
 	spdlog::info("NetworkInfoCallback_onLost");
+	link_properties_changed = true;
 }
 extern "C" void Java_org_meumeu_wivrn_NetworkInfoCallback_onUnavailable(JNIEnv * env, jobject instance)
 {

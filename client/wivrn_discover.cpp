@@ -128,7 +128,7 @@ private:
 
 		for (ifaddrs * i = addresses; i; i = i->ifa_next)
 		{
-			spdlog::debug("address {} flags 0x{:x} required 0x{:x} forbidden 0x{:x}", uintptr_t(i->ifa_addr), i->ifa_flags, required_flags, forbidden_flags);
+			spdlog::debug("interface {}, address {} flags 0x{:x} required 0x{:x} forbidden 0x{:x}", i->ifa_name, uintptr_t(i->ifa_addr), i->ifa_flags, required_flags, forbidden_flags);
 			if (i->ifa_addr == nullptr)
 				continue;
 
@@ -152,7 +152,7 @@ private:
 					{
 						if_names.emplace(sock, i->ifa_name);
 
-						spdlog::info("Local IPv6 address: {}", ip_address_to_string(i->ifa_addr));
+						spdlog::info("Local IPv6 address ({}): {}", i->ifa_name, ip_address_to_string(i->ifa_addr));
 					}
 					else
 					{
@@ -173,7 +173,7 @@ private:
 					{
 						if_names.emplace(sock, i->ifa_name);
 
-						spdlog::info("Local IPv4 address: {}", ip_address_to_string(i->ifa_addr));
+						spdlog::info("Local IPv4 address ({}): {}", i->ifa_name, ip_address_to_string(i->ifa_addr));
 					}
 					else
 					{
