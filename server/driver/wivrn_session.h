@@ -117,6 +117,8 @@ class wivrn_session : public xrt_system_devices
 	std::jthread net_thread;
 	std::jthread worker_thread;
 
+	thread_safe<std::exception_ptr> net_exception;
+
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, b_system &);
 
 public:
@@ -200,13 +202,29 @@ public:
 	template <typename T>
 	void send_stream(T && packet)
 	{
-		connection->send_stream(std::forward<T>(packet));
+		try
+		{
+			connection->send_stream(std::forward<T>(packet));
+		}
+		catch (std::exception & e)
+		{
+			*net_exception.lock() = std::current_exception();
+			throw;
+		}
 	}
 
 	template <typename T>
 	void send_control(T && packet)
 	{
-		connection->send_control(std::forward<T>(packet));
+		try
+		{
+			connection->send_control(std::forward<T>(packet));
+		}
+		catch (std::exception & e)
+		{
+			*net_exception.lock() = std::current_exception();
+			throw;
+		}
 	}
 
 	xrt_result_t push_event(const xrt_session_event &);

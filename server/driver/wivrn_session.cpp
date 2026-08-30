@@ -1065,10 +1065,17 @@ void wivrn_session::run_net(std::stop_token stop)
 				for (auto & haptics: uinput_handler->read_rumble())
 					send_stream(std::move(haptics));
 			}
+
+			if (auto locked = net_exception.lock(); *locked)
+			{
+				std::exception_ptr ex;
+				std::swap(ex, *locked);
+				std::rethrow_exception(ex);
+			}
 		}
 		catch (const std::exception & e)
 		{
-			U_LOG_W("Exception in network thread: %s, Session paused.", e.what());
+			U_LOG_W("Network exception: %s, Session paused.", e.what());
 			pause_session();
 
 			reconnect(stop);
@@ -1265,6 +1272,7 @@ void wivrn_session::reconnect(std::stop_token stop)
 			}
 
 			connection->reset(stop, std::move(*tcp), [this]() { quit_if_no_client(); });
+			*net_exception.lock() = nullptr;
 
 			// validate if headset is compatible with the current session
 
