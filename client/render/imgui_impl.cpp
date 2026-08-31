@@ -541,7 +541,7 @@ void imgui_context::initialize_fonts()
 	font_awesome.emplace_back("assets://Font Awesome 7 Brands-Regular-400.otf");
 
 	ImFontConfig config;
-	config.FontDataOwnedByAtlas = false;
+	config.FontDataOwnedByAtlas = true;
 
 	for (auto & font: fonts)
 	{
@@ -550,6 +550,7 @@ void imgui_context::initialize_fonts()
 		config.MergeMode = true;
 	}
 
+	config.FontDataOwnedByAtlas = false;
 	config.MergeMode = true;
 	config.GlyphMinAdvanceX = 40; // Use if you want to make the icon monospaced
 	for (auto & fa: font_awesome)
