@@ -48,6 +48,7 @@ option(WIVRN_BUILD_TEST "Build test binaries" OFF)
 option(WIVRN_WERROR "Treat warnings as errors" OFF)
 option(WIVRN_OPTIMIZE_SHADERS "Run spirv-opt on compiled shaders" ON)
 option(WIVRN_DEBUG_SHADERS "Compile shaders with debug information" OFF)
+option(WIVRN_ADDRESS_SANITIZER "Use address sanitizer" OFF)
 
 if(WIVRN_OPTIMIZE_SHADERS AND WIVRN_DEBUG_SHADERS)
     message(FATAL_ERROR "WIVRN_OPTIMIZE_SHADERS and WIVRN_DEBUG_SHADERS are incompatible")
@@ -340,6 +341,11 @@ foreach(TARGET_NAME wivrn wivrn-server wivrn-dashboard wivrn-common wivrn-dissec
 
         if (WIVRN_WERROR)
             target_compile_options(${TARGET_NAME} PRIVATE -Werror)
+        endif()
+
+        if (WIVRN_ADDRESS_SANITIZER AND NOT ${TARGET_NAME} STREQUAL wivrn-dissector)
+            target_compile_options(${TARGET_NAME} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+            target_link_options(${TARGET_NAME} PRIVATE -fsanitize=address)
         endif()
 
     endif()

@@ -34,10 +34,15 @@ def get_lib_list(path):
 
 libs = get_lib_list("build/intermediates/merged_native_libs")
 
+# stack trace
 r = re.compile("^.*#[0-9]+ pc ([0-9a-f]+) .*BuildId: ([0-9a-f]*).*")
+# address sanitizer
+r1 = re.compile("^.*#[0-9]+ 0x[0-9a-f]+ .*\\+0x([0-9a-f]+).*BuildId: ([0-9a-f]*).*")
 
 for line in sys.stdin:
     m = r.match(line.rstrip())
+    if not m:
+        m = r1.match(line.rstrip())
     if m:
         address = m[1]
         build_id = m[2]
