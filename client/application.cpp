@@ -1681,6 +1681,9 @@ void application::cleanup()
 
 #ifdef __ANDROID__
 	jni::jni_thread::detach();
+	app_info.native_app->onAppCmd = nullptr;
+	app_info.native_app->onInputEvent = nullptr;
+	app_info.native_app->userData = nullptr;
 #endif
 }
 
