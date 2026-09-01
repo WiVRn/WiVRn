@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-11 20:46+0800\n"
-"PO-Revision-Date: 2026-07-12 22:48+0800\n"
+"POT-Creation-Date: 2026-08-30 04:24+0800\n"
+"PO-Revision-Date: 2026-09-02 05:02+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -580,49 +580,92 @@ msgstr ""
 "设备必须在连接到 WiVRn 之前开启电源。\n"
 "校准需要额外工具，例如 motoc。"
 
-#: dashboard/qml/SettingsPage.qml:140
+#: dashboard/qml/SettingsPage.qml:138
+#, kde-format
+msgid "Clamp extrapolation for SteamVR tracked devices"
+msgstr "限制 SteamVR 追踪设备的外推（extrapolation）"
+
+#: dashboard/qml/SettingsPage.qml:142
+#, kde-format
+msgid "SteamVR max pose extrapolation"
+msgstr "SteamVR 最大位姿外推"
+
+#: dashboard/qml/SettingsPage.qml:152
+#, kde-format
+msgctxt "value display for SteamVR max pose extrapolation"
+msgid "%1ms"
+msgid_plural "%1ms"
+msgstr[0] "%1ms"
+
+#: dashboard/qml/SettingsPage.qml:157
+#, kde-format
+msgid ""
+"Maximum time in milliseconds that poses may be extrapolated ahead for "
+"SteamVR tracked devices. Tune this value if you experience jittery or wobbly "
+"tracking."
+msgstr ""
+"SteamVR 追踪设备的位姿允许向前外推的最大时间（毫秒）。若追踪出现抖动或晃动，"
+"请调整此值。"
+
+#: dashboard/qml/SettingsPage.qml:162
+#, kde-format
+msgid "SteamVR joystick deadzone"
+msgstr "SteamVR 摇杆死区"
+
+#: dashboard/qml/SettingsPage.qml:177
+#, kde-format
+msgid ""
+"Deadzone to apply to joysticks on lighthouse-tracked controllers, such as "
+"Index.\n"
+"For standalone controllers, deadzones may be adjusted via the headset's "
+"system settings."
+msgstr ""
+"应用于灯塔追踪（Lighthouse）控制器（如 Index 手柄）摇杆的死区。\n"
+"对于独立（standalone）控制器，死区可通过头显的系统设置进行调整。"
+
+#: dashboard/qml/SettingsPage.qml:185
 #, kde-format
 msgid "Custom adb location"
 msgstr "自定义 adb 路径"
 
-#: dashboard/qml/SettingsPage.qml:151
+#: dashboard/qml/SettingsPage.qml:196
 #, kde-format
 msgid "Adb location:"
 msgstr "ADB 路径："
 
-#: dashboard/qml/SettingsPage.qml:160
+#: dashboard/qml/SettingsPage.qml:205
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "浏览"
 
-#: dashboard/qml/SettingsPage.qml:170
+#: dashboard/qml/SettingsPage.qml:215
 #, kde-format
 msgid "Default"
 msgstr "默认"
 
-#: dashboard/qml/SettingsPage.qml:184
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "自定义"
 
-#: dashboard/qml/SettingsPage.qml:189
+#: dashboard/qml/SettingsPage.qml:234
 #, kde-format
 msgid "Disabled"
 msgstr "已停用"
 
-#: dashboard/qml/SettingsPage.qml:205
+#: dashboard/qml/SettingsPage.qml:250
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR 兼容层："
 
-#: dashboard/qml/SettingsPage.qml:235
+#: dashboard/qml/SettingsPage.qml:280
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "兼容层路径，不包含 bin/linux64/vrclient.so"
 
-#: dashboard/qml/SettingsPage.qml:240
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgctxt "browse to choose the OpenVR compatility to use"
 msgid "Browse"
