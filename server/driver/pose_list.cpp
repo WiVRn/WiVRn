@@ -285,7 +285,7 @@ std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
 			        (*orientation.dy)[1],
 			        (*orientation.dy)[2],
 			        (*orientation.dy)[3]};
-			Eigen::Quaternionf half_ω = dq * q;
+			Eigen::Quaternionf half_ω = dq * q.conjugate();
 
 			flags(XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT);
 			ret.angular_velocity = {
