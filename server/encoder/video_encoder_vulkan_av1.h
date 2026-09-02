@@ -1,6 +1,7 @@
 /*
  * WiVRn VR streaming
  * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2026  Philipp Schlegel <dev@phischle.xyz>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
