@@ -231,7 +231,7 @@ void settings_video(const settings_context & ctx)
 		        .id = "##refresh",
 		        .label = _("Refresh rate"),
 		        .description = _("Use 'auto' to select the refresh rate based on measured application performance. May cause flicker when a change happens."),
-		        .ui = ui_kind::segmented,
+		        .ui = rates.size() < 7 ? ui_kind::segmented : ui_kind::combo,
 		        .get_int = [&config, rates] {
 			        for (size_t i = 0; i < rates.size(); ++i)
 				        if (rates[i] == config.preferred_refresh_rate)
