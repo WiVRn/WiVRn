@@ -2,7 +2,9 @@
 
 #include "application.h"
 #include "mdns.h"
+#include "utils/contains.h"
 #include "utils/named_thread.h"
+#include "utils/overloaded.h"
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <net/if.h>
@@ -35,39 +37,130 @@ std::string ip_address_to_string(const in6_addr & address)
 	return "";
 }
 
-std::string ip_address_to_string(const sockaddr * address)
+struct if_addr
 {
-	if (address->sa_family == AF_INET)
-	{
-		return ip_address_to_string(((struct sockaddr_in *)address)->sin_addr);
-	}
-	else if (address->sa_family == AF_INET6)
-	{
-		return ip_address_to_string(((struct sockaddr_in6 *)address)->sin6_addr);
-	}
+	std::string if_name;
+	std::variant<sockaddr_in6, sockaddr_in> addr;
+};
 
-	return "";
+std::string to_string(const std::variant<sockaddr_in6, sockaddr_in> & addr)
+{
+	return std::visit(utils::overloaded{
+	                          [](const sockaddr_in6 & a) {
+		                          return ip_address_to_string(a.sin6_addr);
+	                          },
+	                          [](const sockaddr_in & a) {
+		                          return ip_address_to_string(a.sin_addr);
+	                          },
+	                  },
+	                  addr);
 }
+
+std::vector<if_addr> get_if_addrs(int port)
+{
+	struct Deleter
+	{
+		void operator()(ifaddrs * a)
+		{
+			freeifaddrs(a);
+		}
+	};
+	using ifaddr_ptr = std::unique_ptr<ifaddrs, Deleter>;
+	ifaddrs * addresses_raw;
+	if (getifaddrs(&addresses_raw) < 0)
+	{
+		spdlog::error("Cannot get network interfaces: {}", strerror(errno));
+		return {};
+	}
+	ifaddr_ptr addresses{addresses_raw};
+
+	const int required_flags = IFF_UP | IFF_MULTICAST;
+	const int forbidden_flags = IFF_LOOPBACK;
+
+	std::vector<if_addr> result;
+	for (ifaddrs * i = addresses.get(); i; i = i->ifa_next)
+	{
+		spdlog::debug("interface {}, address {} flags 0x{:x} required 0x{:x} forbidden 0x{:x}", i->ifa_name, uintptr_t(i->ifa_addr), i->ifa_flags, required_flags, forbidden_flags);
+		if (i->ifa_addr == nullptr)
+			continue;
+
+		if ((i->ifa_flags & required_flags) != required_flags)
+			continue;
+
+		if ((i->ifa_flags & forbidden_flags) != 0)
+			continue;
+
+		if (i->ifa_addr->sa_family == AF_INET6)
+		{
+			struct sockaddr_in6 * saddr = (struct sockaddr_in6 *)i->ifa_addr;
+			static const unsigned char localhost[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+			static const unsigned char localhost_mapped[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1};
+			if (memcmp(saddr->sin6_addr.s6_addr, localhost, 16) &&
+			    memcmp(saddr->sin6_addr.s6_addr, localhost_mapped, 16))
+			{
+				saddr->sin6_port = htons(port);
+				result.push_back({.if_name = i->ifa_name, .addr = *saddr});
+			}
+		}
+		else if (i->ifa_addr->sa_family == AF_INET)
+		{
+			struct sockaddr_in * saddr = (struct sockaddr_in *)i->ifa_addr;
+			if (saddr->sin_addr.s_addr != htonl(INADDR_LOOPBACK))
+			{
+				saddr->sin_port = htons(port);
+				result.push_back({.if_name = i->ifa_name, .addr = *saddr});
+			}
+		}
+		else
+		{
+			spdlog::warn("unknown family {}", i->ifa_addr->sa_family);
+		}
+	}
+	return result;
+}
+
 } // namespace
 
-static bool operator==(const in_addr & a, const in_addr & b)
+static std::strong_ordering operator<=>(const in_addr & a, const in_addr & b) noexcept
 {
-	return memcmp(&a, &b, sizeof(a)) == 0;
+	auto x = memcmp(&a, &b, sizeof(a));
+	if (x < 0)
+		return std::strong_ordering::less;
+	if (x > 0)
+		return std::strong_ordering::greater;
+	return std::strong_ordering::equal;
 }
 
-static bool operator==(const in6_addr & a, const in6_addr & b)
+static std::strong_ordering operator<=>(const in6_addr & a, const in6_addr & b) noexcept
 {
-	return memcmp(&a, &b, sizeof(a)) == 0;
+	auto x = memcmp(&a, &b, sizeof(a));
+	if (x < 0)
+		return std::strong_ordering::less;
+	if (x > 0)
+		return std::strong_ordering::greater;
+	return std::strong_ordering::equal;
 }
 
-static bool operator==(const sockaddr_in & a, const sockaddr_in & b)
+static std::strong_ordering operator<=>(const sockaddr_in & a, const sockaddr_in & b) noexcept
 {
-	return a.sin_addr == b.sin_addr and a.sin_port == b.sin_port;
+	if (auto comp = a.sin_addr <=> b.sin_addr; comp != std::strong_ordering::equal)
+		return comp;
+	return a.sin_port <=> b.sin_port;
 }
 
-static bool operator==(const sockaddr_in6 & a, const sockaddr_in6 & b)
+static std::strong_ordering operator<=>(const sockaddr_in6 & a, const sockaddr_in6 & b) noexcept
 {
-	return a.sin6_addr == b.sin6_addr and a.sin6_port == b.sin6_port;
+	if (auto comp = a.sin6_addr <=> b.sin6_addr; comp != std::strong_ordering::equal)
+		return comp;
+	return a.sin6_port <=> b.sin6_port;
+}
+
+static std::strong_ordering operator<=>(const if_addr & a, const if_addr & b)
+{
+	static_assert(std::three_way_comparable<sockaddr_in6>);
+	if (auto comp = a.addr <=> b.addr; comp != std::strong_ordering::equal)
+		return comp;
+	return a.if_name <=> b.if_name;
 }
 
 class dnssd_cache
@@ -106,90 +199,34 @@ private:
 	std::vector<cache_entry> cache;
 	std::vector<std::tuple<steady_clock::time_point, mdns_record_type, std::string>> last_queries;
 
+	std::vector<if_addr> addresses;
 	std::map<int, std::string> if_names;
 
 	// pollfds[0] is used for inter-thread communication, the others are for mDNS
 	std::vector<pollfd> pollfds;
 	int itc_fd;
 
-	void open_client_sockets(int port = 0)
+	void open_client_sockets()
 	{
 		close_client_sockets();
-
-		ifaddrs * addresses;
-		if (getifaddrs(&addresses) < 0)
-		{
-			spdlog::error("Cannot get network interfaces: {}", strerror(errno));
-			return;
-		}
 
 		const int required_flags = IFF_UP | IFF_MULTICAST;
 		const int forbidden_flags = IFF_LOOPBACK;
 
-		for (ifaddrs * i = addresses; i; i = i->ifa_next)
+		for (const auto & addr: addresses)
 		{
-			spdlog::debug("interface {}, address {} flags 0x{:x} required 0x{:x} forbidden 0x{:x}", i->ifa_name, uintptr_t(i->ifa_addr), i->ifa_flags, required_flags, forbidden_flags);
-			if (i->ifa_addr == nullptr)
-				continue;
-
-			if ((i->ifa_flags & required_flags) != required_flags)
-				continue;
-
-			if ((i->ifa_flags & forbidden_flags) != 0)
-				continue;
-
-			if (i->ifa_addr->sa_family == AF_INET6)
+			int sock = std::visit(utils::overloaded{
+			                              [](sockaddr_in6 const & a) { return mdns_socket_open_ipv6(&a); },
+			                              [](sockaddr_in const & a) { return mdns_socket_open_ipv4(&a); },
+			                      },
+			                      addr.addr);
+			if (sock >= 0)
 			{
-				struct sockaddr_in6 * saddr = (struct sockaddr_in6 *)i->ifa_addr;
-				static const unsigned char localhost[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-				static const unsigned char localhost_mapped[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1};
-				if (memcmp(saddr->sin6_addr.s6_addr, localhost, 16) &&
-				    memcmp(saddr->sin6_addr.s6_addr, localhost_mapped, 16))
-				{
-					saddr->sin6_port = htons(port);
-					int sock = mdns_socket_open_ipv6(saddr);
-					if (sock >= 0)
-					{
-						if_names.emplace(sock, i->ifa_name);
+				if_names.emplace(sock, addr.if_name);
 
-						spdlog::info("Local IPv6 address ({}): {}", i->ifa_name, ip_address_to_string(i->ifa_addr));
-					}
-					else
-					{
-						spdlog::warn("Cannot open socket bound to {}: {}", ip_address_to_string(i->ifa_addr), strerror(errno));
-					}
-				}
-				else
-					spdlog::debug("ignore localhost (IPv6)");
-			}
-			else if (i->ifa_addr->sa_family == AF_INET)
-			{
-				struct sockaddr_in * saddr = (struct sockaddr_in *)i->ifa_addr;
-				if (saddr->sin_addr.s_addr != htonl(INADDR_LOOPBACK))
-				{
-					saddr->sin_port = htons(port);
-					int sock = mdns_socket_open_ipv4(saddr);
-					if (sock >= 0)
-					{
-						if_names.emplace(sock, i->ifa_name);
-
-						spdlog::info("Local IPv4 address ({}): {}", i->ifa_name, ip_address_to_string(i->ifa_addr));
-					}
-					else
-					{
-						spdlog::warn("Cannot open socket bound to {}: {}", ip_address_to_string(i->ifa_addr), strerror(errno));
-					}
-				}
-				else
-					spdlog::debug("ignore localhost (IPv4)");
-			}
-			else
-			{
-				spdlog::warn("unknown family {}", i->ifa_addr->sa_family);
+				spdlog::info("Local address ({}): {}", addr.if_name, to_string(addr.addr));
 			}
 		}
-
-		freeifaddrs(addresses);
 
 		pollfds.reserve(if_names.size() + 1);
 
@@ -401,8 +438,11 @@ public:
 			}
 		}
 
-		if (pollfds.size() < 2)
-			open_client_sockets(5353);
+		if (auto addr = get_if_addrs(5353); addr != addresses)
+		{
+			std::swap(addr, addresses);
+			open_client_sockets();
+		}
 
 		log_query(record, service_name);
 		std::array<uint8_t, 2048> buffer;
@@ -467,7 +507,8 @@ public:
 
 	dnssd_cache()
 	{
-		open_client_sockets(5353);
+		addresses = get_if_addrs(5353);
+		open_client_sockets();
 	}
 
 	dnssd_cache(const dnssd_cache &) = delete;
