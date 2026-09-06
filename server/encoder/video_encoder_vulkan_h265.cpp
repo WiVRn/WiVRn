@@ -134,7 +134,7 @@ wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
                 .bit_depth_luma_minus8 = static_cast<uint8_t>(settings.bit_depth - 8),
                 .bit_depth_chroma_minus8 = static_cast<uint8_t>(settings.bit_depth - 8),
                 .log2_max_pic_order_cnt_lsb_minus4 = 4,      // arbitrary
-                .log2_min_luma_coding_block_size_minus3 = 0, // keep it 0, related values are filled in create()
+                .log2_min_luma_coding_block_size_minus3 = 0, // set in create(), with the related values
                 .num_short_term_ref_pic_sets = 0,
                 .num_long_term_ref_pics_sps = 0,
                 .pcm_sample_bit_depth_luma_minus1 = 0,
@@ -309,12 +309,14 @@ std::unique_ptr<wivrn::video_encoder_vulkan_h265> wivrn::video_encoder_vulkan_h2
 		self->rate_control->pNext = &self->rc_h265;
 	}
 
-	self->sps.log2_diff_max_min_luma_coding_block_size = find_msb((uint32_t)encode_h265_caps.ctbSizes) + 1; // First bit is 16x16.
+	const uint32_t log2_ctb_size = find_msb((uint32_t)encode_h265_caps.ctbSizes) + 4;
+	self->sps.log2_min_luma_coding_block_size_minus3 = 1;
+	self->sps.log2_diff_max_min_luma_coding_block_size = log2_ctb_size - 4;
 	self->sps.log2_min_luma_transform_block_size_minus2 = find_lsb((uint32_t)encode_h265_caps.transformBlockSizes);
 	self->sps.log2_diff_max_min_luma_transform_block_size =
 	        find_msb((uint32_t)encode_h265_caps.transformBlockSizes) - find_lsb((uint32_t)encode_h265_caps.transformBlockSizes);
 
-	uint32_t max_transform_hierarchy = (find_msb((uint32_t)encode_h265_caps.ctbSizes) + 4) - (find_lsb((uint32_t)encode_h265_caps.transformBlockSizes) + 2);
+	uint32_t max_transform_hierarchy = log2_ctb_size - (find_lsb((uint32_t)encode_h265_caps.transformBlockSizes) + 2);
 	self->sps.max_transform_hierarchy_depth_inter = max_transform_hierarchy;
 	self->sps.max_transform_hierarchy_depth_intra = max_transform_hierarchy;
 
