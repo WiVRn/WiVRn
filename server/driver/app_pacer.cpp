@@ -133,13 +133,39 @@ void app_pacer::predict(int64_t now_ns,
 	get_frame(frame_id) = {.frame_id = frame_id};
 
 	// no need to lock, called in same thread as writes
-	auto min_ready = now_ns + cpu_time + gpu_time + compositor_time;
+	const int64_t margin_ns = int64_t(U_TIME_1MS_IN_NS * min_margin_ms.val);
+
+	// compositor_time is Monado's extra_ns: the gap from the compositor main loop waking
+	// up to display. The compositor picks this app's frame up ~extra_ns before display,
+	// and the wake-up below (display - (cpu + gpu + compositor_time + margin)) makes the
+	// compositor_time terms cancel, leaving only min_margin (~1.5 ms) of slack between
+	// the app finishing a frame and the compositor picking it up. On a native compositor
+	// extra_ns is vsync-stable and 1.5 ms is enough; on a network-streaming compositor
+	// extra_ns is the pipeline latency (encode + network + decode) and it drifts while a
+	// frame is in flight (phase adjustment, latency re-estimation), routinely eating the
+	// 1.5 ms. The frame then misses its pickup, a stale frame is shown, and the next
+	// completed frame drops the missed one -> periodic flashing/stutter.
+	//
+	// Add up to one display period of completion headroom, phased in only for the part of
+	// extra_ns that exceeds one period. On a native compositor extra_ns <= period, so
+	// safety == 0 and behaviour is unchanged.
+	const int64_t safety = std::clamp<int64_t>(compositor_time - period, int64_t(0), period);
+
+	// Full budget: places the display time (achievability loop below) and the wake-up
+	// lead, and keeps the wake-up time >= now so the app is never left free-running.
+	auto min_ready = now_ns + cpu_time + gpu_time + compositor_time + safety + margin_ns;
+
+	// The "is the app itself too slow to hit its slot" test must not include the pipeline
+	// latency, or it would fire on every streamed frame (extra_ns > period always). Cap
+	// the compositor term at one display period for this test only.
+	auto app_limited_ready = now_ns + cpu_time + gpu_time + std::min<int64_t>(compositor_time, period);
+
 	// The ideal display time: one frame after the last
 	last_display_time += period;
 	// Sync phase with compositor
 	last_display_time = compositor_display_time + period * ((period / 2 + last_display_time - compositor_display_time) / period);
 
-	if (cpu_time > period or gpu_time > period or (min_ready > last_display_time and min_ready < last_display_time + period))
+	if (cpu_time > period or gpu_time > period or (app_limited_ready > last_display_time and app_limited_ready < last_display_time + period))
 	{
 		// We are limited by app time, don't wait
 		*out_wake_up_time = now_ns;
@@ -156,7 +182,7 @@ void app_pacer::predict(int64_t now_ns,
 
 		*out_predicted_display_time = last_display_time;
 		*out_predicted_display_period = period;
-		*out_wake_up_time = last_display_time - (cpu_time + gpu_time + compositor_time + int64_t(U_TIME_1MS_IN_NS * min_margin_ms.val));
+		*out_wake_up_time = last_display_time - (cpu_time + gpu_time + compositor_time + safety + margin_ns);
 	}
 }
 
