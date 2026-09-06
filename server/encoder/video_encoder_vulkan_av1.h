@@ -66,12 +66,15 @@ class video_encoder_vulkan_av1 : public video_encoder_vulkan
 	vk::VideoEncodeAV1StdFlagsKHR std_flags{};
 	uint32_t single_reference_name_mask = 0;
 	uint32_t max_single_reference_count = 0;
-	uint32_t max_unidirectional_compound_reference_count = 0;
-	uint32_t max_bidirectional_compound_reference_count = 0;
-	uint8_t max_q_index = 0;
-	uint8_t min_q_index = 0;
+	uint32_t max_q_index = 0;
+	uint32_t min_q_index = 0;
 	uint32_t superblock_size = 64;
 	uint8_t order_hint_bits = 7;
+	// Reference name (LAST_FRAME + index) used for the single reference of inter frames
+	int32_t ref_name_index = 0;
+	bool rate_control_enabled = false;
+	bool use_gop_info = false;
+	StdVideoAV1Level level = STD_VIDEO_AV1_LEVEL_2_0;
 
 	video_encoder_vulkan_av1(wivrn::vk_bundle & vk,
 	                         const vk::VideoCapabilitiesKHR & video_caps,
@@ -87,6 +90,7 @@ protected:
 
 	void * encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> ref_slot) override;
 	vk::ExtensionProperties std_header_version() override;
+	const void * begin_coding_next(const void * next) override;
 
 	void send_idr_data() override;
 
