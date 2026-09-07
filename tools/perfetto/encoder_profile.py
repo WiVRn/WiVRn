@@ -47,6 +47,7 @@ def run_encoder(enc, args, tools):
         codec=args.codec,
         duration=args.duration,
         graphics=args.graphics,
+        xr_app=args.xr_app,
         bitrate_bps=args.bitrate,
         resolution_scale=args.resolution_scale,
         stream_scale=args.stream_scale,

@@ -101,11 +101,6 @@ public:
 
 void cpu_instant(cpu_track which, const char * name, uint64_t frame, uint8_t stream);
 
-// CPU span at explicit host-monotonic timestamps, for a span whose extent is only known after
-// the fact (video_encoder_vulkan trims its fence wait to the part that preceded the hardware
-// encode). begin_ns/end_ns must be os_monotonic_get_ns() values; end_ns < begin_ns is dropped.
-void cpu_slice(cpu_track which, const char * name, int64_t begin_ns, int64_t end_ns, uint64_t frame, uint8_t stream);
-
 // Non-RAII begin/end pair, for spans whose lifetime crosses function calls
 // (e.g. video_encoder::SendData where a frame is split across several calls).
 // Only cpu_begin reads name (copied via perfetto::DynamicString); cpu_end ignores it.

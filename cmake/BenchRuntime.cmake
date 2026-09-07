@@ -1,47 +1,42 @@
-# Client-side OpenXR runtime for the headless encoder benchmark.
-#
-# wivrn-server's own Monado is built without the null compositor and the simulated HMD, so it
-# cannot stand in for the headset. This builds a second Monado configuration from the same
-# patched source that can, and tools/perfetto/wivrn_session.py runs it as the client's runtime.
-#
-# Produces, under ${CMAKE_BINARY_DIR}/bench-runtime:
-#   src/xrt/targets/service/monado-service
-#   src/xrt/targets/openxr/libopenxr_monado.so
-#   openxr_monado-dev.json
-#
-# Requires ${monado_SOURCE_DIR}, so include this after FetchContent_MakeAvailable(monado).
+# Client-side OpenXR runtime for the headless encoder benchmark: an unpatched, in-process
+# Monado build (null compositor + simulated HMD), unrelated to wivrn-server's own Monado.
+# Unpatched because patches/monado/0002 and 0008 assume wivrn-server supplies symbols this
+# runtime doesn't have; 0012 (frame rate) is applied on its own until it's upstreamed.
 
 set(BENCH_RUNTIME_DIR ${CMAKE_BINARY_DIR}/bench-runtime)
 
-# Linked into every executable and shared library of the sub-build. C_STANDARD_LIBRARIES lands at
-# the end of the link line, which is where an archive has to be to resolve undefined symbols.
-add_library(bench-runtime-symbols STATIC ${CMAKE_CURRENT_LIST_DIR}/bench_runtime_symbols.c)
-set_target_properties(bench-runtime-symbols PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set(BENCH_RUNTIME_SYMBOLS $<TARGET_FILE:bench-runtime-symbols>)
+FetchContent_Declare(monado-bench
+	GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado.git
+	GIT_TAG          ${MONADO_REV}
+	PATCH_COMMAND    ${CMAKE_SOURCE_DIR}/patches/apply.sh
+	                 ${CMAKE_SOURCE_DIR}/patches/monado/0012-c-null-make-the-frame-rate-configurable.patch
+	EXCLUDE_FROM_ALL
+)
+if (POLICY CMP0169)
+	cmake_policy(SET CMP0169 OLD)
+endif()
+FetchContent_GetProperties(monado-bench)
+if (NOT monado-bench_POPULATED)
+	FetchContent_Populate(monado-bench)
+endif()
 
 ExternalProject_Add(bench-runtime
-	SOURCE_DIR       ${monado_SOURCE_DIR}
+	SOURCE_DIR       ${monado-bench_SOURCE_DIR}
 	BINARY_DIR       ${BENCH_RUNTIME_DIR}
 	DOWNLOAD_COMMAND ""
 	UPDATE_COMMAND   ""
 	PATCH_COMMAND    ""
 	INSTALL_COMMAND  ""
 	BUILD_ALWAYS     TRUE
-	DEPENDS          bench-runtime-symbols
 	CMAKE_ARGS
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-		-DCMAKE_C_STANDARD_LIBRARIES=${BENCH_RUNTIME_SYMBOLS}
-		-DCMAKE_CXX_STANDARD_LIBRARIES=${BENCH_RUNTIME_SYMBOLS}
-		# What wivrn-server's Monado leaves out, and what the headless client needs.
 		-DXRT_FEATURE_COMPOSITOR_NULL=ON
 		-DXRT_BUILD_DRIVER_SIMULATED=ON
-		-DXRT_FEATURE_SERVICE=ON
-		# Socket activation and these two drivers do not link without wivrn-server.
-		-DXRT_FEATURE_SERVICE_SYSTEMD=OFF
+		-DXRT_FEATURE_SERVICE=OFF
+		-DXRT_FEATURE_CLIENT_DEBUG_GUI=OFF
 		-DXRT_BUILD_DRIVER_STEAMVR_LIGHTHOUSE=OFF
 		-DXRT_BUILD_DRIVER_SURVIVE=OFF
-	BUILD_COMMAND    ${CMAKE_COMMAND} --build <BINARY_DIR> --target monado-service openxr_monado
+	BUILD_COMMAND    ${CMAKE_COMMAND} --build <BINARY_DIR> --target openxr_monado
 	BUILD_BYPRODUCTS
-		${BENCH_RUNTIME_DIR}/src/xrt/targets/service/monado-service
 		${BENCH_RUNTIME_DIR}/openxr_monado-dev.json
 )

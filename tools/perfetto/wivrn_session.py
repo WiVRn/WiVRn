@@ -46,8 +46,7 @@ GPU_HW_ENCODER = {
 REFERENCE_RESOLUTION_SCALE = 6.0
 REFERENCE_STREAM_SCALE = 1.0
 
-# Null compositor frame rate, which also sets the refresh rate it advertises. Needs the
-# monado-service from cmake/BenchRuntime.cmake; a stock one ignores it and runs at 20.
+# Needs the patched Monado from cmake/BenchRuntime.cmake; a stock one runs at 20.
 REFERENCE_REFRESH_RATE_HZ = 90
 
 # Below this the encode is per-frame fixed cost rather than codec work. Checked against what was
@@ -87,7 +86,7 @@ class SessionError(Exception):
 
     `kind` classifies the failure so callers can decide what it means — for a git bisect,
     everything here is "skip this commit", but the reasons differ:
-      startup   server or Monado never came up
+      startup   server never came up
       crash     a process died mid-run
       empty     the run produced no trace, or a trace with no encode slices
     """
@@ -147,17 +146,16 @@ class Toolchain:
 
     server: Path
     client: Path
-    monado_service: Path
-    hello_xr: Path
+    hello_xr: Path | None
     wivrn_manifest: Path
     monado_manifest: Path
 
     def describe(self):
+        hello_xr = f"{self.hello_xr}" if self.hello_xr else "(overridden by --xr-app)"
         return [
             f"server:   {self.server}",
-            f"client:   {self.client}",
-            f"monado:   {self.monado_service}  (manifest {self.monado_manifest})",
-            f"hello_xr: {self.hello_xr}  (WiVRn manifest {self.wivrn_manifest})",
+            f"client:   {self.client}  (runtime manifest {self.monado_manifest})",
+            f"hello_xr: {hello_xr}  (WiVRn manifest {self.wivrn_manifest})",
         ]
 
 
@@ -171,10 +169,12 @@ def add_toolchain_args(parser, default_build_dir):
     )
     parser.add_argument("--server", help="path to wivrn-server (default: from --build-dir)")
     parser.add_argument("--client", help="path to the wivrn client (default: from --build-dir)")
-    parser.add_argument(
-        "--monado-service", help="path to standalone monado-service (default: from PATH)"
-    )
     parser.add_argument("--hello-xr", help="path to hello_xr (default: from PATH)")
+    parser.add_argument(
+        "--xr-app",
+        help='full command to launch instead of hello_xr, e.g. "hello_xr -g Vulkan2" or '
+        '"xrgears" (default: hello_xr -g <--graphics>)',
+    )
     parser.add_argument(
         "--wivrn-manifest",
         help="openxr_wivrn.json for hello_xr (default: auto-detect installed prefixes)",
@@ -192,15 +192,7 @@ def resolve_toolchain(args):
     build_dir = args.build_dir
     server = find_binary(args.server, build_dir / "server/wivrn-server", "wivrn-server")
     client = find_binary(args.client, build_dir / "bin/wivrn", "wivrn")
-    monado_service = find_binary(
-        args.monado_service,
-        build_dir / "bench-runtime/src/xrt/targets/service/monado-service",
-        "monado-service",
-    )
-    hello_xr = find_binary(args.hello_xr, None, "hello_xr")
-    # The build tree's own manifests win over installed ones: hello_xr has to load the runtime
-    # under test rather than a packaged WiVRn, and the client library has to come from the same
-    # build as monado_service above or their IPC version handshake fails.
+    hello_xr = None if args.xr_app else find_binary(args.hello_xr, None, "hello_xr")
     wivrn_manifest = find_manifest(
         args.wivrn_manifest or in_build(build_dir / "openxr_wivrn-dev.json"),
         "openxr_wivrn.json",
@@ -215,14 +207,12 @@ def resolve_toolchain(args):
         missing.append(f"wivrn-server (not in {build_dir}; build it, or pass --server)")
     if not client:
         missing.append(f"wivrn client (not in {build_dir}; same build, or pass --client)")
-    if not monado_service:
-        missing.append("monado-service (install standalone Monado)")
-    if not hello_xr:
-        missing.append("hello_xr (github.com/KhronosGroup/OpenXR-SDK-Source)")
+    if not args.xr_app and not hello_xr:
+        missing.append("hello_xr (github.com/KhronosGroup/OpenXR-SDK-Source; or pass --xr-app)")
     if not wivrn_manifest:
         missing.append("openxr_wivrn.json (cmake --install the build; or --wivrn-manifest)")
     if not monado_manifest:
-        missing.append("openxr_monado.json (install standalone Monado; or --monado-manifest)")
+        missing.append("openxr_monado.json (build with WIVRN_BUILD_BENCH_RUNTIME; or --monado-manifest)")
     if missing:
         return None, missing
 
@@ -232,8 +222,7 @@ def resolve_toolchain(args):
         Toolchain(
             server=server.resolve(),
             client=client.resolve(),
-            monado_service=monado_service.resolve(),
-            hello_xr=hello_xr.resolve(),
+            hello_xr=hello_xr.resolve() if hello_xr else None,
             wivrn_manifest=wivrn_manifest.resolve(),
             monado_manifest=monado_manifest.resolve(),
         ),
@@ -246,19 +235,14 @@ def resolve_toolchain(args):
 # ---------------------------------------------------------------------------
 
 
-def spawn(cmd, env, logfile, stdin=None):
-    """Start a process in its own session (process group) with output to logfile.
-
-    Pass stdin=subprocess.PIPE for monado-service: it epoll_ctl()s stdin, which
-    fails on a /dev/null stdin (nohup/CI) but works on a pipe.
-    """
+def spawn(cmd, env, logfile):
+    """Start a process in its own session (process group) with output to logfile."""
     # Deliberately not a context manager: the child writes to this handle for its whole
     # lifetime, so it is kept open on the Popen object below and closed when that is dropped.
     f = open(logfile, "wb")  # noqa: SIM115
     proc = subprocess.Popen(
         cmd,
         env=env,
-        stdin=stdin,
         stdout=f,
         stderr=subprocess.STDOUT,
         start_new_session=True,
@@ -326,6 +310,7 @@ class SessionSpec:
     codec: str | None = None
     duration: float = 20.0
     graphics: str = "Vulkan2"
+    xr_app: str | None = None
     bitrate_bps: int | None = None
     resolution_scale: float | None = None
     stream_scale: float | None = None
@@ -343,14 +328,12 @@ def server_config(spec, hello_xr):
     encoder_cfg = {"encoder": spec.encoder}
     if spec.codec:
         encoder_cfg["codec"] = spec.codec
-    # -g: hello_xr needs a graphics API. sleep infinity: hello_xr quits on stdin EOF,
-    # and the systemd unit's stdin is /dev/null, so keep it open with a never-ending pipe.
-    hello_xr_cmd = (
-        f"sleep infinity | exec {shlex.quote(str(hello_xr))} -g {shlex.quote(spec.graphics)}"
-    )
+    # sleep infinity keeps stdin open so the app doesn't quit on EOF.
+    argv = shlex.split(spec.xr_app) if spec.xr_app else [str(hello_xr), "-g", spec.graphics]
+    app_cmd = "sleep infinity | exec " + " ".join(shlex.quote(a) for a in argv)
     cfg = {
         "encoder": encoder_cfg,
-        "application": ["/bin/sh", "-c", hello_xr_cmd],
+        "application": ["/bin/sh", "-c", app_cmd],
         "publish-service": "avahi",
     }
     if spec.bit_depth is not None:
@@ -491,7 +474,7 @@ def run_session(spec, tools, trace, log_dir, tag=None, progress=None):
 
     Returns the GPU clock samples taken while streaming, for check_gpu_clocks(). Raises
     SessionError if the pipeline never produced a trace. Logs land in
-    log_dir/<tag>-{monado,server,client}.log.
+    log_dir/<tag>-{server,client}.log.
     """
     tag = tag or spec.encoder
     trace = Path(trace)
@@ -506,7 +489,6 @@ def run_session(spec, tools, trace, log_dir, tag=None, progress=None):
 
     server_log = log_dir / f"{tag}-server.log"
     client_log = log_dir / f"{tag}-client.log"
-    monado_log = log_dir / f"{tag}-monado.log"
 
     # A private XDG_CONFIG_HOME for both ends: the server's encoder choice and the client's
     # video settings, isolated from whatever the user has configured.
@@ -518,38 +500,22 @@ def run_session(spec, tools, trace, log_dir, tag=None, progress=None):
     if client_cfg:
         (cfg_dir / "client.json").write_text(json.dumps(client_cfg, indent=2))
 
-    monado = server = client = None
+    xr_app_name = Path(shlex.split(spec.xr_app)[0]).name if spec.xr_app else "hello_xr"
+
+    server = client = None
     gpu_samples = []
 
     def cleanup():
         # Client first: disconnecting flushes the .pftrace (trace::flush_session).
         stop(client, signal.SIGINT)
-        # Backstop for hello_xr, which the server forks into its own process group.
-        # Non-zero simply means no stray hello_xr was left to kill.
-        subprocess.run(["pkill", "-x", "hello_xr"], capture_output=True, check=False)
+        subprocess.run(["pkill", "-x", xr_app_name], capture_output=True, check=False)
         stop(server)
-        stop(monado)
         # Undo the systemd user-manager env injection and clear failed app units.
         systemctl_user("unset-environment", "XR_RUNTIME_JSON")
         systemctl_user("reset-failed", "wivrn-application-*.service")
         shutil.rmtree(scratch, ignore_errors=True)
 
     try:
-        say("starting headless Monado (client runtime)")
-        monado = spawn(
-            [str(tools.monado_service)],
-            {
-                **os.environ,
-                "XRT_COMPOSITOR_NULL": "1",
-                "XRT_COMPOSITOR_NULL_FPS": str(REFERENCE_REFRESH_RATE_HZ),
-            },
-            monado_log,
-            stdin=subprocess.PIPE,  # epoll-able stdin; see spawn() docstring
-        )
-        time.sleep(2.0)
-        if monado.poll() is not None:
-            raise SessionError("startup", f"monado-service exited early; see {monado_log}")
-
         # The server launches hello_xr as a systemd unit, which inherits the user manager's
         # environment, not the server's — so set XR_RUNTIME_JSON there too.
         systemctl_user("set-environment", f"XR_RUNTIME_JSON={tools.wivrn_manifest}")
@@ -582,6 +548,8 @@ def run_session(spec, tools, trace, log_dir, tag=None, progress=None):
                 "XDG_CONFIG_HOME": str(scratch),
                 "XR_RUNTIME_JSON": str(tools.monado_manifest),
                 "WIVRN_AUTOCONNECT": "1",
+                "XRT_COMPOSITOR_NULL": "1",
+                "XRT_COMPOSITOR_NULL_FPS": str(REFERENCE_REFRESH_RATE_HZ),
             },
             client_log,
         )
@@ -617,5 +585,3 @@ def run_session(spec, tools, trace, log_dir, tag=None, progress=None):
         extra.unlink(missing_ok=True)
 
     return gpu_samples
-
-    return trace
