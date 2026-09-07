@@ -1054,14 +1054,11 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 	if (slot_item.idr)
 		send_idr_data();
 
-	// Timed by hand: the waiting part is only known once the GPU timestamps land, below.
-	const int64_t wait_begin_ns = os_monotonic_get_ns();
 	if (vk.device.waitForFences(*slot_item.fence, true, 1'000'000'000) == vk::Result::eTimeout)
 	{
 		U_LOG_E("Timeout on stream %d", stream_idx);
 		return {};
 	}
-	const int64_t wait_end_ns = os_monotonic_get_ns();
 
 	auto [res, size] = [&] {
 		// eWait blocks until the size query lands: short after the fence, but not free.
@@ -1073,20 +1070,13 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
 	}
 
-	// present_image() submits the encode, so the fence wait above spans it. Report only the part
-	// before the GPU started, matching wait_gpu elsewhere. Untrimmed without GPU timestamps.
-	const auto encode_ts = ts_pool.collect(encode_slot);
-	const int64_t wait_gpu_end_ns =
-	        encode_ts ? std::clamp(encode_ts->begin_ns, wait_begin_ns, wait_end_ns) : wait_end_ns;
-	wivrn::trace::cpu_slice(wivrn::trace::cpu_track::encoder, "wait_gpu", wait_begin_ns, wait_gpu_end_ns, frame_index, stream_idx);
-
-	if (encode_ts)
+	if (auto s = ts_pool.collect(encode_slot))
 	{
 		wivrn::trace::gpu_slice(wivrn::trace::gpu_track::vulkan_encode,
 		                        "encodeVideoKHR",
-		                        encode_ts->begin_ns,
-		                        encode_ts->end_ns,
-		                        encode_ts->frame_index,
+		                        s->begin_ns,
+		                        s->end_ns,
+		                        s->frame_index,
 		                        stream_idx);
 	}
 	if (auto s = ts_pool_image_copy.collect(encode_slot))

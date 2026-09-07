@@ -422,28 +422,6 @@ void cpu_instant(cpu_track which, const char * name, uint64_t frame, uint8_t str
 	}
 }
 
-void cpu_slice(cpu_track which, const char * name, int64_t begin_ns, int64_t end_ns, uint64_t frame, uint8_t stream)
-{
-	if (!initialized || end_ns < begin_ns)
-		return;
-	perfetto::Track & trk = cpu_track_obj(which);
-	switch (which)
-	{
-		case cpu_track::encoder:
-			WIVRN_CPU_BEGIN("wivrn_encoder", trk, name, begin_ns, frame, stream);
-			TRACE_EVENT_END("wivrn_encoder", trk, static_cast<uint64_t>(end_ns));
-			break;
-		case cpu_track::compositor:
-			WIVRN_CPU_BEGIN("wivrn_compositor", trk, name, begin_ns, frame, stream);
-			TRACE_EVENT_END("wivrn_compositor", trk, static_cast<uint64_t>(end_ns));
-			break;
-		case cpu_track::network:
-			WIVRN_CPU_BEGIN("wivrn_network", trk, name, begin_ns, frame, stream);
-			TRACE_EVENT_END("wivrn_network", trk, static_cast<uint64_t>(end_ns));
-			break;
-	}
-}
-
 void cpu_begin(cpu_track which, uint8_t stream, uint64_t frame, const char * name)
 {
 	if (!initialized)
@@ -510,7 +488,6 @@ scope::scope(cpu_track which, uint8_t stream, uint64_t frame, const char * name)
         which(which), stream(stream), frame(frame), name(name), begin_ns(0), active(false) {}
 scope::~scope() {}
 void cpu_instant(cpu_track, const char *, uint64_t, uint8_t) {}
-void cpu_slice(cpu_track, const char *, int64_t, int64_t, uint64_t, uint8_t) {}
 void cpu_begin(cpu_track, uint8_t, uint64_t, const char *) {}
 void cpu_end(cpu_track, uint8_t, uint64_t, const char *) {}
 } // namespace wivrn::trace
