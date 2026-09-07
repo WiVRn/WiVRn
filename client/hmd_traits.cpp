@@ -285,7 +285,12 @@ void hmd_traits::init()
 		controller_profile = "htc-vive-focus-3";
 
 		if (model == "VIVE Focus 3")
+		{
 			panel_width_override = 2448;
+
+			// Reports VK_EXT_debug_utils but does not expose vkSetDebugUtilsObjectNameEXT
+			vk_debug_ext_allowed = false;
+		}
 
 		if (model == "VIVE Focus Vision")
 			panel_width_override = 2448;
