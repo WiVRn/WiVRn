@@ -9,7 +9,7 @@ across commits. Both drive `tools/perfetto/wivrn_session.py`.
 | Process | Runtime | Role |
 | ------- | ------- | ---- |
 | `hello_xr`, launched by the server | WiVRn (`openxr_wivrn.json`) | renders frames into the encoder |
-| WiVRn client | Monado, null compositor, in-process (`openxr_monado.json`) | sends poses, swallows presents |
+| WiVRn client | Monado, null compositor + remote HMD, in-process (`openxr_monado.json`) | sends poses, swallows presents |
 
 ## Prerequisites
 
@@ -19,9 +19,13 @@ cmake --build build-profiling
 ```
 
 `WIVRN_BUILD_BENCH_RUNTIME`, on in this preset, builds a second, unpatched Monado under
-`build-profiling/bench-runtime` with the null compositor and simulated HMD that wivrn-server's own
-Monado omits, as an in-process runtime library — no separate service process, no IPC
-(`cmake/BenchRuntime.cmake`). Both runtimes run from the build tree.
+`build-profiling/bench-runtime` with the null compositor and remote HMD driver that
+wivrn-server's own Monado omits, as an in-process runtime library — no separate service process,
+no IPC (`cmake/BenchRuntime.cmake`). Both runtimes run from the build tree.
+
+The build applies [monado!3006](https://gitlab.freedesktop.org/monado/monado/-/merge_requests/3006)
+(null compositor FPS + device size, remote HMD resolution) at configure time, fetched fresh each
+run — not carried as a repo patch. Drop once it merges upstream.
 
 Also required: `hello_xr` on `PATH`, a systemd user instance, a running `avahi-daemon`, a usable
 Vulkan device.
@@ -37,7 +41,9 @@ tools/perfetto/encoder_profile.py --duration 15 -o out/
 | `--encoders` | what the GPUs support | comma-separated |
 | `--codec` | encoder default | `h264` / `h265` / `av1` |
 | `--bitrate` | `50000000` | bps |
-| `--resolution-scale` | `6.0` | render resolution |
+| `--eye-width` | `1920` | per-eye render width |
+| `--eye-height` | `1472` | per-eye render height |
+| `--resolution-scale` | `1.0` | extra scale on top of `--eye-width`/`--eye-height` |
 | `--stream-scale` | `1.0` | encoded resolution, as a fraction of the render resolution |
 | `--duration` | `15` | seconds per encoder |
 | `--graphics` | `Vulkan2` | `hello_xr` graphics API |
@@ -52,9 +58,13 @@ cannot run is reported and skipped.
 
 ## Workload
 
-The client runtime reports Monado's Simulated HMD at 320x240 per eye. The client multiplies that
-by `resolution_scale` unclamped (`client/scenes/stream.cpp`), so the defaults encode 1920x1472 per
-eye. Anything under 640 wide is reported as too small to measure.
+`--eye-width`/`--eye-height` configure Monado's remote HMD driver directly (`monado/
+config_v0.json`, `XRT_COMPOSITOR_NULL_USE_DEVICE_SIZE=1`) — the null compositor reports exactly
+that as both the recommended and max view size, so the client renders at exactly that resolution
+before `resolution_scale`. Needs the `bench-runtime` Monado (monado!3006 + the device-size
+compositor patch); without them the null compositor falls back to a fixed 320x240 recommended /
+1920x1080 max, and `resolution_scale` is the only way to reach a usable size. Anything under 640
+wide is reported as too small to measure.
 
 `XRT_COMPOSITOR_NULL_FPS` runs the null compositor at 90 Hz, which is also the refresh rate it
 advertises. It needs the frame-rate-configurable `bench-runtime` Monado; a distribution one

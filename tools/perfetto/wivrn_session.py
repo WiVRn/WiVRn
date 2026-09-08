@@ -40,10 +40,11 @@ GPU_HW_ENCODER = {
     "0x8086": "vaapi",  # Intel
 }
 
-# The reference workload, pinned by both harnesses. The client scales the runtime's recommended
-# view (320x240 per eye from Monado's simulated HMD) by resolution_scale without clamping it,
-# so these give 1920x1472 per eye.
-REFERENCE_RESOLUTION_SCALE = 6.0
+# The reference workload, pinned by both harnesses: per-eye render resolution, set directly via
+# the remote driver + null compositor's device-size mode (cmake/BenchRuntime.cmake).
+REFERENCE_EYE_WIDTH = 1920
+REFERENCE_EYE_HEIGHT = 1472
+REFERENCE_RESOLUTION_SCALE = 1.0
 REFERENCE_STREAM_SCALE = 1.0
 
 # Needs the patched Monado from cmake/BenchRuntime.cmake; a stock one runs at 20.
@@ -212,7 +213,9 @@ def resolve_toolchain(args):
     if not wivrn_manifest:
         missing.append("openxr_wivrn.json (cmake --install the build; or --wivrn-manifest)")
     if not monado_manifest:
-        missing.append("openxr_monado.json (build with WIVRN_BUILD_BENCH_RUNTIME; or --monado-manifest)")
+        missing.append(
+            "openxr_monado.json (build with WIVRN_BUILD_BENCH_RUNTIME; or --monado-manifest)"
+        )
     if missing:
         return None, missing
 
@@ -303,7 +306,7 @@ class SessionSpec:
     """What to stream, and for how long.
 
     Video parameters default to None, meaning the build's own defaults. Both harnesses override
-    them; see REFERENCE_RESOLUTION_SCALE.
+    them; see REFERENCE_EYE_WIDTH.
     """
 
     encoder: str = "vulkan"
@@ -312,6 +315,8 @@ class SessionSpec:
     graphics: str = "Vulkan2"
     xr_app: str | None = None
     bitrate_bps: int | None = None
+    eye_width: int | None = None
+    eye_height: int | None = None
     resolution_scale: float | None = None
     stream_scale: float | None = None
     refresh_rate: float | None = None
@@ -360,6 +365,25 @@ def client_config(spec):
     if spec.fps_divider is not None:
         cfg["fps_divider"] = spec.fps_divider
     return cfg if len(cfg) > 1 else None
+
+
+def monado_config(spec):
+    """The monado/config_v0.json the client's runtime reads to pick the remote HMD driver at
+    spec.eye_width/eye_height, or None to leave Monado's own active-config selection alone."""
+    if spec.eye_width is None or spec.eye_height is None:
+        return None
+    return {
+        "active": "remote",
+        "remote": {
+            "version": 0,
+            "port": 4242,
+            "view_count": 2,
+            "w_pixels": spec.eye_width * 2,
+            "h_pixels": spec.eye_height,
+            "w_meters": 0.13,
+            "h_meters": 0.07,
+        },
+    }
 
 
 # "Encoder configuration:" block, logged by the server at XRT_LOG=info.
@@ -450,8 +474,8 @@ def check_encode_size(streams):
     return (
         f"negotiated encode is only {sizes} — at that size the number is per-frame fixed cost, "
         f"not encoder cost. The OpenXR runtime reported a smaller view than the reference "
-        f"workload assumes; raise --resolution-scale "
-        f"(the reference workload uses {REFERENCE_RESOLUTION_SCALE:g})"
+        f"workload assumes; raise --eye-width/--eye-height "
+        f"(the reference workload uses {REFERENCE_EYE_WIDTH}x{REFERENCE_EYE_HEIGHT})"
     )
 
 
@@ -499,6 +523,11 @@ def run_session(spec, tools, trace, log_dir, tag=None, progress=None):
     client_cfg = client_config(spec)
     if client_cfg:
         (cfg_dir / "client.json").write_text(json.dumps(client_cfg, indent=2))
+    monado_cfg = monado_config(spec)
+    if monado_cfg:
+        monado_dir = scratch / "monado"
+        monado_dir.mkdir(parents=True)
+        (monado_dir / "config_v0.json").write_text(json.dumps(monado_cfg, indent=2))
 
     xr_app_name = Path(shlex.split(spec.xr_app)[0]).name if spec.xr_app else "hello_xr"
 
@@ -541,18 +570,17 @@ def run_session(spec, tools, trace, log_dir, tag=None, progress=None):
             raise SessionError("startup", f"server not listening on {WIVRN_PORT}; see {server_log}")
 
         say("starting client (autoconnect)")
-        client = spawn(
-            [str(tools.client)],
-            {
-                **os.environ,
-                "XDG_CONFIG_HOME": str(scratch),
-                "XR_RUNTIME_JSON": str(tools.monado_manifest),
-                "WIVRN_AUTOCONNECT": "1",
-                "XRT_COMPOSITOR_NULL": "1",
-                "XRT_COMPOSITOR_NULL_FPS": str(REFERENCE_REFRESH_RATE_HZ),
-            },
-            client_log,
-        )
+        client_env = {
+            **os.environ,
+            "XDG_CONFIG_HOME": str(scratch),
+            "XR_RUNTIME_JSON": str(tools.monado_manifest),
+            "WIVRN_AUTOCONNECT": "1",
+            "XRT_COMPOSITOR_NULL": "1",
+            "XRT_COMPOSITOR_NULL_FPS": str(REFERENCE_REFRESH_RATE_HZ),
+        }
+        if monado_cfg:
+            client_env["XRT_COMPOSITOR_NULL_USE_DEVICE_SIZE"] = "1"
+        client = spawn([str(tools.client)], client_env, client_log)
 
         say(f"streaming for {spec.duration:g}s")
         deadline = time.time() + spec.duration

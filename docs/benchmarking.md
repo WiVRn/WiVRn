@@ -88,7 +88,9 @@ default does not read as a performance change:
 | Flag | Default | |
 | ---- | ------- | - |
 | `--bitrate` | `50000000` | bps |
-| `--resolution-scale` | `6.0` | render resolution |
+| `--eye-width` | `1920` | per-eye render width |
+| `--eye-height` | `1472` | per-eye render height |
+| `--resolution-scale` | `1.0` | extra scale on top of `--eye-width`/`--eye-height` |
 | `--stream-scale` | `1.0` | encoded resolution, as a fraction of the render resolution |
 | `--fps-divider` | `1` | |
 | `--codec` | encoder default | `h264` / `h265` / `av1` |
