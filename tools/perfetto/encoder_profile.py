@@ -8,7 +8,7 @@ captures out/<enc>.pftrace, then prints a summary and a diff against a baseline.
 Compares encoders inside *one* build. To compare one encoder across *commits* — bisecting a
 performance regression — use encoder_bench.py instead.
 
-The workload is pinned to the reference one (wivrn_session.REFERENCE_RESOLUTION_SCALE): left
+The workload is pinned to the reference one (wivrn_session.REFERENCE_EYE_WIDTH/HEIGHT): left
 alone, the headless setup negotiates a 192x128 encode that measures fixed cost rather than the
 codec. The negotiated stream is printed per encoder so a renegotiation is never silent.
 
@@ -49,6 +49,8 @@ def run_encoder(enc, args, tools):
         graphics=args.graphics,
         xr_app=args.xr_app,
         bitrate_bps=args.bitrate,
+        eye_width=args.eye_width,
+        eye_height=args.eye_height,
         resolution_scale=args.resolution_scale,
         stream_scale=args.stream_scale,
         startup_timeout=args.startup_timeout,
@@ -123,11 +125,22 @@ def main():
         help="stream bitrate in bps (default: %(default)s)",
     )
     parser.add_argument(
+        "--eye-width",
+        type=int,
+        default=wivrn_session.REFERENCE_EYE_WIDTH,
+        help="per-eye render width; simulates a headset's panel resolution (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--eye-height",
+        type=int,
+        default=wivrn_session.REFERENCE_EYE_HEIGHT,
+        help="per-eye render height (default: %(default)s)",
+    )
+    parser.add_argument(
         "--resolution-scale",
         type=float,
         default=wivrn_session.REFERENCE_RESOLUTION_SCALE,
-        help="render resolution scale; lifts the simulated HMD's small recommended view to "
-        "headset-sized (default: %(default)s)",
+        help="extra scale on top of --eye-width/--eye-height (default: %(default)s)",
     )
     parser.add_argument(
         "--stream-scale",

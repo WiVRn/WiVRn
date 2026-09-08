@@ -413,6 +413,8 @@ def measure(args, tools, info, sig, settings):
         graphics=args.graphics,
         xr_app=args.xr_app,
         bitrate_bps=args.bitrate,
+        eye_width=args.eye_width,
+        eye_height=args.eye_height,
         resolution_scale=args.resolution_scale,
         stream_scale=args.stream_scale,
         refresh_rate=args.refresh_rate,
@@ -526,6 +528,7 @@ def settings_line(rec):
         f"{rec['metric']['slice']} {rec['metric']['stat']}  "
         f"{s.get('duration')}s x{s.get('repeat')}  "
         f"{(s.get('bitrate_bps') or 0) // 1_000_000}Mbit  "
+        f"{s.get('eye_width')}x{s.get('eye_height')} "
         f"scale {s.get('resolution_scale')}x{s.get('stream_scale')}"
     )
 
@@ -683,6 +686,8 @@ def settings_for(args):
         "repeat": args.repeat,
         "warmup": args.warmup,
         "bitrate_bps": args.bitrate,
+        "eye_width": args.eye_width,
+        "eye_height": args.eye_height,
         "resolution_scale": args.resolution_scale,
         "stream_scale": args.stream_scale,
         "refresh_rate": args.refresh_rate,
@@ -886,11 +891,22 @@ def add_measure_args(p):
         "--bitrate", type=int, default=50_000_000, help="stream bitrate in bps (default: 50000000)"
     )
     p.add_argument(
+        "--eye-width",
+        type=int,
+        default=wivrn_session.REFERENCE_EYE_WIDTH,
+        help="per-eye render width; simulates a headset's panel resolution (default: %(default)s)",
+    )
+    p.add_argument(
+        "--eye-height",
+        type=int,
+        default=wivrn_session.REFERENCE_EYE_HEIGHT,
+        help="per-eye render height (default: %(default)s)",
+    )
+    p.add_argument(
         "--resolution-scale",
         type=float,
         default=wivrn_session.REFERENCE_RESOLUTION_SCALE,
-        help="render resolution scale; lifts the simulated HMD's small recommended view to "
-        "headset-sized (default: %(default)s)",
+        help="extra scale on top of --eye-width/--eye-height (default: %(default)s)",
     )
     p.add_argument(
         "--stream-scale",
