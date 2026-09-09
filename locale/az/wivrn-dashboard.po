@@ -714,7 +714,7 @@ msgstr "Təhlükəsizlik divarınız varsa, 9757 portunun həm TCP, həm də UDP
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
 msgid "Connection fails with \"no route to host\""
-msgstr "Əlaqə \"qovşağa marşrut yoxdur\" xətası ilə uğursuz olur"
+msgstr "Əlaqə \"no route to host\" xətası ilə uğursuz olur"
 
 #: dashboard/qml/TroubleshootPage.qml:36
 #, kde-format
