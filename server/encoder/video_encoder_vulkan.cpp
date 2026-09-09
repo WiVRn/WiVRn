@@ -25,6 +25,7 @@
 #include "utils/wivrn_trace.h"
 #include "utils/wivrn_vk_bundle.h"
 
+#include <algorithm>
 #include <iostream>
 #include <ranges>
 #include <stdexcept>
@@ -1059,7 +1060,11 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		return {};
 	}
 
-	auto [res, size] = query_pool.getResult<uint32_t>(encode_slot, 1, 0, vk::QueryResultFlagBits::eWait);
+	auto [res, size] = [&] {
+		// eWait blocks until the size query lands: short after the fence, but not free.
+		wivrn::trace::scope trace_size(wivrn::trace::cpu_track::encoder, stream_idx, frame_index, "wait_bitstream_size");
+		return query_pool.getResult<uint32_t>(encode_slot, 1, 0, vk::QueryResultFlagBits::eWait);
+	}();
 	if (res != vk::Result::eSuccess)
 	{
 		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
