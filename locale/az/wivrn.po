@@ -1,0 +1,1296 @@
+# Azerbaijani translation for WiVRn.
+# Copyright (C) 2026 WiVRn's authors.
+# This file is distributed under the same license as the WiVRn package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: WiVRn\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-02 03:50+0800\n"
+"PO-Revision-Date: 2026-09-09 00:00+0400\n"
+"Last-Translator: not\n"
+"Language-Team: Azerbaijani <>\n"
+"Language: az\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: client/render/ui_theme.cpp:35
+msgctxt "theme name"
+msgid "Dark"
+msgstr "Tünd"
+
+#: client/render/ui_theme.cpp:71
+msgctxt "theme name"
+msgid "Midnight"
+msgstr "Gecə yarısı"
+
+#: client/render/ui_theme.cpp:86
+msgctxt "theme name"
+msgid "Slate"
+msgstr "Şifer"
+
+#: client/render/ui_theme.cpp:104
+msgctxt "theme name"
+msgid "OLED"
+msgstr "OLED"
+
+#: client/render/ui_theme.cpp:120
+msgctxt "theme name"
+msgid "Graphite"
+msgstr "Qrafit"
+
+#: client/render/ui_theme.cpp:138
+msgctxt "theme name"
+msgid "Light"
+msgstr "İşıqlı"
+
+#: client/scene.cpp:74
+msgid "No supported swapchain format"
+msgstr "Dəstəklənən kadr mübadiləsi zənciri formatı yoxdur"
+
+#: client/scenes/app_launcher.cpp:159
+msgid "Pick an application to start streaming, or start one on the PC."
+msgstr "Yayımı başlatmaq üçün tətbiq seçin və ya kompüterdə birini başladın."
+
+#: client/scenes/app_launcher.cpp:161 client/scenes/stream_gui.cpp:925
+msgctxt "status in the title bar"
+msgid "Connected"
+msgstr "Əlaqə qurulub"
+
+#: client/scenes/app_launcher.cpp:163
+#, c++-format
+msgid "Connected to {}"
+msgstr "{} ilə əlaqə qurulub"
+
+#: client/scenes/app_launcher.cpp:169
+msgctxt "icon size"
+msgid "Small"
+msgstr "Kiçik"
+
+#: client/scenes/app_launcher.cpp:169
+msgctxt "icon size"
+msgid "Medium"
+msgstr "Orta"
+
+#: client/scenes/app_launcher.cpp:169
+msgctxt "icon size"
+msgid "Large"
+msgstr "Böyük"
+
+#: client/scenes/app_launcher.cpp:211
+msgid "Waiting for an application on the server"
+msgstr "Serverdə tətbiq gözlənilir"
+
+#: client/scenes/gui_settings.cpp:223 client/scenes/gui_settings.cpp:306
+#: client/scenes/gui_settings.cpp:501 client/scenes/gui_settings.cpp:579
+msgctxt "tooltip for disabled settings"
+msgid "Disconnect to change this setting."
+msgstr "Bu parametri dəyişmək üçün əlaqəni kəsin."
+
+#: client/scenes/gui_settings.cpp:232
+msgid "Refresh rate"
+msgstr "Yenilənmə tezliyi"
+
+#: client/scenes/gui_settings.cpp:233
+msgid ""
+"Use 'auto' to select the refresh rate based on measured application "
+"performance. May cause flicker when a change happens."
+msgstr "Yenilənmə tezliyini tətbiqin ölçülmüş performansına əsasən seçmək üçün 'Avtomatik' seçin. Dəyişiklik zamanı titrəməyə səbəb ola bilər."
+
+#: client/scenes/gui_settings.cpp:256
+msgctxt "automatic refresh rate, use a short string"
+msgid "Auto"
+msgstr "Avtomatik"
+
+#: client/scenes/gui_settings.cpp:269
+msgid "Render resolution"
+msgstr "Təsvirin ayırdetmə qabiliyyəti"
+
+#: client/scenes/gui_settings.cpp:270
+#, c++-format
+msgctxt "render resolution"
+msgid "Pixels rendered per eye ({}x{}). Lower to gain performance."
+msgstr "Hər göz üçün yaradılan təsvirin pikselləri ({}x{}). Performansı artırmaq üçün azaldın."
+
+#: client/scenes/gui_settings.cpp:287
+msgid "Application SpaceWarp"
+msgstr "Tətbiq SpaceWarp"
+
+#: client/scenes/gui_settings.cpp:288
+msgid "Renders at half the refresh rate. The headset may synthesise frames."
+msgstr "Yenilənmə tezliyinin yarısı ilə təsvir yaradır. Qulaqlıq kadrlar sintez edə bilər."
+
+#: client/scenes/gui_settings.cpp:294
+msgid "Set a refresh rate other than auto to enable this setting."
+msgstr "Bu parametri aktivləşdirmək üçün avtomatikdən fərqli yenilənmə tezliyi seçin."
+
+#: client/scenes/gui_settings.cpp:298
+msgctxt "page header title"
+msgid "Video"
+msgstr "Video"
+
+#: client/scenes/gui_settings.cpp:298
+msgctxt "page header subtitle"
+msgid "Frame rate and resolution."
+msgstr "Kadr tezliyi və ayırdetmə qabiliyyəti."
+
+#: client/scenes/gui_settings.cpp:311
+msgid "Foveated encoding"
+msgstr "Foveasiyalı kodlaşdırma"
+
+#: client/scenes/gui_settings.cpp:313
+msgid ""
+"Higher values focus image quality where you look at, improving latency, "
+"power efficiency and quality."
+msgstr "Daha yüksək dəyərlər görüntü keyfiyyətini baxdığınız yerə cəmləşdirərək gecikməni azaldır, enerji səmərəliliyini və keyfiyyəti artırır."
+
+#: client/scenes/gui_settings.cpp:314
+msgid ""
+"Higher values focus image quality at the center, improving latency, power "
+"efficiency and quality."
+msgstr "Daha yüksək dəyərlər görüntü keyfiyyətini mərkəzə cəmləşdirərək gecikməni azaldır, enerji səmərəliliyini və keyfiyyəti artırır."
+
+#: client/scenes/gui_settings.cpp:332 client/scenes/gui_settings.cpp:344
+msgctxt "Codec"
+msgid "Automatic"
+msgstr "Avtomatik"
+
+#: client/scenes/gui_settings.cpp:336
+msgctxt "Codec"
+msgid "H.264"
+msgstr "H.264"
+
+#: client/scenes/gui_settings.cpp:338
+msgctxt "Codec"
+msgid "HEVC (H.265)"
+msgstr "HEVC (H.265)"
+
+#: client/scenes/gui_settings.cpp:340
+msgctxt "Codec"
+msgid "AV1"
+msgstr "AV1"
+
+#: client/scenes/gui_settings.cpp:354 client/scenes/gui_settings.cpp:367
+msgctxt "setting name"
+msgid "Video codec"
+msgstr "Video kodeki"
+
+#: client/scenes/gui_settings.cpp:355
+msgid "How video is compressed before it is sent to the headset."
+msgstr "Videonun qulaqlığa göndərilməzdən əvvəl necə sıxıldığı."
+
+#: client/scenes/gui_settings.cpp:377
+msgctxt "setting name"
+msgid "10-bit color"
+msgstr "10 bitlik rəng"
+
+#: client/scenes/gui_settings.cpp:378
+msgid "Higher color precision, supported by HEVC and AV1."
+msgstr "HEVC və AV1 tərəfindən dəstəklənən daha yüksək rəng dəqiqliyi."
+
+#: client/scenes/gui_settings.cpp:391
+msgid "Bitrate"
+msgstr "Bitreyt"
+
+#: client/scenes/gui_settings.cpp:392
+msgid "Video data rate sent to the headset."
+msgstr "Qulaqlığa göndərilən video verilənlərinin sürəti."
+
+#: client/scenes/gui_settings.cpp:407
+msgctxt "setting name"
+msgid "Foveation center override"
+msgstr "Foveasiya mərkəzinin əl ilə təyini"
+
+#: client/scenes/gui_settings.cpp:408
+msgid ""
+"Manually set where image quality is focused, instead of the center or your "
+"gaze."
+msgstr "Görüntü keyfiyyətinin cəmləşdiyi yeri mərkəz və ya baxış istiqaməti əvəzinə əl ilə təyin edin."
+
+#: client/scenes/gui_settings.cpp:420
+msgctxt "setting name"
+msgid "Foveation center"
+msgstr "Foveasiya mərkəzi"
+
+#: client/scenes/gui_settings.cpp:421
+#, c++-format
+msgid "Height {:.1f} °, distance {:.2f} m"
+msgstr "Hündürlük {:.1f} °, məsafə {:.2f} m"
+
+#: client/scenes/gui_settings.cpp:423
+msgctxt "button label to change the foveation center"
+msgid "Change"
+msgstr "Dəyiş"
+
+#: client/scenes/gui_settings.cpp:426
+msgid "Enable foveation center override to change this setting."
+msgstr "Bu parametri dəyişmək üçün foveasiya mərkəzinin əl ilə təyinini aktivləşdirin."
+
+#: client/scenes/gui_settings.cpp:430
+msgctxt "page header title"
+msgid "Streaming"
+msgstr "Yayım"
+
+#: client/scenes/gui_settings.cpp:430
+msgctxt "page header subtitle"
+msgid "How video is encoded and sent to the headset."
+msgstr "Videonun necə kodlaşdırıldığı və qulaqlığa göndərildiyi."
+
+#: client/scenes/gui_settings.cpp:435
+msgctxt "confirmation messagebox title"
+msgid "Disable in-stream window"
+msgstr "Yayım zamanı pəncərəni söndür"
+
+#: client/scenes/gui_settings.cpp:436
+msgctxt "confirmation message"
+msgid ""
+"Do you really want to disable the in-stream window?\n"
+"You will not be able to re-open it with the thumbsticks."
+msgstr "Yayım zamanı pəncərəni söndürmək istədiyinizə əminsiniz?\nOnu analoq çubuqlarla yenidən aça bilməyəcəksiniz."
+
+#: client/scenes/gui_settings.cpp:437 client/scenes/lobby_gui.cpp:886
+msgid "Yes"
+msgstr "Bəli"
+
+#: client/scenes/gui_settings.cpp:438 client/scenes/lobby_gui.cpp:893
+msgid "No"
+msgstr "Xeyr"
+
+#: client/scenes/gui_settings.cpp:459
+msgctxt "openxr_post_processing"
+msgid "Normal"
+msgstr "Normal"
+
+#: client/scenes/gui_settings.cpp:462
+msgctxt "openxr_post_processing"
+msgid "Quality"
+msgstr "Keyfiyyət"
+
+#: client/scenes/gui_settings.cpp:464
+msgctxt "openxr_post_processing"
+msgid "Disabled"
+msgstr "Deaktiv"
+
+#: client/scenes/gui_settings.cpp:489
+msgid "Supersampling"
+msgstr "Yüksək ayırdetmə qabiliyyətində nümunələmə"
+
+#: client/scenes/gui_settings.cpp:489
+msgid ""
+"Reduce flicker for high contrast edges. Useful when the input resolution is "
+"high compared to the headset display."
+msgstr "Yüksək kontrastlı kənarlarda titrəməni azaldın. Giriş ayırdetmə qabiliyyəti qulaqlığın ekranına nisbətən yüksək olduqda faydalıdır."
+
+#: client/scenes/gui_settings.cpp:490
+msgid "Sharpening"
+msgstr "Kəskinləşdirmə"
+
+#: client/scenes/gui_settings.cpp:490
+msgid ""
+"Improve clarity of high contrast edges and counteract blur. Useful when the "
+"input resolution is low compared to the headset display."
+msgstr "Yüksək kontrastlı kənarların aydınlığını artırın və bulanıqlığı azaldın. Giriş ayırdetmə qabiliyyəti qulaqlığın ekranına nisbətən aşağı olduqda faydalıdır."
+
+#: client/scenes/gui_settings.cpp:493
+msgid "Post-processing"
+msgstr "Sonrakı emal"
+
+#: client/scenes/gui_settings.cpp:493
+msgctxt "page header subtitle"
+msgid "OpenXR layer supersampling and sharpening."
+msgstr "OpenXR qatında yüksək ayırdetmə qabiliyyətində nümunələmə və kəskinləşdirmə."
+
+#: client/scenes/gui_settings.cpp:506
+msgctxt "setting name"
+msgid "Microphone"
+msgstr "Mikrofon"
+
+#: client/scenes/gui_settings.cpp:507
+msgid "Stream the headset microphone to the PC."
+msgstr "Qulaqlığın mikrofon səsini kompüterə ötürün."
+
+#: client/scenes/gui_settings.cpp:518
+msgctxt "setting name"
+msgid "Unprocessed audio"
+msgstr "Emal olunmamış səs"
+
+#: client/scenes/gui_settings.cpp:519
+msgid "Disable audio filters, such as noise cancellation."
+msgstr "Səs-küyün aradan qaldırılması kimi səs süzgəclərini söndürün."
+
+#: client/scenes/gui_settings.cpp:528
+msgctxt "page header title"
+msgid "Audio"
+msgstr "Səs"
+
+#: client/scenes/gui_settings.cpp:528
+msgctxt "page header subtitle"
+msgid "Microphone streamed to the PC."
+msgstr "Kompüterə ötürülən mikrofon səsi."
+
+#: client/scenes/gui_settings.cpp:540
+msgctxt "setting name"
+msgid "Keyboard"
+msgstr "Klaviatura"
+
+#: client/scenes/gui_settings.cpp:541
+msgid "Forward the keyboard from the headset to the PC."
+msgstr "Klaviaturanı qulaqlıqdan kompüterə yönləndirin."
+
+#: client/scenes/gui_settings.cpp:550
+msgctxt "setting name"
+msgid "Mouse"
+msgstr "Siçan"
+
+#: client/scenes/gui_settings.cpp:551
+msgid "Forward the mouse from the headset to the PC."
+msgstr "Siçanı qulaqlıqdan kompüterə yönləndirin."
+
+#: client/scenes/gui_settings.cpp:560
+msgctxt "setting name"
+msgid "Gamepad"
+msgstr "Oyun pultu"
+
+#: client/scenes/gui_settings.cpp:561
+msgid "Forward the gamepad from the headset to the PC."
+msgstr "Oyun pultunu qulaqlıqdan kompüterə yönləndirin."
+
+#: client/scenes/gui_settings.cpp:568
+msgctxt "page header title"
+msgid "Devices"
+msgstr "Cihazlar"
+
+#: client/scenes/gui_settings.cpp:568
+msgctxt "page header subtitle"
+msgid "Forward input devices to the PC."
+msgstr "Giriş cihazlarını kompüterə yönləndirin."
+
+#: client/scenes/gui_settings.cpp:572 client/scenes/stream_network.cpp:91
+msgid "The server does not allow forwarded input devices"
+msgstr "Server yönləndirilən giriş cihazlarına icazə vermir"
+
+#: client/scenes/gui_settings.cpp:597
+msgctxt "setting name"
+msgid "Hand tracking"
+msgstr "Əl izləməsi"
+
+#: client/scenes/gui_settings.cpp:597
+msgid "Track your hands for input when controllers are down."
+msgstr "Kontrollerlər kənara qoyulduqda giriş üçün əllərinizi izləyin."
+
+#: client/scenes/gui_settings.cpp:600
+msgctxt "setting name"
+msgid "Eye tracking"
+msgstr "Göz izləməsi"
+
+#: client/scenes/gui_settings.cpp:600
+msgid "Used by foveated encoding to focus quality where you look."
+msgstr "Keyfiyyəti baxdığınız yerə cəmləşdirmək üçün foveasiyalı kodlaşdırmada istifadə olunur."
+
+#: client/scenes/gui_settings.cpp:603
+msgctxt "setting name"
+msgid "Face tracking"
+msgstr "Üz izləməsi"
+
+#: client/scenes/gui_settings.cpp:603
+msgid "Stream facial expressions to the PC."
+msgstr "Üz ifadələrini kompüterə ötürün."
+
+#: client/scenes/gui_settings.cpp:611
+msgctxt "virtual body tracker selection"
+msgid "Chest"
+msgstr "Sinə"
+
+#: client/scenes/gui_settings.cpp:612
+msgctxt "virtual body tracker selection"
+msgid "Left elbow"
+msgstr "Sol dirsək"
+
+#: client/scenes/gui_settings.cpp:613
+msgctxt "virtual body tracker selection"
+msgid "Right elbow"
+msgstr "Sağ dirsək"
+
+#: client/scenes/gui_settings.cpp:614
+msgctxt "virtual body tracker selection"
+msgid "Hip"
+msgstr "Çanaq"
+
+#: client/scenes/gui_settings.cpp:615
+msgctxt "virtual body tracker selection"
+msgid "Left knee"
+msgstr "Sol diz"
+
+#: client/scenes/gui_settings.cpp:616
+msgctxt "virtual body tracker selection"
+msgid "Right knee"
+msgstr "Sağ diz"
+
+#: client/scenes/gui_settings.cpp:617
+msgctxt "virtual body tracker selection"
+msgid "Left foot"
+msgstr "Sol ayaq"
+
+#: client/scenes/gui_settings.cpp:618
+msgctxt "virtual body tracker selection"
+msgid "Right foot"
+msgstr "Sağ ayaq"
+
+#: client/scenes/gui_settings.cpp:633
+msgctxt "setting name"
+msgid "Body tracking"
+msgstr "Bədən izləməsi"
+
+#: client/scenes/gui_settings.cpp:635
+msgid ""
+"Requires 'Hand and body tracking' to be enabled in the Quest movement "
+"tracking settings, otherwise body data will be guessed from controller and "
+"headset positions."
+msgstr "Quest hərəkət izləməsi parametrlərində 'Əl və bədən izləməsi' aktivləşdirilməlidir, əks halda bədən məlumatları kontroller və qulaqlığın mövqelərinə əsasən təxmin ediləcək."
+
+#: client/scenes/gui_settings.cpp:636
+msgid "Stream body joint positions to the PC."
+msgstr "Bədən oynaqlarının mövqelərini kompüterə ötürün."
+
+#: client/scenes/gui_settings.cpp:647 client/scenes/gui_settings.cpp:662
+msgctxt "setting name"
+msgid "Virtual body trackers"
+msgstr "Virtual bədən izləyiciləri"
+
+#: client/scenes/gui_settings.cpp:648
+msgid "Create virtual tracker devices."
+msgstr "Virtual izləmə cihazları yaradın."
+
+#: client/scenes/gui_settings.cpp:668
+msgctxt "page header title"
+msgid "Tracking"
+msgstr "İzləmə"
+
+#: client/scenes/gui_settings.cpp:668
+msgctxt "page header subtitle"
+msgid "Body and input tracking sent to the PC."
+msgstr "Kompüterə göndərilən bədən və giriş izləməsi."
+
+#: client/scenes/gui_settings.cpp:681
+msgctxt "language selection, replace with the name of the language"
+msgid "English"
+msgstr "Azərbaycanca"
+
+#: client/scenes/gui_settings.cpp:704 client/scenes/gui_settings.cpp:718
+msgid "Language"
+msgstr "Dil"
+
+#: client/scenes/gui_settings.cpp:705
+msgctxt "setting name"
+msgid "Interface language."
+msgstr "İnterfeys dili."
+
+#: client/scenes/gui_settings.cpp:714
+msgctxt "item in the interface language combobox"
+msgid "System language"
+msgstr "Sistem dili"
+
+#: client/scenes/gui_settings.cpp:726
+msgctxt "setting name"
+msgid "USB networking"
+msgstr "USB şəbəkəsi"
+
+#: client/scenes/gui_settings.cpp:727
+msgid ""
+"Enables connection by USB without ADB or developer mode.\n"
+"Make sure the server allows IPv6 link-local only connections."
+msgstr "ADB və ya tərtibatçı rejimi olmadan USB ilə əlaqə qurmağa imkan verir.\nServerin yalnız lokal şəbəkə seqmentində keçərli IPv6 ünvanları ilə əlaqələrə icazə verdiyinə əmin olun."
+
+#: client/scenes/gui_settings.cpp:737
+msgctxt "setting name"
+msgid "Extended configuration"
+msgstr "Genişləndirilmiş konfiqurasiya"
+
+#: client/scenes/gui_settings.cpp:738
+msgid "Allows unsafe configuration values, use at your own risk."
+msgstr "Təhlükəsiz olmayan konfiqurasiya dəyərlərinə icazə verir, riski nəzərə alaraq istifadə edin."
+
+#: client/scenes/gui_settings.cpp:749
+msgid "High power mode"
+msgstr "Yüksək güc rejimi"
+
+#: client/scenes/gui_settings.cpp:750
+msgid ""
+"Increase power usage to allow higher resolution and refresh rate. Drains "
+"battery and runs hot."
+msgstr "Daha yüksək ayırdetmə qabiliyyəti və yenilənmə tezliyinə imkan vermək üçün enerji istifadəsini artırın. Batareyanı tükədir və cihazı qızdırır."
+
+#: client/scenes/gui_settings.cpp:762
+msgctxt "setting name"
+msgid "In-stream window"
+msgstr "Yayım zamanı pəncərə"
+
+#: client/scenes/gui_settings.cpp:763
+msgid ""
+"Enables the configuration window to be shown while the game is streaming. If "
+"enabled, the window is activated by pressing both thumbsticks."
+msgstr "Oyun yayımlanarkən konfiqurasiya pəncərəsinin göstərilməsinə imkan verir. Aktivləşdirildikdə hər iki analoq çubuğa basmaqla pəncərə açılır."
+
+#: client/scenes/gui_settings.cpp:779
+msgctxt "page header title"
+msgid "System"
+msgstr "Sistem"
+
+#: client/scenes/gui_settings.cpp:779
+msgctxt "page header suibtitle"
+msgid "Language and advanced options."
+msgstr "Dil və genişləndirilmiş seçimlər."
+
+#: client/scenes/gui_settings.cpp:792
+msgctxt "page header title"
+msgid "Theme"
+msgstr "Mövzu"
+
+#: client/scenes/gui_settings.cpp:792
+msgctxt "page header subtitle"
+msgid "Accent color, palette and sizing of the interface."
+msgstr "İnterfeysin vurğu rəngi, palitrası və ölçüləri."
+
+#: client/scenes/gui_settings.cpp:800
+msgctxt "setting name"
+msgid "Accent color"
+msgstr "Vurğu rəngi"
+
+#: client/scenes/gui_settings.cpp:834
+msgctxt "setting name"
+msgid "Preset"
+msgstr "Hazır seçim"
+
+#: client/scenes/gui_settings.cpp:834
+msgctxt "setting description"
+msgid "Surface and background palette"
+msgstr "Səth və arxa fon palitrası"
+
+#: client/scenes/gui_settings.cpp:835
+msgid "Theme preset"
+msgstr "Hazır mövzu"
+
+#: client/scenes/gui_settings.cpp:854
+msgctxt "setting label"
+msgid "Rounding"
+msgstr "Yuvarlaqlıq"
+
+#: client/scenes/gui_settings.cpp:854
+msgctxt "setting description"
+msgid "Corner radius of controls"
+msgstr "İdarəetmə elementlərinin künc radiusu"
+
+#: client/scenes/gui_settings.cpp:866
+msgctxt "setting label"
+msgid "Card rounding"
+msgstr "Kart yuvarlaqlığı"
+
+#: client/scenes/gui_settings.cpp:866
+msgctxt "setting description"
+msgid "Corner radius of panels"
+msgstr "Panellərin künc radiusu"
+
+#: client/scenes/gui_settings.cpp:879
+msgctxt "setting name"
+msgid "Text size"
+msgstr "Mətn ölçüsü"
+
+#: client/scenes/gui_settings.cpp:879
+msgctxt "setting description"
+msgid "Global font scale"
+msgstr "Ümumi şrift miqyası"
+
+#: client/scenes/gui_settings.cpp:892
+msgctxt "setting name"
+msgid "Panel opacity"
+msgstr "Panelin qeyri-şəffaflığı"
+
+#: client/scenes/gui_settings.cpp:892
+msgctxt "setting description"
+msgid "Opacity of the panel and card backgrounds"
+msgstr "Panel və kart arxa fonlarının qeyri-şəffaflığı"
+
+#: client/scenes/lobby.cpp:231
+msgid "Incompatible WiVRn server: no protocol field in TXT"
+msgstr "Uyğun olmayan WiVRn serveri: TXT-də protokol sahəsi yoxdur"
+
+#: client/scenes/lobby.cpp:234
+#, c++-format
+msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
+msgstr "Uyğun olmayan WiVRn server protokolu (klient: {}, server: {})"
+
+#: client/scenes/lobby.cpp:249
+#, c++-format
+msgid "Cannot resolve hostname: {}"
+msgstr "Qovşaq adı müəyyən edilə bilmir: {}"
+
+#: client/scenes/lobby.cpp:342 client/scenes/lobby.cpp:348
+#, c++-format
+msgid "Cannot connect to {} ({}): {}"
+msgstr "{} ({}) ilə əlaqə qurmaq mümkün deyil: {}"
+
+#: client/scenes/lobby.cpp:431
+msgid "Waiting for connection"
+msgstr "Əlaqə gözlənilir"
+
+#: client/scenes/lobby.cpp:1332
+msgid "Passthrough"
+msgstr "Ətraf mühitin görüntüsü"
+
+#: client/scenes/lobby.cpp:1344
+msgid "Default environment"
+msgstr "Standart mühit"
+
+#: client/scenes/lobby_gui.cpp:99 client/scenes/lobby_gui.cpp:242
+#: client/scenes/stream_gui.cpp:936 client/scenes/stream_gui.cpp:950
+#: client/scenes/stream_gui.cpp:953
+msgid "Disconnect"
+msgstr "Əlaqəni kəs"
+
+#: client/scenes/lobby_gui.cpp:119 client/scenes/lobby_gui.cpp:282
+#: client/scenes/lobby_gui_customize.cpp:586
+#: client/scenes/lobby_gui_customize.cpp:741 client/scenes/stream_gui.cpp:928
+msgid "Close"
+msgstr "Bağla"
+
+#: client/scenes/lobby_gui.cpp:126
+msgid "Connection"
+msgstr "Əlaqə"
+
+#: client/scenes/lobby_gui.cpp:128
+#, c++-format
+msgid "Connection to {}"
+msgstr "{} ilə əlaqə"
+
+#: client/scenes/lobby_gui.cpp:160
+msgid "Enter PIN"
+msgstr "PIN daxil et"
+
+#: client/scenes/lobby_gui.cpp:167
+msgid "PIN"
+msgstr "PIN"
+
+#: client/scenes/lobby_gui.cpp:189
+msgid "Input the PIN displayed on the dashboard"
+msgstr "İdarə panelində göstərilən PIN-i daxil edin"
+
+#: client/scenes/lobby_gui.cpp:271
+msgid "Disconnected"
+msgstr "Əlaqə kəsilib"
+
+#: client/scenes/lobby_gui.cpp:273
+#, c++-format
+msgid "Disconnected from {}"
+msgstr "{} ilə əlaqə kəsilib"
+
+#: client/scenes/lobby_gui.cpp:303
+msgid "Name"
+msgstr "Ad"
+
+#: client/scenes/lobby_gui.cpp:306
+msgctxt "placeholder for the server name when adding/editing a server"
+msgid "My gaming PC"
+msgstr "Oyun kompüterim"
+
+#: client/scenes/lobby_gui.cpp:309
+msgid "Address"
+msgstr "Ünvan"
+
+#: client/scenes/lobby_gui.cpp:310
+msgctxt "placeholder for the server address when adding/editing a server"
+msgid "192.168.1.10 or host.local"
+msgstr "192.168.1.10 və ya host.local"
+
+#: client/scenes/lobby_gui.cpp:313
+msgid "Port"
+msgstr "Port"
+
+#: client/scenes/lobby_gui.cpp:317
+msgid "TCP only"
+msgstr "Yalnız TCP"
+
+#: client/scenes/lobby_gui.cpp:324 client/scenes/lobby_gui.cpp:555
+#: client/scenes/lobby_gui_customize.cpp:447
+#: client/scenes/lobby_gui_customize.cpp:508 client/scenes/stream_gui.cpp:911
+#: client/scenes/stream_gui.cpp:954
+msgid "Cancel"
+msgstr "Ləğv et"
+
+#: client/scenes/lobby_gui.cpp:325
+msgid "Save"
+msgstr "Yadda saxla"
+
+#: client/scenes/lobby_gui.cpp:370
+msgctxt "page header title"
+msgid "Computers"
+msgstr "Kompüterlər"
+
+#: client/scenes/lobby_gui.cpp:370
+msgctxt "page header subtitle"
+msgid "Pick a PC running the WiVRn server to stream from."
+msgstr "Yayım almaq üçün WiVRn serveri işləyən kompüter seçin."
+
+#: client/scenes/lobby_gui.cpp:373
+msgid "Add server"
+msgstr "Server əlavə et"
+
+#: client/scenes/lobby_gui.cpp:401
+msgid "Start a WiVRn server on your local network."
+msgstr "Lokal şəbəkənizdə WiVRn serverini başladın."
+
+#: client/scenes/lobby_gui.cpp:424
+msgid "Connect"
+msgstr "Əlaqə qur"
+
+#: client/scenes/lobby_gui.cpp:424
+msgctxt "button label when the server has an incompatible version"
+msgid "Incompatible"
+msgstr "Uyğun deyil"
+
+#: client/scenes/lobby_gui.cpp:424
+msgctxt "button label when the server is known but not visible"
+msgid "Searching…"
+msgstr "Axtarılır…"
+
+#: client/scenes/lobby_gui.cpp:425 client/wivrn_client.cpp:198
+msgid "Incompatible server version"
+msgstr "Uyğun olmayan server versiyası"
+
+#: client/scenes/lobby_gui.cpp:425
+msgid "Looking for this server on your network"
+msgstr "Şəbəkənizdə bu server axtarılır"
+
+#: client/scenes/lobby_gui.cpp:427
+msgctxt "chip displayed in server list when autoconnect is enabled"
+msgid "Auto"
+msgstr "Avtomatik"
+
+#: client/scenes/lobby_gui.cpp:447
+msgid "Autoconnect"
+msgstr "Avtomatik əlaqə"
+
+#: client/scenes/lobby_gui.cpp:448
+msgctxt "item in action menu"
+msgid "Edit server"
+msgstr "Serveri redaktə et"
+
+#: client/scenes/lobby_gui.cpp:449
+msgctxt "item in action menu"
+msgid "Delete server"
+msgstr "Serveri sil"
+
+#: client/scenes/lobby_gui.cpp:543
+msgctxt "popup window title"
+msgid "Add server"
+msgstr "Server əlavə edilməsi"
+
+#: client/scenes/lobby_gui.cpp:543
+msgctxt "popup window title"
+msgid "Edit server"
+msgstr "Serverin redaktəsi"
+
+#: client/scenes/lobby_gui.cpp:555
+msgctxt "confirmation messagebox title"
+msgid "Delete server"
+msgstr "Serverin silinməsi"
+
+#: client/scenes/lobby_gui.cpp:555
+#, c++-format
+msgctxt "confirmation message"
+msgid "Remove \"{}\" from your saved computers?"
+msgstr "\"{}\" yadda saxlanılmış kompüterlərinizdən çıxarılsın?"
+
+#: client/scenes/lobby_gui.cpp:555 client/scenes/lobby_gui_customize.cpp:508
+msgid "Delete"
+msgstr "Sil"
+
+#: client/scenes/lobby_gui.cpp:744 client/scenes/lobby_gui.cpp:757
+#: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:380
+msgid "CPU time"
+msgstr "CPU vaxtı"
+
+#: client/scenes/lobby_gui.cpp:748
+msgid "CPU time [ms]"
+msgstr "CPU vaxtı [ms]"
+
+#: client/scenes/lobby_gui.cpp:763 client/scenes/lobby_gui.cpp:775
+#: client/scenes/stream_gui.cpp:179 client/scenes/stream_gui.cpp:381
+msgid "GPU time"
+msgstr "GPU vaxtı"
+
+#: client/scenes/lobby_gui.cpp:767
+msgid "GPU time [ms]"
+msgstr "GPU vaxtı [ms]"
+
+#: client/scenes/lobby_gui.cpp:835
+msgid "Enable the microphone?"
+msgstr "Mikrofon aktivləşdirilsin?"
+
+#: client/scenes/lobby_gui.cpp:840
+msgid "Enable eye tracking?"
+msgstr "Göz izləməsi aktivləşdirilsin?"
+
+#: client/scenes/lobby_gui.cpp:845
+msgid "Enable face tracking?"
+msgstr "Üz izləməsi aktivləşdirilsin?"
+
+#: client/scenes/lobby_gui.cpp:850
+msgid "Enable body tracking?"
+msgstr "Bədən izləməsi aktivləşdirilsin?"
+
+#: client/scenes/lobby_gui.cpp:858
+msgid "Welcome to WiVRn"
+msgstr "WiVRn-ə xoş gəlmisiniz"
+
+#: client/scenes/lobby_gui.cpp:914
+msgid "Licenses"
+msgstr "Lisenziyalar"
+
+#: client/scenes/lobby_gui.cpp:914
+msgid "Open-source components bundled with WiVRn."
+msgstr "WiVRn ilə birlikdə təqdim olunan açıq mənbəli komponentlər."
+
+#: client/scenes/lobby_gui.cpp:949
+msgctxt ""
+"name of the combobox to choose which component license to display in the "
+"licenses page"
+msgid "Component"
+msgstr "Komponent"
+
+#: client/scenes/lobby_gui.cpp:1136
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Microphone"
+msgstr "Mikrofon"
+
+#: client/scenes/lobby_gui.cpp:1138
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Hand tracking"
+msgstr "Əl izləməsi"
+
+#: client/scenes/lobby_gui.cpp:1140
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Eye tracking"
+msgstr "Göz izləməsi"
+
+#: client/scenes/lobby_gui.cpp:1142
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Face tracking"
+msgstr "Üz izləməsi"
+
+#: client/scenes/lobby_gui.cpp:1144
+msgctxt "tooltip for top bar item in the lobby"
+msgid "Body tracking"
+msgstr "Bədən izləməsi"
+
+#: client/scenes/lobby_gui.cpp:1150
+msgctxt "status in the title bar"
+msgid "Not connected"
+msgstr "Əlaqə qurulmayıb"
+
+#: client/scenes/lobby_gui.cpp:1251
+msgctxt "tab label"
+msgid "Computers"
+msgstr "Kompüterlər"
+
+#: client/scenes/lobby_gui.cpp:1254 client/scenes/stream_gui.cpp:1021
+msgctxt "tab group"
+msgid "SETTINGS"
+msgstr "Parametrlər"
+
+#: client/scenes/lobby_gui.cpp:1255 client/scenes/stream_gui.cpp:1029
+msgctxt "tab label"
+msgid "Video"
+msgstr "Video"
+
+#: client/scenes/lobby_gui.cpp:1257 client/scenes/stream_gui.cpp:1030
+msgctxt "tab label"
+msgid "Audio"
+msgstr "Səs"
+
+#: client/scenes/lobby_gui.cpp:1259 client/scenes/stream_gui.cpp:1031
+msgctxt "tab label"
+msgid "Streaming"
+msgstr "Yayım"
+
+#: client/scenes/lobby_gui.cpp:1261 client/scenes/stream_gui.cpp:1032
+msgctxt "tab label"
+msgid "Post-processing"
+msgstr "Sonrakı emal"
+
+#: client/scenes/lobby_gui.cpp:1263 client/scenes/stream_gui.cpp:1033
+msgctxt "tab label"
+msgid "Devices"
+msgstr "Cihazlar"
+
+#: client/scenes/lobby_gui.cpp:1265 client/scenes/stream_gui.cpp:1034
+msgctxt "tab label"
+msgid "Tracking"
+msgstr "İzləmə"
+
+#: client/scenes/lobby_gui.cpp:1267 client/scenes/stream_gui.cpp:1035
+msgctxt "tab label"
+msgid "System"
+msgstr "Sistem"
+
+#: client/scenes/lobby_gui.cpp:1270
+msgctxt "tab group"
+msgid "PERSONALIZE"
+msgstr "Fərdiləşdir"
+
+#: client/scenes/lobby_gui.cpp:1271
+msgctxt "tab label"
+msgid "Environment"
+msgstr "Mühit"
+
+#: client/scenes/lobby_gui.cpp:1273 client/scenes/stream_gui.cpp:1036
+msgctxt "tab label"
+msgid "Theme"
+msgstr "Mövzu"
+
+#: client/scenes/lobby_gui.cpp:1276
+msgctxt "tab label"
+msgid "Debug"
+msgstr "Sazlama"
+
+#: client/scenes/lobby_gui.cpp:1282
+msgctxt "tab label"
+msgid "About"
+msgstr "Haqqında"
+
+#: client/scenes/lobby_gui.cpp:1284
+msgctxt "tab label"
+msgid "Licenses"
+msgstr "Lisenziyalar"
+
+#: client/scenes/lobby_gui.cpp:1286
+msgctxt "exit button in the lobby"
+msgid "Exit"
+msgstr "Çıx"
+
+#: client/scenes/lobby_gui.cpp:1304
+msgid ""
+"Press the grip button or put your palm up\n"
+"to move the main window"
+msgstr "Əsas pəncərəni hərəkət etdirmək üçün tutma düyməsinə basın\nvə ya ovucunuzu yuxarı çevirin"
+
+#: client/scenes/lobby_gui.cpp:1306
+msgid "Press the grip button to move the main window"
+msgstr "Əsas pəncərəni hərəkət etdirmək üçün tutma düyməsinə basın"
+
+#: client/scenes/lobby_gui_customize.cpp:213
+msgid "Locally loaded environment"
+msgstr "Lokal yüklənmiş mühit"
+
+#: client/scenes/lobby_gui_customize.cpp:226
+#, c++-format
+msgid "Locally loaded environment ({})"
+msgstr "Lokal yüklənmiş mühit ({})"
+
+#: client/scenes/lobby_gui_customize.cpp:299
+#, c++-format
+msgid "Cannot load local environment: {}"
+msgstr "Lokal mühiti yükləmək mümkün deyil: {}"
+
+#: client/scenes/lobby_gui_customize.cpp:332
+#, c++-format
+msgid "Cannot load environment list: {}"
+msgstr "Mühit siyahısını yükləmək mümkün deyil: {}"
+
+#: client/scenes/lobby_gui_customize.cpp:408
+#, c++-format
+msgid "Author: {}"
+msgstr "Müəllif: {}"
+
+#: client/scenes/lobby_gui_customize.cpp:412
+#, c++-format
+msgid "Size: {:.1f} MB"
+msgstr "Ölçü: {:.1f} MB"
+
+#: client/scenes/lobby_gui_customize.cpp:423
+msgctxt "chip displayed next to the selected environment in the settings"
+msgid "Active"
+msgstr "Aktiv"
+
+#: client/scenes/lobby_gui_customize.cpp:453
+msgid "Delete this model"
+msgstr "Bu modeli sil"
+
+#: client/scenes/lobby_gui_customize.cpp:463
+#: client/scenes/lobby_gui_customize.cpp:622
+#, c++-format
+msgid "HTTP error {} when downloading {}"
+msgstr "HTTP xətası {}, endirilən: {}"
+
+#: client/scenes/lobby_gui_customize.cpp:465
+#: client/scenes/lobby_gui_customize.cpp:630
+#, c++-format
+msgid ""
+"Curl error when downloading {}\n"
+"{}: {}"
+msgstr "{} endirilərkən Curl xətası\n{}: {}"
+
+#: client/scenes/lobby_gui_customize.cpp:501
+msgid "This feature is not supported by your headset"
+msgstr "Bu funksiya qulaqlığınız tərəfindən dəstəklənmir"
+
+#: client/scenes/lobby_gui_customize.cpp:507
+#, c++-format
+msgctxt "confirmation message"
+msgid "Permanently delete {}?"
+msgstr "{} həmişəlik silinsin?"
+
+#: client/scenes/lobby_gui_customize.cpp:508
+msgctxt "confirmation messagebox title"
+msgid "Delete environment"
+msgstr "Mühitin silinməsi"
+
+#: client/scenes/lobby_gui_customize.cpp:570
+#, c++-format
+msgid "Cannot load environment: {}"
+msgstr "Mühiti yükləmək mümkün deyil: {}"
+
+#: client/scenes/lobby_gui_customize.cpp:578
+msgid "Loading environment"
+msgstr "Mühit yüklənir"
+
+#: client/scenes/lobby_gui_customize.cpp:649
+msgctxt "page header title"
+msgid "Environment"
+msgstr "Mühit"
+
+#: client/scenes/lobby_gui_customize.cpp:649
+msgctxt "page header subtitle"
+msgid "Choose the environment your panels float in."
+msgstr "Panellərinizin yerləşdiyi mühiti seçin."
+
+#: client/scenes/lobby_gui_customize.cpp:662
+msgctxt "button label to browse environments to download"
+msgid "Browse"
+msgstr "Gözdən keçir"
+
+#: client/scenes/lobby_gui_customize.cpp:665
+msgctxt "button label to open an environment from a local gltf file"
+msgid "Open"
+msgstr "Aç"
+
+#: client/scenes/lobby_gui_customize.cpp:670
+msgid "Get more environments"
+msgstr "Daha çox mühit əldə et"
+
+#: client/scenes/lobby_gui_customize.cpp:670
+msgid "Download community-made spaces."
+msgstr "İcmanın yaratdığı sahələri endirin."
+
+#: client/scenes/lobby_gui_customize.cpp:679
+msgid "Open local glTF model"
+msgstr "Lokal glTF modelini aç"
+
+#: client/scenes/lobby_gui_customize.cpp:679
+msgid "Open a local glTF file saved on your headset."
+msgstr "Qulaqlığınızda yadda saxlanılmış lokal glTF faylını açın."
+
+#: client/scenes/lobby_gui_customize.cpp:691
+msgctxt "popup window title"
+msgid "Browse environments"
+msgstr "Mühitlərə baxış"
+
+#: client/scenes/lobby_gui_customize.cpp:732
+msgctxt "button label to re-deownload the environment list"
+msgid "Refresh"
+msgstr "Yenilə"
+
+#: client/scenes/stream_gui.cpp:179
+msgid "Defoveate"
+msgstr "Foveasiyanın açılması"
+
+#: client/scenes/stream_gui.cpp:181
+msgid "Network"
+msgstr "Şəbəkə"
+
+#: client/scenes/stream_gui.cpp:181 client/scenes/stream_gui.cpp:378
+msgid "Download"
+msgstr "Endirmə"
+
+#: client/scenes/stream_gui.cpp:182 client/scenes/stream_gui.cpp:379
+msgid "Upload"
+msgstr "Yükləmə"
+
+#: client/scenes/stream_gui.cpp:257
+#, c++-format
+msgid "Decoder {}"
+msgstr "Dekoder {}"
+
+#: client/scenes/stream_gui.cpp:269
+msgid "Timings [ms]"
+msgstr "Müddətlər [ms]"
+
+#: client/scenes/stream_gui.cpp:329
+msgid "Encode"
+msgstr "Kodlaşdırma"
+
+#: client/scenes/stream_gui.cpp:330
+msgid "Send"
+msgstr "Göndərmə"
+
+#: client/scenes/stream_gui.cpp:331
+msgid "Receive"
+msgstr "Qəbul"
+
+#: client/scenes/stream_gui.cpp:332
+msgid "Decode"
+msgstr "Dekodlaşdırma"
+
+#: client/scenes/stream_gui.cpp:333
+msgid "Blitted"
+msgstr "Kopyalanıb"
+
+#: client/scenes/stream_gui.cpp:334
+msgid "Displayed"
+msgstr "Göstərilib"
+
+#: client/scenes/stream_gui.cpp:335
+msgid "Predicted"
+msgstr "Proqnozlaşdırılıb"
+
+#: client/scenes/stream_gui.cpp:353
+#, c++-format
+msgid "Estimated motion to photons latency: {}ms"
+msgstr "Hərəkətdən fotona qədər təxmini gecikmə: {}ms"
+
+#: client/scenes/stream_gui.cpp:358
+msgid "Press the grip button to move the window"
+msgstr "Pəncərəni hərəkət etdirmək üçün tutma düyməsinə basın"
+
+#: client/scenes/stream_gui.cpp:360 client/scenes/stream_gui.cpp:623
+msgid "Press both thumbsticks to display the WiVRn window"
+msgstr "WiVRn pəncərəsini göstərmək üçün hər iki analoq çubuğa basın"
+
+#: client/scenes/stream_gui.cpp:382
+msgid "Motion to photon latency"
+msgstr "Hərəkətdən fotona qədər gecikmə"
+
+#: client/scenes/stream_gui.cpp:464
+msgid "Use the right thumbstick to adjust the bitrate"
+msgstr "Bitreyti tənzimləmək üçün sağ analoq çubuqdan istifadə edin"
+
+#: client/scenes/stream_gui.cpp:465
+msgid "Press A to go back"
+msgstr "Geri qayıtmaq üçün A düyməsinə basın"
+
+#: client/scenes/stream_gui.cpp:466
+#, c++-format
+msgid "Bitrate: {}Mbit/s"
+msgstr "Bitreyt: {}Mbit/s"
+
+#: client/scenes/stream_gui.cpp:488
+msgid "Use the thumbsticks to move the foveation center"
+msgstr "Foveasiya mərkəzini hərəkət etdirmək üçün analoq çubuqlardan istifadə edin"
+
+#: client/scenes/stream_gui.cpp:489
+msgid "Press A to save or B to cancel"
+msgstr "Yadda saxlamaq üçün A, ləğv etmək üçün B düyməsinə basın"
+
+#: client/scenes/stream_gui.cpp:490
+#, c++-format
+msgid "Height {:.1f} °"
+msgstr "Hündürlük {:.1f} °"
+
+#: client/scenes/stream_gui.cpp:491
+#, c++-format
+msgid "Distance {:.2f} m"
+msgstr "Məsafə {:.2f} m"
+
+#: client/scenes/stream_gui.cpp:544
+msgctxt "page header title"
+msgid "Applications"
+msgstr "Tətbiqlər"
+
+#: client/scenes/stream_gui.cpp:544
+msgctxt "page header subtitle"
+msgid "Running XR applications on the server."
+msgstr "Serverdə işləyən XR tətbiqləri."
+
+#: client/scenes/stream_gui.cpp:555
+msgctxt "button label to ask an application to quit"
+msgid "Stop"
+msgstr "Dayandır"
+
+#: client/scenes/stream_gui.cpp:557
+msgctxt "chip displayed next to a running application while streaming"
+msgid "Active"
+msgstr "Aktiv"
+
+#: client/scenes/stream_gui.cpp:566
+msgid "No XR application is currently running."
+msgstr "Hazırda heç bir XR tətbiqi işləmir."
+
+#: client/scenes/stream_gui.cpp:578
+msgid "Overlays"
+msgstr "Üst qatlar"
+
+#: client/scenes/stream_gui.cpp:597
+msgid "Request to quit, may be ignored by the application"
+msgstr "Çıxış sorğusu göndərir, tətbiq onu nəzərə almaya bilər"
+
+#: client/scenes/stream_gui.cpp:874 client/scenes/stream_gui.cpp:1018
+msgid "Statistics"
+msgstr "Statistika"
+
+#: client/scenes/stream_gui.cpp:874
+msgid "Live streaming performance."
+msgstr "Canlı yayım performansı."
+
+#: client/scenes/stream_gui.cpp:952
+msgid "Stop all applications"
+msgstr "Bütün tətbiqləri dayandır"
+
+#: client/scenes/stream_gui.cpp:967
+msgid "Disconnect from the server and return to the lobby?"
+msgstr "Serverlə əlaqə kəsilsin və foyeyə qayıdılsın?"
+
+#: client/scenes/stream_gui.cpp:968
+msgid "The following applications/overlays are open:"
+msgstr "Aşağıdakı tətbiqlər/üst qatlar açıqdır:"
+
+#: client/scenes/stream_gui.cpp:1005
+msgctxt "tab group"
+msgid "STREAM"
+msgstr "Yayım"
+
+#: client/scenes/stream_gui.cpp:1006
+msgctxt "tab label"
+msgid "Applications"
+msgstr "Tətbiqlər"
+
+#: client/scenes/stream_gui.cpp:1008
+msgctxt "tab label"
+msgid "Start"
+msgstr "Başlat"
+
+#: client/scenes/stream_gui.cpp:1040
+msgctxt "tab label"
+msgid "Statistics overlay"
+msgstr "Statistika qatı"
+
+#: client/scenes/stream_gui.cpp:1042
+msgctxt "tab label"
+msgid "Compact view"
+msgstr "Yığcam görünüş"
+
+#: client/wivrn_client.cpp:107 client/wivrn_client.cpp:214
+msgid "Timeout"
+msgstr "Gözləmə vaxtı bitdi"
+
+#: client/wivrn_client.cpp:160
+msgid "Incorrect PIN"
+msgstr "Yanlış PIN"
+
+#: client/wivrn_client.cpp:164
+msgid "Unable to check PIN"
+msgstr "PIN-i yoxlamaq mümkün deyil"
+
+#: client/wivrn_client.cpp:194
+msgid "Pairing is disabled on server"
+msgstr "Serverdə qoşulma deaktivdir"
