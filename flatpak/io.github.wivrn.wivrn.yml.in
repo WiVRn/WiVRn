@@ -35,8 +35,7 @@ finish-args:
   # Set the active OpenXR / OpenVR runtime
   - --filesystem=xdg-config/openxr:create
   - --filesystem=xdg-config/openvr:create
-  # Access to SlimeVR IPC sockets
-  - --filesystem=xdg-run/SlimeVRInput
+  # Access to SlimeVR IPC socket
   - --filesystem=xdg-run/SlimeVRRpc
   - --filesystem=xdg-run/.flatpak/dev.slimevr.SlimeVR
   - --filesystem=xdg-data/dev.slimevr.SlimeVR
