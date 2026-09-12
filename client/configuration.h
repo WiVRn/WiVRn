@@ -66,7 +66,7 @@ public:
 	std::map<std::string, server_data> servers;
 	float preferred_refresh_rate = 0;
 	std::optional<float> minimum_refresh_rate;
-	float resolution_scale = 1.0;
+	float resolution_scale = 1.2;
 	std::optional<wivrn::video_codec> codec;
 	uint32_t bitrate_bps = 50'000'000;
 	uint8_t bit_depth = 10;
