@@ -139,7 +139,7 @@ void app_pacer::predict(int64_t now_ns,
 	// Sync phase with compositor
 	last_display_time = compositor_display_time + period * ((period / 2 + last_display_time - compositor_display_time) / period);
 
-	if (cpu_time > period or gpu_time > period or (min_ready > last_display_time and min_ready < last_display_time + period))
+	if (min_ready > last_display_time and min_ready < last_display_time + period)
 	{
 		// We are limited by app time, don't wait
 		*out_wake_up_time = now_ns;
