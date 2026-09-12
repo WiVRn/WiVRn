@@ -68,6 +68,18 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="26.9" date="2026-09-12">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.9</url>
+			<description>
+				<ul>
+					<li>Revamped headset graphical userv interface</li>
+					<li>Forward gamepad inputs from headset to PC</li>
+					<li>Enable XR_FB_body_tracking</li>
+					<li>USB networking on Meta headsets</li>
+					<li>Fixes for Vulkan video encode on NVIDIA (again)</li>
+				</ul>
+			</description>
+		</release>
 		<release version="26.6" date="2026-06-10">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.6</url>
 			<description>
