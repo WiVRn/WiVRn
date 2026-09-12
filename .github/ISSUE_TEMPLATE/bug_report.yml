@@ -27,12 +27,6 @@ body:
 
   - type: input
     attributes:
-      label: Expected behavior
-      description: A clear and concise description of what you expected to happen.
-      placeholder: Please describe what you expected to happen.
-
-  - type: input
-    attributes:
       label: WiVRn Version
       description: Provide the version or commit hash of WiVRn.
       placeholder: Version or commit
@@ -47,37 +41,11 @@ body:
 
   - type: textarea
     attributes:
-      label: Server Config
-      description: |
-        Provide the content of `config.json` for the server.
-        Located in `${XDG_CONFIG_HOME-${HOME}/.config}/wivrn/config.json`
-        or `~/.var/app/io.github.wivrn.wivrn/config/wivrn/config.json` for the flatpak version
-      placeholder: |
-        {
-          "encoders": [
-            {"codec": "h264"}
-          ]
-        }
-
-  - type: textarea
-    attributes:
       label: Server Logs
       description: Provide the `wivrn-server` output.
       placeholder: |
         Add the output of the wivrn-server here.
         If more than a few lines, prefer file attachment.
-
-  - type: dropdown
-    id: gpu
-    attributes:
-      label: What GPU did the bug occur on?
-      options:
-        - NVIDIA
-        - AMD
-        - Intel
-        - Other
-    validations:
-      required: true
 
   - type: textarea
     attributes:
@@ -110,5 +78,5 @@ body:
     attributes:
       label: ADB Logs
       description: Provide the output of `adb logcat` command.
-      render: plain
+      render: text
       placeholder: Attach the output of adb logcat as a file.
