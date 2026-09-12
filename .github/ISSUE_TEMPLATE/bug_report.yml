@@ -9,7 +9,10 @@ body:
     attributes:
       label: Describe the bug
       description: A clear and concise description of what the bug is.
-      placeholder: Please describe the bug here...
+      placeholder: |
+        Please describe the bug here...
+        *** Do NOT use AI to generate a bug report ***
+        Write down what is wrong, attach logs and screenshots when relevant.
     validations:
       required: true
 
