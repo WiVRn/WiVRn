@@ -131,6 +131,9 @@ struct vk_bundle
 #ifdef VK_KHR_video_encode_intra_refresh
 	        vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR,
 #endif
+#ifdef VK_KHR_video_encode_av1
+	        vk::PhysicalDeviceVideoEncodeAV1FeaturesKHR,
+#endif
 #ifdef VK_KHR_unified_image_layouts
 	        vk::PhysicalDeviceUnifiedImageLayoutsFeaturesKHR,
 #endif

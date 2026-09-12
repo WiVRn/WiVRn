@@ -39,6 +39,7 @@
 #include "video_encoder_x264.h"
 #endif
 #if WIVRN_USE_VULKAN_ENCODE
+#include "video_encoder_vulkan_av1.h"
 #include "video_encoder_vulkan_h264.h"
 #include "video_encoder_vulkan_h265.h"
 #endif
@@ -120,7 +121,8 @@ std::unique_ptr<video_encoder> video_encoder::create(
 				res = video_encoder_vulkan_h265::create(wivrn_vk, settings, stream_idx);
 				break;
 			case video_codec::av1:
-				throw std::runtime_error("av1 not supported for vulkan video encode");
+				res = video_encoder_vulkan_av1::create(wivrn_vk, settings, stream_idx);
+				break;
 			case video_codec::raw:
 				throw std::runtime_error("raw codec only supported on raw encoder");
 		}
