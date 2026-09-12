@@ -19,6 +19,7 @@
 
 #include "session.h"
 
+#include "application.h"
 #include "details/enumerate.h"
 #include "openxr/openxr.h"
 #include "utils/contains.h"
@@ -285,11 +286,13 @@ float xr::session::get_current_refresh_rate()
 
 std::vector<float> xr::session::get_refresh_rates()
 {
+	std::vector<float> rates;
+
 	if (xrEnumerateDisplayRefreshRatesFB)
 	{
 		try
 		{
-			return xr::details::enumerate<float>(xrEnumerateDisplayRefreshRatesFB, id);
+			rates = xr::details::enumerate<float>(xrEnumerateDisplayRefreshRatesFB, id);
 		}
 		catch (...)
 		{
@@ -297,7 +300,17 @@ std::vector<float> xr::session::get_refresh_rates()
 		}
 	}
 
-	return {};
+	// The runtime may not enumerate all supported rates, add the rates from
+	// hmd_traits, requesting unenumerated values is allowed on supported devices
+	for (float rate: application::get_hmd_traits().extra_refresh_rates)
+	{
+		// the enumerated list is sorted, insert at the sorted position
+		auto pos = std::ranges::lower_bound(rates, rate);
+		if (pos == rates.end() or *pos != rate)
+			rates.insert(pos, rate);
+	}
+
+	return rates;
 }
 
 void xr::session::set_refresh_rate(float refresh_rate)
