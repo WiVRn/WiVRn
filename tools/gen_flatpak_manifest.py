@@ -73,14 +73,12 @@ if __name__ == "__main__":
         git_desc = ""
     except subprocess.CalledProcessError:
         git_tag = ""
-        git_commit = (
-            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root).decode().strip()
-        )
         git_desc = (
             subprocess.check_output(["git", "describe", "--tags", "--always"], cwd=root)
             .decode()
             .strip()
         )
+    git_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root).decode().strip()
 
     if args.git or args.gitlocal:
         template = template.replace("WIVRN_SRC1", "type: git")
@@ -88,15 +86,19 @@ if __name__ == "__main__":
             template = template.replace("WIVRN_SRC2", f"url: {args.git}")
         else:
             template = template.replace("WIVRN_SRC2", f"url: {root}")
-        template = template.replace("WIVRN_SRC3", f"tag: {git_commit}")
+        template = template.replace("WIVRN_SRC3", f"commit: {git_commit}")
     else:
         template = template.replace("WIVRN_SRC1", "type: dir")
         template = template.replace("WIVRN_SRC2", f"path: {root}")
         template = template.replace("WIVRN_SRC3", "")
 
     template = template.replace("WIVRN_GIT_TAG", git_tag)
-    template = template.replace("WIVRN_GIT_DESC", git_desc)
-    template = template.replace("WIVRN_GIT_COMMIT", git_commit)
+    if git_tag != "":
+        template = template.replace("WIVRN_GIT_DESC", "")
+        template = template.replace("WIVRN_GIT_COMMIT", "")
+    else:
+        template = template.replace("WIVRN_GIT_DESC", git_desc)
+        template = template.replace("WIVRN_GIT_COMMIT", git_commit)
 
     template = template.replace("BOOST_URL", boost_url)
     template = template.replace("BOOST_SHA256", boost_sha256)
