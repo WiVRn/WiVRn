@@ -479,12 +479,25 @@ bool wivrn_session::connected()
 	return connection->is_active();
 }
 
+// In automatic mode, don't start above this rate, refresh_rate_adjuster
+// increases it if the application can sustain it
+static constexpr float max_auto_rate = 120;
+
 float wivrn_session::default_fps()
 {
 	auto s = settings.lock();
 	if (s->preferred_refresh_rate)
 		return s->preferred_refresh_rate / s->fps_divider;
-	return headset_info.available_refresh_rates.back();
+
+	float rate = 0;
+	for (float i: headset_info.available_refresh_rates)
+	{
+		if (i > max_auto_rate)
+			break;
+		rate = i;
+	}
+
+	return rate == 0 ? headset_info.available_refresh_rates.front() : rate;
 }
 
 void wivrn_session::add_tracking_request(device_id device, int64_t at_ns, int64_t produced_ns, int64_t now)
