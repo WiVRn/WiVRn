@@ -72,7 +72,7 @@
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.9</url>
 			<description>
 				<ul>
-					<li>Revamped headset graphical userv interface</li>
+					<li>Revamped headset graphical user interface</li>
 					<li>Forward gamepad inputs from headset to PC</li>
 					<li>Enable XR_FB_body_tracking</li>
 					<li>USB networking on Meta headsets</li>
