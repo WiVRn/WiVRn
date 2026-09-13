@@ -634,7 +634,7 @@ msgstr "Yol: bin/linux64/vrclient.so hariç, kitaplık yolu"
 
 #: dashboard/qml/SettingsPage.qml:240
 #, kde-format
-msgctxt "browse to choose the OpenVR compatility to use"
+msgctxt "browse to choose the OpenVR compatibility to use"
 msgid "Browse"
 msgstr "Göz At"
 

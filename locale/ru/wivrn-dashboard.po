@@ -634,7 +634,7 @@ msgstr "Путь библиотеки, исключая bin/linux64/vrclient.so"
 
 #: dashboard/qml/SettingsPage.qml:240
 #, kde-format
-msgctxt "browse to choose the OpenVR compatility to use"
+msgctxt "browse to choose the OpenVR compatibility to use"
 msgid "Browse"
 msgstr ""
 

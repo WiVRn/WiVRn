@@ -65,7 +65,7 @@ void libcurl::curl_thread_fn()
 {
 #ifdef __ANDROID__
 	// For Android, read all the certificates at start-up, the file names are not
-	// in the correct format for the current verion of OpenSSL.
+	// in the correct format for the current version of OpenSSL.
 	// See https://stackoverflow.com/questions/25253823/how-to-make-ssl-peer-verify-work-on-android
 	std::string ca_bundle;
 	for (const std::filesystem::directory_entry & entry: std::filesystem::directory_iterator{"/system/etc/security/cacerts"})

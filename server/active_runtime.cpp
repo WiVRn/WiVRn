@@ -80,7 +80,7 @@ std::filesystem::path active_runtime::openvr_compat_path()
 		                return std::filesystem::path();
 	                },
 	                [](const std::string & path) {
-		                // exlicit value, use it
+		                // explicit value, use it
 		                std::optional<std::filesystem::path> flatpak_root = flatpak_key(flatpak::section::instance, "app-path");
 		                return flatpak_root.value_or("") / path;
 	                },

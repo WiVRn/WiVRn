@@ -282,7 +282,7 @@ Kirigami.ScrollablePage {
                     Layout.fillWidth: true
                 }
                 Controls.Button {
-                    text: i18nc("browse to choose the OpenVR compatility to use", "Browse")
+                    text: i18nc("browse to choose the OpenVR compatibility to use", "Browse")
                     visible: openvr_text.visible
                     onClicked: openvr_browse.open()
                 }

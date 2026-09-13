@@ -1002,7 +1002,7 @@ void scene_renderer::render(
 			return false;
 
 		// If blending is disabled (std::get<0> == false), put the closest objects first
-		// If blending is enabled (std::get<0> == true), put the farthest objeccts first
+		// If blending is enabled (std::get<0> == true), put the farthest objects first
 		return std::get<0>(a) ^ (std::get<1>(a) > std::get<1>(b));
 	});
 
