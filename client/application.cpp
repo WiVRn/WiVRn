@@ -43,6 +43,7 @@
 #include <ctype.h>
 #include <exception>
 #include <magic_enum.hpp>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
