@@ -84,6 +84,36 @@
 			}
 		},
 		{
+			"name": "profiling",
+			"displayName": "Server (tracing, all encoders) + client, for encoder profiling",
+			"inherits": "server-tracing",
+			"binaryDir": "${sourceDir}/build-profiling",
+			"cacheVariables": {
+				"WIVRN_BUILD_CLIENT": "ON",
+				"WIVRN_BUILD_BENCH_RUNTIME": "ON"
+			}
+		},
+		{
+			"name": "bench",
+			"displayName": "Server (tracing, Vulkan encode) + client, for encoder benchmarking",
+			"inherits": "server-tracing",
+			"binaryDir": "${sourceDir}/build-bench",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CMAKE_INTERPROCEDURAL_OPTIMIZATION": "OFF",
+				"WIVRN_BUILD_CLIENT": "ON",
+				"WIVRN_BUILD_BENCH_RUNTIME": "ON",
+				"WIVRN_BUILD_WIVRNCTL": "OFF",
+				"WIVRN_OPENXR_MANIFEST_TYPE": "absolute",
+				"WIVRN_USE_VULKAN_ENCODE": "ON",
+				"WIVRN_USE_NVENC": "OFF",
+				"WIVRN_USE_VAAPI": "OFF",
+				"WIVRN_USE_X264": "OFF",
+				"WIVRN_USE_PIPEWIRE": "OFF",
+				"WIVRN_WERROR": "OFF"
+			}
+		},
+		{
 			"name": "dashboard",
 			"displayName": "Dashboard only",
 			"inherits": "base",
@@ -165,6 +195,16 @@
 		"displayName": "Build and install",
 		"configurePreset": "everything",
 		"targets": "install"
+		},
+		{
+		"name": "profiling",
+		"displayName": "Build server (tracing) + client for encoder profiling",
+		"configurePreset": "profiling"
+		},
+		{
+		"name": "bench",
+		"displayName": "Build server (tracing) + client for encoder benchmarking",
+		"configurePreset": "bench"
 		}
 	]
 }

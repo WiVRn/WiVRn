@@ -122,6 +122,16 @@ tools/perfetto/pftrace_summary.py nvenc.pftrace                 # one trace
 tools/perfetto/pftrace_summary.py nvenc.pftrace vulkan.pftrace  # diff with Δmean
 ```
 
+## Headless harnesses
+
+Two scripts stream a full encode -> decode session with no headset, over one harness
+(`tools/perfetto/wivrn_session.py`):
+
+| Script | Question | Doc |
+| ------ | -------- | --- |
+| `encoder_bench.py` | did this commit make encoding slower? drives `git bisect run` | [benchmarking.md](benchmarking.md) |
+| `encoder_profile.py` | which encoder is fastest in this build? | [headless.md](headless.md) |
+
 ## Tracing Monado too
 
 Monado's own `u_trace` (built on percetto) can join the same session. Build with
