@@ -93,12 +93,18 @@ default does not read as a performance change:
 | `--resolution-scale` | `1.0` | extra scale on top of `--eye-width`/`--eye-height` |
 | `--stream-scale` | `1.0` | encoded resolution, as a fraction of the render resolution |
 | `--fps-divider` | `1` | |
-| `--codec` | encoder default | `h264` / `h265` / `av1` |
+| `--codec` | encoder default | `h264` / `h265` / `av1` — on the Vulkan encoder each needs its own device extension, checked by `doctor` |
 | `--duration` | `20` | seconds per run |
 | `--repeat` | `3` | runs per commit; the median is the result |
 | `--warmup` | `120` | leading frames discarded from each run |
 
 Those defaults encode 1920x1472 per eye; see [the workload](headless.md#workload).
+
+> **Per-layer supersampling affects results.** It runs in the layer squasher
+> before the encoder, so a run with `openxr_post_processing.super_sampling` set
+> is not comparable with one without it. The benchmark reads the value from
+> `client.json`, records it in the run's host info, and warns when it is on.
+> `doctor` reports it too. Leave it off for regression work.
 
 Builds are pinned too. The harness passes its own `-D` flags rather than a CMake preset, which an
 old commit may not have: `RelWithDebInfo`, IPO off, `WIVRN_WERROR=OFF`, and only the encoder under
