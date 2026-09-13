@@ -69,7 +69,7 @@ private:
 		virtual ~transfer();
 
 		virtual size_t write(void * data, size_t size) noexcept = 0;
-		virtual void finish() noexcept = 0;
+		virtual bool finish() noexcept = 0;
 		virtual void cancel() noexcept = 0;
 	};
 
@@ -82,7 +82,7 @@ private:
 		std::fstream stream;
 
 		size_t write(void * data, size_t size) noexcept override;
-		void finish() noexcept override;
+		bool finish() noexcept override;
 		void cancel() noexcept override;
 	};
 
@@ -93,7 +93,7 @@ private:
 		std::string buffer;
 
 		size_t write(void * data, size_t size) noexcept override;
-		void finish() noexcept override;
+		bool finish() noexcept override;
 		void cancel() noexcept override;
 	};
 
