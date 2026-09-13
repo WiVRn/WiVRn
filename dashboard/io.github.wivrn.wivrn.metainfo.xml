@@ -154,7 +154,7 @@
 					<li>Add XR_EXT_user_presence and XR_EXT_hand_interaction OpenXR extensions</li>
 					<li>Fix vulkan video encode and performances issues with multiple nvenc encoders on NVIDIA GPUs</li>
 					<li>Support 10-bit encoding on VAAPI for H.265 and AV1 codecs</li>
-					<li>Xrizer is now the default OpenVR compatibility layer (may be overriden by distribution packages)</li>
+					<li>Xrizer is now the default OpenVR compatibility layer (may be overridden by distribution packages)</li>
 					<li>Added Slovak and Turkish translations</li>
 				</ul>
 			</description>

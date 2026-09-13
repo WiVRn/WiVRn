@@ -655,7 +655,7 @@ static void stick_finger_to_gui(std::array<xr::hand_tracker::joint, XR_HAND_JOIN
 	std::vector<std::pair<glm::vec3, float>> intersections; // Target position of the finger tip, distance to the GUI plane
 	for (const imgui_context::window_viewport & layer: layers)
 	{
-		// Ignore layers that are not absolutely positionned
+		// Ignore layers that are not absolutely positioned
 		if (layer.space != xr::spaces::world)
 			continue;
 

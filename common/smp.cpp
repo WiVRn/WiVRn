@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Ported from libgcrypt to openssl, intially from libotr:
+ * Ported from libgcrypt to openssl, initially from libotr:
  *  Off-the-Record Messaging library
  *  Copyright (C) 2004-2014  Ian Goldberg, David Goulet, Rob Smits,
  *                           Chris Alexander, Willy Lew, Lisa Du,

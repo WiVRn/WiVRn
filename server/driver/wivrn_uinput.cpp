@@ -28,7 +28,7 @@ wivrn::fd_base open_uinput_or_throw(int flags = O_WRONLY)
 		int fd = ::open(p, flags | O_NONBLOCK);
 		if (fd >= 0)
 			return fd;
-		if (errno != ENOENT) // exists but inaccessbile
+		if (errno != ENOENT) // exists but inaccessible
 			throw std::system_error(errno, std::generic_category(), "error while opening uinput");
 	}
 	throw std::runtime_error("no uinput device found");
