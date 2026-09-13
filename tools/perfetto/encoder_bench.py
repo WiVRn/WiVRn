@@ -40,6 +40,16 @@ from wivrn_session import SessionError, SessionSpec
 
 PROG = "encoder_bench"
 SCHEMA = 1
+# Vulkan video encode is gated per codec, not just per queue. #1087 added the
+# AV1 path; without checking its extension the doctor passes and the encoder
+# throws "Vulkan video encode AV1 extension not available" at runtime.
+VULKAN_CODEC_EXTENSION = {
+    "h264": "VK_KHR_video_encode_h264",
+    "h265": "VK_KHR_video_encode_h265",
+    "av1": "VK_KHR_video_encode_av1",
+}
+VULKAN_DEFAULT_CODEC = "h264"
+
 DEFAULT_BUILD_DIR = "build-bench"  # per encoder: build-bench-vulkan, build-bench-x264, …
 
 # git bisect run contract: 0 good, 1 bad, 125 skip, anything above 127 aborts the bisect.
@@ -239,12 +249,35 @@ def gpus():
     return found
 
 
+def client_supersampling():
+    """Per-layer supersampling factor from the client config, or None.
+
+    #1033 added a multisampling step to the layer squasher. It runs before the
+    encoder and costs real GPU time, so two runs at different values are not
+    comparable. The benchmark cannot set it, but it can record it.
+    """
+    path = (
+        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+        / "wivrn"
+        / "client.json"
+    )
+    try:
+        cfg = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    pp = cfg.get("openxr_post_processing")
+    if isinstance(pp, dict):
+        return pp.get("super_sampling")
+    return None
+
+
 def host_info():
     return {
         "hostname": socket.gethostname(),
         "kernel": platform.release(),
         "governor": cpu_governor(),
         "gpus": gpus(),
+        "super_sampling": client_supersampling(),
     }
 
 
@@ -254,6 +287,12 @@ def warn_unstable_host(info):
         err(
             f"warning: CPU governor is '{gov}', not 'performance' — frequency scaling adds "
             "run-to-run noise that can swamp a small regression"
+        )
+    ss = info.get("super_sampling")
+    if ss:
+        err(
+            f"warning: per-layer supersampling is {ss} — it runs in the layer squasher before "
+            "the encoder, so results are not comparable with runs at a different value"
         )
 
 
@@ -658,10 +697,20 @@ def cmd_doctor(args):
             out = subprocess.run(
                 [vi, "--summary"], capture_output=True, text=True, check=False
             ).stdout
-            print(
-                f"         vulkaninfo: {len(out.splitlines())} lines "
-                "(check for VK_KHR_video_encode_queue)"
+            check(
+                "VK_KHR_video_encode_queue",
+                "VK_KHR_video_encode_queue" in out,
+                "(required for any Vulkan encode)",
             )
+            # Each codec sits behind its own device extension. Without this the
+            # run only fails once the encoder is constructed, which is far into
+            # the session and reads as an unrelated crash.
+            wanted = args.codec or VULKAN_DEFAULT_CODEC
+            ext = VULKAN_CODEC_EXTENSION.get(wanted)
+            if ext:
+                check(f"{ext}", ext in out, f"(required for --codec {wanted})")
+            else:
+                print(f"         unknown codec {wanted!r} — cannot verify extension")
         else:
             print("         vulkaninfo not installed — cannot verify Vulkan video encode support")
 
