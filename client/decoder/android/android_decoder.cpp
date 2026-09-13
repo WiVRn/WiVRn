@@ -195,6 +195,8 @@ decoder::decoder(
 
 decoder::~decoder()
 {
+	if (image_reader)
+		AImageReader_setImageListener(image_reader.get(), nullptr);
 	if (media_codec)
 	{
 		AMediaCodec_stop(media_codec.get());
