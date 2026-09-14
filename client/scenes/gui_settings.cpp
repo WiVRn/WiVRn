@@ -535,6 +535,7 @@ void settings_devices(const settings_context & ctx)
 	auto & default_config = ctx.default_config;
 	std::vector<setting> list;
 
+#ifdef __ANDROID__
 	list.push_back({
 	        .id = "##keyboard",
 	        .label = _C("setting name", "Keyboard"),
@@ -554,6 +555,7 @@ void settings_devices(const settings_context & ctx)
 	        .set_bool = [&config](bool v) { config.forward_mouse = v; config.save(); },
 	        .default_bool = default_config.forward_mouse,
 	});
+#endif
 
 	list.push_back({
 	        .id = "##gamepad",
