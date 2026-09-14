@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-11 14:46+0200\n"
-"PO-Revision-Date: 2026-05-29 16:16+0300\n"
-"Last-Translator: Hüseyin Fahri Uzun <mail@fahriuzun.com>\n"
+"POT-Creation-Date: 2026-09-13 21:32+0300\n"
+"PO-Revision-Date: 2026-09-14 11:57+0300\n"
+"Last-Translator: Hüseyin Fahri Uzun <fahri@uzun.pro>\n"
 "Language-Team: \n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
@@ -553,7 +553,7 @@ msgstr "Başlangıçta sistem ayarlarını kontrol et"
 #: dashboard/qml/SettingsPage.qml:114
 #, kde-format
 msgid "Expose forwarded input devices via uinput"
-msgstr ""
+msgstr "İletilen giriş cihazlarını uinput aracılığıyla kullanılabilir yap"
 
 #: dashboard/qml/SettingsPage.qml:117
 #, kde-format
@@ -565,6 +565,11 @@ msgid ""
 "available without virtual devices for applications that access it through "
 "OpenXR."
 msgstr ""
+"Gözlüğe bağlı fare, klavye ve gamepad'i PC'de sanal cihazlar olarak çoğalt.\n"
+"Çoğaltılan cihazlar PC'ye takılıymış gibi görünür, bazı tuşlar gözlüğün "
+"işletim sistemi tarafından ayrılmış olabilir ve kullanılamayabilir. Gamepad, "
+"OpenXR üzerinden erişen uygulamalar için sanal cihazlar olmadan da "
+"kullanılabilir."
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -590,49 +595,96 @@ msgstr ""
 "Aygıtlar WiVRn'e bağlanmadan önce açık olmalıdır.\n"
 "Kalibrasyon için motoc gibi harici bir araç gereklidir."
 
-#: dashboard/qml/SettingsPage.qml:140
+#: dashboard/qml/SettingsPage.qml:138
+#, kde-format
+msgid "Clamp extrapolation for SteamVR tracked devices"
+msgstr "SteamVR takip cihazları için ekstrapolasyonu sınırla"
+
+#: dashboard/qml/SettingsPage.qml:142
+#, kde-format
+msgid "SteamVR max pose extrapolation"
+msgstr "SteamVR maksimum konum ekstrapolasyonu"
+
+#: dashboard/qml/SettingsPage.qml:152
+#, kde-format
+msgctxt "value display for SteamVR max pose extrapolation"
+msgid "%1ms"
+msgid_plural "%1ms"
+msgstr[0] "%1ms"
+msgstr[1] "%1ms"
+
+#: dashboard/qml/SettingsPage.qml:157
+#, kde-format
+msgid ""
+"Maximum time in milliseconds that poses may be extrapolated ahead for "
+"SteamVR tracked devices. Tune this value if you experience jittery or wobbly "
+"tracking."
+msgstr ""
+"SteamVR takip cihazları için konumların ileriye tahmin edilebileceği "
+"maksimum süre (milisaniye). Titreyen veya sallanan takip yaşıyorsanız bu "
+"değeri ayarlayın."
+
+#: dashboard/qml/SettingsPage.qml:162
+#, kde-format
+msgid "SteamVR joystick deadzone"
+msgstr "SteamVR joystick ölü bölgesi"
+
+#: dashboard/qml/SettingsPage.qml:177
+#, kde-format
+msgid ""
+"Deadzone to apply to joysticks on lighthouse-tracked controllers, such as "
+"Index.\n"
+"For standalone controllers, deadzones may be adjusted via the headset's "
+"system settings."
+msgstr ""
+"Index gibi lighthouse ile takip edilen kontrolcülerin joystick'lerine "
+"uygulanacak ölü bölge.\n"
+"Bağımsız kontrolcülerde ölü bölgeler gözlüğün sistem ayarlarından "
+"ayarlanabilir."
+
+#: dashboard/qml/SettingsPage.qml:185
 #, kde-format
 msgid "Custom adb location"
 msgstr "Özel adb konumu"
 
-#: dashboard/qml/SettingsPage.qml:151
+#: dashboard/qml/SettingsPage.qml:196
 #, kde-format
 msgid "Adb location:"
 msgstr "Adb konumu:"
 
-#: dashboard/qml/SettingsPage.qml:160
+#: dashboard/qml/SettingsPage.qml:205
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Gözat"
 
-#: dashboard/qml/SettingsPage.qml:170
+#: dashboard/qml/SettingsPage.qml:215
 #, kde-format
 msgid "Default"
 msgstr "Varsayılan"
 
-#: dashboard/qml/SettingsPage.qml:184
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Özel"
 
-#: dashboard/qml/SettingsPage.qml:189
+#: dashboard/qml/SettingsPage.qml:234
 #, kde-format
 msgid "Disabled"
 msgstr "Devre dışı"
 
-#: dashboard/qml/SettingsPage.qml:205
+#: dashboard/qml/SettingsPage.qml:250
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR uyumluluk kitaplığı:"
 
-#: dashboard/qml/SettingsPage.qml:235
+#: dashboard/qml/SettingsPage.qml:280
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Yol: bin/linux64/vrclient.so hariç, kitaplık yolu"
 
-#: dashboard/qml/SettingsPage.qml:240
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgctxt "browse to choose the OpenVR compatibility to use"
 msgid "Browse"
@@ -676,6 +728,8 @@ msgid ""
 "If you installed WiVRn over USB on a Meta or Pico headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
+"WiVRn'i Meta veya Pico gözlüğe USB üzerinden yüklediyseniz, uygulama "
+"\"bilinmeyen kaynaklar\" bölümündedir."
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
