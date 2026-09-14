@@ -223,17 +223,6 @@ public:
 		if (config.codec == video_codec::raw or config.name == encoder_raw)
 			return {encoder_raw, video_codec::raw};
 
-#if WIVRN_USE_NVENC
-		if ((nvidia and config.name.empty()) or config.name == encoder_nvenc)
-		{
-			for (auto codec: config.codec ? std::vector{*config.codec} : info.supported_codecs)
-			{
-				if (check_nvenc(codec))
-					return {encoder_nvenc, codec};
-			}
-		}
-#endif
-
 #if WIVRN_USE_VULKAN_ENCODE
 		if (config.name.empty() or config.name == encoder_vulkan)
 		{
@@ -241,6 +230,17 @@ public:
 			{
 				if (has_vk(codec))
 					return {encoder_vulkan, codec};
+			}
+		}
+#endif
+
+#if WIVRN_USE_NVENC
+		if ((nvidia and config.name.empty()) or config.name == encoder_nvenc)
+		{
+			for (auto codec: config.codec ? std::vector{*config.codec} : info.supported_codecs)
+			{
+				if (check_nvenc(codec))
+					return {encoder_nvenc, codec};
 			}
 		}
 #endif

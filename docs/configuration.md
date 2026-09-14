@@ -24,13 +24,13 @@ When a string it is used, it is equivalent to the `encoder` item of the object.
 WiVRn encodes each eye separately, and the alpha channel as one for both eyes. Each stream is processed independently, this may use resources more effectively and reduce latency.
 
 ### `encoder`
-Default value: `nvenc` if Nvidia GPU and compiled with nvenc, `vaapi` for all other GPU when compiled with ffmpeg, else `x264`.
+Default value: `vulkan` if supported, `nvenc` if Nvidia GPU and compiled with nvenc, `vaapi` for all other GPU when compiled with ffmpeg, else `x264`.
 
 Identifier of the encoder, one of
 * `x264`: software encoding
 * `nvenc`: Nvidia hardware encoding
 * `vaapi`: AMD/Intel hardware encoding
-* `vulkan`: experimental, for any GPU that supports vulkan video encode
+* `vulkan`: for any GPU that supports vulkan video encode
 
 ### `codec`
 Default value: best supported by both headset and encoder of `av1`, `h264`, `h265`.
