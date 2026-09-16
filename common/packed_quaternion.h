@@ -29,9 +29,15 @@ struct packed_quaternion
 {
 	uint32_t value;
 
-	static packed_quaternion from_quaternion(const XrQuaternionf & q)
+	static packed_quaternion from_quaternion(XrQuaternionf q)
 	{
-		assert(std::abs(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z - 1) < 0.01);
+		auto norm = std::sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
+		assert(std::abs(norm - 1) < 0.01);
+
+		q.w /= norm;
+		q.x /= norm;
+		q.y /= norm;
+		q.z /= norm;
 
 		float abs_w = std::abs(q.w);
 		float abs_x = std::abs(q.x);
@@ -81,7 +87,7 @@ struct packed_quaternion
 		float q1 = (int((value >> 20) & 0x3ff) - 512) * scale_factor;
 		float q2 = (int((value >> 10) & 0x3ff) - 512) * scale_factor;
 		float q3 = (int((value >> 0) & 0x3ff) - 512) * scale_factor;
-		float q0 = std::sqrt(1 - q1 * q1 - q2 * q2 - q3 * q3);
+		float q0 = std::sqrt(std::max(0.f, 1 - q1 * q1 - q2 * q2 - q3 * q3));
 
 		switch (value >> 30)
 		{
