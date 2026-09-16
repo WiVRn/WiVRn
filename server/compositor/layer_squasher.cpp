@@ -719,7 +719,7 @@ xrt_fov layer_squasher::do_projection_layer(
 		        &vd.pose,
 		        &vd.fov,
 		        &world_pose,
-		        &ubo.layers[cur_layer].transforms_timewarp);
+		        &ubo.layers[cur_layer].transforms);
 
 	return vd.fov;
 }
