@@ -327,6 +327,9 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	}
 	self->system_compositor = *out_xsysc;
 
+	struct xrt_pose t_stage_local = XRT_POSE_IDENTITY;
+	t_stage_local.position.y = 1.6;
+
 	t_builder_create_space_overseer_legacy(
 	        &self->xrt_system.broadcast,
 	        &self->hmd,
@@ -337,6 +340,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	        self->static_xdevs,
 	        self->static_xdev_count,
 	        false,
+	        &t_stage_local,
 	        false,
 	        out_xspovrs);
 	self->space_overseer = *out_xspovrs;
