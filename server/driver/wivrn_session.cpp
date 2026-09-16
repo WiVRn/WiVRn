@@ -140,7 +140,6 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
 
 	auto use_steamvr_lh = conf.use_steamvr_lh || std::getenv("WIVRN_USE_STEAMVR_LH");
-	xrt_system_devices * lhdevs = NULL;
 
 	if (use_steamvr_lh)
 	{
@@ -154,33 +153,34 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		U_LOG_W("Disregard lighthousedb / chaperone related error messages from the lighthouse driver. These are irrelevant in case of WiVRn.");
 		U_LOG_W("If getting a SIGSEGV right after this, you are likely using an unsupported SteamVR version!");
 		U_LOG_W("=====================");
-		if (steamvr_lh_create_devices(nullptr, &lhdevs) == XRT_SUCCESS)
+		int original_count = static_xdev_count;
+		if (steamvr_lh_create_devices(nullptr, this) == XRT_SUCCESS)
 		{
-			for (int i = 0; i < lhdevs->static_xdev_count; i++)
+			for (int i = original_count; i < static_xdev_count; i++)
 			{
-				auto lhdev = lhdevs->static_xdevs[i];
+				auto lhdev = static_xdevs[i];
 				switch (lhdev->device_type)
 				{
 					case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
-						roles.left = static_xdev_count;
+						roles.left = i;
 						static_roles.hand_tracking.unobstructed.left = nullptr;
 						static_roles.hand_tracking.conforming.left = lhdev;
 						break;
 					case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER:
-						roles.right = static_xdev_count;
+						roles.right = i;
 						static_roles.hand_tracking.unobstructed.right = nullptr;
 						static_roles.hand_tracking.conforming.right = lhdev;
 						break;
 					case XRT_DEVICE_TYPE_ANY_HAND_CONTROLLER:
 						if (roles.left == left_controller_index)
 						{
-							roles.left = static_xdev_count;
+							roles.left = i;
 							static_roles.hand_tracking.unobstructed.left = nullptr;
 							static_roles.hand_tracking.conforming.left = lhdev;
 						}
 						else if (roles.right == right_controller_index)
 						{
-							roles.right = static_xdev_count;
+							roles.right = i;
 							static_roles.hand_tracking.unobstructed.right = nullptr;
 							static_roles.hand_tracking.conforming.right = lhdev;
 						}
@@ -188,7 +188,6 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 					default:
 						break;
 				}
-				static_xdevs[static_xdev_count++] = lhdev;
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-From 0276080e671cdefb7e88eda9492049727223689a Mon Sep 17 00:00:00 2001
+From 337ab13148cddef8ba9a21b3829a3bc6bedebed8 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
 Subject: [PATCH 1/9] c/multi: early wake of compositor
@@ -51,7 +51,7 @@ index 6c7ec05f8..588878e38 100644
  	{
  		int64_t predicted_display_time_ns;
 diff --git a/src/xrt/compositor/multi/comp_multi_system.c b/src/xrt/compositor/multi/comp_multi_system.c
-index 51d1c2827..363def34f 100644
+index 37bdc3bc5..717f6ae4c 100644
 --- a/src/xrt/compositor/multi/comp_multi_system.c
 +++ b/src/xrt/compositor/multi/comp_multi_system.c
 @@ -15,6 +15,8 @@
@@ -93,7 +93,7 @@ index 51d1c2827..363def34f 100644
  }
  
  static void
-@@ -574,10 +583,13 @@ multi_main_loop(struct multi_system_compositor *msc)
+@@ -576,10 +585,13 @@ multi_main_loop(struct multi_system_compositor *msc)
  		broadcast_timings_to_clients(msc, predicted_display_time_ns);
  
  		// Now we can wait.
@@ -109,7 +109,7 @@ index 51d1c2827..363def34f 100644
  
  		// Now we know the diff, broadcast to pacers.
  		broadcast_timings_to_pacers(msc, predicted_display_time_ns, predicted_display_period_ns, diff_ns);
-@@ -797,6 +809,8 @@ system_compositor_destroy(struct xrt_system_compositor *xsc)
+@@ -798,6 +810,8 @@ system_compositor_destroy(struct xrt_system_compositor *xsc)
  	xrt_comp_native_destroy(&msc->xcn);
  
  	os_mutex_destroy(&msc->list_and_timing_lock);
@@ -118,7 +118,7 @@ index 51d1c2827..363def34f 100644
  
  	free(msc);
  }
-@@ -855,6 +869,8 @@ comp_multi_create_system_compositor(struct xrt_compositor_native *xcn,
+@@ -856,6 +870,8 @@ comp_multi_create_system_compositor(struct xrt_compositor_native *xcn,
  	msc->get_view_config_callback = get_view_config_callback;
  
  	os_mutex_init(&msc->list_and_timing_lock);
