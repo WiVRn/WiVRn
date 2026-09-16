@@ -1,4 +1,4 @@
-From 3f4451bf117b197b0177844f8fa818a838ebf965 Mon Sep 17 00:00:00 2001
+From 4f0256590650672bf790cf571f5cc7b6495cb5f0 Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Sun, 28 Jun 2026 11:36:08 -0600
 Subject: [PATCH 9/9] ipc: join client threads before teardown
@@ -14,7 +14,7 @@ multi_compositor_destroy). Join the client threads first.
  1 file changed, 28 insertions(+)
 
 diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
-index 4f9a6e2a4..3cad2dab1 100644
+index 8adf617dd..9ab982396 100644
 --- a/src/xrt/ipc/server/ipc_server_process.c
 +++ b/src/xrt/ipc/server/ipc_server_process.c
 @@ -163,11 +163,39 @@ print_linux_end_user_started_information(enum u_logging_level log_level)
