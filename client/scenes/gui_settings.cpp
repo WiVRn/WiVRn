@@ -581,6 +581,44 @@ bool settings_tracking(const settings_context & ctx)
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list;
 
+	// in the lobby this edits the default posture used when a stream connects; in-stream it
+	// only overrides the current session, so a punctual switch doesn't stick for next time
+	const bool seated = (ctx.in_game ? config.get_posture() : config.default_posture) == posture::seated;
+	float & height_offset = seated ? config.height_offset_seated : config.height_offset_standing;
+	const float default_height_offset = seated ? default_config.height_offset_seated : default_config.height_offset_standing;
+
+	list.push_back({
+	        .id = "##posture",
+	        .label = _C("setting name", "Posture"),
+	        .description = ctx.in_game
+	                               ? _("Switches height for this stream only. Reconnecting uses the default below.")
+	                               : _("Default posture assumed when a stream connects."),
+	        .ui = ui_kind::segmented,
+	        .get_int = [seated] { return seated ? 1 : 0; },
+	        .set_int = [&ctx, &config](int v) {
+		        const auto p = v ? posture::seated : posture::standing;
+		        if (ctx.in_game)
+			        config.set_posture(p);
+		        else
+			        config.default_posture = p;
+		        config.save(); },
+	        .options = [] { return std::vector<std::string>{_C("posture", "Standing"), _C("posture", "Seated")}; },
+	        .default_int = default_config.default_posture == posture::seated ? 1 : 0,
+	});
+
+	list.push_back({
+	        .id = "##height_offset",
+	        .label = _C("setting name", "Height adjustment"),
+	        .description = _("Corrects the height reported to the PC for the selected posture, useful for seated play or a miscalibrated floor."),
+	        .ui = ui_kind::slider,
+	        .get_int = [&height_offset] { return int(std::lround(height_offset * 100)); },
+	        .set_int = [&config, &height_offset](int v) { height_offset = v / 100.f; config.save(); },
+	        .v_min = -30,
+	        .v_max = 70,
+	        .fmt = "%d cm",
+	        .default_int = int(std::lround(default_height_offset * 100)),
+	});
+
 	auto feature_toggle = [&](const char * id, std::string label, std::string desc, feature f) {
 		list.push_back({
 		        .id = id,

@@ -395,6 +395,38 @@ msgstr "Envoie les périphériques d'entrée du casque au PC."
 msgid "The server does not allow forwarded input devices"
 msgstr "Le serveur n'autorise pas les périphériques virtuels"
 
+#: client/scenes/gui_settings.cpp:592
+msgctxt "setting name"
+msgid "Posture"
+msgstr "Posture"
+
+#: client/scenes/gui_settings.cpp:594
+msgid "Switches height for this stream only. Reconnecting uses the default below."
+msgstr "Change la hauteur pour cette connexion uniquement. Une reconnexion utilise la valeur par défaut ci-dessous."
+
+#: client/scenes/gui_settings.cpp:595
+msgid "Default posture assumed when a stream connects."
+msgstr "Posture par défaut appliquée à la connexion."
+
+#: client/scenes/gui_settings.cpp:605
+msgctxt "posture"
+msgid "Standing"
+msgstr "Debout"
+
+#: client/scenes/gui_settings.cpp:605
+msgctxt "posture"
+msgid "Seated"
+msgstr "Assis"
+
+#: client/scenes/gui_settings.cpp:611
+msgctxt "setting name"
+msgid "Height adjustment"
+msgstr "Ajustement de la hauteur"
+
+#: client/scenes/gui_settings.cpp:612
+msgid "Corrects the height reported to the PC for the selected posture, useful for seated play or a miscalibrated floor."
+msgstr "Corrige la hauteur transmise au PC pour la posture sélectionnée, utile en position assise ou si le sol est mal calibré."
+
 #: client/scenes/gui_settings.cpp:597
 msgctxt "setting name"
 msgid "Hand tracking"
