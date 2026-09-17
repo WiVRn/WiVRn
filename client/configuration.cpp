@@ -347,6 +347,9 @@ const std::vector<config_field> & configuration::config_fields()
 	        scalar("codec", &configuration::codec),
 	        scalar("bit_depth", &configuration::bit_depth),
 	        scalar("usb_network", &configuration::usb_network),
+	        scalar("height_offset_standing", &configuration::height_offset_standing),
+	        scalar("height_offset_seated", &configuration::height_offset_seated),
+	        scalar("default_posture", &configuration::default_posture),
 	};
 	return fields;
 }
@@ -412,4 +415,24 @@ float configuration::get_default_stream_scale() const
 	if (check_feature(feature::eye_gaze))
 		return 0.3;
 	return 0.5;
+}
+
+void configuration::set_posture(posture p)
+{
+	posture_override = p;
+}
+
+void configuration::reset_posture()
+{
+	posture_override.reset();
+}
+
+posture configuration::get_posture() const
+{
+	return posture_override.value_or(default_posture);
+}
+
+float configuration::get_height_offset() const
+{
+	return get_posture() == posture::seated ? height_offset_seated : height_offset_standing;
 }
