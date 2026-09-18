@@ -43,6 +43,7 @@ We recommend using native packages if available for your distribution:
 - [Fedora](https://packages.fedoraproject.org/pkgs/wivrn/wivrn/)
 - [Gentoo Guru](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn)
 - [NixOS](https://search.nixos.org/packages?show=wivrn)
+- [Ubuntu PPA](https://launchpad.net/~lvra/+archive/ubuntu/wivrn)
 
 For OpenVR and Steam compatibility, you also need a compatibility library such as [xrizer](https://github.com/Supreeeme/xrizer/) or [OpenComposite](https://gitlab.com/znixian/OpenOVR/).
 
