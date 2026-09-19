@@ -117,6 +117,24 @@ XrSystemEyeGazeInteractionPropertiesEXT xr::system::eye_gaze_interaction_propert
 	return eye_gaze_prop;
 }
 
+XrSystemFoveationEyeTrackedPropertiesMETA xr::system::foveation_eye_tracked_properties() const
+{
+	if (!id)
+		throw std::invalid_argument("this");
+
+	XrSystemFoveationEyeTrackedPropertiesMETA foveation_prop{
+	        .type = XR_TYPE_SYSTEM_FOVEATION_EYE_TRACKED_PROPERTIES_META,
+	};
+
+	XrSystemProperties prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &foveation_prop,
+	};
+	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+	return foveation_prop;
+}
+
 XrSystemUserPresencePropertiesEXT xr::system::user_presence_properties() const
 {
 	if (!id)
