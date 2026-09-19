@@ -320,6 +320,7 @@ struct headset_info_packet
 	std::array<XrFovf, 2> fov;
 	bool hand_tracking;
 	bool eye_gaze;
+	bool foveation_center;
 	bool palm_pose;
 	bool user_presence;
 	bool passthrough;
@@ -405,6 +406,7 @@ struct tracking
 
 	std::array<view, 2> views;
 	std::vector<pose> device_poses;
+	std::optional<std::array<XrVector2f, 2>> foveation_angles; // Per-eye x/y view angles in radians
 
 	struct android_face
 	{
@@ -658,13 +660,6 @@ struct stream_tab_changed
 	stream_tab tab;
 };
 
-struct override_foveation_center
-{
-	bool enabled;
-	float pitch;
-	float distance;
-};
-
 struct get_application_list
 {
 	std::string language;
@@ -715,7 +710,6 @@ using packets = std::variant<
         session_state_changed,
         user_presence_changed,
         stream_tab_changed,
-        override_foveation_center,
         get_application_list,
         start_app,
         get_running_applications,

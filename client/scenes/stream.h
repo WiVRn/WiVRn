@@ -22,6 +22,7 @@
 #include "app_launcher.h"
 #include "audio/audio.h"
 #include "decoder/shard_accumulator.h"
+#include "foveation.h"
 #include "render/imgui_impl.h"
 #include "scene.h"
 #include "scenes/input_profile.h"
@@ -117,7 +118,12 @@ private:
 		state_.compare_exchange_strong(prev, new_state);
 	}
 
+	client_foveation::eye_tracked_center meta_foveation_center;
 	xr::swapchain swapchain;
+	bool foveation_center_enabled = false;
+	std::optional<std::array<XrFovf, view_count>> last_submitted_fov;
+	thread_safe<client_foveation::angle_update_state> latest_foveation_angles{};
+	thread_safe<client_foveation::manual_override> foveation_override{};
 
 	std::optional<audio> audio_handle;
 
@@ -187,10 +193,6 @@ private:
 	// Position of the GUI relative to the world space, in world space axes, used when the GUI is interactable
 	glm::vec3 world_gui_position;
 	glm::quat world_gui_orientation;
-
-	bool override_foveation_enable;
-	float override_foveation_pitch; // The pitch is the opposite as the height displayed in the GUI
-	float override_foveation_distance;
 
 	// Which controller is used for recentering and position of the GUI relative to the controller, in controller axes, during recentering
 	std::optional<std::tuple<xr::spaces, glm::vec3, glm::quat>> recentering_context;

@@ -175,7 +175,8 @@ static const std::array supported_depth_formats{
 
 scenes::stream::stream(std::string server_name, scene & parent_scene) :
         scene_impl<stream>(supported_color_formats, supported_depth_formats, parent_scene),
-        apps{*this, std::move(server_name)}
+        apps{*this, std::move(server_name)},
+        meta_foveation_center{instance, system, session}
 {
 	auto views = system.view_configuration_views(viewconfig);
 	width = views[0].recommendedImageRectWidth;
@@ -214,6 +215,14 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 {
 	std::shared_ptr<stream> self{new stream{std::move(server_name), parent_scene}};
 	self->network_session = std::move(network_session);
+
+	self->foveation_center_enabled =
+	        application::get_foveation_center_supported() and
+	        application::get_foveation_vulkan_supported() and
+	        self->meta_foveation_center.supports_foveation_center();
+
+	if (self->foveation_center_enabled)
+		spdlog::info("XR_META_foveation_eye_tracked will be used for this stream");
 
 	self->network_session->send_control([&]() {
 		from_headset::headset_info_packet info{
@@ -271,6 +280,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
+		info.foveation_center = self->foveation_center_enabled;
 
 		if (self->instance.has_extension(XR_EXT_USER_PRESENCE_EXTENSION_NAME))
 		{
@@ -373,16 +383,12 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	{
 		const auto & config = application::get_config();
-		self->override_foveation_enable = config.override_foveation_enable;
-		self->override_foveation_pitch = config.override_foveation_pitch;
-		self->override_foveation_distance = config.override_foveation_distance;
-
-		if (self->override_foveation_enable)
-			self->network_session->send_control(from_headset::override_foveation_center{
-			        .enabled = self->override_foveation_enable,
-			        .pitch = self->override_foveation_pitch,
-			        .distance = self->override_foveation_distance,
-			});
+		auto override = self->foveation_override.lock();
+		*override = {
+		        .enabled = config.override_foveation_enable,
+		        .pitch = config.override_foveation_pitch,
+		        .distance = config.override_foveation_distance,
+		};
 	}
 
 	self->network_thread = utils::named_thread("network_thread", &stream::process_packets, self.get());
@@ -1017,6 +1023,17 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			}
 		}
 		assert(swapchain);
+
+		if (foveation_center_enabled)
+		{
+			// interpret reported NDC center using the most recent successful submit
+			if (auto center = meta_foveation_center.get_foveation_center(swapchain); center and last_submitted_fov)
+			{
+				auto latest = latest_foveation_angles.lock();
+				client_foveation::update_angles(*latest, client_foveation::center_to_angles(*center, *last_submitted_fov));
+			}
+		}
+
 		// defoveate the image, apply scale/bias
 		int image_index = swapchain.acquire();
 		swapchain.wait();
@@ -1127,6 +1144,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		try
 		{
 			render_end();
+			last_submitted_fov = fov;
 		}
 		catch (std::system_error & e)
 		{
@@ -1235,7 +1253,16 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 
 	auto views = system.view_configuration_views(viewconfig);
 
-	swapchain = xr::swapchain(instance, session, device, swapchain_format, swapchain_width, swapchain_height, 1, views.size());
+	swapchain = xr::swapchain(
+	        instance,
+	        session,
+	        device,
+	        swapchain_format,
+	        swapchain_width,
+	        swapchain_height,
+	        1,
+	        views.size(),
+	        foveation_center_enabled);
 	spdlog::info("Created stream swapchain: {}x{}", swapchain.width(), swapchain.height());
 	for (auto view: views)
 	{
