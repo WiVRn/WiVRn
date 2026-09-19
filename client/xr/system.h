@@ -85,6 +85,7 @@ public:
 	XrSystemProperties properties() const;
 	XrSystemHandTrackingPropertiesEXT hand_tracking_properties() const;
 	XrSystemEyeGazeInteractionPropertiesEXT eye_gaze_interaction_properties() const;
+	XrSystemFoveationEyeTrackedPropertiesMETA foveation_eye_tracked_properties() const;
 	XrSystemUserPresencePropertiesEXT user_presence_properties() const;
 	XrSystemFaceTrackingPropertiesANDROID android_face_tracking_properties() const;
 	XrSystemFaceTrackingProperties2FB fb_face_tracking2_properties() const;

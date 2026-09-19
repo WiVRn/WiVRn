@@ -166,6 +166,7 @@ public:
 	void operator()(const from_headset::settings_changed &);
 	void operator()(from_headset::handshake &&) {}
 	void operator()(const from_headset::tracking &);
+	void operator()(const from_headset::foveation &);
 	void operator()(from_headset::derived_pose &&);
 	void operator()(from_headset::hand_tracking &&);
 	void operator()(from_headset::meta_body &&);
@@ -182,7 +183,6 @@ public:
 	void operator()(from_headset::user_presence_changed &&);
 	void operator()(from_headset::refresh_rate_changed &&);
 	void operator()(from_headset::stream_tab_changed &&);
-	void operator()(from_headset::override_foveation_center &&);
 	void operator()(from_headset::get_application_list &&);
 	void operator()(const from_headset::start_app &);
 	void operator()(const from_headset::get_running_applications &);
