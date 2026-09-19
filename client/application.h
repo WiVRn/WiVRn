@@ -131,6 +131,8 @@ private:
 	std::vector<std::pair<XrPath, xr::space>> generic_trackers;
 
 	bool eye_gaze_supported = false;
+	bool foveation_center_supported = false;
+	bool foveation_vulkan_supported = false;
 
 	bool openxr_post_processing_supported = false;
 
@@ -405,6 +407,16 @@ public:
 	static bool get_eye_gaze_supported()
 	{
 		return instance().eye_gaze_supported;
+	}
+
+	static bool get_foveation_center_supported()
+	{
+		return instance().foveation_center_supported;
+	}
+
+	static bool get_foveation_vulkan_supported()
+	{
+		return instance().foveation_vulkan_supported;
 	}
 
 	static bool get_openxr_post_processing_supported()

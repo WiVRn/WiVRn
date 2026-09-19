@@ -21,6 +21,7 @@
 
 #include "utils/handle.h"
 #include "utils/thread_safe.h"
+#include <array>
 #include <span>
 #include <string>
 #include <vector>

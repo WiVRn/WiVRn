@@ -837,6 +837,8 @@ void application::initialize_vulkan()
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_EXT_FRAGMENT_DENSITY_MAP_2_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_QCOM_FRAGMENT_DENSITY_MAP_OFFSET_EXTENSION_NAME);
 
 #ifdef __ANDROID__
 	vk_device_extensions.push_back(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME);
@@ -984,7 +986,9 @@ void application::initialize_vulkan()
 	        vk::PhysicalDeviceMultiviewFeaturesKHR{
 	                .multiview = true,
 	        },
-	        vk::PhysicalDeviceIndexTypeUint8FeaturesEXT{}};
+	        vk::PhysicalDeviceIndexTypeUint8FeaturesEXT{},
+	        vk::PhysicalDeviceFragmentDensityMapFeaturesEXT{},
+	        vk::PhysicalDeviceFragmentDensityMapOffsetFeaturesQCOM{}};
 
 	auto check_feature_flag = [&](auto feature_flag, const char * extension_name) -> bool {
 		using FeatureStruct = class_from_member_t<decltype(feature_flag)>;
@@ -1004,6 +1008,14 @@ void application::initialize_vulkan()
 
 	check_feature_flag(&vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR::timelineSemaphore, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 	check_feature_flag(&vk::PhysicalDeviceIndexTypeUint8FeaturesEXT::indexTypeUint8, VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME);
+	const bool fragment_density_map_supported =
+	        check_feature_flag(&vk::PhysicalDeviceFragmentDensityMapFeaturesEXT::fragmentDensityMap, VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
+	const bool fragment_density_map2_supported =
+	        utils::contains(vk_device_extensions, VK_EXT_FRAGMENT_DENSITY_MAP_2_EXTENSION_NAME);
+	const bool fragment_density_map_offset_supported =
+	        check_feature_flag(&vk::PhysicalDeviceFragmentDensityMapOffsetFeaturesQCOM::fragmentDensityMapOffset, VK_QCOM_FRAGMENT_DENSITY_MAP_OFFSET_EXTENSION_NAME);
+	foveation_vulkan_supported = fragment_density_map_supported and fragment_density_map2_supported and fragment_density_map_offset_supported;
+	spdlog::info("    Vulkan eye-tracked foveation support: {}", foveation_vulkan_supported);
 
 	vk_device = xr_system_id.create_device(vk_physical_device, device_create_info.get());
 	*vk_queue.lock() = vk_device.getQueue(vk_queue_family_index, 0);
@@ -1311,6 +1323,9 @@ void application::initialize()
 	        XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME,
 	        XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME,
 	        XR_FB_FACE_TRACKING2_EXTENSION_NAME,
+	        XR_FB_FOVEATION_EXTENSION_NAME,
+	        XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME,
+	        XR_FB_FOVEATION_VULKAN_EXTENSION_NAME,
 	        XR_FB_PASSTHROUGH_EXTENSION_NAME,
 	        XR_FB_SWAPCHAIN_UPDATE_STATE_EXTENSION_NAME,
 
@@ -1321,7 +1336,9 @@ void application::initialize()
 
 	        XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME,
 	        XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME,
+	        XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME,
 	        XR_META_LOCAL_DIMMING_EXTENSION_NAME,
+	        XR_META_VULKAN_SWAPCHAIN_CREATE_INFO_EXTENSION_NAME,
 	};
 
 	for (const auto & i: interaction_profiles)
@@ -1370,6 +1387,13 @@ void application::initialize()
 		XrSystemEyeGazeInteractionPropertiesEXT eye_gaze_properties = xr_system_id.eye_gaze_interaction_properties();
 		spdlog::info("    Eye gaze support: {}", (bool)eye_gaze_properties.supportsEyeGazeInteraction);
 		eye_gaze_supported = eye_gaze_properties.supportsEyeGazeInteraction;
+	}
+
+	if (xr_instance.has_extension(XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME))
+	{
+		XrSystemFoveationEyeTrackedPropertiesMETA foveation_properties = xr_system_id.foveation_eye_tracked_properties();
+		spdlog::info("    Eye tracked foveation center support: {}", (bool)foveation_properties.supportsFoveationEyeTracked);
+		foveation_center_supported = foveation_properties.supportsFoveationEyeTracked;
 	}
 
 	if (xr_instance.has_extension(XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME))
