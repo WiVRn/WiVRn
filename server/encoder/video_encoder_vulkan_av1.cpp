@@ -163,16 +163,19 @@ wivrn::video_encoder_vulkan_av1::video_encoder_vulkan_av1(
 	        .pTimingInfo = nullptr,
 	};
 
-	operating_point = {};
-	operating_point.flags.decoder_model_present_for_this_op = 0;
-	operating_point.flags.low_delay_mode_flag = 1;
-	operating_point.flags.initial_display_delay_present_for_this_op = 0;
-	operating_point.operating_point_idc = 0;
-	operating_point.seq_level_idx = static_cast<uint8_t>(level);
-	operating_point.seq_tier = 0;
-	operating_point.decoder_buffer_delay = 0;
-	operating_point.encoder_buffer_delay = 0;
-	operating_point.initial_display_delay_minus_1 = 0;
+	operating_point = {
+	        .flags = {
+	                .decoder_model_present_for_this_op = 0,
+	                .low_delay_mode_flag = 1,
+	                .initial_display_delay_present_for_this_op = 0,
+	        },
+	        .operating_point_idc = 0,
+	        .seq_level_idx = static_cast<uint8_t>(level),
+	        .seq_tier = 0,
+	        .decoder_buffer_delay = 0,
+	        .encoder_buffer_delay = 0,
+	        .initial_display_delay_minus_1 = 0,
+	};
 
 	const uint32_t sb_cols = align_div(aligned_extent.width, superblock_size);
 	const uint32_t sb_rows = align_div(aligned_extent.height, superblock_size);
