@@ -244,6 +244,9 @@ public:
 		{
 			for (auto codec: codecs)
 			{
+				if (codec == video_codec::av1 and config.name.empty())
+					continue;
+
 				if (has_vk(codec))
 					return {encoder_vulkan, codec};
 			}
