@@ -184,10 +184,9 @@ wivrn::video_encoder_vulkan_av1::video_encoder_vulkan_av1(
 	const bool uniform_tile_spacing = bool(std_flags & vk::VideoEncodeAV1StdFlagBitsKHR::eUniformTileSpacingFlagSet);
 
 	// A single tile is enough for the resolutions WiVRn streams, but AV1 caps a tile at 4096
-	// samples wide (annex A.3), so warn rather than silently emit a non conforming stream.
+	// samples wide (annex A.3), a wider stream would not be decodable.
 	if (sb_cols * superblock_size > 4096)
-		U_LOG_W("AV1: %u samples wide exceeds the maximum width of a single tile, stream may not be decodable",
-		        aligned_extent.width);
+		throw std::runtime_error("av1 encoder supports at most 4096 samples per tile row");
 
 	mi_col_starts = {0u, static_cast<uint16_t>(mi_cols)};
 	mi_row_starts = {0u, static_cast<uint16_t>(mi_rows)};
