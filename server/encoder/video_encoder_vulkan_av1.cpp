@@ -23,6 +23,7 @@
 #include "utils/wivrn_vk_bundle.h"
 
 #include <algorithm>
+#include <bit>
 #include <cstring>
 #include <limits>
 #include <numeric>
@@ -36,13 +37,7 @@ uint32_t align_div(uint32_t value, uint32_t divisor)
 
 uint8_t bits_for(uint32_t value)
 {
-	uint8_t bits = 0;
-	while (value > 0)
-	{
-		value >>= 1;
-		++bits;
-	}
-	return std::max<uint8_t>(bits, 1);
+	return std::max<uint8_t>(std::bit_width(value), 1);
 }
 
 // AV1 spec, annex A.3 "Levels", limited to the levels that are actually defined.
