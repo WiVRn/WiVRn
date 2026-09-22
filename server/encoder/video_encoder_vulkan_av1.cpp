@@ -445,7 +445,6 @@ std::unique_ptr<wivrn::video_encoder_vulkan_av1> wivrn::video_encoder_vulkan_av1
 		        .gopRemainingPredictive = std::numeric_limits<uint32_t>::max(),
 		        .gopRemainingBipredictive = 0,
 		};
-		self->use_gop_info = true;
 	}
 
 	if (encode_av1_caps.maxOperatingPoints > 0)
@@ -616,11 +615,11 @@ void * wivrn::video_encoder_vulkan_av1::encode_info_next(uint32_t frame_num, siz
 
 const void * wivrn::video_encoder_vulkan_av1::begin_coding_next(const void * next)
 {
-	if (not use_gop_info)
+	if (not gop_info)
 		return next;
 
-	gop_info.pNext = next;
-	return &gop_info;
+	gop_info->pNext = next;
+	return &*gop_info;
 }
 
 vk::ExtensionProperties wivrn::video_encoder_vulkan_av1::std_header_version()
