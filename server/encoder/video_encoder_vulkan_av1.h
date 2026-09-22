@@ -58,7 +58,7 @@ class video_encoder_vulkan_av1 : public video_encoder_vulkan
 
 	vk::VideoEncodeAV1PictureInfoKHR picture_info{};
 
-	vk::VideoEncodeAV1GopRemainingFrameInfoKHR gop_info{};
+	std::optional<vk::VideoEncodeAV1GopRemainingFrameInfoKHR> gop_info;
 	vk::VideoEncodeQualityLevelInfoKHR quality_level_info{};
 	vk::VideoEncodeAV1RateControlInfoKHR rate_control_av1{};
 	vk::VideoEncodeAV1RateControlLayerInfoKHR rate_control_layer_av1{};
@@ -73,7 +73,6 @@ class video_encoder_vulkan_av1 : public video_encoder_vulkan
 	// Reference name (LAST_FRAME + index) used for the single reference of inter frames
 	int32_t ref_name_index = 0;
 	bool rate_control_enabled = false;
-	bool use_gop_info = false;
 	StdVideoAV1Level level = STD_VIDEO_AV1_LEVEL_2_0;
 
 	video_encoder_vulkan_av1(wivrn::vk_bundle & vk,
