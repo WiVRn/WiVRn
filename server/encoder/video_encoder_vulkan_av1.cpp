@@ -494,7 +494,7 @@ void * wivrn::video_encoder_vulkan_av1::encode_info_next(uint32_t frame_num, siz
 	const bool is_keyframe = not has_ref;
 
 	// Initialize reference name slot indices to -1 (no reference)
-	std::fill(reference_name_slot_indices.begin(), reference_name_slot_indices.end(), -1);
+	std::ranges::fill(reference_name_slot_indices, -1);
 
 	if (has_ref)
 		reference_name_slot_indices[ref_name_index] = *ref_slot;
