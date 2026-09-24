@@ -69,6 +69,7 @@ public:
 	eye_tracked_center(xr::instance &, xr::system &, xr::session &);
 
 	bool supports_foveation_center() const;
+	bool update_swapchain(XrSwapchain swapchain) const;
 	std::optional<std::array<XrVector2f, 2>> get_foveation_center(XrSwapchain swapchain) const;
 };
 

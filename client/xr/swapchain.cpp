@@ -32,7 +32,8 @@ xr::swapchain::swapchain(
         int32_t height,
         int sample_count,
         uint32_t array_size,
-        bool foveation) :
+        bool foveation,
+        bool transfer_dst) :
         width_(width),
         height_(height),
         sample_count_(sample_count),
@@ -56,6 +57,9 @@ xr::swapchain::swapchain(
 			usage_flags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
 			break;
 	}
+
+	if (transfer_dst)
+		usage_flags |= XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT;
 
 	XrVulkanSwapchainCreateInfoMETA vulkan_create_info{
 	        .type = XR_TYPE_VULKAN_SWAPCHAIN_CREATE_INFO_META,

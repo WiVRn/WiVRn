@@ -54,7 +54,8 @@ public:
 	        int32_t height,
 	        int sample_count = 1,
 	        uint32_t array_size = 1,
-	        bool foveation = false);
+	        bool foveation = false,
+	        bool transfer_dst = false);
 
 	int32_t width() const
 	{

@@ -88,14 +88,10 @@ bool eye_tracked_center::supports_foveation_center() const
 	return xrCreateFoveationProfileFB and xrDestroyFoveationProfileFB and xrUpdateSwapchainFB and xrGetFoveationEyeTrackedStateMETA;
 }
 
-std::optional<std::array<XrVector2f, 2>> eye_tracked_center::get_foveation_center(XrSwapchain swapchain) const
+bool eye_tracked_center::update_swapchain(XrSwapchain swapchain) const
 {
-	// Meta HMDs only update foveationCenter if the eye-tracked profile is
-	// applied to the swapchain and xrUpdateSwapchainFB is called. The fragment
-	// density map itself is enumerated by the swapchain setup but is otherwise
-	// ignored by WiVRn.
 	if (!supports_foveation_center())
-		return {};
+		return false;
 
 	if (!foveation_profile)
 	{
@@ -118,7 +114,7 @@ std::optional<std::array<XrVector2f, 2>> eye_tracked_center::get_foveation_cente
 		XrFoveationProfileFB raw_profile = XR_NULL_HANDLE;
 		XrResult profile_result = xrCreateFoveationProfileFB(session, &profile_info, &raw_profile);
 		if (XR_FAILED(profile_result))
-			return {};
+			return false;
 
 		foveation_profile.emplace(raw_profile, xrDestroyFoveationProfileFB);
 	}
@@ -132,7 +128,15 @@ std::optional<std::array<XrVector2f, 2>> eye_tracked_center::get_foveation_cente
 	XrResult update_result = xrUpdateSwapchainFB(
 	        swapchain,
 	        reinterpret_cast<const XrSwapchainStateBaseHeaderFB *>(&swapchain_state));
-	if (XR_FAILED(update_result))
+	return XR_SUCCEEDED(update_result);
+}
+
+std::optional<std::array<XrVector2f, 2>> eye_tracked_center::get_foveation_center(XrSwapchain swapchain) const
+{
+	// Meta only updates foveationCenter if the eye-tracked profile is
+	// applied to the swapchain and xrUpdateSwapchainFB is called. The fragment
+	// density map itself is enumerated but otherwise ignored.
+	if (!update_swapchain(swapchain))
 		return {};
 
 	XrFoveationEyeTrackedStateMETA state{
