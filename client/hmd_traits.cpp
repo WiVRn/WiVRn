@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <format>
+#include <fstream>
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <limits>
 #include <optional>
@@ -308,6 +309,40 @@ void hmd_traits::init()
 			permissions[feature::eye_gaze] = "android.permission.EYE_TRACKING_FINE";
 			permissions[feature::face_tracking] = "android.permission.FACE_TRACKING";
 		}
+	}
+#else // not android
+	for (const auto & entry: std::filesystem::directory_iterator("/sys/class/drm"))
+	{
+		std::ifstream modes(entry.path() / "modes");
+		if (not modes)
+			continue;
+
+		std::string mode;
+		while (std::getline(modes, mode))
+		{
+			// panel modes are reported as `2*2160x2160_120` etc.
+			if (not mode.starts_with("2*"))
+				// not a HMD
+				continue;
+
+			const auto x = mode.find('x', 2);
+			if (x == std::string::npos)
+				continue;
+
+			try
+			{
+				panel_width_override = std::stoul(mode.substr(2, x - 2));
+				spdlog::info("Detected native panel mode {}, panel width {}", mode, panel_width_override);
+				break;
+			}
+			catch (...)
+			{
+				spdlog::warn("Failed to parse native panel mode {}", mode);
+			}
+		}
+
+		if (panel_width_override > 0)
+			break;
 	}
 #endif
 
