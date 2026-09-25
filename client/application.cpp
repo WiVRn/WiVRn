@@ -1408,7 +1408,7 @@ void application::initialize()
 	config.emplace(xr_system_id, xr_session, application::get_config_path() / "client.json");
 	default_config.emplace(xr_system_id, xr_session);
 
-	xr_session.set_boundary_hidden(config->hide_boundary);
+	xr_session.set_passthrough_boundary_enabled(config->passthrough_boundary_enabled);
 
 #ifdef __ANDROID__
 	set_usb_networking(config->usb_network);

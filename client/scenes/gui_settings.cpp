@@ -760,13 +760,13 @@ void settings_system(const settings_context & ctx)
 	if (ctx.session.boundary_visibility_supported())
 	{
 		list.push_back({
-		        .id = "##hide_boundary",
-		        .label = _C("setting name", "Hide boundary in passthrough"),
-		        .description = _("Lets you walk outside the boundary while passthrough is shown. The boundary always comes back in VR."),
+		        .id = "##passthrough_boundary",
+		        .label = _C("setting name", "Enable boundary in passthrough"),
+		        .description = _("Shows the boundary while passthrough is on. Disable to walk freely outside of it. The boundary is always shown in VR."),
 		        .ui = ui_kind::toggle,
-		        .get_bool = [&config] { return config.hide_boundary; },
-		        .set_bool = [&ctx, &config](bool v) { config.hide_boundary = v; config.save(); ctx.session.set_boundary_hidden(v); },
-		        .default_bool = default_config.hide_boundary,
+		        .get_bool = [&config] { return config.passthrough_boundary_enabled; },
+		        .set_bool = [&ctx, &config](bool v) { config.passthrough_boundary_enabled = v; config.save(); ctx.session.set_passthrough_boundary_enabled(v); },
+		        .default_bool = default_config.passthrough_boundary_enabled,
 		});
 	}
 
