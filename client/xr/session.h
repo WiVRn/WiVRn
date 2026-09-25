@@ -49,8 +49,8 @@ class session : public utils::handle<XrSession, xrDestroySession>
 	PFN_xrPerfSettingsSetPerformanceLevelEXT xrPerfSettingsSetPerformanceLevelEXT = nullptr;
 
 	PFN_xrRequestBoundaryVisibilityMETA xrRequestBoundaryVisibilityMETA = nullptr;
-	XrBoundaryVisibilityMETA boundary_visibility = XR_BOUNDARY_VISIBILITY_NOT_SUPPRESSED_META;
-	bool boundary_hidden = false;
+	XrBoundaryVisibilityMETA runtime_boundary_visibility = XR_BOUNDARY_VISIBILITY_NOT_SUPPRESSED_META;
+	bool passthrough_boundary_enabled = true;
 	bool boundary_request_failed = false;
 
 	void update_boundary_visibility();
@@ -111,7 +111,7 @@ public:
 	{
 		return xrRequestBoundaryVisibilityMETA;
 	}
-	void set_boundary_hidden(bool);
+	void set_passthrough_boundary_enabled(bool);
 	void on_boundary_visibility_changed(XrBoundaryVisibilityMETA);
 };
 } // namespace xr

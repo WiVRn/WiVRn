@@ -385,15 +385,15 @@ void xr::session::disable_passthrough()
 	passthrough.emplace<std::monostate>();
 }
 
-void xr::session::set_boundary_hidden(bool hidden)
+void xr::session::set_passthrough_boundary_enabled(bool enabled)
 {
-	boundary_hidden = hidden;
+	passthrough_boundary_enabled = enabled;
 	boundary_request_failed = false;
 }
 
 void xr::session::on_boundary_visibility_changed(XrBoundaryVisibilityMETA v)
 {
-	boundary_visibility = v;
+	runtime_boundary_visibility = v;
 }
 
 // the runtime only allows suppression while passthrough is shown and restores
@@ -403,15 +403,15 @@ void xr::session::update_boundary_visibility()
 	if (not xrRequestBoundaryVisibilityMETA)
 		return;
 
-	auto v = boundary_hidden and not std::holds_alternative<std::monostate>(passthrough)
+	auto v = not passthrough_boundary_enabled and not std::holds_alternative<std::monostate>(passthrough)
 	                 ? XR_BOUNDARY_VISIBILITY_SUPPRESSED_META
 	                 : XR_BOUNDARY_VISIBILITY_NOT_SUPPRESSED_META;
-	if (v == boundary_visibility)
+	if (v == runtime_boundary_visibility)
 		return;
 
 	if (auto res = xrRequestBoundaryVisibilityMETA(id, v); res == XR_SUCCESS)
 	{
-		boundary_visibility = v;
+		runtime_boundary_visibility = v;
 		boundary_request_failed = false;
 	}
 	else if (not boundary_request_failed)
