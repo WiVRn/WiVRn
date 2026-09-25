@@ -676,6 +676,7 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 			DO_PROFILE(yvr, touch_controller_yvr)
 			DO_PROFILE(samsung, odyssey_controller)
 			DO_PROFILE(valve, index_controller)
+			DO_PROFILE(valve, frame_controller_valve)
 
 			// FIXME: remove once support for pre-1.1 profiles is dropped
 			if (profile == "/interaction_profiles/facebook/touch_controller_pro")
