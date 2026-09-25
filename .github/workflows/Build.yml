@@ -19,7 +19,7 @@ jobs:
       matrix:
         config:
           - preset: 'client-no-system-boost'
-            packages: libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
+            packages: libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev libpipewire-0.3-dev
           - preset: 'dashboard'
             packages: extra-cmake-modules libarchive-dev libboost-all-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev libkirigami-dev librsvg2-dev nlohmann-json3-dev qcoro-qt6-dev qml6-module-org-kde-kirigamiaddons-formcard
           - preset: 'dissector-no-system-boost'

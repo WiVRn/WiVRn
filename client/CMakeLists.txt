@@ -112,6 +112,15 @@ else()
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")
+
+    if(WIVRN_USE_PIPEWIRE)
+        file(GLOB CLIENT_PIPEWIRE_SOURCE CONFIGURE_DEPENDS
+            "audio/linux/*.cpp")
+        list(APPEND PLATFORM_SOURCE ${CLIENT_PIPEWIRE_SOURCE})
+        target_link_libraries(wivrn PkgConfig::libpipewire)
+        target_compile_definitions(wivrn PRIVATE WIVRN_USE_PIPEWIRE)
+    endif()
+
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 
     file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/share ${CMAKE_BINARY_DIR}/share SYMBOLIC)
