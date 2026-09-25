@@ -571,6 +571,8 @@ static xrt_device_name get_name(interaction_profile profile)
 			return XRT_DEVICE_SAMSUNG_ODYSSEY_CONTROLLER;
 		case interaction_profile::valve_index_controller:
 			return XRT_DEVICE_INDEX_CONTROLLER;
+		case interaction_profile::valve_frame_controller_valve:
+			return XRT_DEVICE_FRAME_CONTROLLER;
 	}
 	throw std::runtime_error("invalid interaction profile id " + std::to_string(int(profile)));
 }

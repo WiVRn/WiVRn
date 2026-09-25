@@ -18,6 +18,7 @@
  */
 
 #include "lobby.h"
+
 #include "application.h"
 #include "configuration.h"
 #include "constants.h"
@@ -1438,6 +1439,7 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                "/interaction_profiles/bytedance/pico4s_controller",
 	                                "/interaction_profiles/yvr/touch_controller_yvr",
 	                                "/interaction_profiles/htc/vive_focus3_controller",
+	                                "/interaction_profiles/valve/frame_controller_valve",
 	                        },
 	                        {
 	                                {"left_aim", "/user/hand/left/input/aim/pose"},

@@ -1,0 +1,459 @@
+From 3033e3e9e4eb16693f21b12a00eacf60ea816b6b Mon Sep 17 00:00:00 2001
+From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+Date: Fri, 18 Sep 2026 14:59:50 +0900
+Subject: [PATCH 1/1] st/oxr: add XR_VALVE_frame_controller_interaction
+
+Signed-off-by: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+---
+ CMakeLists.txt                                |   2 +
+ cmake/MonadoSetOptions.cmake                  |   1 +
+ .../XR_VALVE_frame_controller_interaction.h   |  25 ++
+ src/xrt/auxiliary/bindings/bindings.json      | 257 ++++++++++++++++++
+ .../include/xrt/xrt_config_build.h.cmake_in   |   1 +
+ src/xrt/include/xrt/xrt_defines.h             |  48 ++++
+ src/xrt/include/xrt/xrt_openxr_includes.h     |   1 +
+ .../oxr_extension_support.py                  |   1 +
+ 8 files changed, 336 insertions(+)
+ create mode 100644 src/external/openxr_includes/openxr/XR_VALVE_frame_controller_interaction.h
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c4c06a042..7d3ae8b5e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -440,6 +440,7 @@ option(XRT_FEATURE_OPENXR_INTERACTION_CONTACTGLOVE2 "Enable XR_MND_contactglove2
+ option(XRT_FEATURE_OPENXR_INTERACTION_VIVE_COSMOS "Enable XR_HTC_vive_cosmos_controller_interaction" ON)
+ option(XRT_FEATURE_OPENXR_INTERACTION_VIVE_FOCUS3 "Enable XR_HTC_vive_focus3_controller_interaction" ON)
+ option(XRT_FEATURE_OPENXR_INTERACTION_FB_PROXIMITY "Enable XR_FB_touch_controller_proximity" ON)
++option(XRT_FEATURE_OPENXR_INTERACTION_FRAME "Enable XR_VALVE_frame_controller_interaction" ON)
+ option(XRT_FEATURE_OPENXR_INTERACTION_TOUCH_PRO "Enable XR_FB_touch_controller_pro" ON)
+ option(XRT_FEATURE_OPENXR_INTERACTION_TOUCH_PLUS "Enable XR_META_touch_controller_plus" ON)
+ option(XRT_FEATURE_OPENXR_INTERACTION_LOGITECH_MX_INK "Enable XR_LOGITECH_mx_ink_stylus_interaction" OFF)
+@@ -696,6 +697,7 @@ if(XRT_MODULE_OPENXR_STATE_TRACKER)
+ 	message(STATUS "#    FEATURE_OPENXR_INTERACTION_EXT_EYE_GAZE:               ${XRT_FEATURE_OPENXR_INTERACTION_EXT_EYE_GAZE}")
+ 	message(STATUS "#    FEATURE_OPENXR_INTERACTION_EXT_HAND:                   ${XRT_FEATURE_OPENXR_INTERACTION_EXT_HAND}")
+ 	message(STATUS "#    FEATURE_OPENXR_INTERACTION_EXT_PALM_POSE:              ${XRT_FEATURE_OPENXR_INTERACTION_EXT_PALM_POSE}")
++	message(STATUS "#    FEATURE_OPENXR_INTERACTION_FRAME:                      ${XRT_FEATURE_OPENXR_INTERACTION_FRAME}")
+ 	message(STATUS "#    FEATURE_OPENXR_INTERACTION_KHR_GENERIC:                ${XRT_FEATURE_OPENXR_INTERACTION_KHR_GENERIC}")
+ 	message(STATUS "#    FEATURE_OPENXR_INTERACTION_LOGITECH_MX_INK:            ${XRT_FEATURE_OPENXR_INTERACTION_LOGITECH_MX_INK}")
+ 	message(STATUS "#    FEATURE_OPENXR_INTERACTION_ML2:                        ${XRT_FEATURE_OPENXR_INTERACTION_ML2}")
+diff --git a/cmake/MonadoSetOptions.cmake b/cmake/MonadoSetOptions.cmake
+index 8f7fa6f85..a53089d7a 100644
+--- a/cmake/MonadoSetOptions.cmake
++++ b/cmake/MonadoSetOptions.cmake
+@@ -134,6 +134,7 @@ function(monado_set_options)
+ 		XRT_FEATURE_OPENXR_INTERACTION_EXT_HAND
+ 		XRT_FEATURE_OPENXR_INTERACTION_EXT_PALM_POSE
+ 		XRT_FEATURE_OPENXR_INTERACTION_FB_PROXIMITY
++		XRT_FEATURE_OPENXR_INTERACTION_FRAME
+ 		XRT_FEATURE_OPENXR_INTERACTION_KHR_GENERIC
+ 		XRT_FEATURE_OPENXR_INTERACTION_ML2
+ 		XRT_FEATURE_OPENXR_INTERACTION_MNDX
+diff --git a/src/external/openxr_includes/openxr/XR_VALVE_frame_controller_interaction.h b/src/external/openxr_includes/openxr/XR_VALVE_frame_controller_interaction.h
+new file mode 100644
+index 000000000..d67826910
+--- /dev/null
++++ b/src/external/openxr_includes/openxr/XR_VALVE_frame_controller_interaction.h
+@@ -0,0 +1,25 @@
++// Copyright 2026, Collabora, Ltd.
++// SPDX-License-Identifier: BSL-1.0
++/*!
++ * @file
++ * @brief  Preview header for XR_VALVE_frame_controller_interaction extension
++ * @ingroup external_openxr
++ */
++#ifndef XR_VALVE_FRAME_CONTROLLER_INTERACTION_H
++#define XR_VALVE_FRAME_CONTROLLER_INTERACTION_H 1
++
++#include <openxr/openxr.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#define XR_VALVE_frame_controller_interaction 1
++#define XR_VALVE_frame_controller_interaction_SPEC_VERSION 1
++#define XR_VALVE_FRAME_CONTROLLER_INTERACTION_EXTENSION_NAME "XR_VALVE_frame_controller_interaction"
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+\ No newline at end of file
+diff --git a/src/xrt/auxiliary/bindings/bindings.json b/src/xrt/auxiliary/bindings/bindings.json
+index 462ffbf43..dbb0129a3 100644
+--- a/src/xrt/auxiliary/bindings/bindings.json
++++ b/src/xrt/auxiliary/bindings/bindings.json
+@@ -3258,6 +3258,263 @@
+ 			}
+ 		},
+ 
++		"/interaction_profiles/valve/frame_controller_valve": {
++			"title": "Steam Frame Controller",
++			"type": "tracked_controller",
++			"extension": "VALVE_frame_controller_interaction",
++			"monado_device": "XRT_DEVICE_FRAME_CONTROLLER",
++			"extended_by": ["ext/palm_pose", "grip_surface", "ext/hand_interaction_poses"],
++			"subaction_paths": [
++				"/user/hand/left",
++				"/user/hand/right"
++			],
++			"subpaths": {
++				"/input/a": {
++					"type": "button",
++					"localized_name": "A",
++					"components": ["click", "touch"],
++					"side": "right",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_A_CLICK",
++						"touch": "XRT_INPUT_FRAME_A_TOUCH"
++					}
++				},
++				"/input/b": {
++					"type": "button",
++					"localized_name": "B",
++					"components": ["click", "touch"],
++					"side": "right",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_B_CLICK",
++						"touch": "XRT_INPUT_FRAME_B_TOUCH"
++					}
++				},
++				"/input/x": {
++					"type": "button",
++					"localized_name": "X",
++					"components": ["click", "touch"],
++					"side": "right",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_X_CLICK",
++						"touch": "XRT_INPUT_FRAME_X_TOUCH"
++					}
++				},
++				"/input/y": {
++					"type": "button",
++					"localized_name": "Y",
++					"components": ["click", "touch"],
++					"side": "right",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_Y_CLICK",
++						"touch": "XRT_INPUT_FRAME_Y_TOUCH"
++					}
++				},
++				"/input/menu": {
++					"type": "button",
++					"localized_name": "Menu",
++					"components": ["click", "touch"],
++					"side": "right",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_MENU_CLICK",
++						"touch": "XRT_INPUT_FRAME_MENU_TOUCH"
++					}
++				},
++				"/input/system": {
++					"type": "button",
++					"localized_name": "System",
++					"components": ["click", "touch"],
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_SYSTEM_CLICK",
++						"touch": "XRT_INPUT_FRAME_SYSTEM_TOUCH"
++					}
++				},
++				"/input/bumper": {
++					"type": "button",
++					"localized_name": "Bumper",
++					"components": ["click", "touch"],
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_BUMPER_CLICK",
++						"touch": "XRT_INPUT_FRAME_BUMPER_TOUCH"
++					}
++				},
++				"/input/squeeze": {
++					"type": "button",
++					"localized_name": "Squeeze",
++					"components": ["click", "touch", "value"],
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_SQUEEZE_CLICK",
++						"touch": "XRT_INPUT_FRAME_SQUEEZE_TOUCH",
++						"value": "XRT_INPUT_FRAME_SQUEEZE_VALUE"
++					}
++				},
++				"/input/trigger": {
++					"type": "trigger",
++					"localized_name": "Trigger",
++					"components": ["click", "value", "touch"],
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_TRIGGER_CLICK",
++						"value": "XRT_INPUT_FRAME_TRIGGER_VALUE",
++						"touch": "XRT_INPUT_FRAME_TRIGGER_TOUCH"
++					}
++				},
++				"/input/thumbstick": {
++					"type": "joystick",
++					"localized_name": "Thumbstick",
++					"components": ["click", "touch", "position"],
++					"dpad_emulation": {
++						"position": "position",
++						"activate": "click",
++						"center": true
++					},
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_THUMBSTICK_CLICK",
++						"touch": "XRT_INPUT_FRAME_THUMBSTICK_TOUCH",
++						"position": "XRT_INPUT_FRAME_THUMBSTICK"
++					}
++				},
++				"/input/grip": {
++					"type": "pose",
++					"localized_name": "Grip",
++					"components": ["pose"],
++					"monado_bindings": {
++						"pose": "XRT_INPUT_FRAME_GRIP_POSE"
++					}
++				},
++				"/input/aim": {
++					"type": "pose",
++					"localized_name": "Aim",
++					"components": ["pose"],
++					"monado_bindings": {
++						"pose": "XRT_INPUT_FRAME_AIM_POSE"
++					}
++				},
++				"/input/dpad_up": {
++					"type": "button",
++					"localized_name": "D-Pad Up",
++					"components": ["click", "touch"],
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_DPAD_UP_CLICK",
++						"touch": "XRT_INPUT_FRAME_DPAD_UP_TOUCH"
++					}
++				},
++				"/input/dpad_down": {
++					"type": "button",
++					"localized_name": "D-Pad Down",
++					"components": ["click", "touch"],
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_DPAD_DOWN_CLICK",
++						"touch": "XRT_INPUT_FRAME_DPAD_DOWN_TOUCH"
++					}
++				},
++				"/input/dpad_left": {
++					"type": "button",
++					"localized_name": "D-Pad Left",
++					"components": ["click", "touch"],
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_DPAD_LEFT_CLICK",
++						"touch": "XRT_INPUT_FRAME_DPAD_LEFT_TOUCH"
++					}
++				},
++				"/input/dpad_right": {
++					"type": "button",
++					"localized_name": "D-Pad Right",
++					"components": ["click", "touch"],
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_DPAD_RIGHT_CLICK",
++						"touch": "XRT_INPUT_FRAME_DPAD_RIGHT_TOUCH"
++					}
++				},
++				"/input/view": {
++					"type": "button",
++					"localized_name": "View",
++					"components": ["click", "touch"],
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_VIEW_CLICK",
++						"touch": "XRT_INPUT_FRAME_VIEW_TOUCH"
++					}
++				},
++				"/input/bumper_left": {
++					"type": "button",
++					"localized_name": "Bumper",
++					"components": ["click", "touch"],
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_BUMPER_CLICK",
++						"touch": "XRT_INPUT_FRAME_BUMPER_TOUCH"
++					}
++				},
++				"/input/squeeze_left": {
++					"type": "button",
++					"localized_name": "Squeeze",
++					"components": ["click", "touch", "value"],
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_SQUEEZE_CLICK",
++						"touch": "XRT_INPUT_FRAME_SQUEEZE_TOUCH",
++						"value": "XRT_INPUT_FRAME_SQUEEZE_VALUE"
++					}
++				},
++				"/input/trigger_left": {
++					"type": "trigger",
++					"localized_name": "Trigger",
++					"components": ["click", "value", "touch"],
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_TRIGGER_CLICK",
++						"value": "XRT_INPUT_FRAME_TRIGGER_VALUE",
++						"touch": "XRT_INPUT_FRAME_TRIGGER_TOUCH"
++					}
++				},
++				"/input/thumbstick_left": {
++					"type": "joystick",
++					"localized_name": "Thumbstick",
++					"components": ["click", "touch", "position"],
++					"dpad_emulation": {
++						"position": "position",
++						"activate": "click",
++						"center": true
++					},
++					"side": "left",
++					"monado_bindings": {
++						"click": "XRT_INPUT_FRAME_THUMBSTICK_CLICK",
++						"touch": "XRT_INPUT_FRAME_THUMBSTICK_TOUCH",
++						"position": "XRT_INPUT_FRAME_THUMBSTICK"
++					}
++				},
++				"/input/grip_left": {
++					"type": "pose",
++					"localized_name": "Grip",
++					"components": ["pose"],
++					"side": "left",
++					"monado_bindings": {
++						"pose": "XRT_INPUT_FRAME_GRIP_POSE"
++					}
++				},
++				"/input/aim_left": {
++					"type": "pose",
++					"localized_name": "Aim",
++					"components": ["pose"],
++					"side": "left",
++					"monado_bindings": {
++						"pose": "XRT_INPUT_FRAME_AIM_POSE"
++					}
++				},
++				"/output/haptic": {
++					"type": "vibration",
++					"localized_name": "Haptic",
++					"components": ["haptic"],
++					"monado_bindings": {
++						"haptic": "XRT_OUTPUT_NAME_FRAME_HAPTIC"
++					}
++				}
++			}
++		},
++
+ 		"/interaction_profiles/facebook/touch_controller_pro": {
+ 			"title": "Meta Quest Touch Pro Controller",
+ 			"type": "tracked_controller",
+diff --git a/src/xrt/include/xrt/xrt_config_build.h.cmake_in b/src/xrt/include/xrt/xrt_config_build.h.cmake_in
+index 873b15b0a..81c547b90 100644
+--- a/src/xrt/include/xrt/xrt_config_build.h.cmake_in
++++ b/src/xrt/include/xrt/xrt_config_build.h.cmake_in
+@@ -75,6 +75,7 @@
+ #cmakedefine XRT_FEATURE_OPENXR_INTERACTION_EXT_HAND
+ #cmakedefine XRT_FEATURE_OPENXR_INTERACTION_EXT_PALM_POSE
+ #cmakedefine XRT_FEATURE_OPENXR_INTERACTION_FB_PROXIMITY
++#cmakedefine XRT_FEATURE_OPENXR_INTERACTION_FRAME
+ #cmakedefine XRT_FEATURE_OPENXR_INTERACTION_KHR_GENERIC
+ #cmakedefine XRT_FEATURE_OPENXR_INTERACTION_LOGITECH_MX_INK
+ #cmakedefine XRT_FEATURE_OPENXR_INTERACTION_ML2
+diff --git a/src/xrt/include/xrt/xrt_defines.h b/src/xrt/include/xrt/xrt_defines.h
+index a5c5bd65f..404f617c9 100644
+--- a/src/xrt/include/xrt/xrt_defines.h
++++ b/src/xrt/include/xrt/xrt_defines.h
+@@ -832,6 +832,9 @@ enum xrt_device_name
+ 	XRT_DEVICE_TOUCH_CONTROLLER_QUEST_1_RIFT_S,
+ 	XRT_DEVICE_TOUCH_CONTROLLER_QUEST_2,
+ 
++	//! XR_VALVE_frame_controller_interaction
++	XRT_DEVICE_FRAME_CONTROLLER,
++
+ 	// XR_KHR_generic_controller
+ 	XRT_DEVICE_GENERIC_CONTROLLER,
+ 
+@@ -1443,6 +1446,48 @@ enum xrt_input_name
+ 	XRT_INPUT_MAGNETRA2_GRIP_POSE                               = XRT_INPUT_NAME(0X150B, POSE),
+ 	XRT_INPUT_MAGNETRA2_AIM_POSE                                = XRT_INPUT_NAME(0X150C, POSE),
+ 
++	// XR_VALVE_frame_controller_interaction
++	// Right controller: a, b, x, y, menu
++	XRT_INPUT_FRAME_A_CLICK                               = XRT_INPUT_NAME(0x1600, BOOLEAN),
++	XRT_INPUT_FRAME_A_TOUCH                               = XRT_INPUT_NAME(0x1601, BOOLEAN),
++	XRT_INPUT_FRAME_B_CLICK                               = XRT_INPUT_NAME(0x1602, BOOLEAN),
++	XRT_INPUT_FRAME_B_TOUCH                               = XRT_INPUT_NAME(0x1603, BOOLEAN),
++	XRT_INPUT_FRAME_X_CLICK                               = XRT_INPUT_NAME(0x1604, BOOLEAN),
++	XRT_INPUT_FRAME_X_TOUCH                               = XRT_INPUT_NAME(0x1605, BOOLEAN),
++	XRT_INPUT_FRAME_Y_CLICK                               = XRT_INPUT_NAME(0x1606, BOOLEAN),
++	XRT_INPUT_FRAME_Y_TOUCH                               = XRT_INPUT_NAME(0x1607, BOOLEAN),
++	XRT_INPUT_FRAME_MENU_CLICK                            = XRT_INPUT_NAME(0x1608, BOOLEAN),
++	XRT_INPUT_FRAME_MENU_TOUCH                            = XRT_INPUT_NAME(0x1609, BOOLEAN),
++
++	// Left controller: dpad, view
++	XRT_INPUT_FRAME_DPAD_UP_CLICK                         = XRT_INPUT_NAME(0x160A, BOOLEAN),
++	XRT_INPUT_FRAME_DPAD_UP_TOUCH                         = XRT_INPUT_NAME(0x160B, BOOLEAN),
++	XRT_INPUT_FRAME_DPAD_DOWN_CLICK                       = XRT_INPUT_NAME(0x160C, BOOLEAN),
++	XRT_INPUT_FRAME_DPAD_DOWN_TOUCH                       = XRT_INPUT_NAME(0x160D, BOOLEAN),
++	XRT_INPUT_FRAME_DPAD_LEFT_CLICK                       = XRT_INPUT_NAME(0x160E, BOOLEAN),
++	XRT_INPUT_FRAME_DPAD_LEFT_TOUCH                       = XRT_INPUT_NAME(0x160F, BOOLEAN),
++	XRT_INPUT_FRAME_DPAD_RIGHT_CLICK                      = XRT_INPUT_NAME(0x1610, BOOLEAN),
++	XRT_INPUT_FRAME_DPAD_RIGHT_TOUCH                      = XRT_INPUT_NAME(0x1611, BOOLEAN),
++	XRT_INPUT_FRAME_VIEW_CLICK                            = XRT_INPUT_NAME(0x1612, BOOLEAN),
++	XRT_INPUT_FRAME_VIEW_TOUCH                            = XRT_INPUT_NAME(0x1613, BOOLEAN),
++
++	// Both: system, bumper, squeeze, trigger, thumbstick
++	XRT_INPUT_FRAME_SYSTEM_CLICK                          = XRT_INPUT_NAME(0x1614, BOOLEAN),
++	XRT_INPUT_FRAME_SYSTEM_TOUCH                          = XRT_INPUT_NAME(0x1615, BOOLEAN),
++	XRT_INPUT_FRAME_BUMPER_CLICK                          = XRT_INPUT_NAME(0x1616, BOOLEAN),
++	XRT_INPUT_FRAME_BUMPER_TOUCH                          = XRT_INPUT_NAME(0x1617, BOOLEAN),
++	XRT_INPUT_FRAME_SQUEEZE_CLICK                         = XRT_INPUT_NAME(0x1618, BOOLEAN),
++	XRT_INPUT_FRAME_SQUEEZE_TOUCH                         = XRT_INPUT_NAME(0x1619, BOOLEAN),
++	XRT_INPUT_FRAME_SQUEEZE_VALUE                         = XRT_INPUT_NAME(0x161A, VEC1_ZERO_TO_ONE),
++	XRT_INPUT_FRAME_TRIGGER_CLICK                         = XRT_INPUT_NAME(0x161B, BOOLEAN),
++	XRT_INPUT_FRAME_TRIGGER_TOUCH                         = XRT_INPUT_NAME(0x161C, BOOLEAN),
++	XRT_INPUT_FRAME_TRIGGER_VALUE                         = XRT_INPUT_NAME(0x161D, VEC1_ZERO_TO_ONE),
++	XRT_INPUT_FRAME_THUMBSTICK_CLICK                      = XRT_INPUT_NAME(0x161E, BOOLEAN),
++	XRT_INPUT_FRAME_THUMBSTICK_TOUCH                      = XRT_INPUT_NAME(0x161F, BOOLEAN),
++	XRT_INPUT_FRAME_THUMBSTICK                            = XRT_INPUT_NAME(0x1620, VEC2_MINUS_ONE_TO_ONE),
++	XRT_INPUT_FRAME_GRIP_POSE                             = XRT_INPUT_NAME(0x1621, POSE),
++	XRT_INPUT_FRAME_AIM_POSE                              = XRT_INPUT_NAME(0x1622, POSE),
++
+ 	// clang-format on
+ };
+ 
+@@ -1681,6 +1726,9 @@ enum xrt_output_name
+ 
+ 	XRT_OUTPUT_NAME_CONTACTGLOVE2_HAPTIC                        = XRT_OUTPUT_NAME(0x0C00, VIBRATION),
+ 
++	//! XR_VALVE_frame_controller_interaction
++	XRT_OUTPUT_NAME_FRAME_HAPTIC                                = XRT_OUTPUT_NAME(0x0D00, VIBRATION),
++
+ 	// clang-format on
+ 	// Make sure to add a trailing comma to any new entries.
+ };
+diff --git a/src/xrt/include/xrt/xrt_openxr_includes.h b/src/xrt/include/xrt/xrt_openxr_includes.h
+index e92948fb8..78f73a26c 100644
+--- a/src/xrt/include/xrt/xrt_openxr_includes.h
++++ b/src/xrt/include/xrt/xrt_openxr_includes.h
+@@ -75,3 +75,4 @@ typedef __eglMustCastToProperFunctionPointerType (*PFNEGLGETPROCADDRESSPROC)(con
+ #include "openxr/XR_MNDX_flipvr.h"
+ #include "openxr/XR_MND_query_egl_device.h"
+ #include "openxr/XR_MND_contactglove2_interaction.h"
++#include "openxr/XR_VALVE_frame_controller_interaction.h"
+diff --git a/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py b/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
+index e9be594f9..12b54fec4 100644
+--- a/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
++++ b/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
+@@ -116,6 +116,7 @@ EXTENSIONS = (
+     ['XR_MSFT_unbounded_reference_space', 'XRT_FEATURE_OPENXR_SPACE_UNBOUNDED'],
+     ['XR_OPPO_controller_interaction', 'XRT_FEATURE_OPENXR_INTERACTION_OPPO'],
+     ['XR_VARJO_quad_views', 'XRT_FEATURE_OPENXR_VARJO_QUAD_VIEWS'],
++    ['XR_VALVE_frame_controller_interaction', 'XRT_FEATURE_OPENXR_INTERACTION_FRAME'],
+     # Experimental extensions, sorted alphabetically.
+     ['XR_EXTX_overlay', 'XRT_FEATURE_OPENXR_OVERLAY'],
+     ['XR_HTCX_vive_tracker_interaction', 'ALWAYS_DISABLED'],
+-- 
+2.55.0
+
