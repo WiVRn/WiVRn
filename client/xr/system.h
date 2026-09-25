@@ -92,6 +92,7 @@ public:
 	XrSystemBodyTrackingPropertiesFB fb_body_tracking_properties() const;
 	XrSystemPropertiesBodyTrackingFullBodyMETA meta_body_tracking_properties() const;
 	XrSystemBodyTrackingPropertiesBD bd_body_tracking_properties() const;
+	XrSystemBoundaryVisibilityPropertiesMETA boundary_visibility_properties() const;
 
 	bool hand_tracking_supported() const;
 	bool hand_mesh_fb_supported() const;

@@ -48,6 +48,13 @@ class session : public utils::handle<XrSession, xrDestroySession>
 
 	PFN_xrPerfSettingsSetPerformanceLevelEXT xrPerfSettingsSetPerformanceLevelEXT = nullptr;
 
+	PFN_xrRequestBoundaryVisibilityMETA xrRequestBoundaryVisibilityMETA = nullptr;
+	XrBoundaryVisibilityMETA boundary_visibility = XR_BOUNDARY_VISIBILITY_NOT_SUPPRESSED_META;
+	bool boundary_hidden = false;
+	bool boundary_request_failed = false;
+
+	void update_boundary_visibility();
+
 public:
 	session() = default;
 	session(instance &, system &, vk::raii::Instance &, vk::raii::PhysicalDevice &, vk::raii::Device &, thread_safe<vk::raii::Queue> & queue, int queue_family_index);
@@ -99,5 +106,12 @@ public:
 	}
 
 	void set_performance_level(XrPerfSettingsDomainEXT, XrPerfSettingsLevelEXT);
+
+	bool boundary_visibility_supported() const
+	{
+		return xrRequestBoundaryVisibilityMETA;
+	}
+	void set_boundary_hidden(bool);
+	void on_boundary_visibility_changed(XrBoundaryVisibilityMETA);
 };
 } // namespace xr
