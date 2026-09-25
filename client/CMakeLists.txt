@@ -113,6 +113,13 @@ else()
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")
 
+    if(WIVRN_USE_V4L2)
+        file(GLOB CLIENT_V4L2_SOURCE CONFIGURE_DEPENDS
+            "decoder/v4l2/*.cpp")
+        list(APPEND PLATFORM_SOURCE ${CLIENT_V4L2_SOURCE})
+        target_compile_definitions(wivrn PRIVATE WIVRN_USE_V4L2)
+    endif()
+
     if(WIVRN_USE_PIPEWIRE)
         file(GLOB CLIENT_PIPEWIRE_SOURCE CONFIGURE_DEPENDS
             "audio/linux/*.cpp")

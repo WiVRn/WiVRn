@@ -838,6 +838,14 @@ void application::initialize_vulkan()
 	optional_device_extensions.emplace(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
 
+#ifdef WIVRN_USE_V4L2
+	// V4L2 decoders expose their output through DMA-buf
+	optional_device_extensions.emplace(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME);
+#endif
+
 #ifdef __ANDROID__
 	vk_device_extensions.push_back(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);

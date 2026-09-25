@@ -920,7 +920,37 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		use_alpha = blit_handle->view_info.alpha;
 
-		if (blit_handle->current_layout == vk::ImageLayout::eUndefined)
+#ifdef WIVRN_USE_V4L2
+		if (blit_handle->foreign_queue_family != vk::QueueFamilyIgnored)
+		{
+			// decoder completed its write before handing us this image
+			// acquire ownership from the external media engine before sampling it
+			vk::ImageMemoryBarrier barrier{
+			        .srcAccessMask = vk::AccessFlagBits::eNone,
+			        .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+			        .oldLayout = blit_handle->current_layout,
+			        .newLayout = vk::ImageLayout::eGeneral,
+			        .srcQueueFamilyIndex = blit_handle->foreign_queue_family,
+			        .dstQueueFamilyIndex = queue_family_index,
+			        .image = blit_handle->image,
+			        .subresourceRange = {
+			                .aspectMask = vk::ImageAspectFlagBits::eColor,
+			                .levelCount = 1,
+			                .layerCount = 1,
+			        },
+			};
+
+			command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+			                               vk::PipelineStageFlagBits::eFragmentShader,
+			                               {},
+			                               {},
+			                               {},
+			                               barrier);
+			blit_handle->current_layout = vk::ImageLayout::eGeneral;
+		}
+		else
+#endif
+		        if (blit_handle->current_layout == vk::ImageLayout::eUndefined)
 		{
 			vk::ImageMemoryBarrier barrier{
 			        .srcAccessMask = vk::AccessFlagBits::eNone,
@@ -1049,6 +1079,41 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		                      {scale, scale, scale, 1.},
 		                      {bias, bias, bias, 0.},
 		                      image_index);
+
+#ifdef WIVRN_USE_V4L2
+		// the blit handles keep CAPTURE buffers alive until this cmd buffer's fence has completed
+		inplace_vector<vk::ImageMemoryBarrier, decoder_count> foreign_release_barriers;
+		for (const auto & handle: current_blit_handles)
+		{
+			if (handle && handle->foreign_queue_family != vk::QueueFamilyIgnored)
+			{
+				foreign_release_barriers.push_back({
+				        .srcAccessMask = vk::AccessFlagBits::eShaderRead,
+				        .dstAccessMask = vk::AccessFlagBits::eNone,
+				        .oldLayout = handle->current_layout,
+				        .newLayout = vk::ImageLayout::eGeneral,
+				        .srcQueueFamilyIndex = queue_family_index,
+				        .dstQueueFamilyIndex = handle->foreign_queue_family,
+				        .image = handle->image,
+				        .subresourceRange = {
+				                .aspectMask = vk::ImageAspectFlagBits::eColor,
+				                .levelCount = 1,
+				                .layerCount = 1,
+				        },
+				});
+				handle->current_layout = vk::ImageLayout::eGeneral;
+			}
+		}
+		if (!foreign_release_barriers.empty())
+		{
+			command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eFragmentShader,
+			                               vk::PipelineStageFlagBits::eBottomOfPipe,
+			                               {},
+			                               {},
+			                               {},
+			                               foreign_release_barriers);
+		}
+#endif
 
 		command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
