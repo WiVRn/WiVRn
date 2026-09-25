@@ -50,6 +50,14 @@ option(WIVRN_OPTIMIZE_SHADERS "Run spirv-opt on compiled shaders" ON)
 option(WIVRN_DEBUG_SHADERS "Compile shaders with debug information" OFF)
 option(WIVRN_ADDRESS_SANITIZER "Use address sanitizer" OFF)
 
+# V4L2 decoder on by default on Linux AArch64
+set(_WIVRN_USE_V4L2_DEFAULT OFF)
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT ANDROID)
+    set(_WIVRN_USE_V4L2_DEFAULT ON)
+endif()
+option(WIVRN_USE_V4L2 "Enable V4L2 hardware video decoder" ${_WIVRN_USE_V4L2_DEFAULT})
+unset(_WIVRN_USE_V4L2_DEFAULT)
+
 if(WIVRN_OPTIMIZE_SHADERS AND WIVRN_DEBUG_SHADERS)
     message(FATAL_ERROR "WIVRN_OPTIMIZE_SHADERS and WIVRN_DEBUG_SHADERS are incompatible")
 endif()
