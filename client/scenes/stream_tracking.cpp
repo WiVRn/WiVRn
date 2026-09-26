@@ -271,7 +271,17 @@ void scenes::stream::tracking()
 	}
 
 	XrSpace view_space = application::space(xr::spaces::view);
-	XrSpace world_space = application::space(xr::spaces::world);
+
+	// poses sent to the PC are located against this space instead of xr::spaces::world
+	// directly, so the configured player height offset applies uniformly to the head, hands
+	// and body. It shares xr::spaces::world's STAGE origin, translated by -offset: locating a
+	// pose in it therefore reports that pose offset up by +offset, i.e. increases perceived
+	// height.
+	auto make_height_offset_space = [&](float offset) {
+		return session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE, {{0, 0, 0, 1}, {0, -offset, 0}});
+	};
+	float applied_height_offset = config.get_height_offset();
+	xr::space height_offset_space = make_height_offset_space(applied_height_offset);
 
 	XrTime t0 = instance.now();
 	from_headset::tracking tracking;
@@ -291,7 +301,7 @@ void scenes::stream::tracking()
 	const bool body_tracking = config.check_feature(feature::body_tracking);
 	xr::body_tracker body_tracker;
 
-	locate_spaces_functor locate_spaces{instance, world_space};
+	locate_spaces_functor locate_spaces{instance, height_offset_space};
 
 	on_interaction_profile_changed({});
 
@@ -305,6 +315,13 @@ void scenes::stream::tracking()
 	{
 		try
 		{
+			if (float offset = config.get_height_offset(); offset != applied_height_offset)
+			{
+				applied_height_offset = offset;
+				height_offset_space = make_height_offset_space(applied_height_offset);
+				locate_spaces = locate_spaces_functor{instance, height_offset_space};
+			}
+
 			if (pattern_position == pattern.size())
 			{
 				// Upper limit to 200FPS
@@ -457,8 +474,8 @@ void scenes::stream::tracking()
 							else
 							{
 								// Pico headsets fail to locate gaze relative to view
-								auto gaze = locate_space(item.device, spaces[item.device], world_space, tracking.timestamp);
-								auto view_pose = locate_space(item.device, view_space, world_space, tracking.timestamp);
+								auto gaze = locate_space(item.device, spaces[item.device], height_offset_space, tracking.timestamp);
+								auto view_pose = locate_space(item.device, view_space, height_offset_space, tracking.timestamp);
 								glm::quat gaze_quat(gaze.pose.orientation.w, gaze.pose.orientation.x, gaze.pose.orientation.y, gaze.pose.orientation.z);
 								glm::quat view_quat(view_pose.pose.orientation.w, view_pose.pose.orientation.x, view_pose.pose.orientation.y, view_pose.pose.orientation.z);
 								gaze_quat = glm::conjugate(view_quat) * gaze_quat;
@@ -495,7 +512,7 @@ void scenes::stream::tracking()
 								        t0,
 								        at_time,
 								        from_headset::hand_tracking::left,
-								        locate_hands(*left_hand, world_space, tracking.timestamp));
+								        locate_hands(*left_hand, height_offset_space, tracking.timestamp));
 							}
 							break;
 						case wivrn::device_id::RIGHT_HAND:
@@ -505,14 +522,14 @@ void scenes::stream::tracking()
 								        t0,
 								        at_time,
 								        from_headset::hand_tracking::right,
-								        locate_hands(*right_hand, world_space, tracking.timestamp));
+								        locate_hands(*right_hand, height_offset_space, tracking.timestamp));
 							}
 							break;
 						case wivrn::device_id::BODY:
 							std::visit(utils::overloaded{
 							                   [](std::monostate &) {},
 							                   [&](auto & b) {
-								                   auto packet = b.locate_spaces(at_time, world_space);
+								                   auto packet = b.locate_spaces(at_time, height_offset_space);
 								                   packet.timestamp = at_time;
 								                   packet.production_timestamp = tracking.production_timestamp;
 								                   body.push_back(packet);

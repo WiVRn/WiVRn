@@ -180,6 +180,10 @@ scenes::stream::stream(std::string server_name, scene & parent_scene) :
 	auto views = system.view_configuration_views(viewconfig);
 	width = views[0].recommendedImageRectWidth;
 	height = views[0].recommendedImageRectHeight;
+
+	// start each connection from the configured default posture, not whatever was
+	// punctually selected in a previous stream
+	application::get_config().reset_posture();
 }
 
 static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::instance & inst, xr::session & session, int view)
