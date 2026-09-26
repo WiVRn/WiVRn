@@ -327,6 +327,7 @@ const std::vector<config_field> & configuration::config_fields()
 	        scalar("theme_font_scale", &configuration::theme_font_scale),
 	        scalar("theme_background_alpha", &configuration::theme_background_alpha),
 	        scalar("passthrough_enabled", &configuration::passthrough_enabled),
+	        scalar("passthrough_boundary_enabled", &configuration::passthrough_boundary_enabled),
 	        scalar("mic_unprocessed_audio", &configuration::mic_unprocessed_audio),
 	        scalar("forward_keyboard", &configuration::forward_keyboard),
 	        scalar("forward_mouse", &configuration::forward_mouse),

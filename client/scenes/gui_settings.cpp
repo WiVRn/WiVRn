@@ -757,6 +757,19 @@ void settings_system(const settings_context & ctx)
 		});
 	}
 
+	if (ctx.session.boundary_visibility_supported())
+	{
+		list.push_back({
+		        .id = "##passthrough_boundary",
+		        .label = _C("setting name", "Enable boundary in passthrough"),
+		        .description = _("Shows the boundary while passthrough is on. Disable to walk freely outside of it. The boundary is always shown in VR."),
+		        .ui = ui_kind::toggle,
+		        .get_bool = [&config] { return config.passthrough_boundary_enabled; },
+		        .set_bool = [&ctx, &config](bool v) { config.passthrough_boundary_enabled = v; config.save(); ctx.session.set_passthrough_boundary_enabled(v); },
+		        .default_bool = default_config.passthrough_boundary_enabled,
+		});
+	}
+
 	bool disable_instream_gui = false;
 	bool disable_instream_gui_popup_open = ImGui::IsPopupOpen("confirm disable in stream gui");
 	list.push_back({

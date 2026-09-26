@@ -72,6 +72,8 @@ public:
 	uint8_t bit_depth = 10;
 
 	bool passthrough_enabled = false;
+	// XR_META_boundary_visibility, the boundary is always shown outside passthrough
+	bool passthrough_boundary_enabled = false;
 	bool mic_unprocessed_audio = false;
 
 	// Input forwarding, per device. Off by default; only effective if the server permits it.
