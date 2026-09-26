@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <format>
+#include <fstream>
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <limits>
 #include <optional>
@@ -309,6 +310,46 @@ void hmd_traits::init()
 			permissions[feature::face_tracking] = "android.permission.FACE_TRACKING";
 		}
 	}
+#else // not android
+	for (const auto & entry: std::filesystem::directory_iterator("/sys/class/drm"))
+	{
+		std::ifstream modes(entry.path() / "modes");
+		if (not modes)
+			continue;
+
+		std::string mode;
+		while (std::getline(modes, mode))
+		{
+			// panel modes are reported as `2*2160x2160_120` etc.
+			if (not mode.starts_with("2*"))
+				// not a HMD
+				continue;
+
+			const auto x = mode.find('x', 2);
+			if (x == std::string::npos)
+				continue;
+
+			try
+			{
+				panel_width_override = std::stoul(mode.substr(2, x - 2));
+				spdlog::info("Detected native panel mode {}, panel width {}", mode, panel_width_override);
+				break;
+			}
+			catch (...)
+			{
+				spdlog::warn("Failed to parse native panel mode {}", mode);
+			}
+		}
+
+		if (panel_width_override > 0)
+			break;
+	}
+
+	// Steam Frame doesn't have actual hand tracking, only finger curls on the controller.
+	// However it works in a way that games will assume it's real hand tracking.
+	// TODO: Use XR_EXT_hand_tracking_data_source and refuse
+	// if source is XR_HAND_TRACKING_DATA_SOURCE_CONTROLLER_EXT
+	blacklisted_extensions.insert("XR_EXT_hand_tracking");
 #endif
 
 	spdlog::info("HMD traits initialized");

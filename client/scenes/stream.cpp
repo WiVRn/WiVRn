@@ -55,13 +55,28 @@ using namespace beman::inplace_vector;
 
 // clang-format off
 static const std::unordered_map<std::string, device_id> device_ids = {
-	{"/user/hand/left/input/x/click",             device_id::X_CLICK},
-	{"/user/hand/left/input/x/touch",             device_id::X_TOUCH},
-	{"/user/hand/left/input/y/click",             device_id::Y_CLICK},
-	{"/user/hand/left/input/y/touch",             device_id::Y_TOUCH},
-	{"/user/hand/left/input/menu/click",          device_id::MENU_CLICK},
+	{"/user/hand/left/input/dpad_up/click",       device_id::DPAD_UP_CLICK},
+	{"/user/hand/left/input/dpad_up/touch",       device_id::DPAD_UP_TOUCH},
+	{"/user/hand/left/input/dpad_down/click",     device_id::LEFT_X_CLICK},
+	{"/user/hand/left/input/dpad_down/touch",     device_id::LEFT_X_TOUCH},
+	{"/user/hand/left/input/dpad_left/click",     device_id::DPAD_LEFT_CLICK},
+	{"/user/hand/left/input/dpad_left/touch",     device_id::DPAD_LEFT_TOUCH},
+	{"/user/hand/left/input/dpad_right/click",    device_id::LEFT_Y_CLICK},
+	{"/user/hand/left/input/dpad_right/touch",    device_id::LEFT_Y_TOUCH},
+	{"/user/hand/left/input/x/click",             device_id::LEFT_X_CLICK},
+	{"/user/hand/left/input/x/touch",             device_id::LEFT_X_TOUCH},
+	{"/user/hand/left/input/y/click",             device_id::LEFT_Y_CLICK},
+	{"/user/hand/left/input/y/touch",             device_id::LEFT_Y_TOUCH},
+	{"/user/hand/left/input/view/click",          device_id::VIEW_CLICK},
+	{"/user/hand/left/input/view/touch",          device_id::VIEW_TOUCH},
+	{"/user/hand/left/input/menu/click",          device_id::LEFT_MENU_CLICK},
+	{"/user/hand/left/input/system/click",        device_id::LEFT_MENU_CLICK},
+	{"/user/hand/left/input/system/touch",        device_id::LEFT_SYSTEM_TOUCH},
+	{"/user/hand/left/input/bumper/click",        device_id::LEFT_BUMPER_CLICK},
+	{"/user/hand/left/input/bumper/touch",        device_id::LEFT_BUMPER_TOUCH},
 	{"/user/hand/left/input/squeeze/click",       device_id::LEFT_SQUEEZE_CLICK},
 	{"/user/hand/left/input/squeeze/force",       device_id::LEFT_SQUEEZE_FORCE},
+	{"/user/hand/left/input/squeeze/touch",       device_id::LEFT_SQUEEZE_TOUCH},
 	{"/user/hand/left/input/squeeze/value",       device_id::LEFT_SQUEEZE_VALUE},
 	{"/user/hand/left/input/trigger/value",       device_id::LEFT_TRIGGER_VALUE},
 	{"/user/hand/left/input/trigger/click",       device_id::LEFT_TRIGGER_CLICK},
@@ -94,9 +109,19 @@ static const std::unordered_map<std::string, device_id> device_ids = {
 	{"/user/hand/right/input/a/touch",             device_id::A_TOUCH},
 	{"/user/hand/right/input/b/click",             device_id::B_CLICK},
 	{"/user/hand/right/input/b/touch",             device_id::B_TOUCH},
-	{"/user/hand/right/input/system/click",        device_id::SYSTEM_CLICK},
+	{"/user/hand/right/input/x/click",             device_id::RIGHT_X_CLICK},
+	{"/user/hand/right/input/x/touch",             device_id::RIGHT_X_TOUCH},
+	{"/user/hand/right/input/y/click",             device_id::RIGHT_Y_CLICK},
+	{"/user/hand/right/input/y/touch",             device_id::RIGHT_Y_TOUCH},
+	{"/user/hand/right/input/system/click",        device_id::RIGHT_SYSTEM_CLICK},
+	{"/user/hand/right/input/system/touch",        device_id::RIGHT_SYSTEM_TOUCH},
+	{"/user/hand/right/input/menu/click",          device_id::RIGHT_MENU_CLICK},
+	{"/user/hand/right/input/menu/touch",          device_id::RIGHT_MENU_TOUCH},
+	{"/user/hand/right/input/bumper/click",        device_id::RIGHT_BUMPER_CLICK},
+	{"/user/hand/right/input/bumper/touch",        device_id::RIGHT_BUMPER_TOUCH},
 	{"/user/hand/right/input/squeeze/click",       device_id::RIGHT_SQUEEZE_CLICK},
 	{"/user/hand/right/input/squeeze/force",       device_id::RIGHT_SQUEEZE_FORCE},
+	{"/user/hand/right/input/squeeze/touch",       device_id::RIGHT_SQUEEZE_TOUCH},
 	{"/user/hand/right/input/squeeze/value",       device_id::RIGHT_SQUEEZE_VALUE},
 	{"/user/hand/right/input/trigger/value",       device_id::RIGHT_TRIGGER_VALUE},
 	{"/user/hand/right/input/trigger/click",       device_id::RIGHT_TRIGGER_CLICK},
@@ -920,7 +945,37 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		use_alpha = blit_handle->view_info.alpha;
 
-		if (blit_handle->current_layout == vk::ImageLayout::eUndefined)
+#ifdef WIVRN_USE_V4L2
+		if (blit_handle->foreign_queue_family != vk::QueueFamilyIgnored)
+		{
+			// decoder completed its write before handing us this image
+			// acquire ownership from the external media engine before sampling it
+			vk::ImageMemoryBarrier barrier{
+			        .srcAccessMask = vk::AccessFlagBits::eNone,
+			        .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+			        .oldLayout = blit_handle->current_layout,
+			        .newLayout = vk::ImageLayout::eGeneral,
+			        .srcQueueFamilyIndex = blit_handle->foreign_queue_family,
+			        .dstQueueFamilyIndex = queue_family_index,
+			        .image = blit_handle->image,
+			        .subresourceRange = {
+			                .aspectMask = vk::ImageAspectFlagBits::eColor,
+			                .levelCount = 1,
+			                .layerCount = 1,
+			        },
+			};
+
+			command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+			                               vk::PipelineStageFlagBits::eFragmentShader,
+			                               {},
+			                               {},
+			                               {},
+			                               barrier);
+			blit_handle->current_layout = vk::ImageLayout::eGeneral;
+		}
+		else
+#endif
+		        if (blit_handle->current_layout == vk::ImageLayout::eUndefined)
 		{
 			vk::ImageMemoryBarrier barrier{
 			        .srcAccessMask = vk::AccessFlagBits::eNone,
@@ -1049,6 +1104,41 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		                      {scale, scale, scale, 1.},
 		                      {bias, bias, bias, 0.},
 		                      image_index);
+
+#ifdef WIVRN_USE_V4L2
+		// the blit handles keep CAPTURE buffers alive until this cmd buffer's fence has completed
+		inplace_vector<vk::ImageMemoryBarrier, decoder_count> foreign_release_barriers;
+		for (const auto & handle: current_blit_handles)
+		{
+			if (handle && handle->foreign_queue_family != vk::QueueFamilyIgnored)
+			{
+				foreign_release_barriers.push_back({
+				        .srcAccessMask = vk::AccessFlagBits::eShaderRead,
+				        .dstAccessMask = vk::AccessFlagBits::eNone,
+				        .oldLayout = handle->current_layout,
+				        .newLayout = vk::ImageLayout::eGeneral,
+				        .srcQueueFamilyIndex = queue_family_index,
+				        .dstQueueFamilyIndex = handle->foreign_queue_family,
+				        .image = handle->image,
+				        .subresourceRange = {
+				                .aspectMask = vk::ImageAspectFlagBits::eColor,
+				                .levelCount = 1,
+				                .layerCount = 1,
+				        },
+				});
+				handle->current_layout = vk::ImageLayout::eGeneral;
+			}
+		}
+		if (!foreign_release_barriers.empty())
+		{
+			command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eFragmentShader,
+			                               vk::PipelineStageFlagBits::eBottomOfPipe,
+			                               {},
+			                               {},
+			                               {},
+			                               foreign_release_barriers);
+		}
+#endif
 
 		command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
@@ -1296,6 +1386,7 @@ scene::meta & scenes::stream::get_meta_scene()
 	                                "/interaction_profiles/bytedance/pico4s_controller",
 	                                "/interaction_profiles/yvr/touch_controller_yvr",
 	                                "/interaction_profiles/htc/vive_focus3_controller",
+	                                "/interaction_profiles/valve/frame_controller_valve",
 	                        },
 	                        {
 	                                {"left_aim", "/user/hand/left/input/aim/pose"},
