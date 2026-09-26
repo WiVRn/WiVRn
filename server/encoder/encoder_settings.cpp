@@ -204,8 +204,12 @@ class prober
 					U_LOG_I("GPU does not support H.265 Vulkan video encode");
 				return res;
 			}
-			case av1:
-				U_LOG_D("Vulkan video encode for AV1 is not implemented in WiVRn");
+			case av1: {
+				auto res = vk.has_device_ext(VK_KHR_VIDEO_ENCODE_AV1_EXTENSION_NAME) and flags & vk::VideoCodecOperationFlagBitsKHR::eEncodeAv1;
+				if (not res)
+					U_LOG_I("GPU does not support AV1 Vulkan video encode");
+				return res;
+			}
 			case raw:
 				return false;
 		}
@@ -228,6 +232,9 @@ public:
 		{
 			for (auto codec: config.codec ? std::vector{*config.codec} : info.supported_codecs)
 			{
+				if (codec == video_codec::av1 and config.name.empty())
+					continue;
+
 				if (has_vk(codec))
 					return {encoder_vulkan, codec};
 			}
