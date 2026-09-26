@@ -32,12 +32,36 @@ xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandT
 	auto xrCreateHandTrackerEXT = inst.get_proc<PFN_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT");
 	assert(xrCreateHandTrackerEXT);
 	xrLocateHandJointsEXT = inst.get_proc<PFN_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
+	hand_tracking_data_source_supported = inst.has_extension(XR_EXT_HAND_TRACKING_DATA_SOURCE_EXTENSION_NAME);
 	if (inst.has_extension(XR_FB_HAND_TRACKING_MESH_EXTENSION_NAME))
 		xrGetHandMeshFB = inst.get_proc<PFN_xrGetHandMeshFB>("xrGetHandMeshFB");
-	CHECK_XR(xrCreateHandTrackerEXT(session, &info, &id));
+
+	if (hand_tracking_data_source_supported)
+	{
+		// request both sources, callers of locate() decide how to use the results
+		std::array<XrHandTrackingDataSourceEXT, 2> data_sources = {
+		        XR_HAND_TRACKING_DATA_SOURCE_UNOBSTRUCTED_EXT,
+		        XR_HAND_TRACKING_DATA_SOURCE_CONTROLLER_EXT,
+		};
+
+		XrHandTrackingDataSourceInfoEXT data_source_info{
+		        .type = XR_TYPE_HAND_TRACKING_DATA_SOURCE_INFO_EXT,
+		        .next = info.next,
+		        .requestedDataSourceCount = static_cast<uint32_t>(data_sources.size()),
+		        .requestedDataSources = data_sources.data(),
+		};
+
+		auto create_info = info;
+		create_info.next = &data_source_info;
+		CHECK_XR(xrCreateHandTrackerEXT(session, &create_info, &id));
+	}
+	else
+	{
+		CHECK_XR(xrCreateHandTrackerEXT(session, &info, &id));
+	}
 }
 
-std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::hand_tracker::locate(XrSpace space, XrTime time)
+std::optional<xr::hand_tracker::located_hand> xr::hand_tracker::locate(XrSpace space, XrTime time)
 {
 	if (!id || !xrLocateHandJointsEXT)
 		return std::nullopt;
@@ -67,29 +91,45 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	        .jointVelocities = joints_vel.data(),
 	};
 
+	XrHandTrackingDataSourceStateEXT data_source_state{
+	        .type = XR_TYPE_HAND_TRACKING_DATA_SOURCE_STATE_EXT,
+	        .next = &velocities,
+	};
+
 	XrHandJointLocationsEXT locations{
 	        .type = XR_TYPE_HAND_JOINT_LOCATIONS_EXT,
 	        .next = &velocities,
 	        .jointCount = joints_pos.size(),
 	        .jointLocations = joints_pos.data(),
 	};
+	if (hand_tracking_data_source_supported)
+		locations.next = &data_source_state;
 
 	CHECK_XR(xrLocateHandJointsEXT(id, &info, &locations));
 
 	if (!locations.isActive)
 		return std::nullopt;
 
+	if (hand_tracking_data_source_supported && !data_source_state.isActive)
+		// returned joints are not valid
+		return std::nullopt;
+
 	// bail if any of the joint is invalid
 	if (std::ranges::any_of(joints_pos, [](const auto & loc) { return loc.locationFlags == 0; }))
 		return std::nullopt;
 
-	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints;
+	joint_array joints;
 	for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 	{
 		joints[i] = {joints_pos[i], joints_vel[i]};
 	}
 
-	return joints;
+	return located_hand{
+	        .joints = joints,
+	        .data_source = hand_tracking_data_source_supported
+	                               ? std::optional{data_source_state.dataSource}
+	                               : std::nullopt,
+	};
 }
 
 const xr::hand_tracker::mesh_data * xr::hand_tracker::mesh()
@@ -207,7 +247,7 @@ const xr::hand_tracker::mesh_data * xr::hand_tracker::mesh()
 	return &*cached_hand_mesh_fb;
 }
 
-bool xr::hand_tracker::check_flags(const std::array<joint, XR_HAND_JOINT_COUNT_EXT> & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity)
+bool xr::hand_tracker::check_flags(const joint_array & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity)
 {
 	return std::ranges::all_of(joints, [position, velocity](const auto & joint) {
 		return (joint.first.locationFlags & position) == position and (joint.second.velocityFlags & velocity) == velocity;

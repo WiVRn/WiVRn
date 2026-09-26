@@ -160,14 +160,14 @@ public:
 
 static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> locate_hands(xr::hand_tracker & hand, XrSpace space, XrTime time)
 {
-	auto joints = hand.locate(space, time);
+	auto located = hand.locate(space, time);
 
-	if (joints)
+	if (located and located->is_input_source())
 	{
 		std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
 		for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 		{
-			const auto & joint = (*joints)[i];
+			const auto & joint = located->joints[i];
 			poses[i] = {
 			        .position = joint.first.pose.position,
 			        .orientation = pack(joint.first.pose.orientation),

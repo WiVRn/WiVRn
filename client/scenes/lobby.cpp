@@ -438,57 +438,54 @@ void scenes::lobby::connect(const configuration::server_data & data)
 
 std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(
         xr::spaces space,
-        const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & joints,
+        const xr::hand_tracker::joint_array & joints,
         const std::pair<glm::vec3, glm::quat> & head_pose)
 {
 	if (recentering_context and std::get<0>(*recentering_context) != space)
 		return std::nullopt;
 
-	if (joints)
+	const auto & palm = joints[XR_HAND_JOINT_PALM_EXT].first;
+	const auto palm_y = glm::rotate(glm_cast(palm.pose.orientation), glm::vec3(0, 1, 0));
+
+	for (XrHandJointEXT index: {
+	             XR_HAND_JOINT_INDEX_PROXIMAL_EXT,
+	             XR_HAND_JOINT_INDEX_INTERMEDIATE_EXT,
+	             XR_HAND_JOINT_INDEX_DISTAL_EXT,
+
+	             XR_HAND_JOINT_MIDDLE_PROXIMAL_EXT,
+	             XR_HAND_JOINT_MIDDLE_INTERMEDIATE_EXT,
+	             XR_HAND_JOINT_MIDDLE_DISTAL_EXT,
+
+	             XR_HAND_JOINT_RING_PROXIMAL_EXT,
+	             XR_HAND_JOINT_RING_INTERMEDIATE_EXT,
+	             XR_HAND_JOINT_RING_DISTAL_EXT,
+
+	             XR_HAND_JOINT_LITTLE_PROXIMAL_EXT,
+	             XR_HAND_JOINT_LITTLE_INTERMEDIATE_EXT,
+	             XR_HAND_JOINT_LITTLE_DISTAL_EXT,
+	     })
 	{
-		const auto & palm = (*joints)[XR_HAND_JOINT_PALM_EXT].first;
-		const auto palm_y = glm::rotate(glm_cast(palm.pose.orientation), glm::vec3(0, 1, 0));
+		const auto fingertip_y = glm::rotate(glm_cast(joints[index].first.pose.orientation), glm::vec3(0, 1, 0));
 
-		for (XrHandJointEXT index: {
-		             XR_HAND_JOINT_INDEX_PROXIMAL_EXT,
-		             XR_HAND_JOINT_INDEX_INTERMEDIATE_EXT,
-		             XR_HAND_JOINT_INDEX_DISTAL_EXT,
-
-		             XR_HAND_JOINT_MIDDLE_PROXIMAL_EXT,
-		             XR_HAND_JOINT_MIDDLE_INTERMEDIATE_EXT,
-		             XR_HAND_JOINT_MIDDLE_DISTAL_EXT,
-
-		             XR_HAND_JOINT_RING_PROXIMAL_EXT,
-		             XR_HAND_JOINT_RING_INTERMEDIATE_EXT,
-		             XR_HAND_JOINT_RING_DISTAL_EXT,
-
-		             XR_HAND_JOINT_LITTLE_PROXIMAL_EXT,
-		             XR_HAND_JOINT_LITTLE_INTERMEDIATE_EXT,
-		             XR_HAND_JOINT_LITTLE_DISTAL_EXT,
-		     })
+		if (glm::dot(palm_y, fingertip_y) < constants::lobby::recenter_cos_fingertip_angle_max)
 		{
-			const auto fingertip_y = glm::rotate(glm_cast((*joints)[index].first.pose.orientation), glm::vec3(0, 1, 0));
-
-			if (glm::dot(palm_y, fingertip_y) < constants::lobby::recenter_cos_fingertip_angle_max)
-			{
-				recentering_context.reset();
-				return std::nullopt;
-			}
+			recentering_context.reset();
+			return std::nullopt;
 		}
+	}
 
-		const auto q = glm_cast(palm.pose.orientation);
-		const auto x = glm_cast(palm.pose.position);
+	const auto q = glm_cast(palm.pose.orientation);
+	const auto x = glm_cast(palm.pose.position);
 
-		// Make the up vector orthogonal to forward
-		const glm::vec3 forward = glm::rotate(head_pose.second, glm::vec3{0, 0, -1});
-		const glm::vec3 up = glm::normalize(glm::vec3{0, 1, 0} - forward * glm::dot(forward, {0, 1, 0}));
+	// Make the up vector orthogonal to forward
+	const glm::vec3 forward = glm::rotate(head_pose.second, glm::vec3{0, 0, -1});
+	const glm::vec3 up = glm::normalize(glm::vec3{0, 1, 0} - forward * glm::dot(forward, {0, 1, 0}));
 
-		// Y is pointing to the back of the hand
-		if (glm::dot(q * glm::vec3(0, -1, 0), up) > constants::lobby::recenter_cos_palm_angle_min)
-		{
-			recentering_context.emplace(space, glm::vec3{}, 0);
-			return x + glm::rotate(q, glm::vec3{0, -constants::lobby::recenter_distance_up, -constants::lobby::recenter_distance_front});
-		}
+	// Y is pointing to the back of the hand
+	if (glm::dot(q * glm::vec3(0, -1, 0), up) > constants::lobby::recenter_cos_palm_angle_min)
+	{
+		recentering_context.emplace(space, glm::vec3{}, 0);
+		return x + glm::rotate(q, glm::vec3{0, -constants::lobby::recenter_distance_up, -constants::lobby::recenter_distance_front});
 	}
 
 	recentering_context.reset();
@@ -973,24 +970,26 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		auto left = left_hand->locate(world_space, frame_state.predictedDisplayTime);
 		if (left)
 		{
-			stick_finger_to_gui(*left, windows);
+			if (left->is_input_source())
+				stick_finger_to_gui(left->joints, windows);
 			hide_left_controller = true;
 		}
 
 		auto right = right_hand->locate(world_space, frame_state.predictedDisplayTime);
 		if (right)
 		{
-			stick_finger_to_gui(*right, windows);
+			if (right->is_input_source())
+				stick_finger_to_gui(right->joints, windows);
 			hide_right_controller = true;
 		}
 
-		hand_model::apply(world, left, right);
+		hand_model::apply(world, left ? &left->joints : nullptr, right ? &right->joints : nullptr);
 
-		if (not new_gui_position and head_position)
-			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, left, *head_position);
+		if (not new_gui_position and head_position and left and left->is_input_source())
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, left->joints, *head_position);
 
-		if (not new_gui_position and head_position)
-			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, right, *head_position);
+		if (not new_gui_position and head_position and right and right->is_input_source())
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, right->joints, *head_position);
 	}
 
 	if (head_position and new_gui_position)
