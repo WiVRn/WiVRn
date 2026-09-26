@@ -1329,8 +1329,7 @@ void wivrn_session::stop_application(std::optional<uint32_t> id, int64_t timeout
 	scoped_lock lock(mnd_ipc_server->global_state.lock);
 	for (auto & t: mnd_ipc_server->threads)
 	{
-		// Monado doesn't set state to IPC_THREAD_RUNNING
-		if (t.state != IPC_THREAD_STARTING)
+		if (t.state == IPC_THREAD_READY || t.state == IPC_THREAD_STOPPING)
 			continue;
 
 		uint32_t client_id = t.ics.client_state.id;
