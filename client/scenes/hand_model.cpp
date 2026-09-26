@@ -289,13 +289,13 @@ void hand_model::add_hand(scene & scene,
 }
 
 void hand_model::apply(entt::registry & scene,
-                       const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & left_hand,
-                       const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & right_hand)
+                       const xr::hand_tracker::joint_array * left_hand,
+                       const xr::hand_tracker::joint_array * right_hand)
 {
 	for (auto && [entity, hj, node]: scene.view<components::hand_joint, components::node>().each())
 	{
-		auto f = [&](const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & joints) {
-			if (joints.has_value())
+		auto f = [&](const xr::hand_tracker::joint_array * joints) {
+			if (joints)
 			{
 				node.visible = true;
 

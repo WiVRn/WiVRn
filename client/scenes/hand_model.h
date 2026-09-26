@@ -37,6 +37,6 @@ void add_hand(scene & scene,
               uint32_t layer_mask);
 
 void apply(entt::registry & scene,
-           const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & left_hand,
-           const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & right_hand);
+           const xr::hand_tracker::joint_array * left_hand,
+           const xr::hand_tracker::joint_array * right_hand);
 }; // namespace hand_model

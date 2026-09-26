@@ -22,6 +22,7 @@
 #include "utils/handle.h"
 #include <array>
 #include <optional>
+#include <utility>
 #include <vector>
 #include <openxr/openxr.h>
 
@@ -34,6 +35,20 @@ class hand_tracker : public utils::handle<XrHandTrackerEXT>
 {
 public:
 	using joint = std::pair<XrHandJointLocationEXT, XrHandJointVelocityEXT>;
+	using joint_array = std::array<joint, XR_HAND_JOINT_COUNT_EXT>;
+
+	struct located_hand
+	{
+		joint_array joints;
+		std::optional<XrHandTrackingDataSourceEXT> data_source;
+
+		// should these joints be used for input?
+		// true if UNOBSTRUCTED or XR_EXT_hand_tracking_data_source not supported
+		bool is_input_source() const
+		{
+			return !data_source or *data_source == XR_HAND_TRACKING_DATA_SOURCE_UNOBSTRUCTED_EXT;
+		}
+	};
 
 	struct mesh_data
 	{
@@ -51,15 +66,16 @@ public:
 private:
 	PFN_xrLocateHandJointsEXT xrLocateHandJointsEXT{};
 	PFN_xrGetHandMeshFB xrGetHandMeshFB{};
+	bool hand_tracking_data_source_supported = false;
 	std::optional<mesh_data> cached_hand_mesh_fb;
 	bool hand_mesh_fb_fetched = false;
 
 public:
 	hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info);
 
-	std::optional<std::array<joint, XR_HAND_JOINT_COUNT_EXT>> locate(XrSpace space, XrTime time);
+	std::optional<located_hand> locate(XrSpace space, XrTime time);
 	const mesh_data * mesh();
 
-	static bool check_flags(const std::array<joint, XR_HAND_JOINT_COUNT_EXT> & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity);
+	static bool check_flags(const joint_array & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity);
 };
 } // namespace xr
