@@ -344,6 +344,12 @@ void hmd_traits::init()
 		if (panel_width_override > 0)
 			break;
 	}
+
+	// Steam Frame doesn't have actual hand tracking, only finger curls on the controller.
+	// However it works in a way that games will assume it's real hand tracking.
+	// TODO: Use XR_EXT_hand_tracking_data_source and refuse
+	// if source is XR_HAND_TRACKING_DATA_SOURCE_CONTROLLER_EXT
+	blacklisted_extensions.insert("XR_EXT_hand_tracking");
 #endif
 
 	spdlog::info("HMD traits initialized");
