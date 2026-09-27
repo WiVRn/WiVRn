@@ -298,6 +298,7 @@ add_custom_target(wivrn-version ALL
         -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
         BYPRODUCTS ${CMAKE_BINARY_DIR}/version.cpp ${CMAKE_BINARY_DIR}/u_git_tag.cpp
         SOURCES common/version.cpp.in server/u_git_tag.cpp.in
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
 
 add_subdirectory(external)
