@@ -157,6 +157,28 @@
 			"cacheVariables": {
 				"WIVRN_USE_SYSTEM_BOOST": "OFF"
 			}
+		},
+		{
+			"name": "frame",
+			"generator": "Ninja",
+			"cacheVariables": {
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
+				"CMAKE_BUILD_TYPE": "Release",
+				"WIVRN_BUILD_CLIENT": "ON",
+				"WIVRN_BUILD_SERVER": "OFF",
+				"WIVRN_BUILD_SERVER_LIBRARY": "OFF",
+				"WIVRN_BUILD_DASHBOARD": "OFF",
+				"WIVRN_BUILD_DISSECTOR": "OFF",
+				"WIVRN_BUILD_WIVRNCTL": "OFF",
+				"WIVRN_USE_PIPEWIRE": "ON",
+				"WIVRN_USE_V4L2": "ON",
+				"WIVRN_USE_SYSTEM_BOOST": "OFF",
+				"WIVRN_USE_SYSTEM_LIBKTX": "OFF",
+				"WIVRN_USE_SYSTEM_OPENXR": "OFF",
+				"WIVRN_COMPRESS_GLB": "ON",
+				"WIVRN_WERROR": "ON"
+			}
 		}
 	],
 	"buildPresets": [

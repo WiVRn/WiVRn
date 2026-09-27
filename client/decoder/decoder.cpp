@@ -21,14 +21,13 @@
 #ifdef __ANDROID__
 #include "decoder/android/android_decoder.h"
 #else
-#include "decoder/ffmpeg/ffmpeg_decoder.h"
 #ifdef WIVRN_USE_V4L2
 #include "decoder/v4l2/v4l2_decoder.h"
+#else
+#include "decoder/ffmpeg/ffmpeg_decoder.h"
 #endif
 #endif
 #include "decoder/raw_decoder.h"
-#include "spdlog/spdlog.h"
-#include <algorithm>
 
 wivrn::decoder::~decoder() = default;
 
@@ -54,21 +53,10 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
 			        stream_index,
 			        scene,
 			        acc);
+#elifdef WIVRN_USE_V4L2
+			return std::make_shared<wivrn::v4l2::decoder>(
+			        device, phys_dev, vk_queue_family_index, description, stream_index, scene, acc);
 #else
-#ifdef WIVRN_USE_V4L2
-			if (wivrn::v4l2::decoder::available_for(description.codec[stream_index]))
-			{
-				try
-				{
-					return std::make_shared<wivrn::v4l2::decoder>(
-					        device, phys_dev, vk_queue_family_index, description, stream_index, scene, acc);
-				}
-				catch (const std::exception & e)
-				{
-					spdlog::warn("V4L2 iris decoder initialization failed: {}. Falling back to FFmpeg.", e.what());
-				}
-			}
-#endif
 			return std::make_shared<wivrn::ffmpeg::decoder>(
 			        device, phys_dev, description, stream_index, scene, acc);
 #endif
@@ -90,15 +78,10 @@ static std::vector<wivrn::video_codec> supported_codecs_()
 	std::vector<wivrn::video_codec> res;
 #ifdef __ANDROID__
 	wivrn::android::decoder::supported_codecs(res);
-#else
-#ifdef WIVRN_USE_V4L2
+#elifdef WIVRN_USE_V4L2
 	wivrn::v4l2::decoder::supported_codecs(res);
-#endif
-	std::vector<wivrn::video_codec> software_codecs;
-	wivrn::ffmpeg::decoder::supported_codecs(software_codecs);
-	for (auto codec: software_codecs)
-		if (not std::ranges::contains(res, codec))
-			res.push_back(codec);
+#else
+	wivrn::ffmpeg::decoder::supported_codecs(res);
 #endif
 	res.push_back(wivrn::video_codec::raw);
 	return res;

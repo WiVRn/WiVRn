@@ -204,7 +204,9 @@ if (WIVRN_BUILD_CLIENT)
 endif()
 
 if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
-    pkg_check_modules(LIBAV_CLIENT REQUIRED IMPORTED_TARGET libavcodec libavutil libswscale)
+    if(NOT WIVRN_USE_V4L2)
+        pkg_check_modules(LIBAV_CLIENT REQUIRED IMPORTED_TARGET libavcodec libavutil libswscale)
+    endif()
     find_package(Fontconfig REQUIRED)
 
     if (WIVRN_USE_SYSTEM_OPENXR)

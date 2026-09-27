@@ -108,16 +108,17 @@ else()
         target_link_libraries(wivrn openxr_loader)
     endif()
 
-    target_link_libraries(wivrn PkgConfig::LIBAV_CLIENT Fontconfig::Fontconfig CURL::libcurl)
-
-    file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
-        "decoder/ffmpeg/*.cpp")
+    target_link_libraries(wivrn Fontconfig::Fontconfig CURL::libcurl)
 
     if(WIVRN_USE_V4L2)
         file(GLOB CLIENT_V4L2_SOURCE CONFIGURE_DEPENDS
             "decoder/v4l2/*.cpp")
         list(APPEND PLATFORM_SOURCE ${CLIENT_V4L2_SOURCE})
         target_compile_definitions(wivrn PRIVATE WIVRN_USE_V4L2)
+    else()
+        target_link_libraries(wivrn PkgConfig::LIBAV_CLIENT)
+        file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
+            "decoder/ffmpeg/*.cpp")
     endif()
 
     if(WIVRN_USE_PIPEWIRE)
