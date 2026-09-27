@@ -412,6 +412,7 @@ void scenes::stream::gui_settings(float)
 	        .recommended_width = width,
 	        .recommended_height = height,
 	        .in_game = true,
+	        .stream = this,
 	        .server_hid_forwarding = hid_forwarding_enabled(),
 	        .on_streaming_changed = [this] { send_settings_changed_packet(session, network_session.get(), application::get_config()); },
 	        .enter_foveation_adjust = [this] { next_gui_status = stream_tab::foveation_settings; },

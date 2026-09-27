@@ -31,6 +31,7 @@
 #include "render/imgui_impl.h"
 #include "render/ui_theme.h"
 #include "render/ui_widgets.h"
+#include "stream.h"
 #include "utils/i18n.h"
 #include "xr/instance.h"
 #include "xr/session.h"
@@ -583,9 +584,9 @@ bool settings_tracking(const settings_context & ctx)
 
 	// in the lobby this edits the default posture used when a stream connects; in-stream it
 	// only overrides the current session, so a punctual switch doesn't stick for next time
-	const bool seated = (ctx.in_game ? config.get_posture() : config.default_posture) == posture::seated;
-	float & height_offset = seated ? config.height_offset_seated : config.height_offset_standing;
-	const float default_height_offset = seated ? default_config.height_offset_seated : default_config.height_offset_standing;
+	const posture current_posture = ctx.stream ? ctx.stream->get_posture() : config.default_posture;
+	const bool seated = current_posture == posture::seated;
+	const float default_height_offset = default_config.get_height_offset(current_posture);
 
 	list.push_back({
 	        .id = "##posture",
@@ -597,8 +598,8 @@ bool settings_tracking(const settings_context & ctx)
 	        .get_int = [seated] { return seated ? 1 : 0; },
 	        .set_int = [&ctx, &config](int v) {
 		        const auto p = v ? posture::seated : posture::standing;
-		        if (ctx.in_game)
-			        config.set_posture(p);
+		        if (ctx.stream)
+			        ctx.stream->set_posture(p);
 		        else
 			        config.default_posture = p;
 		        config.save(); },
@@ -611,8 +612,8 @@ bool settings_tracking(const settings_context & ctx)
 	        .label = _C("setting name", "Height adjustment"),
 	        .description = _("Corrects the height reported to the PC for the selected posture, useful for seated play or a miscalibrated floor."),
 	        .ui = ui_kind::slider,
-	        .get_int = [&height_offset] { return int(std::lround(height_offset * 100)); },
-	        .set_int = [&config, &height_offset](int v) { height_offset = v / 100.f; config.save(); },
+	        .get_int = [&config, current_posture] { return int(std::lround(config.get_height_offset(current_posture) * 100)); },
+	        .set_int = [&config, current_posture](int v) { config.set_height_offset(current_posture, v / 100.f); config.save(); },
 	        .v_min = -30,
 	        .v_max = 70,
 	        .fmt = "%d cm",

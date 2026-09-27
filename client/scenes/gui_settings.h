@@ -32,6 +32,11 @@ class session;
 class system;
 } // namespace xr
 
+namespace scenes
+{
+class stream;
+}
+
 namespace wivrn::gui
 {
 
@@ -51,6 +56,10 @@ struct settings_context
 
 	// streaming: connection-time settings are disabled, in-stream controls appear
 	bool in_game = false;
+
+	// set in the stream scene, null in the lobby; lets a setting reach session-only state
+	// that belongs on the scene rather than in configuration (e.g. current posture override)
+	scenes::stream * stream = nullptr;
 
 	std::optional<bool> server_hid_forwarding;
 

@@ -122,11 +122,6 @@ public:
 
 	bool usb_network = false;
 
-	// Player height correction, added to the tracked head/controller/hand/body poses sent
-	// to the PC, one preset per posture. Seated defaults to a typical seated-to-standing
-	// torso height difference, so a seated player still appears at a standing height.
-	float height_offset_standing = 0;
-	float height_offset_seated = 0.45;
 	posture default_posture = posture::standing;
 
 	// Allow unsafe config values
@@ -143,10 +138,8 @@ private:
 	mutable std::mutex mutex;
 	std::map<feature, bool> features;
 	std::optional<float> stream_scale;
-
-	// current posture for this stream connection only, never saved: reset_posture() puts it
-	// back to default_posture, so a punctual in-game switch doesn't survive to the next stream
-	std::optional<posture> posture_override;
+	float height_offset_standing = 0;
+	float height_offset_seated = 0.45;
 
 	// table of scalar settings shared by save()/load(); non-scalar settings are explicit
 	static const std::vector<config_field> & config_fields();
@@ -161,10 +154,8 @@ public:
 	float get_stream_scale() const;
 	float get_default_stream_scale() const;
 
-	void set_posture(posture);
-	void reset_posture();
-	posture get_posture() const;
-	float get_height_offset() const;
+	float get_height_offset(posture) const;
+	void set_height_offset(posture, float);
 
 	uint32_t max_bitrate(bool extended) const
 	{
