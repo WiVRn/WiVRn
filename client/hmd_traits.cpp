@@ -138,7 +138,14 @@ std::optional<std::unordered_set<std::string>> env(std::string_view name)
 	if (not values)
 		return std::nullopt;
 
+#if defined(__cpp_lib_containers_ranges) && __cpp_lib_containers_ranges >= 202202L
 	return std::unordered_set<std::string>{std::from_range, utils::split(*values, ",")};
+#else
+	std::optional<std::unordered_set<std::string>> res{std::in_place};
+	for (auto & val: utils::split(*values))
+		res->insert(std::move(val));
+	return res;
+#endif
 }
 
 void hmd_traits::init()
