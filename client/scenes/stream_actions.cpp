@@ -79,7 +79,7 @@ void scenes::stream::operator()(to_headset::haptics && haptics)
 	{
 		XrAction action = it->second.action;
 		float old = it->second.amplitude;
-		it->second.amplitude = old;
+		it->second.amplitude = haptics.amplitude;
 		// Some runtimes may be slow to process actions
 		// Skip it if not necessary
 		if (old == 0 and haptics.amplitude == 0)
