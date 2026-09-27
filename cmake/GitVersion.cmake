@@ -8,7 +8,7 @@ if (NOT (GIT_TAG OR GIT_DESC OR GIT_COMMIT))
 		OUTPUT_VARIABLE GIT_TAG
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		ERROR_QUIET
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+	)
 endif()
 
 if (GIT_TAG)
@@ -23,8 +23,7 @@ else()
 			COMMAND ${GIT_EXECUTABLE} describe --tags --always
 			OUTPUT_VARIABLE GIT_DESC
 			OUTPUT_STRIP_TRAILING_WHITESPACE
-			ERROR_QUIET
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+		)
 		message(STATUS "Setting version to ${GIT_DESC} from git")
 	else()
 		message(STATUS "Setting version to ${GIT_DESC} from parameters")
@@ -34,8 +33,7 @@ else()
 		execute_process(
 			COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
 			OUTPUT_VARIABLE GIT_COMMIT
-			ERROR_QUIET
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+		)
 		string(STRIP "${GIT_COMMIT}" GIT_COMMIT)
 	endif()
 
