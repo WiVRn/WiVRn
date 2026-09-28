@@ -125,7 +125,6 @@ else()
             "audio/linux/*.cpp")
         list(APPEND PLATFORM_SOURCE ${CLIENT_PIPEWIRE_SOURCE})
         target_link_libraries(wivrn PkgConfig::libpipewire)
-        target_compile_definitions(wivrn PRIVATE WIVRN_USE_PIPEWIRE)
     endif()
 
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
