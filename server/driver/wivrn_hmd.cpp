@@ -30,7 +30,6 @@
 #include "util/u_logging.h"
 #include "utils/method.h"
 
-#include "xrt_cast.h"
 #include <cstdint>
 #include <stdio.h>
 #include <openxr/openxr.h>
@@ -128,10 +127,6 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	hmd->views[1].display.w_pixels = eye_width;
 	hmd->views[1].display.h_pixels = eye_height;
 	hmd->views[1].rot = u_device_rotation_ident;
-
-	// FOV from headset info packet
-	hmd->distortion.fov[0] = xrt_cast(info.fov[0]);
-	hmd->distortion.fov[1] = xrt_cast(info.fov[1]);
 }
 
 xrt_result_t wivrn_hmd::update_inputs()
