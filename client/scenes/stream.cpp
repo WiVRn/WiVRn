@@ -945,7 +945,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		use_alpha = blit_handle->view_info.alpha;
 
-#ifdef WIVRN_USE_V4L2
+#if WIVRN_USE_V4L2
 		if (blit_handle->foreign_queue_family != vk::QueueFamilyIgnored)
 		{
 			// decoder completed its write before handing us this image
@@ -1105,7 +1105,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		                      {bias, bias, bias, 0.},
 		                      image_index);
 
-#ifdef WIVRN_USE_V4L2
+#if WIVRN_USE_V4L2
 		// the blit handles keep CAPTURE buffers alive until this cmd buffer's fence has completed
 		inplace_vector<vk::ImageMemoryBarrier, decoder_count> foreign_release_barriers;
 		for (const auto & handle: current_blit_handles)
