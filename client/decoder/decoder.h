@@ -20,6 +20,8 @@
 
 #include "wivrn_packets.h"
 
+#include "wivrn_config.h"
+
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -46,7 +48,7 @@ public:
 		vk::ImageLayout & current_layout;
 		vk::Semaphore semaphore = nullptr;
 		uint64_t * semaphore_val = nullptr;
-#ifdef WIVRN_USE_V4L2
+#if WIVRN_USE_V4L2
 		// DMA-buf images from V4L2 require queue-family ownership
 		// transfers between Vulkan and external engine
 		uint32_t foreign_queue_family = vk::QueueFamilyIgnored;

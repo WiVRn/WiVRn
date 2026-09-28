@@ -900,7 +900,7 @@ void application::initialize_vulkan()
 	optional_device_extensions.emplace(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
 
-#ifdef WIVRN_USE_V4L2
+#if WIVRN_USE_V4L2
 	// V4L2 decoders expose their output through DMA-buf
 	optional_device_extensions.emplace(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME);
