@@ -120,7 +120,7 @@ jobs:
 
   build-steam-frame:
     name: Steam Frame
-    runs-on: ubuntu-26.04-arm
+    runs-on: ubuntu-24.04-arm
     if: ${{ vars.APK_ONLY == '' }}
     container:
       image: registry.gitlab.steamos.cloud/steamrt/steamrt4/sdk/arm64:4.0.20260805.254769
