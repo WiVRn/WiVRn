@@ -1232,14 +1232,6 @@ std::pair<bool, std::optional<std::string>> wivrn_session::validate_headset_info
 		// only allow connecting from the "same" headset
 		refuse |= prev_info.system_name != info.system_name;
 
-		for (uint32_t i = 0; i < 2; i++)
-		{
-			refuse |= prev_info.fov[i].angleDown != info.fov[i].angleDown;
-			refuse |= prev_info.fov[i].angleUp != info.fov[i].angleUp;
-			refuse |= prev_info.fov[i].angleRight != info.fov[i].angleRight;
-			refuse |= prev_info.fov[i].angleLeft != info.fov[i].angleLeft;
-		}
-
 		refuse |= prev_info.palm_pose != info.palm_pose;
 		refuse |= prev_info.user_presence != info.user_presence;
 		refuse |= prev_info.passthrough != info.passthrough;

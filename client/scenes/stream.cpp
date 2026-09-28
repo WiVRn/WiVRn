@@ -247,18 +247,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		        .variant = application::get_messages_info().variant,
 		};
 
-		{
-			auto [flags, views] = self->session.locate_views(
-			        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-			        self->instance.now(),
-			        application::space(xr::spaces::view));
-
-			assert(views.size() == info.fov.size());
-
-			for (auto [i, j]: std::views::zip(views, info.fov))
-				j = i.fov;
-		}
-
 		const auto & config = application::get_config();
 
 		{

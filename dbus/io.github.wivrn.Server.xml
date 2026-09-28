@@ -56,9 +56,6 @@
 		<property name="SpeakerSampleRate"     type="u" access="read"/>
 		<property name="MicChannels"           type="u" access="read"/>
 		<property name="MicSampleRate"         type="u" access="read"/>
-		<property name="FieldOfView"           type="a(dddd)" access="read">
-			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;field_of_view&gt;"/>
-		</property>
 		<property name="HandTracking"          type="b" access="read"/>
 		<property name="EyeGaze"               type="b" access="read"/>
 		<property name="FaceTracking"          type="b" access="read"/>
