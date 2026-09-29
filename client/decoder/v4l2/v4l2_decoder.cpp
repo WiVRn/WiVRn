@@ -108,7 +108,7 @@ wivrn::fd_base find_device(wivrn::video_codec codec)
 
 	for (unsigned int i = 0; i < 128; ++i)
 	{
-		const std::string path = std::format("/dev/video/{}", i);
+		const std::string path = std::format("/dev/video{}", i);
 
 		int probe_fd =
 		        open(path.c_str(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
