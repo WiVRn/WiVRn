@@ -815,9 +815,9 @@ void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & inf
 	        {h264, "h264"},
 	        {h265, "h265"},
 	        {av1, "av1"}};
-	for (video_codec codec: info.supported_codecs)
+	for (const auto & capability: info.supported_codecs)
 	{
-		auto it = codec_names.find(codec);
+		auto it = codec_names.find(capability.codec);
 		if (it != codec_names.end())
 			codecs.push_back(it->second);
 	}
