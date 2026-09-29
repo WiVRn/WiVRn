@@ -513,6 +513,7 @@ void settings_audio(const settings_context & ctx)
 	        .disabled_tooltip = disconnect_tip,
 	});
 
+#ifdef __ANDROID__
 	list.push_back({
 	        .id = "##unprocessed",
 	        .label = _C("setting name", "Unprocessed audio"),
@@ -524,6 +525,7 @@ void settings_audio(const settings_context & ctx)
 	        .enabled = [&ctx, &config] { return not ctx.in_game and config.check_feature(feature::microphone); },
 	        .disabled_tooltip = disconnect_tip,
 	});
+#endif
 
 	ui::page_header(_cS("page header title", "Audio"), _cS("page header subtitle", "Microphone streamed to the PC."));
 	render_settings(ctx, "##audio", list);
