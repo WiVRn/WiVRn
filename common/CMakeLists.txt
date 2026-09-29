@@ -2,6 +2,7 @@ if (WIVRN_USE_SYSTEM_BOOST)
     add_library(Boost::pfr ALIAS Boost::headers)
 else()
     set(BOOST_INCLUDE_LIBRARIES locale url pfr iostreams)
+    set(BOOST_LOCALE_ENABLE_ICU OFF)
     FetchContent_MakeAvailable(boost)
 endif()
 
