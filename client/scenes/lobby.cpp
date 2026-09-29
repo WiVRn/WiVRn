@@ -946,7 +946,14 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	renderdoc_begin(*vk_instance);
 #endif
 
-	XrSpace world_space = application::space(xr::spaces::world);
+	// Locating everything against this instead of the raw world space lets the configured
+	// player height offset be previewed here, the same shift a stream would apply.
+	if (float offset = application::get_config().get_height_offset(application::get_config().get_posture()); not height_offset_space or offset != applied_height_offset)
+	{
+		applied_height_offset = offset;
+		height_offset_space = session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE, {{0, 0, 0, 1}, {0, -offset, 0}});
+	}
+	XrSpace world_space = height_offset_space;
 	auto [flags, views] = session.locate_views(viewconfig, frame_state.predictedDisplayTime, world_space);
 	// assert(views.size() == swapchains_lobby.size());
 	assert(views.size() == 2); // FIXME

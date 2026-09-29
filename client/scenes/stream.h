@@ -83,7 +83,6 @@ private:
 	std::atomic<bool> interaction_profile_changed = false;
 	std::atomic<XrTime> scheduled_derived_pose = 0; // Tracking thread will compute derived pose when time is reached
 	std::atomic<bool> recenter_requested = false;
-	std::atomic<std::optional<posture>> posture_override;
 	std::atomic<bool> hid_forwarding = false;
 	std::atomic<XrDuration> display_time_phase = 0;
 	std::atomic<XrDuration> display_time_period = 0;
@@ -211,17 +210,6 @@ private:
 
 public:
 	~stream();
-
-	// current posture for this connection only; falls back to configuration::default_posture
-	void set_posture(posture p)
-	{
-		posture_override = p;
-	}
-
-	posture get_posture() const
-	{
-		return posture_override.load().value_or(application::get_config().default_posture);
-	}
 
 	static std::shared_ptr<stream> create(
 	        std::unique_ptr<wivrn_session> session,

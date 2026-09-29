@@ -580,34 +580,26 @@ bool settings_tracking(const settings_context & ctx)
 	auto & config = ctx.config;
 	auto & default_config = ctx.default_config;
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
-	std::vector<setting> list;
+	std::vector<setting> list, posture_items;
 
-	// in the lobby this edits the default posture used when a stream connects; in-stream it
-	// only overrides the current session, so a punctual switch doesn't stick for next time
-	const posture current_posture = ctx.stream ? ctx.stream->get_posture() : config.default_posture;
+	// always persisted immediately, in the lobby or in-stream: both the lobby and the stream
+	// scene apply it live, so there's no separate "session override" to reconcile
+	const posture current_posture = config.get_posture();
 	const bool seated = current_posture == posture::seated;
 	const float default_height_offset = default_config.get_height_offset(current_posture);
 
-	list.push_back({
+	posture_items.push_back({
 	        .id = "##posture",
 	        .label = _C("setting name", "Posture"),
-	        .description = ctx.in_game
-	                               ? _("Switches height for this stream only. Reconnecting uses the default below.")
-	                               : _("Default posture assumed when a stream connects."),
+	        .description = _("Posture assumed when a stream connects."),
 	        .ui = ui_kind::segmented,
 	        .get_int = [seated] { return seated ? 1 : 0; },
-	        .set_int = [&ctx, &config](int v) {
-		        const auto p = v ? posture::seated : posture::standing;
-		        if (ctx.stream)
-			        ctx.stream->set_posture(p);
-		        else
-			        config.default_posture = p;
-		        config.save(); },
+	        .set_int = [&config](int v) { config.set_posture(v ? posture::seated : posture::standing); config.save(); },
 	        .options = [] { return std::vector<std::string>{_C("posture", "Standing"), _C("posture", "Seated")}; },
-	        .default_int = default_config.default_posture == posture::seated ? 1 : 0,
+	        .default_int = default_config.get_posture() == posture::seated ? 1 : 0,
 	});
 
-	list.push_back({
+	posture_items.push_back({
 	        .id = "##height_offset",
 	        .label = _C("setting name", "Height adjustment"),
 	        .description = _("Corrects the height reported to the PC for the selected posture, useful for seated play or a miscalibrated floor."),
@@ -708,6 +700,7 @@ bool settings_tracking(const settings_context & ctx)
 
 	ui::page_header(_cS("page header title", "Tracking"), _cS("page header subtitle", "Body and input tracking sent to the PC."));
 	render_settings(ctx, "##tracking", list);
+	render_settings(ctx, "##posture", posture_items);
 
 	return changed;
 }

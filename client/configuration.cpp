@@ -428,3 +428,15 @@ void configuration::set_height_offset(posture p, float value)
 	std::lock_guard lock(mutex);
 	(p == posture::seated ? height_offset_seated : height_offset_standing) = value;
 }
+
+posture configuration::get_posture() const
+{
+	std::lock_guard lock(mutex);
+	return default_posture;
+}
+
+void configuration::set_posture(posture p)
+{
+	std::lock_guard lock(mutex);
+	default_posture = p;
+}

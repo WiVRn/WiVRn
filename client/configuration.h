@@ -122,8 +122,6 @@ public:
 
 	bool usb_network = false;
 
-	posture default_posture = posture::standing;
-
 	// Allow unsafe config values
 	bool extended_config = false;
 
@@ -140,6 +138,7 @@ private:
 	std::optional<float> stream_scale;
 	float height_offset_standing = 0;
 	float height_offset_seated = 0.45;
+	posture default_posture = posture::standing;
 
 	// table of scalar settings shared by save()/load(); non-scalar settings are explicit
 	static const std::vector<config_field> & config_fields();
@@ -156,6 +155,9 @@ public:
 
 	float get_height_offset(posture) const;
 	void set_height_offset(posture, float);
+
+	posture get_posture() const;
+	void set_posture(posture);
 
 	uint32_t max_bitrate(bool extended) const
 	{
