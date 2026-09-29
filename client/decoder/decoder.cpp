@@ -71,22 +71,53 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
 	__builtin_unreachable();
 }
 
-static std::vector<wivrn::video_codec> supported_codecs_()
+static std::vector<wivrn::video_codec_capability> supported_codecs_()
 {
-	std::vector<wivrn::video_codec> res;
+	std::vector<wivrn::video_codec> codecs;
 #ifdef __ANDROID__
-	wivrn::android::decoder::supported_codecs(res);
+	wivrn::android::decoder::supported_codecs(codecs);
 #elif WIVRN_USE_V4L2
-	wivrn::v4l2::decoder::supported_codecs(res);
+	wivrn::v4l2::decoder::supported_codecs(codecs);
 #else
-	wivrn::ffmpeg::decoder::supported_codecs(res);
+	wivrn::ffmpeg::decoder::supported_codecs(codecs);
 #endif
-	res.push_back(wivrn::video_codec::raw);
+	codecs.push_back(wivrn::video_codec::raw);
+
+	std::vector<wivrn::video_codec_capability> res;
+	res.reserve(codecs.size());
+	for (auto codec: codecs)
+		res.push_back({.codec = codec, .supports_10bit = wivrn::decoder::supports_10bit(codec)});
 	return res;
 }
 
-const std::vector<wivrn::video_codec> & wivrn::decoder::supported_codecs()
+const std::vector<wivrn::video_codec_capability> & wivrn::decoder::supported_codecs()
 {
-	static std::vector<wivrn::video_codec> res = supported_codecs_();
+	static std::vector<wivrn::video_codec_capability> res = supported_codecs_();
 	return res;
+}
+
+bool wivrn::decoder::supports_10bit(wivrn::video_codec codec)
+{
+#ifdef __ANDROID__
+	return codec == wivrn::video_codec::h265 or codec == wivrn::video_codec::av1;
+#elif WIVRN_USE_V4L2
+	switch (codec)
+	{
+		case wivrn::video_codec::h265: {
+			static const bool supported = wivrn::v4l2::decoder::supports_10bit(codec);
+			return supported;
+		}
+		case wivrn::video_codec::av1: {
+			static const bool supported = wivrn::v4l2::decoder::supports_10bit(codec);
+			return supported;
+		}
+		case wivrn::video_codec::h264:
+		case wivrn::video_codec::raw:
+			return false;
+	}
+	__builtin_unreachable();
+#else
+	// ffmpeg
+	return codec == wivrn::video_codec::h265 or codec == wivrn::video_codec::av1;
+#endif
 }

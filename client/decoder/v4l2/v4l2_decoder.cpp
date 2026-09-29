@@ -88,13 +88,13 @@ bool is_iris_decoder(int fd)
 	       (capabilities & V4L2_CAP_VIDEO_M2M_MPLANE) && (capabilities & V4L2_CAP_STREAMING);
 }
 
-bool supports_format(int fd, uint32_t pixel_format)
+bool supports_format(int fd, v4l2_buf_type type, uint32_t pixel_format)
 {
 	for (uint32_t index = 0;; ++index)
 	{
 		v4l2_fmtdesc fmt{};
 		fmt.index = index;
-		fmt.type = output_type;
+		fmt.type = type;
 		if (xioctl(fd, VIDIOC_ENUM_FMT, &fmt) < 0)
 			return false;
 		if (fmt.pixelformat == pixel_format)
@@ -118,7 +118,7 @@ wivrn::fd_base find_device(wivrn::video_codec codec)
 
 		const bool suitable =
 		        is_iris_decoder(probe_fd) &&
-		        supports_format(probe_fd, pixel_format);
+		        supports_format(probe_fd, output_type, pixel_format);
 
 		close(probe_fd);
 
@@ -1026,6 +1026,19 @@ bool decoder::available_for(wivrn::video_codec codec)
 		return false;
 	}
 	return true;
+}
+
+bool decoder::supports_10bit(wivrn::video_codec codec)
+{
+	try
+	{
+		auto device = find_device(codec);
+		return supports_format(device.get_fd(), capture_type, V4L2_PIX_FMT_P010);
+	}
+	catch (...)
+	{
+		return false;
+	}
 }
 
 void decoder::supported_codecs(std::vector<wivrn::video_codec> & result)

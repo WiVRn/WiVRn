@@ -177,6 +177,7 @@ public:
 	}
 
 	static bool available_for(wivrn::video_codec codec);
+	static bool supports_10bit(wivrn::video_codec codec);
 	static void supported_codecs(std::vector<wivrn::video_codec> & result);
 };
 } // namespace wivrn::v4l2

@@ -73,6 +73,7 @@ public:
 
 	virtual vk::Sampler sampler() = 0;
 
-	static const std::vector<wivrn::video_codec> & supported_codecs();
+	static const std::vector<wivrn::video_codec_capability> & supported_codecs();
+	static bool supports_10bit(wivrn::video_codec codec);
 };
 } // namespace wivrn

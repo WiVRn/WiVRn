@@ -345,9 +345,9 @@ void settings_streaming(const settings_context & ctx)
 	};
 
 	std::vector<wivrn::video_codec> codecs;
-	for (auto c: wivrn::decoder::supported_codecs())
-		if (c != wivrn::raw)
-			codecs.push_back(c);
+	for (auto capability: wivrn::decoder::supported_codecs())
+		if (capability.codec != wivrn::raw)
+			codecs.push_back(capability.codec);
 
 	list.push_back({
 	        .id = "##codec",
@@ -370,7 +370,7 @@ void settings_streaming(const settings_context & ctx)
 	        .disabled_tooltip = disconnect_tip,
 	});
 
-	if (config.codec == wivrn::h265 or config.codec == wivrn::av1)
+	if (config.codec && wivrn::decoder::supports_10bit(*config.codec))
 	{
 		list.push_back({
 		        .id = "##ten_bit",

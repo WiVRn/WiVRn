@@ -343,7 +343,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		if (config.codec)
 		{
-			info.supported_codecs = {*config.codec};
+			const bool supports_10bit = decoder::supports_10bit(*config.codec);
+			info.supported_codecs = {{.codec = *config.codec, .supports_10bit = supports_10bit}};
 			switch (*config.codec)
 			{
 				case h264:
@@ -351,11 +352,13 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 					break;
 				case h265:
 				case av1:
-					info.bit_depth = config.bit_depth;
+					info.bit_depth = supports_10bit ? config.bit_depth : 8;
 			}
 		}
 		else
+		{
 			info.supported_codecs = decoder::supported_codecs();
+		}
 
 		return info;
 	}());
