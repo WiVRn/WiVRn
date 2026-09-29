@@ -31,6 +31,7 @@
 #include "render/imgui_impl.h"
 #include "render/ui_theme.h"
 #include "render/ui_widgets.h"
+#include "stream.h"
 #include "utils/i18n.h"
 #include "xr/instance.h"
 #include "xr/session.h"
@@ -586,7 +587,37 @@ bool settings_tracking(const settings_context & ctx)
 	auto & config = ctx.config;
 	auto & default_config = ctx.default_config;
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
-	std::vector<setting> list;
+	std::vector<setting> list, posture_items;
+
+	const posture current_posture = config.get_posture();
+	const bool seated = current_posture == posture::seated;
+	const float default_height_offset = seated ? configuration::default_height_offset_seated : configuration::default_height_offset_standing;
+
+	posture_items.push_back({
+	        .id = "##posture",
+	        .label = _C("setting name", "Posture"),
+	        .description = _("Posture assumed when a stream connects."),
+	        .ui = ui_kind::segmented,
+	        .get_int = [seated] { return seated ? 1 : 0; },
+	        .set_int = [&config](int v) { config.set_posture(v ? posture::seated : posture::standing); config.save(); },
+	        .options = [] { return std::vector<std::string>{_C("posture", "Standing"), _C("posture", "Seated")}; },
+	        .default_int = default_config.get_posture() == posture::seated ? 1 : 0,
+	});
+
+	posture_items.push_back({
+	        .id = "##height_offset",
+	        .label = _C("setting name", "Height adjustment"),
+	        .description = seated
+	                               ? _("Corrects the height reported to the PC when seated, useful for games without native seated support.")
+	                               : _("Corrects the height reported to the PC when standing, useful for a miscalibrated floor."),
+	        .ui = ui_kind::slider,
+	        .get_int = [&config] { return int(std::lround(config.get_height_offset() * 100)); },
+	        .set_int = [&config](int v) { config.set_height_offset(v / 100.f); config.save(); },
+	        .v_min = -30,
+	        .v_max = 70,
+	        .fmt = "%d cm",
+	        .default_int = int(std::lround(default_height_offset * 100)),
+	});
 
 	auto feature_toggle = [&](const char * id, std::string label, std::string desc, feature f) {
 		list.push_back({
@@ -676,6 +707,7 @@ bool settings_tracking(const settings_context & ctx)
 
 	ui::page_header(_cS("page header title", "Tracking"), _cS("page header subtitle", "Body and input tracking sent to the PC."));
 	render_settings(ctx, "##tracking", list);
+	render_settings(ctx, "##posture", posture_items);
 
 	return changed;
 }

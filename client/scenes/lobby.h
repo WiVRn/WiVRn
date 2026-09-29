@@ -81,6 +81,11 @@ class lobby : public scene_impl<lobby>
 
 	xr::face_tracker face_tracker;
 
+	// STAGE space translated by the configured player height offset, so it previews here the
+	// same shift a stream would apply; recreated only when the offset actually changes.
+	xr::space height_offset_space;
+	float applied_height_offset = 0;
+
 	std::string selected_item;
 	std::unique_ptr<utils::mapped_file> license;
 
