@@ -1030,9 +1030,9 @@ bool decoder::available_for(wivrn::video_codec codec)
 
 void decoder::supported_codecs(std::vector<wivrn::video_codec> & result)
 {
-	if (available_for(wivrn::video_codec::h264))
-		result.push_back(wivrn::video_codec::h264);
 	if (available_for(wivrn::video_codec::h265))
 		result.push_back(wivrn::video_codec::h265);
+	if (available_for(wivrn::video_codec::h264))
+		result.push_back(wivrn::video_codec::h264);
 }
 } // namespace wivrn::v4l2
