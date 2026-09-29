@@ -21,6 +21,7 @@
 #include "application.h"
 #include "details/enumerate.h"
 #include "session.h"
+#include <spdlog/spdlog.h>
 
 xr::swapchain::swapchain(
         xr::instance & inst,
@@ -30,7 +31,8 @@ xr::swapchain::swapchain(
         int32_t width,
         int32_t height,
         int sample_count,
-        uint32_t array_size) :
+        uint32_t array_size,
+        bool foveation) :
         width_(width),
         height_(height),
         sample_count_(sample_count),
@@ -55,8 +57,21 @@ xr::swapchain::swapchain(
 			break;
 	}
 
+	XrVulkanSwapchainCreateInfoMETA vulkan_create_info{
+	        .type = XR_TYPE_VULKAN_SWAPCHAIN_CREATE_INFO_META,
+	        .additionalCreateFlags = VK_IMAGE_CREATE_FRAGMENT_DENSITY_MAP_OFFSET_BIT_QCOM,
+	        .additionalUsageFlags = 0,
+	};
+
+	XrSwapchainCreateInfoFoveationFB foveation_create_info{
+	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO_FOVEATION_FB,
+	        .next = &vulkan_create_info,
+	        .flags = XR_SWAPCHAIN_CREATE_FOVEATION_FRAGMENT_DENSITY_MAP_BIT_FB,
+	};
+
 	XrSwapchainCreateInfo create_info{
 	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
+	        .next = foveation ? &foveation_create_info : nullptr,
 	        .createFlags = 0,
 	        .usageFlags = usage_flags,
 	        .format = static_cast<VkFormat>(format),
@@ -70,11 +85,35 @@ xr::swapchain::swapchain(
 
 	CHECK_XR(xrCreateSwapchain(s, &create_info, &id));
 
-	auto images = details::enumerate<XrSwapchainImageVulkanKHR>(xrEnumerateSwapchainImages, id);
+	if (foveation)
+	{
+		auto [images, foveation_images] =
+		        details::enumerate2<XrSwapchainImageVulkanKHR, XrSwapchainImageFoveationVulkanFB>(
+		                xrEnumerateSwapchainImages, id);
 
-	images_.reserve(images.size());
-	for (auto & image: images)
-		images_.push_back(image.image);
+		images_.reserve(images.size());
+		for (auto & image: images)
+			images_.push_back(image.image);
+
+		spdlog::debug("XR_FB_foveation: enumerated {} color images and {} FDM images", images.size(), foveation_images.size());
+		for (size_t i = 0; i < foveation_images.size(); ++i)
+		{
+			const auto & fdm = foveation_images[i];
+			spdlog::debug(
+			        "  {}. FDM image @ {}x{}",
+			        i,
+			        fdm.width,
+			        fdm.height);
+		}
+	}
+	else
+	{
+		auto images = details::enumerate<XrSwapchainImageVulkanKHR>(xrEnumerateSwapchainImages, id);
+
+		images_.reserve(images.size());
+		for (auto & image: images)
+			images_.push_back(image.image);
+	}
 }
 
 int xr::swapchain::acquire()

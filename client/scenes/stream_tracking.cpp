@@ -25,6 +25,7 @@
 #include "xr/face_tracker.h"
 #include "xr/fb_body_tracker.h"
 #include "xr/to_string.h"
+#include <glm/gtc/quaternion.hpp>
 #include <magic_enum.hpp>
 #include <magic_enum_containers.hpp>
 #include <ranges>
@@ -61,6 +62,37 @@ from_headset::tracking::pose locate_space(device_id device, XrSpace space, XrSpa
 		};
 	spdlog::warn("xrLocateSpace failed for {}: {}", magic_enum::enum_name(device), xr::to_string(res));
 	return {.device = device};
+}
+
+from_headset::tracking::pose make_eye_gaze_view_relative(
+        const from_headset::tracking::pose & gaze_pose,
+        const from_headset::tracking::pose & view_pose)
+{
+	glm::quat gaze_quat(
+	        gaze_pose.pose.orientation.w,
+	        gaze_pose.pose.orientation.x,
+	        gaze_pose.pose.orientation.y,
+	        gaze_pose.pose.orientation.z);
+	const glm::quat view_quat(
+	        view_pose.pose.orientation.w,
+	        view_pose.pose.orientation.x,
+	        view_pose.pose.orientation.y,
+	        view_pose.pose.orientation.z);
+	gaze_quat = glm::conjugate(view_quat) * gaze_quat;
+
+	using flags = from_headset::pose_flags;
+	return {
+	        .pose = {
+	                .orientation = {
+	                        .x = gaze_quat.x,
+	                        .y = gaze_quat.y,
+	                        .z = gaze_quat.z,
+	                        .w = gaze_quat.w,
+	                },
+	        },
+	        .device = gaze_pose.device,
+	        .flags = uint8_t(gaze_pose.flags & view_pose.flags & ~(flags::linear_velocity_valid | flags::angular_velocity_valid)),
+	};
 }
 
 class locate_spaces_functor
@@ -241,6 +273,9 @@ void scenes::stream::tracking()
 	magic_enum::containers::array<device_id, XrSpace> spaces{};
 
 	const auto & config = application::get_config();
+	const bool eye_gaze_enabled = config.check_feature(feature::eye_gaze);
+	const bool eye_gaze_foveation = eye_gaze_enabled and not foveation_center_enabled;
+	client_foveation::tracking_state foveation_tracking{foveation_center_enabled, eye_gaze_foveation};
 
 	{
 		std::vector ids{
@@ -258,7 +293,7 @@ void scenes::stream::tracking()
 			ids.insert(ids.end(), {device_id::LEFT_PINCH_POSE, device_id::LEFT_POKE, device_id::RIGHT_PINCH_POSE, device_id::RIGHT_POKE});
 		}
 
-		if (config.check_feature(feature::eye_gaze))
+		if (eye_gaze_enabled)
 			ids.emplace_back(device_id::EYE_GAZE);
 
 		for (auto id: ids)
@@ -272,6 +307,16 @@ void scenes::stream::tracking()
 
 	XrSpace view_space = application::space(xr::spaces::view);
 	XrSpace world_space = application::space(xr::spaces::world);
+	auto locate_eye_gaze = [&](XrTime time) {
+		// Eye gaze uses view pose as the origin.
+		if (application::get_hmd_traits().view_locate)
+			return locate_space(device_id::EYE_GAZE, spaces[device_id::EYE_GAZE], view_space, time);
+
+		// Pico headsets fail to locate gaze relative to view.
+		return make_eye_gaze_view_relative(
+		        locate_space(device_id::EYE_GAZE, spaces[device_id::EYE_GAZE], world_space, time),
+		        locate_space(device_id::EYE_GAZE, view_space, world_space, time));
+	};
 
 	XrTime t0 = instance.now();
 	from_headset::tracking tracking;
@@ -410,7 +455,16 @@ void scenes::stream::tracking()
 			tracking.state_flags = {};
 			tracking.views = {};
 			tracking.device_poses.clear();
+			tracking.foveation_angles.reset();
 			tracking.face = {};
+
+			client_foveation::manual_override foveation_override_snapshot;
+			{
+				auto override = foveation_override.lock();
+				foveation_override_snapshot = *override;
+			}
+
+			foveation_tracking.begin_packet(foveation_override_snapshot.enabled);
 
 			if (recenter_requested.exchange(false))
 				tracking.state_flags = wivrn::from_headset::tracking::recentered;
@@ -436,6 +490,26 @@ void scenes::stream::tracking()
 								j.pose = i.pose;
 								j.fov = i.fov;
 							}
+
+							if (auto angles = foveation_tracking.on_views(
+							            tracking.view_flags,
+							            views,
+							            foveation_override_snapshot.enabled,
+							            foveation_override_snapshot.pitch,
+							            foveation_override_snapshot.distance))
+								tracking.foveation_angles = *angles;
+
+							if (eye_gaze_foveation and not foveation_override_snapshot.enabled)
+							{
+								auto gaze_pose = locate_eye_gaze(tracking.timestamp);
+								if (auto angles = foveation_tracking.on_eye_gaze(
+								            gaze_pose,
+								            tracking.view_flags,
+								            views,
+								            false))
+									tracking.foveation_angles = *angles;
+							}
+
 							locate_spaces.add_space(item.device, view_space, tracking.timestamp, tracking.device_poses);
 							break;
 						case wivrn::device_id::LEFT_GRIP:
@@ -451,33 +525,8 @@ void scenes::stream::tracking()
 							locate_spaces.add_space(item.device, spaces[item.device], tracking.timestamp, tracking.device_poses);
 							break;
 						case wivrn::device_id::EYE_GAZE:
-							// Eye gaze uses view pose as the origin
-							if (application::get_hmd_traits().view_locate)
-								tracking.device_poses.push_back(locate_space(item.device, spaces[item.device], spaces[wivrn::device_id::HEAD], tracking.timestamp));
-							else
-							{
-								// Pico headsets fail to locate gaze relative to view
-								auto gaze = locate_space(item.device, spaces[item.device], world_space, tracking.timestamp);
-								auto view_pose = locate_space(item.device, view_space, world_space, tracking.timestamp);
-								glm::quat gaze_quat(gaze.pose.orientation.w, gaze.pose.orientation.x, gaze.pose.orientation.y, gaze.pose.orientation.z);
-								glm::quat view_quat(view_pose.pose.orientation.w, view_pose.pose.orientation.x, view_pose.pose.orientation.y, view_pose.pose.orientation.z);
-								gaze_quat = glm::conjugate(view_quat) * gaze_quat;
-								using flags = from_headset::pose_flags;
-								tracking.device_poses.push_back(
-								        from_headset::tracking::pose{
-								                // Zero position and velocities
-								                .pose = {
-								                        .orientation = {
-								                                .x = gaze_quat.x,
-								                                .y = gaze_quat.y,
-								                                .z = gaze_quat.z,
-								                                .w = gaze_quat.w,
-								                        },
-								                },
-								                .device = item.device,
-								                .flags = uint8_t(gaze.flags & view_pose.flags & ~(flags::linear_velocity_valid | flags::angular_velocity_valid)),
-								        });
-							}
+							if (eye_gaze_enabled)
+								tracking.device_poses.push_back(locate_eye_gaze(tracking.timestamp));
 							break;
 						case wivrn::device_id::FACE:
 							std::visit(utils::overloaded{
@@ -533,6 +582,12 @@ void scenes::stream::tracking()
 					throw;
 			}
 
+			{
+				auto latest = latest_foveation_angles.lock();
+				if (auto angles = foveation_tracking.consume_meta_angles(*latest, foveation_override_snapshot.enabled))
+					tracking.foveation_angles = *angles;
+			}
+
 #ifdef __ANDROID__
 			// FIXME: switch to event based
 			if (next_battery_check < now)
@@ -563,7 +618,7 @@ void scenes::stream::tracking()
 			packets.resize(std::max(packets.size(), 1 + hands.size() + body.size()));
 			size_t packet_count = 0;
 
-			if (not(tracking.device_poses.empty() and std::holds_alternative<std::monostate>(tracking.face)))
+			if (not(tracking.device_poses.empty() and !tracking.foveation_angles and std::holds_alternative<std::monostate>(tracking.face)))
 			{
 				auto & packet = packets[packet_count++];
 				packet.clear();
