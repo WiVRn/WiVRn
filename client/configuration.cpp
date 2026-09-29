@@ -417,16 +417,16 @@ float configuration::get_default_stream_scale() const
 	return 0.5;
 }
 
-float configuration::get_height_offset(posture p) const
+float configuration::get_height_offset() const
 {
 	std::lock_guard lock(mutex);
-	return p == posture::seated ? height_offset_seated : height_offset_standing;
+	return default_posture == posture::seated ? height_offset_seated : height_offset_standing;
 }
 
-void configuration::set_height_offset(posture p, float value)
+void configuration::set_height_offset(float value)
 {
 	std::lock_guard lock(mutex);
-	(p == posture::seated ? height_offset_seated : height_offset_standing) = value;
+	(default_posture == posture::seated ? height_offset_seated : height_offset_standing) = value;
 }
 
 posture configuration::get_posture() const

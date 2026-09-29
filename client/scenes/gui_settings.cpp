@@ -582,11 +582,9 @@ bool settings_tracking(const settings_context & ctx)
 	const std::string disconnect_tip = ctx.in_game ? _C("tooltip for disabled settings", "Disconnect to change this setting.") : std::string{};
 	std::vector<setting> list, posture_items;
 
-	// always persisted immediately, in the lobby or in-stream: both the lobby and the stream
-	// scene apply it live, so there's no separate "session override" to reconcile
 	const posture current_posture = config.get_posture();
 	const bool seated = current_posture == posture::seated;
-	const float default_height_offset = default_config.get_height_offset(current_posture);
+	const float default_height_offset = seated ? configuration::default_height_offset_seated : configuration::default_height_offset_standing;
 
 	posture_items.push_back({
 	        .id = "##posture",
@@ -602,10 +600,12 @@ bool settings_tracking(const settings_context & ctx)
 	posture_items.push_back({
 	        .id = "##height_offset",
 	        .label = _C("setting name", "Height adjustment"),
-	        .description = _("Corrects the height reported to the PC for the selected posture, useful for seated play or a miscalibrated floor."),
+	        .description = seated
+	                               ? _("Corrects the height reported to the PC when seated, useful for games without native seated support.")
+	                               : _("Corrects the height reported to the PC when standing, useful for a miscalibrated floor."),
 	        .ui = ui_kind::slider,
-	        .get_int = [&config, current_posture] { return int(std::lround(config.get_height_offset(current_posture) * 100)); },
-	        .set_int = [&config, current_posture](int v) { config.set_height_offset(current_posture, v / 100.f); config.save(); },
+	        .get_int = [&config] { return int(std::lround(config.get_height_offset() * 100)); },
+	        .set_int = [&config](int v) { config.set_height_offset(v / 100.f); config.save(); },
 	        .v_min = -30,
 	        .v_max = 70,
 	        .fmt = "%d cm",

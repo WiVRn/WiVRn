@@ -280,7 +280,7 @@ void scenes::stream::tracking()
 	auto make_height_offset_space = [&](float offset) {
 		return session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE, {{0, 0, 0, 1}, {0, -offset, 0}});
 	};
-	float applied_height_offset = config.get_height_offset(config.get_posture());
+	float applied_height_offset = config.get_height_offset();
 	xr::space height_offset_space = make_height_offset_space(applied_height_offset);
 
 	XrTime t0 = instance.now();
@@ -315,7 +315,7 @@ void scenes::stream::tracking()
 	{
 		try
 		{
-			if (float offset = config.get_height_offset(config.get_posture()); offset != applied_height_offset)
+			if (float offset = config.get_height_offset(); offset != applied_height_offset)
 			{
 				applied_height_offset = offset;
 				height_offset_space = make_height_offset_space(applied_height_offset);

@@ -132,12 +132,15 @@ public:
 	bool check_feature(feature f) const;
 	void set_feature(feature f, bool state);
 
+	static constexpr float default_height_offset_standing = 0;
+	static constexpr float default_height_offset_seated = 0.45;
+
 private:
 	mutable std::mutex mutex;
 	std::map<feature, bool> features;
 	std::optional<float> stream_scale;
-	float height_offset_standing = 0;
-	float height_offset_seated = 0.45;
+	float height_offset_standing = default_height_offset_standing;
+	float height_offset_seated = default_height_offset_seated;
 	posture default_posture = posture::standing;
 
 	// table of scalar settings shared by save()/load(); non-scalar settings are explicit
@@ -153,8 +156,8 @@ public:
 	float get_stream_scale() const;
 	float get_default_stream_scale() const;
 
-	float get_height_offset(posture) const;
-	void set_height_offset(posture, float);
+	float get_height_offset() const;
+	void set_height_offset(float);
 
 	posture get_posture() const;
 	void set_posture(posture);

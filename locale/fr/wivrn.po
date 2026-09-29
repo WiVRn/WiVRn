@@ -419,9 +419,13 @@ msgctxt "setting name"
 msgid "Height adjustment"
 msgstr "Ajustement de la hauteur"
 
-#: client/scenes/gui_settings.cpp:612
-msgid "Corrects the height reported to the PC for the selected posture, useful for seated play or a miscalibrated floor."
-msgstr "Corrige la hauteur transmise au PC pour la posture sélectionnée, utile en position assise ou si le sol est mal calibré."
+#: client/scenes/gui_settings.cpp:604
+msgid "Corrects the height reported to the PC when seated, useful for games without native seated support."
+msgstr "Corrige la hauteur transmise au PC en position assise, utile pour les jeux sans mode assis natif."
+
+#: client/scenes/gui_settings.cpp:605
+msgid "Corrects the height reported to the PC when standing, useful for a miscalibrated floor."
+msgstr "Corrige la hauteur transmise au PC en position debout, utile si le sol est mal calibré."
 
 #: client/scenes/gui_settings.cpp:597
 msgctxt "setting name"
