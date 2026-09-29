@@ -53,8 +53,9 @@ msgstr "Kein unterstütztes Swapchain-Format."
 
 #: client/scenes/app_launcher.cpp:160
 msgid "Pick an application to start streaming, or start one on the PC."
-msgstr "Wähle eine Anwendung, um das Streaming zu starten, oder starte eine auf dem"
-" PC."
+msgstr ""
+"Wähle eine Anwendung, um das Streaming zu starten, oder starte eine auf dem "
+"PC."
 
 #: client/scenes/app_launcher.cpp:162 client/scenes/stream_gui.cpp:925
 msgctxt "status in the title bar"
@@ -99,8 +100,9 @@ msgstr "Bildwiederholrate"
 msgid ""
 "Select refresh rate based on measured application performance. May cause "
 "flicker when a change happens."
-msgstr "Wähle die Bildwiederholrate anhand der gemessenen Anwendungsleistung. Kann"
-" bei einer Änderung Flackern verursachen."
+msgstr ""
+"Wähle die Bildwiederholrate anhand der gemessenen Anwendungsleistung. Kann "
+"bei einer Änderung Flackern verursachen."
 
 #: client/scenes/gui_settings.cpp:244
 msgctxt "automatic refresh rate"
@@ -125,15 +127,17 @@ msgstr "Foveated Encoding"
 msgid ""
 "Higher values focus image quality where you look at, improving latency, "
 "power efficiency and quality."
-msgstr "Höhere Werte fokussieren die Bildqualität dorthin, wo du hinsiehst, und"
-" verbessern Latenz, Energieeffizienz und Qualität."
+msgstr ""
+"Höhere Werte fokussieren die Bildqualität dorthin, wo du hinsiehst, und "
+"verbessern Latenz, Energieeffizienz und Qualität."
 
 #: client/scenes/gui_settings.cpp:276
 msgid ""
 "Higher values focus image quality at the center, improving latency, power "
 "efficiency and quality."
-msgstr "Höhere Werte fokussieren die Bildqualität im Zentrum und verbessern Latenz,"
-" Energieeffizienz und Qualität."
+msgstr ""
+"Höhere Werte fokussieren die Bildqualität im Zentrum und verbessern Latenz, "
+"Energieeffizienz und Qualität."
 
 #: client/scenes/gui_settings.cpp:296
 msgid "Application SpaceWarp"
@@ -141,13 +145,15 @@ msgstr "Application SpaceWarp"
 
 #: client/scenes/gui_settings.cpp:297
 msgid "Renders at half the refresh rate. The headset may synthesise frames."
-msgstr "Rendert mit der halben Bildwiederholrate. Das Headset kann Frames"
-" synthetisieren."
+msgstr ""
+"Rendert mit der halben Bildwiederholrate. Das Headset kann Frames "
+"synthetisieren."
 
 #: client/scenes/gui_settings.cpp:303
 msgid "Set a refresh rate other than auto to enable this setting."
-msgstr "Setze eine andere Bildwiederholrate als Auto, um diese Einstellung zu"
-" aktivieren."
+msgstr ""
+"Setze eine andere Bildwiederholrate als Auto, um diese Einstellung zu "
+"aktivieren."
 
 #: client/scenes/gui_settings.cpp:311
 msgid "High power mode"
@@ -157,8 +163,9 @@ msgstr "Höchstleistungsmodus"
 msgid ""
 "Increase power usage to allow higher resolution and refresh rate. Drains "
 "battery and runs hot."
-msgstr "Erhöht die Stromaufnahme für höhere Auflösung und Bildwiederholrate."
-" Verbraucht Akku und wird heiß."
+msgstr ""
+"Erhöht die Stromaufnahme für höhere Auflösung und Bildwiederholrate. "
+"Verbraucht Akku und wird heiß."
 
 #: client/scenes/gui_settings.cpp:320
 msgctxt "page header title"
@@ -197,7 +204,8 @@ msgstr "Video-Codec"
 
 #: client/scenes/gui_settings.cpp:355
 msgid "How video is compressed before it is sent to the headset."
-msgstr "Wie das Video komprimiert wird, bevor es an das Headset gesendet wird."
+msgstr ""
+"Wie das Video komprimiert wird, bevor es an das Headset gesendet wird."
 
 #: client/scenes/gui_settings.cpp:382
 msgctxt "setting name"
@@ -230,17 +238,17 @@ msgid "Adjust"
 msgstr "Anpassen"
 
 #: client/scenes/gui_settings.cpp:425
-#, fuzzy
 msgctxt "setting name"
 msgid "Foveation center override"
-msgstr "Foveation-Zentrum überschreiben"
+msgstr "Override des Foveationszentrums"
 
 #: client/scenes/gui_settings.cpp:426
 msgid ""
 "Manually set where image quality is focused, instead of the center or your "
 "gaze."
-msgstr "Lege manuell fest, wo die Bildqualität fokussiert wird, statt im Zentrum"
-" oder am Blickpunkt."
+msgstr ""
+"Lege manuell fest, wo die Bildqualität fokussiert wird, statt im Zentrum "
+"oder am Blickpunkt."
 
 #: client/scenes/gui_settings.cpp:438
 msgctxt "setting name"
@@ -253,15 +261,15 @@ msgid "Height {:.1f} °, distance {:.2f} m"
 msgstr "Höhe {:.1f} °, Abstand {:.2f} m"
 
 #: client/scenes/gui_settings.cpp:441
-#, fuzzy
 msgctxt "button label to change the foveation center"
 msgid "Change"
 msgstr "Ändern"
 
 #: client/scenes/gui_settings.cpp:444
 msgid "Enable foveation center override to change this setting."
-msgstr "Aktiviere die Foveation-Zentrum-Übersteuerung, um diese Einstellung zu"
-" ändern."
+msgstr ""
+"Aktiviere die Foveation-Zentrum-Übersteuerung, um diese Einstellung zu "
+"ändern."
 
 #: client/scenes/gui_settings.cpp:450
 msgctxt "setting name"
@@ -272,8 +280,9 @@ msgstr "Fenster im Stream"
 msgid ""
 "Enables the configuration window to be shown while the game is streaming. If"
 " enabled, the window is activated by pressing both thumbsticks."
-msgstr "Zeigt das Konfigurationsfenster während des Streamings an. Wenn aktiviert,"
-" wird das Fenster durch Drücken beider Thumbsticks aktiviert."
+msgstr ""
+"Zeigt das Konfigurationsfenster während des Streamings an. Wenn aktiviert, "
+"wird das Fenster durch Drücken beider Thumbsticks aktiviert."
 
 #: client/scenes/gui_settings.cpp:458
 msgctxt "page header title"
@@ -308,8 +317,9 @@ msgstr "Supersampling"
 msgid ""
 "Reduce flicker for high contrast edges. Useful when the input resolution is "
 "high compared to the headset display."
-msgstr "Reduziert Flackern an kontrastreichen Kanten. Nützlich, wenn die"
-" Eingangsauflösung hoch im Vergleich zum Headset-Display ist."
+msgstr ""
+"Reduziert Flackern an kontrastreichen Kanten. Nützlich, wenn die "
+"Eingangsauflösung hoch im Vergleich zum Headset-Display ist."
 
 #: client/scenes/gui_settings.cpp:509
 msgid "Sharpening"
@@ -319,9 +329,10 @@ msgstr "Bildschärfung"
 msgid ""
 "Improve clarity of high contrast edges and counteract blur. Useful when the "
 "input resolution is low compared to the headset display."
-msgstr "Verbessert die Klarheit kontrastreicher Kanten und verringert Unschärfe."
-" Nützlich, wenn die Eingangsauflösung niedrig im Vergleich zum"
-" Headset-Display ist."
+msgstr ""
+"Verbessert die Klarheit kontrastreicher Kanten und verringert Unschärfe. "
+"Nützlich, wenn die Eingangsauflösung niedrig im Vergleich zum Headset-"
+"Display ist."
 
 #: client/scenes/gui_settings.cpp:512
 msgid "Post-processing"
@@ -408,7 +419,8 @@ msgstr "Hand-Tracking"
 
 #: client/scenes/gui_settings.cpp:613
 msgid "Track your hands for input when controllers are down."
-msgstr "Erkennt deine Hände als Eingabe, wenn keine Controller genutzt werden."
+msgstr ""
+"Erkennt deine Hände als Eingabe, wenn keine Controller genutzt werden."
 
 #: client/scenes/gui_settings.cpp:616
 msgctxt "setting name"
@@ -417,8 +429,9 @@ msgstr "Eye-Tracking"
 
 #: client/scenes/gui_settings.cpp:616
 msgid "Used by foveated encoding to focus quality where you look."
-msgstr "Wird von foveierter Kodierung genutzt, um die Qualität dorthin zu"
-" fokussieren, wo du hinsiehst."
+msgstr ""
+"Wird von foveierter Kodierung genutzt, um die Qualität dorthin zu "
+"fokussieren, wo du hinsiehst."
 
 #: client/scenes/gui_settings.cpp:619
 msgctxt "setting name"
@@ -479,9 +492,10 @@ msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings, otherwise body data will be guessed from controller and "
 "headset positions."
-msgstr "Erfordert, dass 'Hand- und Body-Tracking' in den"
-" Quest-Bewegungseinstellungen aktiviert ist, sonst wird der Body aus"
-" Controller- und Headset-Positionen geschätzt."
+msgstr ""
+"Erfordert, dass 'Hand- und Body-Tracking' in den Quest-"
+"Bewegungseinstellungen aktiviert ist, sonst wird der Body aus Controller- "
+"und Headset-Positionen geschätzt."
 
 #: client/scenes/gui_settings.cpp:652
 msgid "Stream body joint positions to the PC."
@@ -521,7 +535,6 @@ msgid "Interface language."
 msgstr "Sprache der Benutzeroberfläche."
 
 #: client/scenes/gui_settings.cpp:726
-#, fuzzy
 msgctxt "item in the interface language combobox"
 msgid "System language"
 msgstr "Systemsprache"
@@ -892,16 +905,14 @@ msgid "Theme"
 msgstr "Design"
 
 #: client/scenes/lobby_gui.cpp:1258
-#, fuzzy
 msgctxt "tab label"
 msgid "Debug"
 msgstr "Debug"
 
 #: client/scenes/lobby_gui.cpp:1264
-#, fuzzy
 msgctxt "tab label"
 msgid "About"
-msgstr "Über WiVRn"
+msgstr "Über"
 
 #: client/scenes/lobby_gui.cpp:1266
 #, fuzzy
@@ -910,7 +921,6 @@ msgid "Licenses"
 msgstr "Lizenzen"
 
 #: client/scenes/lobby_gui.cpp:1268
-#, fuzzy
 msgctxt "exit button in the lobby"
 msgid "Exit"
 msgstr "Beenden"
@@ -919,8 +929,9 @@ msgstr "Beenden"
 msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
-msgstr "Drücke die Grip-Taste oder hebe deine Handfläche,"
-" um das Hauptfenster zu bewegen"
+msgstr ""
+"Drücke die Grip-Taste oder hebe deine Handfläche, um das Hauptfenster zu "
+"bewegen"
 
 #: client/scenes/lobby_gui.cpp:1287
 msgid "Press the grip button to move the main window"
@@ -976,8 +987,7 @@ msgstr "HTTP Fehler {} beim Herunterladen von {}"
 msgid ""
 "Curl error when downloading {}\n"
 "{}: {}"
-msgstr "Curl-Fehler beim Herunterladen von {}"
-" {}: {}"
+msgstr "Curl-Fehler beim Herunterladen von {} {}: {}"
 
 #: client/scenes/lobby_gui_customize.cpp:503
 msgid "This feature is not supported by your headset"
@@ -1220,7 +1230,6 @@ msgid "Distance {:.2f} m"
 msgstr "Distanz {:.2f} m"
 
 #: client/scenes/stream_gui.cpp:534
-#, fuzzy
 msgctxt "page header title"
 msgid "Applications"
 msgstr "Anwendungen"
@@ -1276,22 +1285,19 @@ msgid "Applications"
 msgstr "Anwendungen"
 
 #: client/scenes/stream_gui.cpp:955
-#, fuzzy
 msgctxt "tab label"
 msgid "Start"
-msgstr "Start"
+msgstr "Starten"
 
 #: client/scenes/stream_gui.cpp:985
-#, fuzzy
 msgctxt "tab label"
 msgid "Statistics overlay"
 msgstr "Statistik-Overlay"
 
 #: client/scenes/stream_gui.cpp:987
-#, fuzzy
 msgctxt "tab label"
 msgid "Compact view"
-msgstr "Kompakte Anzeige"
+msgstr "Kompakte Ansicht"
 
 #: client/wivrn_client.cpp:98 client/wivrn_client.cpp:202
 msgid "Timeout"
@@ -1308,6 +1314,48 @@ msgstr "PIN kann nicht überprüft werden"
 #: client/wivrn_client.cpp:182
 msgid "Pairing is disabled on server"
 msgstr "Koppeln ist am Server deaktiviert"
+
+msgid ""
+"Use 'auto' to select the refresh rate based on measured application "
+"performance. May cause flicker when a change happens."
+msgstr ""
+"Wählen Sie „auto“, um die Bildwiederholfrequenz anhand der gemessenen "
+"Anwendungsleistung zu wählen. Kann bei Änderungen flimmern."
+
+msgid "Video"
+msgstr "Video"
+
+msgid "Frame rate and resolution."
+msgstr "Bildwiederholfrequenz und Auflösung."
+
+msgid "Disable in-stream window"
+msgstr "In-Stream-Fenster deaktivieren"
+
+msgid "Disable audio filters, such as noise cancellation."
+msgstr "Audiofilter wie die Geräuschunterdrückung deaktivieren."
+
+msgid "USB networking"
+msgstr "USB-Netzwerk"
+
+msgid "Stop all applications"
+msgstr "Alle Anwendungen beenden"
+
+msgid "The following applications/overlays are open:"
+msgstr "Folgende Anwendungen/Overlays sind geöffnet:"
+
+msgid ""
+"Do you really want to disable the in-stream window?\n"
+"You will not be able to re-open it with the thumbsticks."
+msgstr ""
+"Möchten Sie das In-Stream-Fenster wirklich deaktivieren?\n"
+"Sie können es nicht mehr mit den Thumbsticks wieder öffnen."
+
+msgid ""
+"Enables connection by USB without ADB or developer mode.\n"
+"Make sure the server allows IPv6 link-local only connections."
+msgstr ""
+"Ermöglicht die Verbindung per USB ohne ADB oder Entwicklermodus.\n"
+"Stellen Sie sicher, dass der Server nur IPv6-Link-Local-Verbindungen zulässt."
 
 #~ msgid "Connected to WiVRn server"
 #~ msgstr "Verbunden zum WiVRn-Server"
