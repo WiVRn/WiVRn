@@ -54,9 +54,8 @@
 using namespace wivrn;
 using namespace beman::inplace_vector;
 
-static bool fov_equal(const XrFovf & a, const XrFovf & b)
+static bool fov_equal(const XrFovf & a, const XrFovf & b, const float epsilon)
 {
-	constexpr float epsilon = 1e-4f;
 	return std::abs(a.angleLeft - b.angleLeft) <= epsilon and
 	       std::abs(a.angleRight - b.angleRight) <= epsilon and
 	       std::abs(a.angleUp - b.angleUp) <= epsilon and
@@ -941,7 +940,8 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		extents[i] = stream_defoveator::defoveated_size(foveation[i]);
 		max_width = std::max(max_width, extents[i].width);
 		max_height = std::max(max_height, extents[i].height);
-		frame_cropped |= !fov_equal(fov[i], headset_fov[i]);
+		// generous epsilon of ~6° per-side to filter out false positives
+		frame_cropped |= !fov_equal(fov[i], headset_fov[i], 0.1);
 	}
 
 	if (max_width > 0 and max_height > 0)
