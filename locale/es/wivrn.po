@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-29 19:22+0200\n"
+"POT-Creation-Date: 2026-09-29 23:21+0200\n"
 "PO-Revision-Date: 2025-11-19 20:23+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish <>\n"
@@ -85,17 +85,17 @@ msgstr "Grande"
 msgid "Waiting for an application on the server"
 msgstr "Esperando por una aplicación en el servidor"
 
-#: client/scenes/gui_settings.cpp:223 client/scenes/gui_settings.cpp:311
-#: client/scenes/gui_settings.cpp:506 client/scenes/gui_settings.cpp:588
+#: client/scenes/gui_settings.cpp:224 client/scenes/gui_settings.cpp:312
+#: client/scenes/gui_settings.cpp:507 client/scenes/gui_settings.cpp:589
 msgctxt "tooltip for disabled settings"
 msgid "Disconnect to change this setting."
 msgstr "Desconectese para cambiar este ajuste."
 
-#: client/scenes/gui_settings.cpp:234
+#: client/scenes/gui_settings.cpp:235
 msgid "Refresh rate"
 msgstr "Frecuencia de actualización"
 
-#: client/scenes/gui_settings.cpp:236
+#: client/scenes/gui_settings.cpp:237
 msgid ""
 "WiVRn can't directly change the refresh rate on this device. See your "
 "device's settings to change the refresh rate."
@@ -103,7 +103,7 @@ msgstr ""
 "WiVRn no puede cambiar directamente la tasa de refresco en este dispositivo. "
 "Vea los ajustes del dispositivo para cambiar la tasa de refresco."
 
-#: client/scenes/gui_settings.cpp:237
+#: client/scenes/gui_settings.cpp:238
 msgid ""
 "Use 'auto' to select the refresh rate based on measured application "
 "performance. May cause flicker when a change happens."
@@ -112,52 +112,52 @@ msgstr ""
 "rendimiento medido de la aplicacion. Podría causar parpadeos cuando ocurre "
 "un cambio."
 
-#: client/scenes/gui_settings.cpp:260
+#: client/scenes/gui_settings.cpp:261
 msgctxt "automatic refresh rate, use a short string"
 msgid "Auto"
 msgstr "Auto"
 
-#: client/scenes/gui_settings.cpp:274
+#: client/scenes/gui_settings.cpp:275
 msgid "Render resolution"
 msgstr "Resolución de renderizado"
 
-#: client/scenes/gui_settings.cpp:275
+#: client/scenes/gui_settings.cpp:276
 #, c++-format
 msgctxt "render resolution"
 msgid "Pixels rendered per eye ({}x{}). Lower to gain performance."
 msgstr "Pixeles renderizados por ojo ({}x{}). Reducir para ganar rendimiento."
 
-#: client/scenes/gui_settings.cpp:292
+#: client/scenes/gui_settings.cpp:293
 msgid "Application SpaceWarp"
 msgstr "SpaceWarp de aplicación"
 
-#: client/scenes/gui_settings.cpp:293
+#: client/scenes/gui_settings.cpp:294
 msgid "Renders at half the refresh rate. The headset may synthesise frames."
 msgstr ""
 "Renderiza a la mitad de la frecuencia de refresco. El visor podría "
 "estrapolar fotogramas."
 
-#: client/scenes/gui_settings.cpp:299
+#: client/scenes/gui_settings.cpp:300
 msgid "Set a refresh rate other than auto to enable this setting."
 msgstr ""
 "Seleccione una frecuencia de refresco distinta a auto para habilitar este "
 "ajuste."
 
-#: client/scenes/gui_settings.cpp:303
+#: client/scenes/gui_settings.cpp:304
 msgctxt "page header title"
 msgid "Video"
 msgstr "Vídeo"
 
-#: client/scenes/gui_settings.cpp:303
+#: client/scenes/gui_settings.cpp:304
 msgctxt "page header subtitle"
 msgid "Frame rate and resolution."
 msgstr "Frecuencia de refresco y resolución."
 
-#: client/scenes/gui_settings.cpp:316
+#: client/scenes/gui_settings.cpp:317
 msgid "Foveated encoding"
 msgstr "Codificación foveada"
 
-#: client/scenes/gui_settings.cpp:318
+#: client/scenes/gui_settings.cpp:319
 msgid ""
 "Higher values focus image quality where you look at, improving latency, "
 "power efficiency and quality."
@@ -165,7 +165,7 @@ msgstr ""
 "Un mayor valor hará que la calidad de la imagen se centre a donde tú mires, "
 "mejorando la latencia, eficiencia energética y calidad."
 
-#: client/scenes/gui_settings.cpp:319
+#: client/scenes/gui_settings.cpp:320
 msgid ""
 "Higher values focus image quality at the center, improving latency, power "
 "efficiency and quality."
@@ -173,58 +173,58 @@ msgstr ""
 "Un mayor valor hará que la calidad de la imagen se centre en el centro, "
 "mejorando la latencia, eficiencia energética y calidad."
 
-#: client/scenes/gui_settings.cpp:337 client/scenes/gui_settings.cpp:349
+#: client/scenes/gui_settings.cpp:338 client/scenes/gui_settings.cpp:350
 msgctxt "Codec"
 msgid "Automatic"
 msgstr "Automático"
 
-#: client/scenes/gui_settings.cpp:341
+#: client/scenes/gui_settings.cpp:342
 msgctxt "Codec"
 msgid "H.264"
 msgstr "H.264"
 
-#: client/scenes/gui_settings.cpp:343
+#: client/scenes/gui_settings.cpp:344
 msgctxt "Codec"
 msgid "HEVC (H.265)"
 msgstr "HEVC (H.265)"
 
-#: client/scenes/gui_settings.cpp:345
+#: client/scenes/gui_settings.cpp:346
 msgctxt "Codec"
 msgid "AV1"
 msgstr "AV1"
 
-#: client/scenes/gui_settings.cpp:359 client/scenes/gui_settings.cpp:372
+#: client/scenes/gui_settings.cpp:360 client/scenes/gui_settings.cpp:373
 msgctxt "setting name"
 msgid "Video codec"
 msgstr "Códec de Vídeo"
 
-#: client/scenes/gui_settings.cpp:360
+#: client/scenes/gui_settings.cpp:361
 msgid "How video is compressed before it is sent to the headset."
 msgstr "Como se comprime el vídeo antes de ser enviado al visor."
 
-#: client/scenes/gui_settings.cpp:382
+#: client/scenes/gui_settings.cpp:383
 msgctxt "setting name"
 msgid "10-bit color"
 msgstr "color 10-bit"
 
-#: client/scenes/gui_settings.cpp:383
+#: client/scenes/gui_settings.cpp:384
 msgid "Higher color precision, supported by HEVC and AV1."
 msgstr "Mayor precisión de color, soportado por HEVC y AV1."
 
-#: client/scenes/gui_settings.cpp:396
+#: client/scenes/gui_settings.cpp:397
 msgid "Bitrate"
 msgstr "Bitrate"
 
-#: client/scenes/gui_settings.cpp:397
+#: client/scenes/gui_settings.cpp:398
 msgid "Video data rate sent to the headset."
 msgstr "Cantidad de datos de vídeo enviados al visor."
 
-#: client/scenes/gui_settings.cpp:412
+#: client/scenes/gui_settings.cpp:413
 msgctxt "setting name"
 msgid "Foveation center override"
 msgstr "Reajustar el centro de la fóvea"
 
-#: client/scenes/gui_settings.cpp:413
+#: client/scenes/gui_settings.cpp:414
 msgid ""
 "Manually set where image quality is focused, instead of the center or your "
 "gaze."
@@ -232,41 +232,41 @@ msgstr ""
 "Poner manualmente en donde se concentra la calidad de imagen, en vez de en "
 "el centro o tu mirada."
 
-#: client/scenes/gui_settings.cpp:425
+#: client/scenes/gui_settings.cpp:426
 msgctxt "setting name"
 msgid "Foveation center"
 msgstr "Centro de la fóvea"
 
-#: client/scenes/gui_settings.cpp:426
+#: client/scenes/gui_settings.cpp:427
 #, c++-format
 msgid "Height {:.1f} °, distance {:.2f} m"
 msgstr "Altura {:.1f} °, distancia {:.2f} m"
 
-#: client/scenes/gui_settings.cpp:428
+#: client/scenes/gui_settings.cpp:429
 msgctxt "button label to change the foveation center"
 msgid "Change"
 msgstr "Cambiar"
 
-#: client/scenes/gui_settings.cpp:431
+#: client/scenes/gui_settings.cpp:432
 msgid "Enable foveation center override to change this setting."
 msgstr "Habilite reajustar el centro de la fóvea para cambiar este ajuste."
 
-#: client/scenes/gui_settings.cpp:435
+#: client/scenes/gui_settings.cpp:436
 msgctxt "page header title"
 msgid "Streaming"
 msgstr "Transmitiendo"
 
-#: client/scenes/gui_settings.cpp:435
+#: client/scenes/gui_settings.cpp:436
 msgctxt "page header subtitle"
 msgid "How video is encoded and sent to the headset."
 msgstr "Como es codificado y enviado el vídeo al visor."
 
-#: client/scenes/gui_settings.cpp:440
+#: client/scenes/gui_settings.cpp:441
 msgctxt "confirmation messagebox title"
 msgid "Disable in-stream window"
 msgstr "Deshabilitar ventana mientras se juega"
 
-#: client/scenes/gui_settings.cpp:441
+#: client/scenes/gui_settings.cpp:442
 msgctxt "confirmation message"
 msgid ""
 "Do you really want to disable the in-stream window?\n"
@@ -275,34 +275,34 @@ msgstr ""
 "Realmente quiere deshabilitar la ventana mientras se juega?\n"
 "No podrá volverla a abrir con los joysticks."
 
-#: client/scenes/gui_settings.cpp:442 client/scenes/lobby_gui.cpp:886
+#: client/scenes/gui_settings.cpp:443 client/scenes/lobby_gui.cpp:886
 msgid "Yes"
 msgstr "Sí"
 
-#: client/scenes/gui_settings.cpp:443 client/scenes/lobby_gui.cpp:893
+#: client/scenes/gui_settings.cpp:444 client/scenes/lobby_gui.cpp:893
 msgid "No"
 msgstr "No"
 
-#: client/scenes/gui_settings.cpp:464
+#: client/scenes/gui_settings.cpp:465
 msgctxt "openxr_post_processing"
 msgid "Normal"
 msgstr "Normal"
 
-#: client/scenes/gui_settings.cpp:467
+#: client/scenes/gui_settings.cpp:468
 msgctxt "openxr_post_processing"
 msgid "Quality"
 msgstr "Calidad"
 
-#: client/scenes/gui_settings.cpp:469
+#: client/scenes/gui_settings.cpp:470
 msgctxt "openxr_post_processing"
 msgid "Disabled"
 msgstr "Deshabilitado"
 
-#: client/scenes/gui_settings.cpp:494
+#: client/scenes/gui_settings.cpp:495
 msgid "Supersampling"
 msgstr "Sobremuestreo"
 
-#: client/scenes/gui_settings.cpp:494
+#: client/scenes/gui_settings.cpp:495
 msgid ""
 "Reduce flicker for high contrast edges. Useful when the input resolution is "
 "high compared to the headset display."
@@ -310,11 +310,11 @@ msgstr ""
 "Reduce el parpadeo para los bordes de alto contraste. Útil cuando la "
 "resolución de entrada es mayor en comparación con la del visor."
 
-#: client/scenes/gui_settings.cpp:495
+#: client/scenes/gui_settings.cpp:496
 msgid "Sharpening"
 msgstr "Nitidez"
 
-#: client/scenes/gui_settings.cpp:495
+#: client/scenes/gui_settings.cpp:496
 msgid ""
 "Improve clarity of high contrast edges and counteract blur. Useful when the "
 "input resolution is low compared to the headset display."
@@ -323,158 +323,198 @@ msgstr ""
 "Útil cuando la resolución de entrada es menor en comparación con la del "
 "visor."
 
-#: client/scenes/gui_settings.cpp:498
+#: client/scenes/gui_settings.cpp:499
 msgid "Post-processing"
 msgstr "Post-procesamiento"
 
-#: client/scenes/gui_settings.cpp:498
+#: client/scenes/gui_settings.cpp:499
 msgctxt "page header subtitle"
 msgid "OpenXR layer supersampling and sharpening."
 msgstr "Capa OpenXR de supermuestreo y nitidez."
 
-#: client/scenes/gui_settings.cpp:511
+#: client/scenes/gui_settings.cpp:512
 msgctxt "setting name"
 msgid "Microphone"
 msgstr "Micrófono"
 
-#: client/scenes/gui_settings.cpp:512
+#: client/scenes/gui_settings.cpp:513
 msgid "Stream the headset microphone to the PC."
 msgstr "Transmitir el micrófono del visor al PC."
 
-#: client/scenes/gui_settings.cpp:524
+#: client/scenes/gui_settings.cpp:525
 msgctxt "setting name"
 msgid "Unprocessed audio"
 msgstr "Entrada de audio sin procesar"
 
-#: client/scenes/gui_settings.cpp:525
+#: client/scenes/gui_settings.cpp:526
 msgid "Disable audio filters, such as noise cancellation."
 msgstr "Deshabilita filtros de audio, asi como la cancelación de ruido."
 
-#: client/scenes/gui_settings.cpp:535
+#: client/scenes/gui_settings.cpp:536
 msgctxt "page header title"
 msgid "Audio"
 msgstr "Audio"
 
-#: client/scenes/gui_settings.cpp:535
+#: client/scenes/gui_settings.cpp:536
 msgctxt "page header subtitle"
 msgid "Microphone streamed to the PC."
 msgstr "Micrófono transmitido al PC."
 
-#: client/scenes/gui_settings.cpp:548
+#: client/scenes/gui_settings.cpp:549
 msgctxt "setting name"
 msgid "Keyboard"
 msgstr "Teclado"
 
-#: client/scenes/gui_settings.cpp:549
+#: client/scenes/gui_settings.cpp:550
 msgid "Forward the keyboard from the headset to the PC."
 msgstr "Redireccionar el teclado del visor al PC."
 
-#: client/scenes/gui_settings.cpp:558
+#: client/scenes/gui_settings.cpp:559
 msgctxt "setting name"
 msgid "Mouse"
 msgstr "Ratón"
 
-#: client/scenes/gui_settings.cpp:559
+#: client/scenes/gui_settings.cpp:560
 msgid "Forward the mouse from the headset to the PC."
 msgstr "Redireccionar el ratón del visor al PC."
 
-#: client/scenes/gui_settings.cpp:569
+#: client/scenes/gui_settings.cpp:570
 msgctxt "setting name"
 msgid "Gamepad"
 msgstr "Gamepad"
 
-#: client/scenes/gui_settings.cpp:570
+#: client/scenes/gui_settings.cpp:571
 msgid "Forward the gamepad from the headset to the PC."
 msgstr "Redireccionar el gamepad del visor al PC."
 
-#: client/scenes/gui_settings.cpp:577
+#: client/scenes/gui_settings.cpp:578
 msgctxt "page header title"
 msgid "Devices"
 msgstr "Dispositivos"
 
-#: client/scenes/gui_settings.cpp:577
+#: client/scenes/gui_settings.cpp:578
 msgctxt "page header subtitle"
 msgid "Forward input devices to the PC."
 msgstr "Redireccionar dispositivos de entrada al PC."
 
-#: client/scenes/gui_settings.cpp:581 client/scenes/stream_network.cpp:91
+#: client/scenes/gui_settings.cpp:582 client/scenes/stream_network.cpp:91
 msgid "The server does not allow forwarded input devices"
 msgstr "El servidor no permite redireccionar dispositivos de entrada"
 
-#: client/scenes/gui_settings.cpp:606
+#: client/scenes/gui_settings.cpp:598
+msgctxt "setting name"
+msgid "Posture"
+msgstr "Postura"
+
+#: client/scenes/gui_settings.cpp:599
+msgid "Posture assumed when a stream connects."
+msgstr "Postura que se tendrá al conectarse a la transmisión."
+
+#: client/scenes/gui_settings.cpp:603
+msgctxt "posture"
+msgid "Standing"
+msgstr "De pie"
+
+#: client/scenes/gui_settings.cpp:603
+msgctxt "posture"
+msgid "Seated"
+msgstr "Sentado"
+
+#: client/scenes/gui_settings.cpp:609
+msgctxt "setting name"
+msgid "Height adjustment"
+msgstr "Ajuste de altura"
+
+#: client/scenes/gui_settings.cpp:611
+msgid ""
+"Corrects the height reported to the PC when seated, useful for games without "
+"native seated support."
+msgstr ""
+"Corrige la altura que se envia al PC cuando se está sentado, util para "
+"juegos sin soporte nativo para estar sentado."
+
+#: client/scenes/gui_settings.cpp:612
+msgid ""
+"Corrects the height reported to the PC when standing, useful for a "
+"miscalibrated floor."
+msgstr ""
+"Corrige la altura que se envia al PC cuando se está de pie, util cuando el "
+"suelo está sin calibrar."
+
+#: client/scenes/gui_settings.cpp:637
 msgctxt "setting name"
 msgid "Hand tracking"
 msgstr "Seguimiento de manos"
 
-#: client/scenes/gui_settings.cpp:606
+#: client/scenes/gui_settings.cpp:637
 msgid "Track your hands for input when controllers are down."
 msgstr "Seguir tus manos para entrada cuando los controles no se usen."
 
-#: client/scenes/gui_settings.cpp:609
+#: client/scenes/gui_settings.cpp:640
 msgctxt "setting name"
 msgid "Eye tracking"
 msgstr "Seguimiento ocular"
 
-#: client/scenes/gui_settings.cpp:609
+#: client/scenes/gui_settings.cpp:640
 msgid "Used by foveated encoding to focus quality where you look."
 msgstr ""
 "Usado por el renderizado foveado para concentrar la calidad en donde miras."
 
-#: client/scenes/gui_settings.cpp:612
+#: client/scenes/gui_settings.cpp:643
 msgctxt "setting name"
 msgid "Face tracking"
 msgstr "Seguimiento facial"
 
-#: client/scenes/gui_settings.cpp:612
+#: client/scenes/gui_settings.cpp:643
 msgid "Stream facial expressions to the PC."
 msgstr "Transmitir expresiones faciales al PC."
 
-#: client/scenes/gui_settings.cpp:620
+#: client/scenes/gui_settings.cpp:651
 msgctxt "virtual body tracker selection"
 msgid "Chest"
 msgstr "Pecho"
 
-#: client/scenes/gui_settings.cpp:621
+#: client/scenes/gui_settings.cpp:652
 msgctxt "virtual body tracker selection"
 msgid "Left elbow"
 msgstr "Codo izquierdo"
 
-#: client/scenes/gui_settings.cpp:622
+#: client/scenes/gui_settings.cpp:653
 msgctxt "virtual body tracker selection"
 msgid "Right elbow"
 msgstr "Codo derecho"
 
-#: client/scenes/gui_settings.cpp:623
+#: client/scenes/gui_settings.cpp:654
 msgctxt "virtual body tracker selection"
 msgid "Hip"
 msgstr "Cadera"
 
-#: client/scenes/gui_settings.cpp:624
+#: client/scenes/gui_settings.cpp:655
 msgctxt "virtual body tracker selection"
 msgid "Left knee"
 msgstr "Rodilla izquierda"
 
-#: client/scenes/gui_settings.cpp:625
+#: client/scenes/gui_settings.cpp:656
 msgctxt "virtual body tracker selection"
 msgid "Right knee"
 msgstr "Rodilla derecha"
 
-#: client/scenes/gui_settings.cpp:626
+#: client/scenes/gui_settings.cpp:657
 msgctxt "virtual body tracker selection"
 msgid "Left foot"
 msgstr "Pie izquierdo"
 
-#: client/scenes/gui_settings.cpp:627
+#: client/scenes/gui_settings.cpp:658
 msgctxt "virtual body tracker selection"
 msgid "Right foot"
 msgstr "Pie derecho"
 
-#: client/scenes/gui_settings.cpp:642
+#: client/scenes/gui_settings.cpp:673
 msgctxt "setting name"
 msgid "Body tracking"
 msgstr "Seguimiento corporal"
 
-#: client/scenes/gui_settings.cpp:644
+#: client/scenes/gui_settings.cpp:675
 msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings, otherwise body data will be guessed from controller and "
@@ -484,54 +524,54 @@ msgstr ""
 "movimiento de Quest, si no el seguimiento corporal será medido por la "
 "posición de los controles y el visor."
 
-#: client/scenes/gui_settings.cpp:645
+#: client/scenes/gui_settings.cpp:676
 msgid "Stream body joint positions to the PC."
 msgstr "Transmitir las posiciones de las uniones del cuerpo al PC."
 
-#: client/scenes/gui_settings.cpp:656 client/scenes/gui_settings.cpp:671
+#: client/scenes/gui_settings.cpp:687 client/scenes/gui_settings.cpp:702
 msgctxt "setting name"
 msgid "Virtual body trackers"
 msgstr "Trackers de cuerpo virtuales"
 
-#: client/scenes/gui_settings.cpp:657
+#: client/scenes/gui_settings.cpp:688
 msgid "Create virtual tracker devices."
 msgstr "Crear dispositivos virtuales de seguimiento."
 
-#: client/scenes/gui_settings.cpp:677
+#: client/scenes/gui_settings.cpp:708
 msgctxt "page header title"
 msgid "Tracking"
 msgstr "Seguimiento"
 
-#: client/scenes/gui_settings.cpp:677
+#: client/scenes/gui_settings.cpp:708
 msgctxt "page header subtitle"
 msgid "Body and input tracking sent to the PC."
 msgstr "Seguimiento de cuerpo y entrada enviados al PC."
 
-#: client/scenes/gui_settings.cpp:690
+#: client/scenes/gui_settings.cpp:722
 msgctxt "language selection, replace with the name of the language"
 msgid "English"
 msgstr "Español"
 
-#: client/scenes/gui_settings.cpp:713 client/scenes/gui_settings.cpp:727
+#: client/scenes/gui_settings.cpp:745 client/scenes/gui_settings.cpp:759
 msgid "Language"
 msgstr "Idioma"
 
-#: client/scenes/gui_settings.cpp:714
+#: client/scenes/gui_settings.cpp:746
 msgctxt "setting name"
 msgid "Interface language."
 msgstr "Idioma de la interfaz."
 
-#: client/scenes/gui_settings.cpp:723
+#: client/scenes/gui_settings.cpp:755
 msgctxt "item in the interface language combobox"
 msgid "System language"
 msgstr "Idioma del sistema"
 
-#: client/scenes/gui_settings.cpp:735
+#: client/scenes/gui_settings.cpp:767
 msgctxt "setting name"
 msgid "USB networking"
 msgstr "Conectividad USB"
 
-#: client/scenes/gui_settings.cpp:736
+#: client/scenes/gui_settings.cpp:768
 msgid ""
 "Enables connection by USB without ADB or developer mode.\n"
 "Make sure the server allows IPv6 link-local only connections."
@@ -539,22 +579,22 @@ msgstr ""
 "Permite la conexión por USB sin ADB o modo desarrollador.\n"
 "Asegurese de que el servidor permita conexiones locales exclusivamente IPv6."
 
-#: client/scenes/gui_settings.cpp:746
+#: client/scenes/gui_settings.cpp:778
 msgctxt "setting name"
 msgid "Extended configuration"
 msgstr "Configuración extendida"
 
-#: client/scenes/gui_settings.cpp:747
+#: client/scenes/gui_settings.cpp:779
 msgid "Allows unsafe configuration values, use at your own risk."
 msgstr ""
 "Permitir valores de configuración inseguros, usar bajo propia "
 "responsabilidad."
 
-#: client/scenes/gui_settings.cpp:758
+#: client/scenes/gui_settings.cpp:790
 msgid "High power mode"
 msgstr "Modo de alto rendimiento"
 
-#: client/scenes/gui_settings.cpp:759
+#: client/scenes/gui_settings.cpp:791
 msgid ""
 "Increase power usage to allow higher resolution and refresh rate. Drains "
 "battery and runs hot."
@@ -562,12 +602,25 @@ msgstr ""
 "Aumenta el uso de energía para permitir una mayor resolución y frecuencia de "
 "actualización. Drena la batería y se calienta."
 
-#: client/scenes/gui_settings.cpp:771
+#: client/scenes/gui_settings.cpp:803
+msgctxt "setting name"
+msgid "Enable boundary in passthrough"
+msgstr "Habilitar límite en enfoque exterior"
+
+#: client/scenes/gui_settings.cpp:804
+msgid ""
+"Shows the boundary while passthrough is on. Disable to walk freely outside "
+"of it. The boundary is always shown in VR."
+msgstr ""
+"Muestra el límite cuando se está en enfoque exterior. Deshabilite para andar "
+"libremente fuera de él. El límite siempre se muestra en VR."
+
+#: client/scenes/gui_settings.cpp:816
 msgctxt "setting name"
 msgid "In-stream window"
 msgstr "Ventana mientras se juega"
 
-#: client/scenes/gui_settings.cpp:772
+#: client/scenes/gui_settings.cpp:817
 msgid ""
 "Enables the configuration window to be shown while the game is streaming. If "
 "enabled, the window is activated by pressing both thumbsticks."
@@ -575,81 +628,81 @@ msgstr ""
 "Permite que se muestre la ventana de configuración mientras se transmite el "
 "juego. Si está habilitado, la ventana se activa presionando ambos joysticks."
 
-#: client/scenes/gui_settings.cpp:788
+#: client/scenes/gui_settings.cpp:833
 msgctxt "page header title"
 msgid "System"
 msgstr "Sistema"
 
-#: client/scenes/gui_settings.cpp:788
+#: client/scenes/gui_settings.cpp:833
 msgctxt "page header suibtitle"
 msgid "Language and advanced options."
 msgstr "Idioma y ajustes avanzados."
 
-#: client/scenes/gui_settings.cpp:801
+#: client/scenes/gui_settings.cpp:846
 msgctxt "page header title"
 msgid "Theme"
 msgstr "Tema"
 
-#: client/scenes/gui_settings.cpp:801
+#: client/scenes/gui_settings.cpp:846
 msgctxt "page header subtitle"
 msgid "Accent color, palette and sizing of the interface."
 msgstr "Color de acento, paleta y tamaño de la interfaz."
 
-#: client/scenes/gui_settings.cpp:809
+#: client/scenes/gui_settings.cpp:854
 msgctxt "setting name"
 msgid "Accent color"
 msgstr "Color de acento"
 
-#: client/scenes/gui_settings.cpp:843
+#: client/scenes/gui_settings.cpp:888
 msgctxt "setting name"
 msgid "Preset"
 msgstr "Preajuste"
 
-#: client/scenes/gui_settings.cpp:843
+#: client/scenes/gui_settings.cpp:888
 msgctxt "setting description"
 msgid "Surface and background palette"
 msgstr "Paleta de superficie y fondo"
 
-#: client/scenes/gui_settings.cpp:844
+#: client/scenes/gui_settings.cpp:889
 msgid "Theme preset"
 msgstr "Tema preestablecido"
 
-#: client/scenes/gui_settings.cpp:863
+#: client/scenes/gui_settings.cpp:908
 msgctxt "setting label"
 msgid "Rounding"
 msgstr "Redondeado"
 
-#: client/scenes/gui_settings.cpp:863
+#: client/scenes/gui_settings.cpp:908
 msgctxt "setting description"
 msgid "Corner radius of controls"
 msgstr "Radio de esquina de los controles"
 
-#: client/scenes/gui_settings.cpp:875
+#: client/scenes/gui_settings.cpp:920
 msgctxt "setting label"
 msgid "Card rounding"
 msgstr "Redondeado de la tarjeta"
 
-#: client/scenes/gui_settings.cpp:875
+#: client/scenes/gui_settings.cpp:920
 msgctxt "setting description"
 msgid "Corner radius of panels"
 msgstr "Radio de esquina de los paneles"
 
-#: client/scenes/gui_settings.cpp:888
+#: client/scenes/gui_settings.cpp:933
 msgctxt "setting name"
 msgid "Text size"
 msgstr "Tamaño del texto"
 
-#: client/scenes/gui_settings.cpp:888
+#: client/scenes/gui_settings.cpp:933
 msgctxt "setting description"
 msgid "Global font scale"
 msgstr "Escala global de la fuente"
 
-#: client/scenes/gui_settings.cpp:901
+#: client/scenes/gui_settings.cpp:946
 msgctxt "setting name"
 msgid "Panel opacity"
 msgstr "Opacidad del panel"
 
-#: client/scenes/gui_settings.cpp:901
+#: client/scenes/gui_settings.cpp:946
 msgctxt "setting description"
 msgid "Opacity of the panel and card backgrounds"
 msgstr "Opacidad de los fondos del panel y de la tarjeta"
@@ -677,11 +730,11 @@ msgstr "No se puede conectar a {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Esperando conexión"
 
-#: client/scenes/lobby.cpp:1332
+#: client/scenes/lobby.cpp:1339
 msgid "Passthrough"
 msgstr "Exterior"
 
-#: client/scenes/lobby.cpp:1344
+#: client/scenes/lobby.cpp:1351
 msgid "Default environment"
 msgstr "Entorno por defecto"
 
