@@ -878,6 +878,34 @@ msgstr "Supprimer « {} » de vos ordinateurs enregistrés ?"
 msgid "Delete"
 msgstr "Supprimer"
 
+#: client/scenes/stream_gui.cpp:520
+msgid "PC"
+msgstr "PC"
+
+#: client/scenes/stream_gui.cpp:527
+msgid "Format"
+msgstr "Format"
+
+#: client/scenes/stream_gui.cpp:542
+msgid "Foveated format"
+msgstr "Format fovéalisé"
+
+#: client/scenes/stream_gui.cpp:544
+msgid "{} | {} | {} Mbit/s"
+msgstr "{} | {} | {} Mbit/s"
+
+#: client/scenes/stream_gui.cpp:543
+msgid "Encode time"
+msgstr "Temps d'encodage"
+
+#: client/scenes/stream_gui.cpp:549
+msgid "Network time"
+msgstr "Temps réseau"
+
+#: client/scenes/stream_gui.cpp:555
+msgid "Decode time"
+msgstr "Temps de décodage"
+
 #: client/scenes/lobby_gui.cpp:744 client/scenes/lobby_gui.cpp:757
 #: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:380
 msgid "CPU time"
@@ -891,6 +919,26 @@ msgstr "Temps CPU [ms]"
 #: client/scenes/stream_gui.cpp:179 client/scenes/stream_gui.cpp:381
 msgid "GPU time"
 msgstr "Temps GPU"
+
+#: client/scenes/stream_gui.cpp:403
+msgid "Headset FPS"
+msgstr "FPS du casque"
+
+#: client/scenes/stream_gui.cpp:404
+msgid "Game FPS"
+msgstr "FPS du jeu"
+
+#: client/scenes/stream_gui.cpp:510
+msgid "-{:.0f} dropped"
+msgstr "-{:.0f} perdues"
+
+#: client/scenes/stream_gui.cpp:512
+msgid "-{:.0f} decode"
+msgstr "-{:.0f} décodage"
+
+#: client/scenes/stream_gui.cpp:536
+msgid "High frame loss: try a lower bitrate, resolution or refresh rate."
+msgstr "Perte d'images élevée : essaie un bitrate, une résolution ou un taux de rafraîchissement plus bas."
 
 #: client/scenes/lobby_gui.cpp:767
 msgid "GPU time [ms]"
@@ -1192,6 +1240,22 @@ msgstr "Téléchargement"
 #: client/scenes/stream_gui.cpp:182 client/scenes/stream_gui.cpp:379
 msgid "Upload"
 msgstr "Téléversement"
+
+#: client/scenes/stream_gui.cpp:209
+msgid "FPS"
+msgstr "FPS"
+
+#: client/scenes/stream_gui.cpp:209
+msgid "Headset"
+msgstr "Casque"
+
+#: client/scenes/stream_gui.cpp:210
+msgid "Game"
+msgstr "Jeu"
+
+#: client/scenes/stream_gui.cpp:438
+msgid "fps ({:.0f} with SpaceWarp)"
+msgstr "fps ({:.0f} avec SpaceWarp)"
 
 #: client/scenes/stream_gui.cpp:257
 #, c++-format

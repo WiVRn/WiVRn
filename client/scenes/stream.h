@@ -33,6 +33,7 @@
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
 #include "xr/space.h"
+#include <deque>
 #include <mutex>
 #include <optional>
 #include <queue>
@@ -204,6 +205,10 @@ private:
 	XrTime running_application_req = 0;
 	thread_safe<to_headset::running_applications> running_applications;
 
+	// Server-measured stats, sent at most once per second: nullopt for the first second or so
+	// of a connection, before the first one arrives.
+	thread_safe<std::optional<to_headset::server_stats>> server_stats;
+
 	stream(std::string server_name, scene & parent_scene);
 
 	bool forward_hid_input(from_headset::hid::input_t, bool device_enabled);
@@ -246,6 +251,7 @@ public:
 	void operator()(to_headset::application_list &&);
 	void operator()(to_headset::application_icon &&);
 	void operator()(to_headset::running_applications &&);
+	void operator()(to_headset::server_stats &&);
 	void operator()(audio_data &&);
 
 	void push_blit_handle(wivrn::shard_accumulator * decoder, std::shared_ptr<wivrn::shard_accumulator::blit_handle> handle);
@@ -301,6 +307,8 @@ private:
 		float cpu_time = 0;
 		float bandwidth_rx = 0;
 		float bandwidth_tx = 0;
+		float fps = 0;
+		float game_fps = 0;
 	};
 
 	struct plot
@@ -344,6 +352,37 @@ private:
 	float compact_bandwidth_tx = 0;
 	float compact_cpu_time = 0;
 	float compact_gpu_time = 0;
+
+	// Detects a newly displayed frame by its frame_index changing between calls
+	uint64_t last_metric_frame_index = 0;
+	bool have_last_metric_frame_index = false;
+
+	// Timestamps of recently displayed frames (headset clock) and recently encoded frames
+	// (PC clock, from encode_begin), used for a windowed average fps: count of frames over the
+	// real elapsed time between them, the same principle MangoHud/RTSS use for their FPS counter
+	std::deque<XrTime> headset_frame_times;
+	std::deque<XrTime> game_frame_times;
+
+	// One entry per frame_index missing from the sequence: dropped somewhere before the
+	// headset (could be the network, could be the headset's own decoder falling behind and
+	// the client giving up on a stale frame; indistinguishable from here), windowed the same way
+	std::deque<XrTime> missing_frame_times;
+
+	// Frames actually shown by the headset, and frames produced by the PC (from the spacing
+	// of encode_begin timestamps, independent of network/render jitter on the way here)
+	float compact_fps = 0;
+	float compact_game_fps = 0;
+
+	// Slow-moving average (~5s) of the fraction of the PC's real output that never reaches the
+	// headset, used to suggest lowering the bitrate only when the loss is sustained, not a blip
+	float compact_loss_ratio = 0;
+	float compact_missing_fps = 0;
+
+	// Per-stage latency, each end-to-end for one frame: PC encoding, network transit (send to
+	// last packet received), headset decoding. Smoothed the same way as compact_cpu_time et al.
+	float compact_encode_time = 0;
+	float compact_network_time = 0;
+	float compact_decode_time = 0;
 
 	void accumulate_metrics(XrTime predicted_display_time, const std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> & blit_handles, const gpu_timestamps & timestamps);
 	void gui_performance_metrics();

@@ -963,6 +963,16 @@ struct running_applications
 	std::vector<application> applications;
 };
 
+// Generic, low-frequency server-side telemetry the headset can't measure on its own; add
+// fields here rather than a new packet type for future additions.
+struct server_stats
+{
+	float game_fps;
+	// Fraction of submitted frames dropped before encoding (encoder busy, no free image, ...),
+	// i.e. lost to a GPU/encoder bottleneck rather than the network.
+	float encoder_drop_ratio;
+};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_2,
@@ -981,7 +991,8 @@ using packets = std::variant<
         stream_tab_change,
         application_list,
         application_icon,
-        running_applications>;
+        running_applications,
+        server_stats>;
 } // namespace to_headset
 } // namespace wivrn
 
