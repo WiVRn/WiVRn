@@ -120,6 +120,10 @@ else()
             "decoder/ffmpeg/*.cpp")
     endif()
 
+    file(GLOB CLIENT_LINUX_SOURCE CONFIGURE_DEPENDS
+        "linux/*.cpp")
+    list(APPEND PLATFORM_SOURCE ${CLIENT_LINUX_SOURCE})
+
     if(WIVRN_USE_PIPEWIRE)
         file(GLOB CLIENT_PIPEWIRE_SOURCE CONFIGURE_DEPENDS
             "audio/linux/*.cpp")

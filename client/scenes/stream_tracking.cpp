@@ -18,6 +18,7 @@
  */
 
 #include "application.h"
+#include "battery.h"
 #include "stream.h"
 #include "utils/overloaded.h"
 #include "wivrn_packets.h"
@@ -30,10 +31,6 @@
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
-
-#ifdef __ANDROID__
-#include "android/battery.h"
-#endif
 
 namespace
 {
@@ -233,10 +230,10 @@ void scenes::stream::tracking()
 #ifdef __ANDROID__
 	// Runtime may use JNI and needs the thread to be attached
 	application::instance().setup_jni();
+#endif
 
 	XrTime next_battery_check = 0;
 	const XrDuration battery_check_interval = 30'000'000'000; // 30s
-#endif
 
 	magic_enum::containers::array<device_id, XrSpace> spaces{};
 
@@ -550,7 +547,6 @@ void scenes::stream::tracking()
 					throw;
 			}
 
-#ifdef __ANDROID__
 			// FIXME: switch to event based
 			if (next_battery_check < now)
 			{
@@ -563,7 +559,6 @@ void scenes::stream::tracking()
 
 				next_battery_check = now + battery_check_interval;
 			}
-#endif
 
 			if (auto fb = std::get_if<xr::fb_body_tracker>(&body_tracker); fb and fb->should_send_skeleton())
 			{
