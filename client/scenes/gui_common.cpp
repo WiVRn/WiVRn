@@ -19,7 +19,7 @@
 
 #include "gui_common.h"
 
-#include "android/battery.h"
+#include "battery.h"
 #include "render/ui_theme.h"
 #include "render/ui_widgets.h"
 
@@ -37,7 +37,6 @@ float toggle_width()
 
 std::optional<battery_indicator> battery_status_indicator(XrTime now)
 {
-#ifdef __ANDROID__
 	const auto battery = get_battery_status();
 	if (not battery.charge)
 		return std::nullopt;
@@ -82,9 +81,5 @@ std::optional<battery_indicator> battery_status_indicator(XrTime now)
 	        .label = fmt::format("{} {}%", icon, (int)std::round(*battery.charge * 100)),
 	        .style = style,
 	};
-#else
-	(void)now;
-	return std::nullopt;
-#endif
 }
 } // namespace wivrn::gui
