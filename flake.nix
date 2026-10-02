@@ -6,6 +6,12 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" ];
       perSystem = { lib, pkgs, ... }: let
+        # Extra build inputs only inside the devShell.
+        devBuildInputs = [
+          # for client build
+          pkgs.curl
+          pkgs.ktx-tools
+        ];
         # Tools used for development work (clangd, clang-format)
         devTools = [
           pkgs.clang-tools
@@ -19,10 +25,6 @@
 
           pkgs.libpng
           pkgs.kdePackages.kirigami-addons
-
-          # for client build
-          pkgs.curl
-          pkgs.ktx-tools
         ];
         extraNativeBuildInputs = [
           pkgs.util-linux
@@ -97,6 +99,7 @@
           });
         };
         devShells.default = package.overrideAttrs (oldAttrs: {
+          buildInputs = oldAttrs.buildInputs ++ devBuildInputs;
           nativeBuildInputs = oldAttrs.nativeBuildInputs ++ devTools;
         });
       };
