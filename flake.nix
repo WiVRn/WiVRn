@@ -76,7 +76,7 @@
 
                 buildInputs = oldAttrs.buildInputs ++ extraBuildInputs;
                 nativeBuildInputs = oldAttrs.nativeBuildInputs ++ extraNativeBuildInputs;
-                cmakeFlags = (oldAttrs.cmakeFlags or [ ]) ++ [
+                cmakeFlags = (lib.filter (flag: !lib.hasInfix "GIT_" flag) oldAttrs.cmakeFlags) ++ [
                   (lib.cmakeFeature "GIT_DESC" "nightly")
                   (lib.cmakeFeature "GIT_COMMIT" "nightly")
                 ];
