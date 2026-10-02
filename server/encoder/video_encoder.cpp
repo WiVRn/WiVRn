@@ -324,7 +324,12 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 		if (next == end)
 		{
 			if (end_of_frame)
-				shard.timing_info = timing_info;
+			{
+				if (serialized_size(timing_info) + std::distance(begin, next) <= max_payload_size)
+					shard.timing_info = timing_info;
+				else
+					--next;
+			}
 		}
 		shard.payload = {begin, next};
 		try
