@@ -84,6 +84,8 @@ std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(uint8_t s
 
 	bool is_idr = idr_handler.get_type(frame_index) == default_idr_handler::frame_type::i;
 
+	wait_input(slot, frame_index);
+
 	std::shared_ptr<AVPacket> enc_pkt(av_packet_alloc(), [](AVPacket * d) { av_packet_free(&d); });
 	int err;
 	{
