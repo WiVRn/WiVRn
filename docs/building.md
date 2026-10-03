@@ -4,13 +4,13 @@
 
 ## Compile
 
-From your checkout directory, with automatic detection of encoders
+From your checkout directory
 ```bash
 cmake -B build-server . -GNinja -DWIVRN_BUILD_CLIENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build-server
 ```
 
-It is possible to disable specific encoders, by adding options
+By default, all encoders are enabled. It is possible to disable them at build time with the following options:
 ```
 -DWIVRN_USE_NVENC=OFF
 -DWIVRN_USE_VAAPI=OFF
@@ -18,14 +18,10 @@ It is possible to disable specific encoders, by adding options
 -DWIVRN_USE_X264=OFF
 ```
 
-Force specific audio backends
+wivrnctl is an optional tool enabled by default and the only part that requires libsystemd/libelogind.
+It can be disabled with
 ```
--DWIVRN_USE_PIPEWIRE=ON
-```
-
-Systemd service and pretty hostname support
-```
--DWIVRN_USE_SYSTEMD=ON
+-DWIVRN_USE_WIVRNCTL=OFF
 ```
 
 Lighthouse driver support for use with lighthouse-tracked devices
@@ -33,7 +29,9 @@ Lighthouse driver support for use with lighthouse-tracked devices
 -DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON
 ```
 
-Additionally, if your environment requires absolute paths inside the OpenXR runtime manifest, you can add `-DWIVRN_OPENXR_MANIFEST_TYPE=absolute` to the build configuration.
+For a few dependencies it is possible to select system or embedded versions, check `WIVRN_USE_SYSTEM_xxx` in case you are missing dependencies.
+
+For more advanced options, check [CMakeLists.txt](../CMakeLists.txt).
 
 ## Profiling / tracing build
 
@@ -52,7 +50,7 @@ See [profiling](profiling.md) for how to run the server with tracing and capture
 
 # Dashboard
 
-The WiVRn dashboard requires Qt6, and the WiVRn server.
+The WiVRn dashboard requires Qt6, Kirigami, and the WiVRn server.
 
 ## Compile
 
