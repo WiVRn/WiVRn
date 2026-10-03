@@ -370,7 +370,6 @@ void wivrn_session::start(ipc_server * server)
 	assert(not net_thread.joinable());
 	mnd_ipc_server = server;
 	net_thread = std::jthread([this](auto stop_token) { return run_net(stop_token); });
-	resume_session();
 }
 
 void wivrn_session::stop()
@@ -469,7 +468,7 @@ void wivrn_session::resume_session()
 
 	worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
 	update_client_states(true, true);
-	hmd.update_presence(false, os_monotonic_get_ns());
+	hmd.update_presence(true, os_monotonic_get_ns());
 }
 
 clock_offset wivrn_session::get_offset()
@@ -1059,6 +1058,7 @@ struct refresh_rate_adjuster
 
 void wivrn_session::run_net(std::stop_token stop)
 {
+	resume_session();
 	while (not stop.stop_requested())
 	{
 		try
