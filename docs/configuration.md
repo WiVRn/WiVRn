@@ -13,9 +13,12 @@ If you installed WiVRn from a flatpack, the config is in `$HOME/.var/app/io.gith
 All elements are optional and have default values.
 
 ## `bit-depth`
-Default value: `8` (bits)
+Default value: unset
 
-Bit depth of the video. 8-bit is supported by all encoders. 10-bit is supported by `vaapi` and `nvenc` encoders using `h265` or `av1`.
+Bit depth of the video, `8` or `10`. 8-bit is supported by all encoders. 10-bit is supported by `vaapi` and `nvenc` encoders using `h265` or `av1`, and by the `vulkan` encoder using `h265`.
+
+If unset, the bit depth requested by the headset is used. If the headset does not request one, 10-bit is used when the headset can decode 10-bit for the codec of every stream, otherwise 8-bit.
+WiVRn still falls back to 8-bit if the headset cannot decode 10-bit for every stream, or if the GPU or the `vaapi` encoder does not support it.
 
 ## `encoder`
 The encoder to use, either a single string or object applied to all streams, or a list of string or objects with values for left, right and alpha.

@@ -4,13 +4,13 @@
 
 ## Compile
 
-From your checkout directory, with automatic detection of encoders
+From your checkout directory
 ```bash
 cmake -B build-server . -GNinja -DWIVRN_BUILD_CLIENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build-server
 ```
 
-It is possible to disable specific encoders, by adding options
+All encoders are enabled by default. The `vaapi` encoder needs libavcodec, libavutil and libdrm, and the `x264` encoder needs x264. Configuration fails if they are missing. Disable the encoders you do not need by adding options
 ```
 -DWIVRN_USE_NVENC=OFF
 -DWIVRN_USE_VAAPI=OFF
@@ -18,14 +18,14 @@ It is possible to disable specific encoders, by adding options
 -DWIVRN_USE_X264=OFF
 ```
 
-Force specific audio backends
+PipeWire is the only audio backend and is enabled by default. To build without audio support
 ```
--DWIVRN_USE_PIPEWIRE=ON
+-DWIVRN_USE_PIPEWIRE=OFF
 ```
 
-Systemd service and pretty hostname support
+`wivrnctl` needs libsystemd or libelogind. To build without it
 ```
--DWIVRN_USE_SYSTEMD=ON
+-DWIVRN_BUILD_WIVRNCTL=OFF
 ```
 
 Lighthouse driver support for use with lighthouse-tracked devices
