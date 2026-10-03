@@ -269,6 +269,9 @@ wivrn::vk_bundle::vk_bundle() :
 #ifdef VK_KHR_video_encode_h265
 		        VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME,
 #endif
+#ifdef VK_KHR_video_encode_av1
+		        VK_KHR_VIDEO_ENCODE_AV1_EXTENSION_NAME,
+#endif
 #ifdef VK_KHR_video_encode_intra_refresh
 		        VK_KHR_VIDEO_ENCODE_INTRA_REFRESH_EXTENSION_NAME,
 #endif
@@ -335,6 +338,10 @@ wivrn::vk_bundle::vk_bundle() :
 #ifdef VK_KHR_video_encode_intra_refresh
 		if (has_device_ext(VK_KHR_VIDEO_ENCODE_INTRA_REFRESH_EXTENSION_NAME))
 			std::get<vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>(feat).videoEncodeIntraRefresh = std::get<vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>(physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>()).videoEncodeIntraRefresh;
+#endif
+#ifdef VK_KHR_video_encode_av1
+		if (has_device_ext(VK_KHR_VIDEO_ENCODE_AV1_EXTENSION_NAME))
+			std::get<vk::PhysicalDeviceVideoEncodeAV1FeaturesKHR>(feat).videoEncodeAV1 = std::get<vk::PhysicalDeviceVideoEncodeAV1FeaturesKHR>(physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVideoEncodeAV1FeaturesKHR>()).videoEncodeAV1;
 #endif
 #ifdef VK_KHR_unified_image_layouts
 		if (has_device_ext(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME))
