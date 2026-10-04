@@ -264,6 +264,13 @@ void hmd_traits::init()
 		// Accepts OpenXR 1.1 but doesn't actually implement it
 		max_openxr_api_version = XR_API_VERSION_1_0;
 
+		// The runtime auto-switches /user/hand/* between the controller profile and
+		// ext/hand_interaction_ext based on its own hand-vs-controller heuristic, which
+		// flips repeatedly while a controller is actively held, dropping controller button
+		// input whenever hand interaction is briefly active. The runtime can only switch to
+		// a profile the app suggested bindings for, so withhold the extension entirely.
+		blacklisted_extensions.insert(XR_EXT_HAND_INTERACTION_EXTENSION_NAME);
+
 		// Doesn't handle additive blend, so needs specific ray model
 		// Fixed in XR elite firmware version 2.0
 		bool need_htc_ray = true;
