@@ -475,7 +475,7 @@ xrt_binding_input_pair focus3_input_binding[] = {
         {XRT_INPUT_VIVE_FOCUS3_B_CLICK, XRT_INPUT_TOUCH_B_CLICK},
         {XRT_INPUT_VIVE_FOCUS3_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
         {XRT_INPUT_VIVE_FOCUS3_SQUEEZE_CLICK, XRT_INPUT_VIVE_FOCUS3_SQUEEZE_CLICK},
-        {XRT_INPUT_VIVE_FOCUS3_SQUEEZE_TOUCH, XRT_INPUT_VIVE_FOCUS3_SQUEEZE_TOUCH},
+        {XRT_INPUT_VIVE_FOCUS3_SQUEEZE_TOUCH, XRT_INPUT_FRAME_SQUEEZE_TOUCH},
         {XRT_INPUT_VIVE_FOCUS3_SQUEEZE_VALUE, XRT_INPUT_TOUCH_SQUEEZE_VALUE},
         {XRT_INPUT_VIVE_FOCUS3_TRIGGER_CLICK, XRT_INPUT_INDEX_TRIGGER_CLICK},
         {XRT_INPUT_VIVE_FOCUS3_TRIGGER_TOUCH, XRT_INPUT_TOUCH_TRIGGER_TOUCH},
@@ -899,6 +899,10 @@ void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clo
 
 	for (const auto & input: inputs.values)
 	{
+		U_LOG_D("wivrn_controller(%s) recv %s = %f",
+		        device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER ? "left" : "right",
+		        std::string(magic_enum::enum_name(input.id)).c_str(),
+		        input.value);
 		// Gamepad inputs are handled by wivrn_gamepad
 		if (input.id >= device_id::GAMEPAD_MENU_CLICK)
 			continue;
