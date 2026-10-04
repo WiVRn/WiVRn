@@ -73,7 +73,10 @@ void scenes::stream::operator()(to_headset::video_stream_data_shard && shard)
 	uint8_t idx = shard.stream_item_idx;
 	if (idx >= decoders.size())
 	{
-		// We don't know (yet?) about this stream, ignore packet
+		send_feedback(wivrn::from_headset::feedback{
+		        .frame_index = shard.frame_idx,
+		        .stream_index = idx,
+		});
 		return;
 	}
 	decoders[idx].decoder->push_shard(std::move(shard));

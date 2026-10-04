@@ -265,6 +265,20 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 	        .feedback = feedback,
 	        .view_info = view_info,
 	});
+
+	if (++frames_unanswered > 30)
+	{
+		frames_unanswered = 0;
+		if (auto scene = weak_scene.lock())
+		{
+			auto lost = feedback;
+			lost.sent_to_decoder = 0;
+			lost.received_from_decoder = 0;
+			lost.blitted = 0;
+			lost.displayed = 0;
+			scene->send_feedback(lost);
+		}
+	}
 }
 
 void decoder::on_image_available(void * context, AImageReader * reader)
@@ -290,6 +304,7 @@ void decoder::on_image_available(AImageReader * reader)
 		AImage * tmp;
 		check(AImageReader_acquireLatestImage(image_reader.get(), &tmp), "AImageReader_acquireLatestImage");
 		image.reset(tmp);
+		frames_unanswered = 0;
 
 		int64_t fake_timestamp_ns;
 		check(AImage_getTimestamp(image.get(), &fake_timestamp_ns), "AImage_getTimestamp");
