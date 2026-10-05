@@ -22,7 +22,6 @@
 #include "decoder/decoder.h"
 #include "utils/sync_queue.h"
 #include "wivrn_packets.h"
-#include <atomic>
 #include <functional>
 #include <memory>
 #include <span>
@@ -106,7 +105,6 @@ private:
 		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 	};
 	utils::sync_queue<frame_info> frame_infos;
-	std::atomic<int> frames_unanswered{0};
 
 	std::thread worker;
 	static void on_media_error(AMediaCodec *, void * userdata, media_status_t error, int32_t actionCode, const char * detail);

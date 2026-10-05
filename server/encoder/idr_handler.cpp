@@ -28,6 +28,8 @@ idr_handler::~idr_handler() = default;
 void default_idr_handler::on_feedback(const from_headset::feedback & f)
 {
 	std::unique_lock lock(mutex);
+	if (f.received_from_decoder)
+		last_decoded = std::chrono::steady_clock::now();
 	std::visit(utils::overloaded{
 	                   [](need_idr) {},
 	                   [](idr_received) {},
@@ -68,6 +70,11 @@ void default_idr_handler::reset()
 bool default_idr_handler::should_skip(uint64_t frame_id)
 {
 	std::unique_lock lock(mutex);
+	if (std::chrono::steady_clock::now() - last_decoded > std::chrono::milliseconds(500))
+	{
+		U_LOG_W("No decoded frame for 500ms");
+		state = need_idr{};
+	}
 	return std::visit(utils::overloaded{
 	                          [this, frame_id](wait_idr_feedback w) {
 		                          if (frame_id > w.idr_id + 100)
@@ -102,6 +109,7 @@ default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_ind
 	return std::visit(utils::overloaded{
 	                          [this, frame_index](need_idr) {
 		                          U_LOG_D("IDR frame needed");
+		                          last_decoded = std::chrono::steady_clock::now();
 		                          state = wait_idr_feedback{frame_index};
 		                          return frame_type::i;
 	                          },
