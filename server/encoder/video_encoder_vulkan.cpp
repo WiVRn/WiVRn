@@ -76,7 +76,7 @@ public:
 		}
 	}
 
-	bool should_skip(uint64_t frame_id) override
+	bool should_skip(uint64_t frame_id, uint8_t) override
 	{
 		std::unique_lock lock(mutex);
 		bool pending = false; // has any data been sent?

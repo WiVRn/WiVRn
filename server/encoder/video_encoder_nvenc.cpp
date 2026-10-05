@@ -563,7 +563,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 	        .pictureStruct = NV_ENC_PIC_STRUCT_FRAME,
 	};
 
-	auto frame_type = idr_handler.get_type(frame_index);
+	auto frame_type = idr_handler.get_type(frame_index, stream_idx);
 	switch (frame_type)
 	{
 		case default_idr_handler::frame_type::i:

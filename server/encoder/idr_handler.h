@@ -33,7 +33,7 @@ public:
 	virtual ~idr_handler();
 	virtual void on_feedback(const from_headset::feedback &) = 0;
 	virtual void reset() = 0;
-	virtual bool should_skip(uint64_t frame_id) = 0;
+	virtual bool should_skip(uint64_t frame_id, uint8_t stream_idx) = 0;
 };
 
 // handler for unknown P-frames
@@ -48,13 +48,11 @@ class default_idr_handler : public idr_handler
 	{
 		uint64_t idr_id;
 	};
-	struct idr_received
-	{};
 	struct running
 	{
-		uint64_t first_p;
+		uint64_t last_ack;
 	};
-	std::variant<need_idr, wait_idr_feedback, idr_received, running> state;
+	std::variant<need_idr, wait_idr_feedback, running> state;
 	std::vector<uint64_t> non_ref_frames{512, uint64_t(-1)};
 
 public:
@@ -66,9 +64,9 @@ public:
 
 	void on_feedback(const from_headset::feedback &) override;
 	void reset() override;
-	bool should_skip(uint64_t frame_id) override;
+	bool should_skip(uint64_t frame_id, uint8_t stream_idx) override;
 	void set_non_ref(uint64_t frame_index);
 	bool is_non_ref_frame(uint64_t frame_index);
-	frame_type get_type(uint64_t frame_index);
+	frame_type get_type(uint64_t frame_index, uint8_t stream_idx);
 };
 } // namespace wivrn

@@ -82,7 +82,7 @@ std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(uint8_t s
 		encoder_ctx->framerate = AVRational{.num = int(framerate * 1000), .den = 1000};
 	}
 
-	bool is_idr = idr_handler.get_type(frame_index) == default_idr_handler::frame_type::i;
+	bool is_idr = idr_handler.get_type(frame_index, stream_idx) == default_idr_handler::frame_type::i;
 
 	std::shared_ptr<AVPacket> enc_pkt(av_packet_alloc(), [](AVPacket * d) { av_packet_free(&d); });
 	int err;

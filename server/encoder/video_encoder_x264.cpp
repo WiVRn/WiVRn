@@ -313,7 +313,7 @@ std::optional<video_encoder::data> video_encoder_x264::encode(uint8_t slot, uint
 		x264_encoder_reconfig(enc, &param);
 		idr->reset();
 	}
-	auto frame_type = idr_handler.get_type(frame_index);
+	auto frame_type = idr_handler.get_type(frame_index, stream_idx);
 	int num_nal;
 	x264_nal_t * nal;
 	auto & pic = in[slot].pic;

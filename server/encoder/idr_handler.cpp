@@ -30,14 +30,13 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 	std::unique_lock lock(mutex);
 	std::visit(utils::overloaded{
 	                   [](need_idr) {},
-	                   [](idr_received) {},
 	                   [this, &f](wait_idr_feedback s) {
 		                   if (f.frame_index == s.idr_id)
 		                   {
 			                   if (f.sent_to_decoder)
 			                   {
 				                   U_LOG_D("IDR frame received, stream %d", f.stream_index);
-				                   state = idr_received{};
+				                   state = running{f.frame_index};
 			                   }
 			                   else
 			                   {
@@ -46,12 +45,17 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 			                   }
 		                   }
 	                   },
-	                   [this, &f](running r) {
-		                   if (not f.sent_to_decoder and f.frame_index >= r.first_p and not is_non_ref_frame(f.frame_index))
+	                   [this, &f](running & r) {
+		                   if (not f.sent_to_decoder and f.frame_index >= r.last_ack and not is_non_ref_frame(f.frame_index))
 		                   {
 			                   U_LOG_I("IDR frame needed on stream %d", f.stream_index);
+			                   U_LOG_D("frame_idx: %ld, last_ack = %ld",
+					           f.frame_index,
+					           r.last_ack);
 			                   state = need_idr{};
 		                   }
+		                   else if (f.received_from_decoder)
+			                   r.last_ack = std::max(r.last_ack, f.frame_index);
 	                   },
 	           },
 	           state);
@@ -65,24 +69,31 @@ void default_idr_handler::reset()
 	non_ref_frames.assign(512, uint64_t(-1));
 }
 
-bool default_idr_handler::should_skip(uint64_t frame_id)
+bool default_idr_handler::should_skip(uint64_t frame_id, uint8_t stream_idx)
 {
 	std::unique_lock lock(mutex);
-	return std::visit(utils::overloaded{
-	                          [this, frame_id](wait_idr_feedback w) {
-		                          if (frame_id > w.idr_id + 100)
-		                          {
-			                          U_LOG_W("IDR frame timeout");
-			                          state = need_idr{};
-			                          return false;
-		                          }
-		                          return true;
-	                          },
-	                          [](auto) {
-		                          return false;
-	                          },
-	                  },
-	                  state);
+	auto res = std::visit(utils::overloaded{
+	                              [this, frame_id, stream_idx](wait_idr_feedback w) {
+		                              if (frame_id > w.idr_id + 100)
+		                              {
+			                              U_LOG_W("IDR frame timeout on stream %d", stream_idx);
+			                              state = need_idr{};
+			                              return false;
+		                              }
+		                              return true;
+	                              },
+	                              [this, frame_id](need_idr) {
+		                              state = wait_idr_feedback{frame_id};
+		                              return false;
+	                              },
+	                              [](auto) {
+		                              return false;
+	                              },
+	                      },
+	                      state);
+	if (res)
+		non_ref_frames[frame_id % non_ref_frames.size()] = frame_id;
+	return res;
 }
 
 void default_idr_handler::set_non_ref(uint64_t frame_index)
@@ -96,21 +107,27 @@ bool default_idr_handler::is_non_ref_frame(uint64_t frame_index)
 	return non_ref_frames[frame_index % non_ref_frames.size()] == frame_index;
 }
 
-default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_index)
+default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_index, uint8_t stream_idx)
 {
 	std::unique_lock lock(mutex);
 	return std::visit(utils::overloaded{
 	                          [this, frame_index](need_idr) {
-		                          U_LOG_D("IDR frame needed");
 		                          state = wait_idr_feedback{frame_index};
 		                          return frame_type::i;
 	                          },
-	                          [this, frame_index](idr_received) {
-		                          state = running{frame_index};
+	                          [this, frame_index, stream_idx](running s) {
+		                          if (frame_index > s.last_ack + 60)
+		                          {
+			                          U_LOG_D("stale decoder on stream %d", stream_idx);
+			                          state = wait_idr_feedback{frame_index};
+			                          return frame_type::i;
+		                          }
 		                          return frame_type::p;
 	                          },
-	                          [](auto) {
-		                          return frame_type::p;
+	                          [stream_idx, frame_index](wait_idr_feedback s) {
+		                          if (s.idr_id != frame_index)
+			                          U_LOG_W("inconsistent IDR state on stream %d", stream_idx);
+		                          return frame_type::i;
 	                          },
 	                  },
 	                  state);
