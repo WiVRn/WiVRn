@@ -394,7 +394,7 @@ msgstr "姿勢"
 
 #: client/scenes/gui_settings.cpp:599
 msgid "Posture assumed when a stream connects."
-msgstr "ストリーミング接続時に使用する姿勢です。"
+msgstr "ストリーミング接続時に想定する姿勢です。"
 
 #: client/scenes/gui_settings.cpp:603
 msgctxt "posture"
@@ -415,7 +415,7 @@ msgstr "高さ補正"
 msgid ""
 "Corrects the height reported to the PC when seated, useful for games without "
 "native seated support."
-msgstr "座っているときにPCへ送信する高さを補正します。座ってプレイする機能がないゲームで役立ちます。"
+msgstr "座っているときにPCへ送信する高さを補正します。座った姿勢でのプレイに標準で対応していないゲームで役立ちます。"
 
 #: client/scenes/gui_settings.cpp:612
 msgid ""
@@ -1180,7 +1180,7 @@ msgstr "リフレッシュ"
 
 #: client/scenes/stream_gui.cpp:179
 msgid "Defoveate"
-msgstr "フォービエーション解除"
+msgstr "フォービエーション復元"
 
 #: client/scenes/stream_gui.cpp:181
 msgid "Network"
