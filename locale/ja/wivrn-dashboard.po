@@ -50,7 +50,7 @@ msgstr "adbの起動に失敗しました：%1"
 #: dashboard/apk_installer.cpp:231
 #, kde-format
 msgid "adb exited abnormally: %1"
-msgstr "adbは失敗しました：%1"
+msgstr "adbが異常終了しました：%1"
 
 #: dashboard/apk_installer.cpp:239
 #, kde-format
@@ -122,7 +122,7 @@ msgstr "ADBはインストールされていません"
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
 msgid "Connect a headset and make sure developer mode is enabled"
-msgstr "HMDを接続し、開発モードを確認しましょう"
+msgstr "HMDを接続し、開発者モードが有効になっていることを確認してください"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -203,7 +203,7 @@ msgstr "名前変更"
 #: dashboard/qml/WizardPage.qml:376
 #, kde-format
 msgid "Cancel"
-msgstr "やめる"
+msgstr "キャンセル"
 
 #: dashboard/qml/HeadsetsPage.qml:64
 #, kde-format
@@ -228,7 +228,7 @@ msgstr "ペアリングを無効化する"
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
 msgid "Start the WiVRn app on your headset and use the PIN: %1"
-msgstr "HMDでWiVRnアプリを起動し、暗証版語を入力してください：%1"
+msgstr "HMDでWiVRnアプリを起動し、暗証番号を入力してください：%1"
 
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
@@ -260,14 +260,12 @@ msgstr "WiVRnを終了"
 msgid ""
 "The WiVRn server is active.\n"
 "Closing the window will terminate it."
-msgstr ""
-"WiVRnサーバーは作動中です。\n"
-"停止して終了しますか？"
+msgstr "WiVRnサーバーは動作中です。\nウィンドウを閉じるとサーバーが停止します。"
 
 #: dashboard/qml/Main.qml:142
 #, kde-format
 msgid "Avahi daemon is not installed"
-msgstr "Avahiデーモンはインストールサれていません"
+msgstr "Avahiデーモンはインストールされていません"
 
 #: dashboard/qml/Main.qml:150
 #, kde-format
@@ -330,8 +328,7 @@ msgstr ""
 #: dashboard/qml/Main.qml:217
 #, kde-format
 msgid "Steam is installed as a snap. Snaps are not compatible with WiVRn."
-msgstr ""
-"SteamはSnapとしてインストールされていますが、Snapはサポートサれていません。"
+msgstr "SteamはSnapとしてインストールされています。SnapはWiVRnに対応していません。"
 
 #: dashboard/qml/Main.qml:225
 #, kde-format
@@ -421,7 +418,7 @@ msgstr "HMDが接続されていないか、HMDが開発者モードになって
 #: dashboard/qml/Main.qml:404
 #, kde-format
 msgid "Steam information"
-msgstr "ストリーム情報"
+msgstr "Steam情報"
 
 #: dashboard/qml/Main.qml:420
 #, kde-format
@@ -469,7 +466,7 @@ msgstr "カスタム"
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
-msgstr "検索"
+msgstr "参照"
 
 #: dashboard/qml/SettingsPage.qml:28
 #, kde-format
@@ -515,7 +512,7 @@ msgstr "x264 (ソフトエンコード)"
 #: dashboard/qml/SettingsPage.qml:79
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
-msgstr "「自動」で当システムにとって最も安定した設定を使用します。"
+msgstr "「自動」では、利用可能な場合にハードウェアアクセラレーションを使用します。"
 
 #: dashboard/qml/SettingsPage.qml:89
 #, kde-format
@@ -640,7 +637,7 @@ msgstr "ADBの場所："
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
-msgstr "検索する"
+msgstr "参照"
 
 #: dashboard/qml/SettingsPage.qml:215
 #, kde-format
@@ -656,7 +653,7 @@ msgstr "カスタム"
 #: dashboard/qml/SettingsPage.qml:234
 #, kde-format
 msgid "Disabled"
-msgstr "無し"
+msgstr "無効"
 
 #: dashboard/qml/SettingsPage.qml:250
 #, kde-format
@@ -672,7 +669,7 @@ msgstr "ライブラリーの場所（bin/linux64/vrclient.so 無し）"
 #, kde-format
 msgctxt "browse to choose the OpenVR compatibility to use"
 msgid "Browse"
-msgstr "検索"
+msgstr "参照"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
@@ -767,9 +764,7 @@ msgstr "HMDに「ペアリングが無効です」"
 msgid ""
 "If you have reinstalled the server or the client or if you want to connect "
 "another headset, you must enable pairing before connecting."
-msgstr ""
-"サーバーかクライエント更インストールした場合、または別のHMDを接続したい場合、"
-"ペアリングを有効化しましょう。"
+msgstr "サーバーまたはクライアントを再インストールした場合や、別のHMDを接続する場合は、接続前にペアリングを有効にしてください。"
 
 #: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
@@ -853,7 +848,7 @@ msgstr "次"
 #: dashboard/qml/WizardPage.qml:112
 #, kde-format
 msgid "How to enable developer mode"
-msgstr "HMDの開発者モードを有効する方法"
+msgstr "HMDの開発者モードを有効にする方法"
 
 #: dashboard/qml/WizardPage.qml:119
 #, kde-format
@@ -866,9 +861,7 @@ msgid ""
 "In order to use WiVRn, you will have to install the client app on your "
 "headset.\n"
 "You can either install it from the Meta store or directly over USB."
-msgstr ""
-"WiVRnを使用するには、HMDにアプリをインストール必要があります。\n"
-"Metaストアからインストールや、USBで直接インストールすることもできます。"
+msgstr "WiVRnを使用するには、HMDにクライアントアプリをインストールする必要があります。\nMetaストアから、またはUSB経由で直接インストールできます。"
 
 #: dashboard/qml/WizardPage.qml:148
 #, kde-format
@@ -918,10 +911,7 @@ msgid ""
 "<p>No headset detected. Make sure that:\n"
 "<ul><li>The ADB udev rules are installed</li><li>The headset is in <a "
 "href=\"#\">developer mode</a></li></ul></p>"
-msgstr ""
-"<p>HMDは見つかりません。以下を確認しましょう：\n"
-"<ul><li>ADB用のudevルールはインストールされています</li><li>HMDは<a "
-"href=\"#\">開発者モード</a>は有効です</li></ul></p>"
+msgstr "<p>HMDが見つかりません。以下を確認してください：\n<ul><li>ADB用のudevルールがインストールされていること</li><li>HMDの<a href=\"#\">開発者モード</a>が有効になっていること</li></ul></p>"
 
 #: dashboard/qml/WizardPage.qml:295
 #, kde-format

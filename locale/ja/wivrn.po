@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.16\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 03:15+0900\n"
+"POT-Creation-Date: 2026-10-02 06:19+0900\n"
 "PO-Revision-Date: 2024-06-20 10:33+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language: Japanese\n"
@@ -43,7 +43,7 @@ msgstr "ライト"
 
 #: client/scene.cpp:74
 msgid "No supported swapchain format"
-msgstr "互換性のあるスワップチェーンは見つからなかった"
+msgstr "対応するスワップチェーン形式がありません"
 
 #: client/scenes/app_launcher.cpp:159
 msgid "Pick an application to start streaming, or start one on the PC."
@@ -78,25 +78,25 @@ msgstr "大"
 msgid "Waiting for an application on the server"
 msgstr "サーバー側でアプリの起動を待機中..."
 
-#: client/scenes/gui_settings.cpp:223 client/scenes/gui_settings.cpp:311
-#: client/scenes/gui_settings.cpp:506 client/scenes/gui_settings.cpp:588
+#: client/scenes/gui_settings.cpp:224 client/scenes/gui_settings.cpp:312
+#: client/scenes/gui_settings.cpp:507 client/scenes/gui_settings.cpp:589
 msgctxt "tooltip for disabled settings"
 msgid "Disconnect to change this setting."
 msgstr "この設定を変更するには、一度切断してください。"
 
-#: client/scenes/gui_settings.cpp:234
+#: client/scenes/gui_settings.cpp:235
 msgid "Refresh rate"
 msgstr "リフレッシュレート"
 
-#: client/scenes/gui_settings.cpp:236
+#: client/scenes/gui_settings.cpp:237
 msgid ""
 "WiVRn can't directly change the refresh rate on this device. See your "
 "device's settings to change the refresh rate."
 msgstr ""
-"このデバイスでは直接リフレッシュレートを変更できません。"
-"デバイスの設定から変更してください。"
+"このデバイスでは直接リフレッシュレートを変更できません。デバイスの設定から変"
+"更してください。"
 
-#: client/scenes/gui_settings.cpp:237
+#: client/scenes/gui_settings.cpp:238
 msgid ""
 "Use 'auto' to select the refresh rate based on measured application "
 "performance. May cause flicker when a change happens."
@@ -104,158 +104,156 @@ msgstr ""
 "アプリの負荷に合わせてリフレッシュレートを自動調整します。変更時に画面がちら"
 "つく場合があります。"
 
-#: client/scenes/gui_settings.cpp:260
+#: client/scenes/gui_settings.cpp:261
 msgctxt "automatic refresh rate, use a short string"
 msgid "Auto"
 msgstr "自動"
 
-#: client/scenes/gui_settings.cpp:274
+#: client/scenes/gui_settings.cpp:275
 msgid "Render resolution"
 msgstr "レンダー解像度"
 
-#: client/scenes/gui_settings.cpp:275
+#: client/scenes/gui_settings.cpp:276
 #, c++-format
 msgctxt "render resolution"
 msgid "Pixels rendered per eye ({}x{}). Lower to gain performance."
 msgstr ""
 "片目あたりのレンダリング解像度 ({}x{})。下げるとパフォーマンスが向上します。"
 
-#: client/scenes/gui_settings.cpp:292
+#: client/scenes/gui_settings.cpp:293
 msgid "Application SpaceWarp"
 msgstr "アプリケーション・スペースワープ"
 
-#: client/scenes/gui_settings.cpp:293
+#: client/scenes/gui_settings.cpp:294
 msgid "Renders at half the refresh rate. The headset may synthesise frames."
-msgstr ""
-"リフレッシュレートの半分にします。ヘッドセットがフレームを補間する場合があり"
-"ます。"
+msgstr "リフレッシュレートの半分のフレームレートで描画します。ヘッドセットがフレームを補間する場合があります。"
 
-#: client/scenes/gui_settings.cpp:299
+#: client/scenes/gui_settings.cpp:300
 msgid "Set a refresh rate other than auto to enable this setting."
 msgstr "リフレッシュレートを「自動」以外に設定すると有効になります。"
 
-#: client/scenes/gui_settings.cpp:303
+#: client/scenes/gui_settings.cpp:304
 msgctxt "page header title"
 msgid "Video"
 msgstr "ビデオ"
 
-#: client/scenes/gui_settings.cpp:303
+#: client/scenes/gui_settings.cpp:304
 msgctxt "page header subtitle"
 msgid "Frame rate and resolution."
 msgstr "フレームレートおよび解像度"
 
-#: client/scenes/gui_settings.cpp:316
+#: client/scenes/gui_settings.cpp:317
 msgid "Foveated encoding"
-msgstr "エンコード・フォビエーション"
+msgstr "エンコード・フォービエーション"
 
-#: client/scenes/gui_settings.cpp:318
+#: client/scenes/gui_settings.cpp:319
 msgid ""
 "Higher values focus image quality where you look at, improving latency, "
 "power efficiency and quality."
 msgstr ""
 "値を上げることで視線先の画質を最適化し、低遅延・省電力・高画質を実現します。"
 
-#: client/scenes/gui_settings.cpp:319
+#: client/scenes/gui_settings.cpp:320
 msgid ""
 "Higher values focus image quality at the center, improving latency, power "
 "efficiency and quality."
 msgstr ""
 "値を上げると中心の画質が最適化され、低遅延・省電力・高画質を実現します。"
 
-#: client/scenes/gui_settings.cpp:337 client/scenes/gui_settings.cpp:349
+#: client/scenes/gui_settings.cpp:338 client/scenes/gui_settings.cpp:350
 msgctxt "Codec"
 msgid "Automatic"
 msgstr "自動"
 
-#: client/scenes/gui_settings.cpp:341
+#: client/scenes/gui_settings.cpp:342
 msgctxt "Codec"
 msgid "H.264"
 msgstr "H.264"
 
-#: client/scenes/gui_settings.cpp:343
+#: client/scenes/gui_settings.cpp:344
 msgctxt "Codec"
 msgid "HEVC (H.265)"
 msgstr "HEVC (H.265)"
 
-#: client/scenes/gui_settings.cpp:345
+#: client/scenes/gui_settings.cpp:346
 msgctxt "Codec"
 msgid "AV1"
 msgstr "AV1"
 
-#: client/scenes/gui_settings.cpp:359 client/scenes/gui_settings.cpp:372
+#: client/scenes/gui_settings.cpp:360 client/scenes/gui_settings.cpp:373
 msgctxt "setting name"
 msgid "Video codec"
 msgstr "コーデック"
 
-#: client/scenes/gui_settings.cpp:360
+#: client/scenes/gui_settings.cpp:361
 msgid "How video is compressed before it is sent to the headset."
 msgstr "ビデオをヘッドセットに送る際の圧縮方法です。"
 
-#: client/scenes/gui_settings.cpp:382
+#: client/scenes/gui_settings.cpp:383
 msgctxt "setting name"
 msgid "10-bit color"
 msgstr "10ビット色深度"
 
-#: client/scenes/gui_settings.cpp:383
+#: client/scenes/gui_settings.cpp:384
 msgid "Higher color precision, supported by HEVC and AV1."
 msgstr "色再現性が向上します。HEVCおよびAV1でサポートされています。"
 
-#: client/scenes/gui_settings.cpp:396
+#: client/scenes/gui_settings.cpp:397
 msgid "Bitrate"
 msgstr "ビットレート"
 
-#: client/scenes/gui_settings.cpp:397
+#: client/scenes/gui_settings.cpp:398
 msgid "Video data rate sent to the headset."
 msgstr "ヘッドセットへのビデオデータ転送速度。"
 
-#: client/scenes/gui_settings.cpp:412
+#: client/scenes/gui_settings.cpp:413
 msgctxt "setting name"
 msgid "Foveation center override"
 msgstr "フォービエーション中心点の調整"
 
-#: client/scenes/gui_settings.cpp:413
+#: client/scenes/gui_settings.cpp:414
 msgid ""
 "Manually set where image quality is focused, instead of the center or your "
 "gaze."
 msgstr "中心や視線に頼らず、画質のフォーカス位置を手動で設定します。"
 
-#: client/scenes/gui_settings.cpp:425
+#: client/scenes/gui_settings.cpp:426
 msgctxt "setting name"
 msgid "Foveation center"
 msgstr "フォービエーション中心点"
 
-#: client/scenes/gui_settings.cpp:426
+#: client/scenes/gui_settings.cpp:427
 #, c++-format
 msgid "Height {:.1f} °, distance {:.2f} m"
-msgstr "高さ {:.1f} °, 距離 {:.2f} m"
+msgstr "仰角 {:.1f} °, 距離 {:.2f} m"
 
-#: client/scenes/gui_settings.cpp:428
+#: client/scenes/gui_settings.cpp:429
 msgctxt "button label to change the foveation center"
 msgid "Change"
 msgstr "編集"
 
-#: client/scenes/gui_settings.cpp:431
+#: client/scenes/gui_settings.cpp:432
 msgid "Enable foveation center override to change this setting."
 msgstr ""
 "この設定を変更するには、「フォービエーション中心点の調整」を有効にしてくださ"
 "い。"
 
-#: client/scenes/gui_settings.cpp:435
+#: client/scenes/gui_settings.cpp:436
 msgctxt "page header title"
 msgid "Streaming"
 msgstr "ストリーミング"
 
-#: client/scenes/gui_settings.cpp:435
+#: client/scenes/gui_settings.cpp:436
 msgctxt "page header subtitle"
 msgid "How video is encoded and sent to the headset."
 msgstr "ビデオのエンコードおよびヘッドセットへの送信設定"
 
-#: client/scenes/gui_settings.cpp:440
+#: client/scenes/gui_settings.cpp:441
 msgctxt "confirmation messagebox title"
 msgid "Disable in-stream window"
 msgstr "体験中のウィンドウ表示を無効にする"
 
-#: client/scenes/gui_settings.cpp:441
+#: client/scenes/gui_settings.cpp:442
 msgctxt "confirmation message"
 msgid ""
 "Do you really want to disable the in-stream window?\n"
@@ -264,34 +262,34 @@ msgstr ""
 "体験中のウィンドウを無効にしてもよろしいですか？\n"
 "サムスティックによる再表示ができなくなります。"
 
-#: client/scenes/gui_settings.cpp:442 client/scenes/lobby_gui.cpp:886
+#: client/scenes/gui_settings.cpp:443 client/scenes/lobby_gui.cpp:886
 msgid "Yes"
 msgstr "はい"
 
-#: client/scenes/gui_settings.cpp:443 client/scenes/lobby_gui.cpp:893
+#: client/scenes/gui_settings.cpp:444 client/scenes/lobby_gui.cpp:893
 msgid "No"
 msgstr "いいえ"
 
-#: client/scenes/gui_settings.cpp:464
+#: client/scenes/gui_settings.cpp:465
 msgctxt "openxr_post_processing"
 msgid "Normal"
 msgstr "ノーマル"
 
-#: client/scenes/gui_settings.cpp:467
+#: client/scenes/gui_settings.cpp:468
 msgctxt "openxr_post_processing"
 msgid "Quality"
 msgstr "クオリティ"
 
-#: client/scenes/gui_settings.cpp:469
+#: client/scenes/gui_settings.cpp:470
 msgctxt "openxr_post_processing"
 msgid "Disabled"
 msgstr "無効"
 
-#: client/scenes/gui_settings.cpp:494
+#: client/scenes/gui_settings.cpp:495
 msgid "Supersampling"
 msgstr "スーパーサンプリング"
 
-#: client/scenes/gui_settings.cpp:494
+#: client/scenes/gui_settings.cpp:495
 msgid ""
 "Reduce flicker for high contrast edges. Useful when the input resolution is "
 "high compared to the headset display."
@@ -299,11 +297,11 @@ msgstr ""
 "コントラストの強いエッジのちらつきを抑えます。入力解像度がヘッドセットのディ"
 "スプレイ解像度よりも高い場合に有効です。"
 
-#: client/scenes/gui_settings.cpp:495
+#: client/scenes/gui_settings.cpp:496
 msgid "Sharpening"
 msgstr "シャープニング"
 
-#: client/scenes/gui_settings.cpp:495
+#: client/scenes/gui_settings.cpp:496
 msgid ""
 "Improve clarity of high contrast edges and counteract blur. Useful when the "
 "input resolution is low compared to the headset display."
@@ -311,158 +309,194 @@ msgstr ""
 "コントラストの強いエッジをくっきりさせ、ぼやけを解消します。入力解像度がヘッ"
 "ドセットのディスプレイ解像度より低い場合に有効です。"
 
-#: client/scenes/gui_settings.cpp:498
+#: client/scenes/gui_settings.cpp:499
 msgid "Post-processing"
 msgstr "ポストエフェクト"
 
-#: client/scenes/gui_settings.cpp:498
+#: client/scenes/gui_settings.cpp:499
 msgctxt "page header subtitle"
 msgid "OpenXR layer supersampling and sharpening."
 msgstr "OpenXR：スーパーサンプリングとシャープニング"
 
-#: client/scenes/gui_settings.cpp:511
+#: client/scenes/gui_settings.cpp:512
 msgctxt "setting name"
 msgid "Microphone"
 msgstr "マイク"
 
-#: client/scenes/gui_settings.cpp:512
+#: client/scenes/gui_settings.cpp:513
 msgid "Stream the headset microphone to the PC."
 msgstr "マイク音声をPCへ出力"
 
-#: client/scenes/gui_settings.cpp:524
+#: client/scenes/gui_settings.cpp:525
 msgctxt "setting name"
 msgid "Unprocessed audio"
 msgstr "未処理のマイク音声"
 
-#: client/scenes/gui_settings.cpp:525
+#: client/scenes/gui_settings.cpp:526
 msgid "Disable audio filters, such as noise cancellation."
 msgstr "ノイズキャンセリングなどのオーディオフィルターを無効にする"
 
-#: client/scenes/gui_settings.cpp:535
+#: client/scenes/gui_settings.cpp:536
 msgctxt "page header title"
 msgid "Audio"
 msgstr "オーディオ"
 
-#: client/scenes/gui_settings.cpp:535
+#: client/scenes/gui_settings.cpp:536
 msgctxt "page header subtitle"
 msgid "Microphone streamed to the PC."
 msgstr "ヘッドセットマイクのPC送信設定"
 
-#: client/scenes/gui_settings.cpp:548
+#: client/scenes/gui_settings.cpp:549
 msgctxt "setting name"
 msgid "Keyboard"
 msgstr "キーボード"
 
-#: client/scenes/gui_settings.cpp:549
+#: client/scenes/gui_settings.cpp:550
 msgid "Forward the keyboard from the headset to the PC."
 msgstr "ヘッドセットに接続したキーボードの入力をPCに転送します。"
 
-#: client/scenes/gui_settings.cpp:558
+#: client/scenes/gui_settings.cpp:559
 msgctxt "setting name"
 msgid "Mouse"
 msgstr "マウス"
 
-#: client/scenes/gui_settings.cpp:559
+#: client/scenes/gui_settings.cpp:560
 msgid "Forward the mouse from the headset to the PC."
 msgstr "ヘッドセットに接続したマウスの入力をPCに転送します。"
 
-#: client/scenes/gui_settings.cpp:569
+#: client/scenes/gui_settings.cpp:570
 msgctxt "setting name"
 msgid "Gamepad"
 msgstr "ゲームコントローラー"
 
-#: client/scenes/gui_settings.cpp:570
+#: client/scenes/gui_settings.cpp:571
 msgid "Forward the gamepad from the headset to the PC."
 msgstr "ヘッドセットに接続したゲームコントローラーの入力をPCに転送します。"
 
-#: client/scenes/gui_settings.cpp:577
+#: client/scenes/gui_settings.cpp:578
 msgctxt "page header title"
 msgid "Devices"
 msgstr "デバイス"
 
-#: client/scenes/gui_settings.cpp:577
+#: client/scenes/gui_settings.cpp:578
 msgctxt "page header subtitle"
 msgid "Forward input devices to the PC."
 msgstr "入力デバイスのPC転送設定"
 
-#: client/scenes/gui_settings.cpp:581 client/scenes/stream_network.cpp:91
+#: client/scenes/gui_settings.cpp:582 client/scenes/stream_network.cpp:91
 msgid "The server does not allow forwarded input devices"
 msgstr "サーバー側で入力デバイスの転送が許可されていません。"
 
-#: client/scenes/gui_settings.cpp:606
+#: client/scenes/gui_settings.cpp:598
+msgctxt "setting name"
+msgid "Posture"
+msgstr "姿勢"
+
+#: client/scenes/gui_settings.cpp:599
+msgid "Posture assumed when a stream connects."
+msgstr "ストリーミング接続時に使用する姿勢です。"
+
+#: client/scenes/gui_settings.cpp:603
+msgctxt "posture"
+msgid "Standing"
+msgstr "立位"
+
+#: client/scenes/gui_settings.cpp:603
+msgctxt "posture"
+msgid "Seated"
+msgstr "座位"
+
+#: client/scenes/gui_settings.cpp:609
+msgctxt "setting name"
+msgid "Height adjustment"
+msgstr "高さ補正"
+
+#: client/scenes/gui_settings.cpp:611
+msgid ""
+"Corrects the height reported to the PC when seated, useful for games without "
+"native seated support."
+msgstr "座っているときにPCへ送信する高さを補正します。座ってプレイする機能がないゲームで役立ちます。"
+
+#: client/scenes/gui_settings.cpp:612
+msgid ""
+"Corrects the height reported to the PC when standing, useful for a "
+"miscalibrated floor."
+msgstr "立っているときにPCへ送信する高さを補正します。床の高さが正しく調整されていない場合に役立ちます。"
+
+#: client/scenes/gui_settings.cpp:637
 msgctxt "setting name"
 msgid "Hand tracking"
 msgstr "ハンドトラッキング"
 
-#: client/scenes/gui_settings.cpp:606
+#: client/scenes/gui_settings.cpp:637
 msgid "Track your hands for input when controllers are down."
 msgstr "コントローラーを離した際、手の動きで操作を行います。"
 
-#: client/scenes/gui_settings.cpp:609
+#: client/scenes/gui_settings.cpp:640
 msgctxt "setting name"
 msgid "Eye tracking"
 msgstr "アイトラッキング"
 
-#: client/scenes/gui_settings.cpp:609
+#: client/scenes/gui_settings.cpp:640
 msgid "Used by foveated encoding to focus quality where you look."
 msgstr ""
 "フォービエーションに使用され、視線が向いている場所の画質を向上させます。"
 
-#: client/scenes/gui_settings.cpp:612
+#: client/scenes/gui_settings.cpp:643
 msgctxt "setting name"
 msgid "Face tracking"
-msgstr "フェーストラッキング"
+msgstr "フェイストラッキング"
 
-#: client/scenes/gui_settings.cpp:612
+#: client/scenes/gui_settings.cpp:643
 msgid "Stream facial expressions to the PC."
 msgstr "表情データをPCに送信します。"
 
-#: client/scenes/gui_settings.cpp:620
+#: client/scenes/gui_settings.cpp:651
 msgctxt "virtual body tracker selection"
 msgid "Chest"
 msgstr "胸"
 
-#: client/scenes/gui_settings.cpp:621
+#: client/scenes/gui_settings.cpp:652
 msgctxt "virtual body tracker selection"
 msgid "Left elbow"
 msgstr "左肘"
 
-#: client/scenes/gui_settings.cpp:622
+#: client/scenes/gui_settings.cpp:653
 msgctxt "virtual body tracker selection"
 msgid "Right elbow"
 msgstr "右肘"
 
-#: client/scenes/gui_settings.cpp:623
+#: client/scenes/gui_settings.cpp:654
 msgctxt "virtual body tracker selection"
 msgid "Hip"
 msgstr "腰"
 
-#: client/scenes/gui_settings.cpp:624
+#: client/scenes/gui_settings.cpp:655
 msgctxt "virtual body tracker selection"
 msgid "Left knee"
 msgstr "左膝"
 
-#: client/scenes/gui_settings.cpp:625
+#: client/scenes/gui_settings.cpp:656
 msgctxt "virtual body tracker selection"
 msgid "Right knee"
 msgstr "右膝"
 
-#: client/scenes/gui_settings.cpp:626
+#: client/scenes/gui_settings.cpp:657
 msgctxt "virtual body tracker selection"
 msgid "Left foot"
 msgstr "左足"
 
-#: client/scenes/gui_settings.cpp:627
+#: client/scenes/gui_settings.cpp:658
 msgctxt "virtual body tracker selection"
 msgid "Right foot"
 msgstr "右足"
 
-#: client/scenes/gui_settings.cpp:642
+#: client/scenes/gui_settings.cpp:673
 msgctxt "setting name"
 msgid "Body tracking"
 msgstr "ボディトラッキング"
 
-#: client/scenes/gui_settings.cpp:644
+#: client/scenes/gui_settings.cpp:675
 msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings, otherwise body data will be guessed from controller and "
@@ -472,54 +506,54 @@ msgstr ""
 "グ」を有効にしてください。無効時は、コントローラーとヘッドセットの位置に基づ"
 "きボディデータを推定します。"
 
-#: client/scenes/gui_settings.cpp:645
+#: client/scenes/gui_settings.cpp:676
 msgid "Stream body joint positions to the PC."
 msgstr "ボディの関節位置をPCへ転送します。"
 
-#: client/scenes/gui_settings.cpp:656 client/scenes/gui_settings.cpp:671
+#: client/scenes/gui_settings.cpp:687 client/scenes/gui_settings.cpp:702
 msgctxt "setting name"
 msgid "Virtual body trackers"
-msgstr "推定ボディトラッカー"
+msgstr "仮想ボディトラッカー"
 
-#: client/scenes/gui_settings.cpp:657
+#: client/scenes/gui_settings.cpp:688
 msgid "Create virtual tracker devices."
 msgstr "仮想トラッカーデバイスを生成する"
 
-#: client/scenes/gui_settings.cpp:677
+#: client/scenes/gui_settings.cpp:708
 msgctxt "page header title"
 msgid "Tracking"
 msgstr "トラッキング"
 
-#: client/scenes/gui_settings.cpp:677
+#: client/scenes/gui_settings.cpp:708
 msgctxt "page header subtitle"
 msgid "Body and input tracking sent to the PC."
 msgstr "ボディ・入力トラッキングのPC送信設定"
 
-#: client/scenes/gui_settings.cpp:690
+#: client/scenes/gui_settings.cpp:722
 msgctxt "language selection, replace with the name of the language"
 msgid "English"
 msgstr "日本語"
 
-#: client/scenes/gui_settings.cpp:713 client/scenes/gui_settings.cpp:727
+#: client/scenes/gui_settings.cpp:745 client/scenes/gui_settings.cpp:759
 msgid "Language"
 msgstr "言語"
 
-#: client/scenes/gui_settings.cpp:714
+#: client/scenes/gui_settings.cpp:746
 msgctxt "setting name"
 msgid "Interface language."
 msgstr "UI言語"
 
-#: client/scenes/gui_settings.cpp:723
+#: client/scenes/gui_settings.cpp:755
 msgctxt "item in the interface language combobox"
 msgid "System language"
 msgstr "デバイス言語"
 
-#: client/scenes/gui_settings.cpp:735
+#: client/scenes/gui_settings.cpp:767
 msgctxt "setting name"
 msgid "USB networking"
 msgstr "USBネットワーク"
 
-#: client/scenes/gui_settings.cpp:736
+#: client/scenes/gui_settings.cpp:768
 msgid ""
 "Enables connection by USB without ADB or developer mode.\n"
 "Make sure the server allows IPv6 link-local only connections."
@@ -527,20 +561,20 @@ msgstr ""
 "ADBや開発者モードを使わずにUSB接続を有効にします。\n"
 "サーバーがIPv6リンクローカルのみの接続を許可していることを確認してください。"
 
-#: client/scenes/gui_settings.cpp:746
+#: client/scenes/gui_settings.cpp:778
 msgctxt "setting name"
 msgid "Extended configuration"
 msgstr "拡張設定"
 
-#: client/scenes/gui_settings.cpp:747
+#: client/scenes/gui_settings.cpp:779
 msgid "Allows unsafe configuration values, use at your own risk."
-msgstr "不安定な状態が発生しないよう、十分にご注意ください。"
+msgstr "安全性が保証されない設定値を使用できるようにします。自己責任で使用してください。"
 
-#: client/scenes/gui_settings.cpp:758
+#: client/scenes/gui_settings.cpp:790
 msgid "High power mode"
 msgstr "高電力モード"
 
-#: client/scenes/gui_settings.cpp:759
+#: client/scenes/gui_settings.cpp:791
 msgid ""
 "Increase power usage to allow higher resolution and refresh rate. Drains "
 "battery and runs hot."
@@ -548,12 +582,23 @@ msgstr ""
 "消費電力を増やして、解像度とリフレッシュレートを向上させます。その分、バッテ"
 "リーの消耗が早くなり、発熱しやすくなります。"
 
-#: client/scenes/gui_settings.cpp:771
+#: client/scenes/gui_settings.cpp:803
+msgctxt "setting name"
+msgid "Enable boundary in passthrough"
+msgstr "パススルー中に境界線を表示"
+
+#: client/scenes/gui_settings.cpp:804
+msgid ""
+"Shows the boundary while passthrough is on. Disable to walk freely outside "
+"of it. The boundary is always shown in VR."
+msgstr "パススルー中に境界線を表示します。無効にすると境界線の外でも自由に歩けます。VR中は常に境界線が表示されます。"
+
+#: client/scenes/gui_settings.cpp:816
 msgctxt "setting name"
 msgid "In-stream window"
 msgstr "体験中ウィンドウ"
 
-#: client/scenes/gui_settings.cpp:772
+#: client/scenes/gui_settings.cpp:817
 msgid ""
 "Enables the configuration window to be shown while the game is streaming. If "
 "enabled, the window is activated by pressing both thumbsticks."
@@ -561,81 +606,81 @@ msgstr ""
 "ストリーミング中でもウィンドウを開けるようになります。両方のサムスティックを"
 "同時に押すと、ウィンドウが現れます。"
 
-#: client/scenes/gui_settings.cpp:788
+#: client/scenes/gui_settings.cpp:833
 msgctxt "page header title"
 msgid "System"
 msgstr "システム"
 
-#: client/scenes/gui_settings.cpp:788
+#: client/scenes/gui_settings.cpp:833
 msgctxt "page header suibtitle"
 msgid "Language and advanced options."
 msgstr "言語と詳細設定"
 
-#: client/scenes/gui_settings.cpp:801
+#: client/scenes/gui_settings.cpp:846
 msgctxt "page header title"
 msgid "Theme"
 msgstr "外観設定"
 
-#: client/scenes/gui_settings.cpp:801
+#: client/scenes/gui_settings.cpp:846
 msgctxt "page header subtitle"
 msgid "Accent color, palette and sizing of the interface."
 msgstr "アクセントカラーや配色、UIサイズなどの設定"
 
-#: client/scenes/gui_settings.cpp:809
+#: client/scenes/gui_settings.cpp:854
 msgctxt "setting name"
 msgid "Accent color"
 msgstr "アクセントカラー"
 
-#: client/scenes/gui_settings.cpp:843
+#: client/scenes/gui_settings.cpp:888
 msgctxt "setting name"
 msgid "Preset"
 msgstr "プリセット"
 
-#: client/scenes/gui_settings.cpp:843
+#: client/scenes/gui_settings.cpp:888
 msgctxt "setting description"
 msgid "Surface and background palette"
 msgstr "ベースカラーと背景色のパレット"
 
-#: client/scenes/gui_settings.cpp:844
+#: client/scenes/gui_settings.cpp:889
 msgid "Theme preset"
 msgstr "テーマ・プリセット"
 
-#: client/scenes/gui_settings.cpp:863
+#: client/scenes/gui_settings.cpp:908
 msgctxt "setting label"
 msgid "Rounding"
 msgstr "角丸"
 
-#: client/scenes/gui_settings.cpp:863
+#: client/scenes/gui_settings.cpp:908
 msgctxt "setting description"
 msgid "Corner radius of controls"
 msgstr "UI要素の角の丸み"
 
-#: client/scenes/gui_settings.cpp:875
+#: client/scenes/gui_settings.cpp:920
 msgctxt "setting label"
 msgid "Card rounding"
 msgstr "パネルの角丸"
 
-#: client/scenes/gui_settings.cpp:875
+#: client/scenes/gui_settings.cpp:920
 msgctxt "setting description"
 msgid "Corner radius of panels"
 msgstr "パネルの角の丸み"
 
-#: client/scenes/gui_settings.cpp:888
+#: client/scenes/gui_settings.cpp:933
 msgctxt "setting name"
 msgid "Text size"
 msgstr "文字サイズ"
 
-#: client/scenes/gui_settings.cpp:888
+#: client/scenes/gui_settings.cpp:933
 msgctxt "setting description"
 msgid "Global font scale"
 msgstr "全体のフォントスケール"
 
-#: client/scenes/gui_settings.cpp:901
+#: client/scenes/gui_settings.cpp:946
 msgctxt "setting name"
 msgid "Panel opacity"
 msgstr "パネルの不透明度"
 
-#: client/scenes/gui_settings.cpp:901
+#: client/scenes/gui_settings.cpp:946
 msgctxt "setting description"
 msgid "Opacity of the panel and card backgrounds"
 msgstr "パネルとカードの背景の透け具合"
@@ -663,11 +708,11 @@ msgstr "{}に接続できませんでした：({}) {}"
 msgid "Waiting for connection"
 msgstr "接続を待っています"
 
-#: client/scenes/lobby.cpp:1332
+#: client/scenes/lobby.cpp:1339
 msgid "Passthrough"
 msgstr "パススルー"
 
-#: client/scenes/lobby.cpp:1344
+#: client/scenes/lobby.cpp:1351
 msgid "Default environment"
 msgstr "デフォルトのホーム環境"
 
@@ -793,7 +838,7 @@ msgstr "ローカルネットワーク内でこのサーバーを検索してい
 #: client/scenes/lobby_gui.cpp:427
 msgctxt "chip displayed in server list when autoconnect is enabled"
 msgid "Auto"
-msgstr "受動"
+msgstr "自動"
 
 #: client/scenes/lobby_gui.cpp:447
 msgid "Autoconnect"
@@ -862,7 +907,7 @@ msgstr "アイトラッキングを有効にしますか？"
 
 #: client/scenes/lobby_gui.cpp:845
 msgid "Enable face tracking?"
-msgstr "フェースラッキングを有効にしますか？"
+msgstr "フェイストラッキングを有効にしますか？"
 
 #: client/scenes/lobby_gui.cpp:850
 msgid "Enable body tracking?"
@@ -995,7 +1040,7 @@ msgstr "ライセンス"
 #: client/scenes/lobby_gui.cpp:1286
 msgctxt "exit button in the lobby"
 msgid "Exit"
-msgstr "完了"
+msgstr "終了"
 
 #: client/scenes/lobby_gui.cpp:1304
 msgid ""
@@ -1021,7 +1066,7 @@ msgstr "ローカル環境（{}）"
 #: client/scenes/lobby_gui_customize.cpp:299
 #, c++-format
 msgid "Cannot load local environment: {}"
-msgstr "ローカル環境ロードできません：{}"
+msgstr "ローカル環境をロードできません：{}"
 
 #: client/scenes/lobby_gui_customize.cpp:332
 #, c++-format
@@ -1051,7 +1096,7 @@ msgstr "モデルを削除しますか？"
 #: client/scenes/lobby_gui_customize.cpp:622
 #, c++-format
 msgid "HTTP error {} when downloading {}"
-msgstr "{}をダウンロード中にHTTP {}が発生しました。"
+msgstr "HTTPエラー{}が発生しました（{}のダウンロード中）。"
 
 #: client/scenes/lobby_gui_customize.cpp:465
 #: client/scenes/lobby_gui_customize.cpp:630
@@ -1135,7 +1180,7 @@ msgstr "リフレッシュ"
 
 #: client/scenes/stream_gui.cpp:179
 msgid "Defoveate"
-msgstr "フォビエーション解除"
+msgstr "フォービエーション解除"
 
 #: client/scenes/stream_gui.cpp:181
 msgid "Network"
@@ -1222,7 +1267,7 @@ msgstr "ジョイスティックを使って中心点を調整しましょう。
 
 #: client/scenes/stream_gui.cpp:489
 msgid "Press A to save or B to cancel"
-msgstr "AかBを押してキャンセル。"
+msgstr "Aを押すと保存、Bを押すとキャンセルします。"
 
 #: client/scenes/stream_gui.cpp:490
 #, c++-format
@@ -1264,7 +1309,7 @@ msgstr "オーバーレイ"
 
 #: client/scenes/stream_gui.cpp:597
 msgid "Request to quit, may be ignored by the application"
-msgstr "終了シグナルを送信する"
+msgstr "終了を要求します（アプリが無視する場合があります）"
 
 #: client/scenes/stream_gui.cpp:874 client/scenes/stream_gui.cpp:1018
 msgid "Statistics"
@@ -1317,7 +1362,7 @@ msgstr "タイムアウト"
 
 #: client/wivrn_client.cpp:160
 msgid "Incorrect PIN"
-msgstr "識別番号に誤りがありました"
+msgstr "暗証番号が正しくありません"
 
 #: client/wivrn_client.cpp:164
 msgid "Unable to check PIN"
