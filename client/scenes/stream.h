@@ -127,7 +127,6 @@ private:
 	bool foveation_center_enabled = false;
 	std::array<XrFovf, view_count> headset_fov{};
 	std::optional<bool> cropped_mode;
-	thread_safe<client_foveation::angle_update_state> latest_foveation_angles{};
 	thread_safe<client_foveation::manual_override> foveation_override{};
 
 	std::optional<audio> audio_handle;

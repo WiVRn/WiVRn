@@ -271,8 +271,6 @@ void scenes::stream::tracking()
 
 	const auto & config = application::get_config();
 	const bool eye_gaze_enabled = config.check_feature(feature::eye_gaze);
-	const bool eye_gaze_foveation = eye_gaze_enabled and not foveation_center_enabled;
-	client_foveation::tracking_state foveation_tracking{foveation_center_enabled, eye_gaze_foveation};
 
 	{
 		std::vector ids{
@@ -473,14 +471,6 @@ void scenes::stream::tracking()
 			tracking.foveation_angles.reset();
 			tracking.face = {};
 
-			client_foveation::manual_override foveation_override_snapshot;
-			{
-				auto override = foveation_override.lock();
-				foveation_override_snapshot = *override;
-			}
-
-			foveation_tracking.begin_packet(foveation_override_snapshot.enabled);
-
 			if (recenter_requested.exchange(false))
 				tracking.state_flags = wivrn::from_headset::tracking::recentered;
 
@@ -498,34 +488,15 @@ void scenes::stream::tracking()
 					switch (item.device)
 					{
 						case device_id::HEAD:
-							tracking.view_flags = session.locate_views(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, tracking.timestamp, view_space, views);
-							assert(views.size() == tracking.views.size());
-							for (auto [i, j]: std::views::zip(views, tracking.views))
-							{
-								j.pose = i.pose;
-								j.fov = i.fov;
-							}
+			tracking.view_flags = session.locate_views(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, tracking.timestamp, view_space, views);
+			assert(views.size() == tracking.views.size());
+			for (auto [i, j]: std::views::zip(views, tracking.views))
+			{
+				j.pose = i.pose;
+				j.fov = i.fov;
+			}
 
-							if (auto angles = foveation_tracking.on_views(
-							            tracking.view_flags,
-							            views,
-							            foveation_override_snapshot.enabled,
-							            foveation_override_snapshot.pitch,
-							            foveation_override_snapshot.distance))
-								tracking.foveation_angles = *angles;
-
-							if (eye_gaze_foveation and not foveation_override_snapshot.enabled)
-							{
-								auto gaze_pose = locate_eye_gaze(tracking.timestamp);
-								if (auto angles = foveation_tracking.on_eye_gaze(
-								            gaze_pose,
-								            tracking.view_flags,
-								            views,
-								            false))
-									tracking.foveation_angles = *angles;
-							}
-
-							locate_spaces.add_space(item.device, view_space, tracking.timestamp, tracking.device_poses);
+			locate_spaces.add_space(item.device, view_space, tracking.timestamp, tracking.device_poses);
 							break;
 						case wivrn::device_id::LEFT_GRIP:
 						case wivrn::device_id::LEFT_AIM:
@@ -597,11 +568,7 @@ void scenes::stream::tracking()
 					throw;
 			}
 
-			{
-				auto latest = latest_foveation_angles.lock();
-				if (auto angles = foveation_tracking.consume_meta_angles(*latest, foveation_override_snapshot.enabled))
-					tracking.foveation_angles = *angles;
-			}
+
 
 			// FIXME: switch to event based
 			if (next_battery_check < now)

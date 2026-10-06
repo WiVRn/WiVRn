@@ -1086,16 +1086,42 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			extents[i].height = std::min(extents[i].height, swapchain.height());
 		}
 
-		if (foveation_center_enabled)
+		// Send foveation packet
 		{
-			XrSwapchain foveation_swapchain = cropped_mode.value_or(false)
-			                                          ? static_cast<XrSwapchain>(foveation_dummy_swapchain)
-			                                          : static_cast<XrSwapchain>(swapchain);
+			XrSpace view_space = application::space(xr::spaces::view);
+			auto [view_flags, views] = session.locate_views(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, frame_state.predictedDisplayTime, view_space);
 
-			if (auto center = meta_foveation_center.get_foveation_center(foveation_swapchain))
+			std::optional<client_foveation::angles> foveation_angles;
+			if (view_flags & XR_VIEW_STATE_POSITION_VALID_BIT and views.size() == 2)
 			{
-				auto latest = latest_foveation_angles.lock();
-				client_foveation::update_angles(*latest, client_foveation::center_to_angles(*center, headset_fov));
+				if (foveation_center_enabled)
+				{
+					XrSwapchain foveation_swapchain = cropped_mode.value_or(false)
+					                                          ? static_cast<XrSwapchain>(foveation_dummy_swapchain)
+					                                          : static_cast<XrSwapchain>(swapchain);
+
+					if (auto center = meta_foveation_center.get_foveation_center(foveation_swapchain))
+					{
+						foveation_angles = client_foveation::center_to_angles(*center, headset_fov);
+					}
+				}
+
+				if (!foveation_angles)
+				{
+					foveation_angles = client_foveation::fixed_angles(views);
+				}
+			}
+
+			if (foveation_angles)
+			{
+				from_headset::tracking packet;
+				packet.production_timestamp = instance.now();
+				packet.timestamp = frame_state.predictedDisplayTime;
+				packet.foveation_angles = *foveation_angles;
+
+				serialization_packet data;
+				wivrn_session::stream_socket_t::serialize(data, packet);
+				network_session->send_control(std::span(&data, 1));
 			}
 		}
 
