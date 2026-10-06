@@ -50,8 +50,8 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 		                   {
 			                   U_LOG_I("IDR frame needed on stream %d", f.stream_index);
 			                   U_LOG_D("frame_idx: %ld, last_ack = %ld",
-					           f.frame_index,
-					           r.last_ack);
+			                           f.frame_index,
+			                           r.last_ack);
 			                   state = need_idr{};
 		                   }
 		                   else if (f.received_from_decoder)
