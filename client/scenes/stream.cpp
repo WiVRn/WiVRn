@@ -1298,7 +1298,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	for (const auto & [stream_index, item]: utils::enumerate(decoders))
 	{
 		item = accumulator_images{
-		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, description, shared_from_this(), stream_index),
+		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, description, weak_from_this(), stream_index),
 		};
 	}
 
