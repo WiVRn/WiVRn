@@ -113,7 +113,7 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 {
 	assert(current.frame_index() + 1 == next.frame_index());
 
-	uint8_t frame_diff = shard.frame_idx - current.frame_index();
+	auto frame_diff = shard.frame_idx - current.frame_index();
 	if (shard.frame_idx < current.frame_index())
 	{
 		// frame is in the past, drop it
