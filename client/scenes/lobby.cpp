@@ -922,7 +922,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 			const auto & servers = application::get_config().servers;
 			for (auto && [cookie, data]: servers)
 			{
-				if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible && autoconnect_enabled)
+				if ((data.visible || data.manual) && (data.autoconnect || force_autoconnect) && data.compatible && autoconnect_enabled)
 				{
 					autoconnect_enabled = false;
 					connect(data);
