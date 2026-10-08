@@ -341,13 +341,13 @@ modules:
             RUSTFLAGS: -C linker=/app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
     build-commands:
       - cargo --offline fetch --manifest-path Cargo.toml --verbose
-      - cargo xbuild --release
+      - cargo xbuild --release -F static-openxr
       - mkdir /app/xrizer
       - cp -rL target/release/bin/ /app/xrizer/
     sources:
       - type: git
         url: https://github.com/Supreeeme/xrizer.git
-        commit: be664bb93eebdd82336d00230154bacc6f8b9765
+        commit: a1216c7b53fb562a5bc4de473163e97a483042af
       - xrizer-gen-src.json
 
   - name: wivrn-library
