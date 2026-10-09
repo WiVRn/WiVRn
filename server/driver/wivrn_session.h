@@ -156,6 +156,11 @@ public:
 		return hmd;
 	}
 
+	pacing_app_factory & get_app_pacers()
+	{
+		return app_pacers;
+	}
+
 	void add_tracking_request(device_id, int64_t at_ns, int64_t produced_ns, int64_t now);
 	void add_tracking_request(device_id, int64_t at_ns, int64_t produced_ns);
 

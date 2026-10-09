@@ -21,6 +21,8 @@
 
 #include "compositor.h"
 
+#include <algorithm>
+
 // Monado includes
 #include "driver/xrt_cast.h"
 #include "main/comp_frame.h"
@@ -273,6 +275,30 @@ xrt_result_t compositor::mark_frame(int64_t frame_id,
 	return XRT_ERROR_VULKAN;
 }
 
+namespace
+{
+constexpr int64_t game_fps_window_ns = 1'000'000'000;      // 1s, same window as the headset's own stats
+constexpr int64_t game_fps_send_period_ns = 1'000'000'000; // don't spam the headset with control packets
+
+// Records a real event (push + prune anything older than the window); does not compute anything,
+// so it can be called at the exact point an event happens without caring who reads it back.
+void record_event(std::deque<int64_t> & event_times, int64_t now)
+{
+	event_times.push_back(now);
+	while (event_times.size() > 1 and now - event_times.front() > game_fps_window_ns)
+		event_times.pop_front();
+}
+
+// Real windowed average (frame count over the actual elapsed time between them). Read-only:
+// callers decide when an event happened via record_event, this just reports the current rate.
+float windowed_rate(const std::deque<int64_t> & event_times)
+{
+	if (event_times.size() < 2)
+		return 0;
+	return (event_times.size() - 1) / ((event_times.back() - event_times.front()) * 1e-9f);
+}
+} // namespace
+
 xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 {
 	u_graphics_sync_unref(&sync_handle);
@@ -281,6 +307,21 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	comp_frame_move_and_clear_locked(&frame.rendering, &frame.waited);
 
 	U_LOG_IFL_D(log_level, "frame %ld commit %d layers", frame.rendering.id, layer_accum.layer_count);
+
+	const int64_t now = os_monotonic_get_ns();
+
+	if (session.connected() and now - last_game_fps_sent_ns > game_fps_send_period_ns)
+	{
+		// The app pacer's own base-session rate: a real per-application xrEndFrame count,
+		// unlike the system compositor's commit rate which also includes any overlay.
+		const float game_fps = session.get_app_pacers().base_session_fps();
+		const float encoded_fps = windowed_rate(encoded_frame_times);
+		session.send_control(to_headset::server_stats{
+		        .game_fps = game_fps,
+		        .encoder_drop_ratio = game_fps > 0 ? std::clamp(1.f - encoded_fps / game_fps, 0.f, 1.f) : 0.f,
+		});
+		last_game_fps_sent_ns = now;
+	}
 
 	if (encode_request >= 0 // encoders have not picked up the previous frame
 	    or not session.connected() or not session.get_offset())
@@ -295,6 +336,9 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		comp_frame_clear_locked(&frame.rendering);
 		return XRT_SUCCESS;
 	}
+
+	// Past both drop checks: this frame will actually reach the encoder.
+	record_event(encoded_frame_times, now);
 
 #ifdef XRT_FEATURE_RENDERDOC
 	if (auto r = renderdoc())

@@ -88,6 +88,39 @@ ImPlotPoint getter(int index, void * data_)
 
 	return ImPlotPoint(index, *(float *)(data.data + index * data.stride) * data.multiplier);
 }
+
+// target_fps <= 0 means the target rate isn't known, e.g. before the first frame
+ImVec4 fps_color(const wivrn::ui::theme & t, float fps, float target_fps)
+{
+	if (target_fps <= 0)
+		return t.text;
+
+	const float ratio = fps / target_fps;
+	if (ratio >= 0.97f)
+		return t.success;
+	if (ratio >= 0.94f)
+		return t.warning;
+	return t.danger;
+}
+
+constexpr XrTime fps_window_ns = 1'000'000'000; // 1s, same order of magnitude as MangoHud/RTSS
+
+// Real windowed average: frame count over the actual elapsed time between them. Unlike
+// averaging per-frame instantaneous rates (1/dt), this has no bias when frame spacing jitters.
+// count lets a caller record several events at once (e.g. a burst of missing frames), or none
+// (0) to just prune and re-read the current rate.
+float windowed_fps(std::deque<XrTime> & frame_times, XrTime now, int count = 1)
+{
+	for (int i = 0; i < count; ++i)
+		frame_times.push_back(now);
+	while (frame_times.size() > 1 and now - frame_times.front() > fps_window_ns)
+		frame_times.pop_front();
+
+	if (frame_times.size() < 2)
+		return 0;
+
+	return (frame_times.size() - 1) / ((frame_times.back() - frame_times.front()) * 1e-9f);
+}
 } // namespace
 
 void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std::array<std::shared_ptr<shard_accumulator::blit_handle>, view_count + 1> & blit_handles, const gpu_timestamps & timestamps)
@@ -111,6 +144,52 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 	compact_cpu_time = 0.99 * compact_cpu_time + 0.01 * application::get_cpu_time().count() * 1e-9f;
 	compact_gpu_time = 0.99 * compact_gpu_time + 0.01 * timestamps.gpu_time;
 
+	// Slow-moving average of how much of the PC's real output never reaches the headset, to
+	// suggest lowering the bitrate only once the loss is sustained rather than a one-off blip.
+	if (const std::optional<to_headset::server_stats> stats = *server_stats.lock(); stats)
+	{
+		const float encoded_fps = stats->game_fps * (1 - stats->encoder_drop_ratio);
+		if (encoded_fps > 0)
+		{
+			const float instant_loss_ratio = std::clamp((encoded_fps - compact_fps) / encoded_fps, 0.f, 1.f);
+			compact_loss_ratio = 0.998f * compact_loss_ratio + 0.002f * instant_loss_ratio;
+		}
+	}
+
+	// blit_handles[0] (left eye) changes frame_index exactly when a newly decoded frame is
+	// shown, whether or not the headset also repeats the previous one on other calls.
+	if (const auto & bh = blit_handles[0])
+	{
+		const bool new_frame = not have_last_metric_frame_index or bh->feedback.frame_index != last_metric_frame_index;
+
+		if (new_frame)
+		{
+			// A gap in frame_index means those frames were dropped before reaching the headset:
+			// could be the network, could be the headset's decoder falling behind and the
+			// client abandoning a stale frame (see push_shard in shard_accumulator.cpp) —
+			// indistinguishable from here.
+			const int missing = (have_last_metric_frame_index and bh->feedback.frame_index > last_metric_frame_index + 1)
+			                            ? int(bh->feedback.frame_index - last_metric_frame_index - 1)
+			                            : 0;
+
+			compact_fps = windowed_fps(headset_frame_times, predicted_display_time);
+			compact_missing_fps = windowed_fps(missing_frame_times, predicted_display_time, missing);
+			// encode_begin comes from the PC, so its spacing reflects how fast the game
+			// actually renders, independent of network or headset render jitter.
+			compact_game_fps = windowed_fps(game_frame_times, bh->feedback.encode_begin);
+
+			// Per-stage latency for this same frame, clamped to 0 in case a timestamp is
+			// still unset (e.g. the very first frames of a connection).
+			const auto & fb = bh->feedback;
+			compact_encode_time = 0.99f * compact_encode_time + 0.01f * std::max(0.f, (fb.encode_end - fb.encode_begin) * 1e-9f);
+			compact_network_time = 0.99f * compact_network_time + 0.01f * std::max(0.f, (fb.received_last_packet - fb.send_begin) * 1e-9f);
+			compact_decode_time = 0.99f * compact_decode_time + 0.01f * std::max(0.f, (fb.received_from_decoder - fb.sent_to_decoder) * 1e-9f);
+
+			last_metric_frame_index = bh->feedback.frame_index;
+			have_last_metric_frame_index = true;
+		}
+	}
+
 	last_metric_time = predicted_display_time;
 	bytes_received = rx;
 	bytes_sent = tx;
@@ -119,6 +198,15 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 	global_metrics[metrics_offset].cpu_time = application::get_cpu_time().count() * 1e-9f;
 	global_metrics[metrics_offset].bandwidth_rx = bandwidth_rx * 8;
 	global_metrics[metrics_offset].bandwidth_tx = bandwidth_tx * 8;
+	// smoothed rather than instantaneous, a per-tick value would be mostly zero between
+	// two decoded frames since render ticks run much faster than either fps
+	global_metrics[metrics_offset].fps = compact_fps;
+	// Real value from the PC (past the encoder-busy drop) once the first server_stats packet
+	// has arrived, client-side estimate for the second or so before that.
+	if (const std::optional<to_headset::server_stats> stats = *server_stats.lock(); stats)
+		global_metrics[metrics_offset].game_fps = stats->game_fps * (1 - stats->encoder_drop_ratio);
+	else
+		global_metrics[metrics_offset].game_fps = compact_game_fps;
 
 	std::vector<shard_accumulator::blit_handle *> active_handles;
 	active_handles.reserve(blit_handles.size());
@@ -180,6 +268,9 @@ void scenes::stream::gui_performance_metrics()
 
 	        plot(_("Network"), {{_("Download"),  &global_metric::bandwidth_rx},
 	                            {_("Upload"),    &global_metric::bandwidth_tx}}, "bit/s"),
+
+	        plot(_("FPS"), {{_("Headset"),  &global_metric::fps},
+	                        {_("Game"),     &global_metric::game_fps}}, "fps"),
 	        // clang-format on
 	};
 
@@ -361,29 +452,238 @@ void scenes::stream::gui_performance_metrics()
 	}
 }
 
+// PC-issued name for the codec actually negotiated for this connection, not just what's configured
+static const char * codec_name(wivrn::video_codec codec)
+{
+	switch (codec)
+	{
+		case wivrn::h264:
+			return "H.264";
+		case wivrn::h265:
+			return "HEVC";
+		case wivrn::av1:
+			return "AV1";
+		case wivrn::raw:
+			return "raw";
+	}
+	return "?";
+}
+
 void scenes::stream::gui_compact_view()
 {
 	const auto & metrics = global_metrics[(metrics_offset + global_metrics.size() - 1) % global_metrics.size()];
+	const wivrn::ui::theme & t = wivrn::ui::current();
 
-	if (ImGui::BeginTable("metrics", 2))
+	auto f = [&](const char * label, float value, const char * unit, const ImVec4 * color = nullptr) {
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Text("%s", label);
+		ImGui::TableNextColumn();
+		if (color)
+			ImGui::PushStyleColor(ImGuiCol_Text, *color);
+		ImGui::Text("%.1f %s", value, unit);
+		if (color)
+			ImGui::PopStyleColor();
+	};
+
+	// A blank row of a given height, used to space things out without a visible separator.
+	auto gap = [&](float height) {
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Dummy({0, height});
+	};
+
+	// A little breathing room, scaled with the theme rather than a hardcoded pixel count.
+	const float small_gap = ImGui::GetStyle().ItemSpacing.y;
+	const float section_gap = small_gap * 2;
+
+	// A section header is just a label with no value, in a muted color: no need to fight
+	// ImGui's table column separators for something that spans both columns cleanly.
+	auto section = [&](const char * name) {
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
+		ImGui::Text("%s", name);
+		ImGui::PopStyleColor();
+		ImGui::TableNextColumn();
+		gap(small_gap);
+	};
+
+	const auto & config = application::get_config();
+	const std::optional<to_headset::server_stats> stats = *server_stats.lock();
+
+	// What the PC actually produced, past the encoder-busy drop: matches what an external
+	// tool (Steam overlay, MangoHud...) reports, unlike the raw submission rate the game
+	// attempts (which the encoder may not be able to keep up with).
+	const std::optional<float> encoded_fps =
+	        stats ? std::optional(stats->game_fps * (1 - stats->encoder_drop_ratio)) : std::nullopt;
+
+	// Application SpaceWarp halves the real frame rate on purpose, so the color reflects
+	// how close we are to that effective target, not the panel's Hz.
+	const float panel_hz = session.get_current_refresh_rate();
+	const float target_fps = panel_hz / std::max(uint32_t(1), config.fps_divider);
+	const std::string headset_fps_unit = config.fps_divider > 1
+	                                             ? fmt::format(_F("fps ({:.0f} with SpaceWarp)"), panel_hz)
+	                                             : "fps";
+
+	// Full width, above the columns: the render resolution per eye (Render resolution setting)
+	// vs. what's actually streamed after foveated encoding reshapes it into a smaller buffer.
+	// Only shown as a reduction when the two actually differ, so a disabled/100% foveation
+	// setting doesn't show a pointless "same → same".
+	if (ImGui::BeginTable("format", 2))
 	{
-		auto f = [&](const char * label, float value, const char * unit) {
+		std::shared_lock lock(decoder_mutex);
+		if (video_stream_description)
+		{
+			const long render_width = std::lround(width * config.resolution_scale);
+			const long render_height = std::lround(height * config.resolution_scale);
+			const bool foveated = render_width != video_stream_description->width or render_height != video_stream_description->height;
+
+			const std::string resolution = foveated
+			                                       ? fmt::format("{}x{} -> {}x{}", render_width, render_height, video_stream_description->width, video_stream_description->height)
+			                                       : fmt::format("{}x{}", video_stream_description->width, video_stream_description->height);
+
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
-			ImGui::Text("%s", label);
+			ImGui::Text("%s", foveated ? _S("Foveated format") : _S("Format"));
 			ImGui::TableNextColumn();
-			ImGui::Text("%.1f %s", value, unit);
-		};
-
-		f(_S("Download"), 8 * compact_bandwidth_rx * 1e-6, "Mbit/s");
-		f(_S("Upload"), 8 * compact_bandwidth_tx * 1e-6, "Mbit/s");
-		f(_S("CPU time"), compact_cpu_time * 1000, "ms");
-		f(_S("GPU time"), compact_gpu_time * 1000, "ms");
-		f(_S("Motion to photon latency"),
-		  tracking_control.lock()->motions_to_photons / 1'000'000.f,
-		  "ms");
+			ImGui::Text("%s", fmt::format(_F("{} | {} | {} Mbit/s"), codec_name(video_stream_description->codec[0]), resolution, config.bitrate_bps / 1'000'000).c_str());
+		}
 		ImGui::EndTable();
 	}
+
+	ImGui::Spacing();
+	ImGui::Spacing();
+
+	// Widen the gap between the three columns below, and give each one a fixed width
+	// deduced from its own content (label and worst-case value text): a nested table's
+	// content doesn't get reported to the outer table's auto-fit pass, and mixing
+	// WidthStretch with WidthFixed columns inside this AlwaysAutoResize window has no
+	// natural size to converge on, so stretch columns collapse to near-nothing instead
+	// of sharing the remaining space. Fixed widths sidestep both problems.
+	const ImVec2 base_padding = ImGui::GetStyle().CellPadding;
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(base_padding.x + 7.8f, base_padding.y));
+
+	// label_w: widest of the given labels; value_w: widest value text, given "999.9 " headroom
+	// (values realistically stay well under 1000, so this never actually gets reached, but
+	// keeps the column from resizing every frame as the digits change).
+	auto column_width = [&](std::initializer_list<const char *> labels, std::initializer_list<const char *> value_samples) {
+		float label_w = 0;
+		for (const char * label: labels)
+			label_w = std::max(label_w, ImGui::CalcTextSize(label).x);
+		float value_w = 0;
+		for (const char * value: value_samples)
+			value_w = std::max(value_w, ImGui::CalcTextSize(value).x);
+		return label_w + value_w + ImGui::GetStyle().CellPadding.x * 4;
+	};
+
+	if (ImGui::BeginTable("layout", 3))
+	{
+		// worst case: fps value plus the SpaceWarp note, so the reservation covers it too
+		const std::string fps_value = "999.9 " + headset_fps_unit;
+		const float pc_col_width = column_width({_S("PC"), _S("Game FPS"), _S("Encode time")}, {fps_value.c_str(), "999.9 ms"});
+		const float network_col_width = column_width({_S("Network"), _S("Download"), _S("Upload"), _S("Network time")}, {"999.9 Mbit/s", "999.9 ms"});
+		const float headset_col_width = column_width({_S("Headset"), _S("CPU time"), _S("GPU time"), _S("Decode time"), _S("Headset FPS")}, {fps_value.c_str(), "999.9 ms"});
+
+		ImGui::TableSetupColumn("pc_col", ImGuiTableColumnFlags_WidthFixed, pc_col_width);
+		ImGui::TableSetupColumn("network_col", ImGuiTableColumnFlags_WidthFixed, network_col_width);
+		ImGui::TableSetupColumn("headset_col", ImGuiTableColumnFlags_WidthFixed, headset_col_width);
+		ImGui::TableNextRow();
+
+		// --- PC: what's actually being produced and sent, not just what's configured ---
+		ImGui::TableNextColumn();
+		if (ImGui::BeginTable("pc", 2))
+		{
+			section(_S("PC"));
+			if (encoded_fps)
+			{
+				const ImVec4 game_fps_color = fps_color(t, *encoded_fps, target_fps);
+				f(_S("Game FPS"), *encoded_fps, headset_fps_unit.c_str(), &game_fps_color);
+			}
+			else
+			{
+				// No server_stats packet yet (first second or so of the connection): fall back to
+				// the client-side estimate, uncolored since it reflects the whole pipeline, not
+				// just the game.
+				f(_S("Game FPS"), compact_game_fps, "fps");
+			}
+			f(_S("Encode time"), compact_encode_time * 1000, "ms");
+
+			ImGui::EndTable();
+		}
+
+		// --- Network: the transit between the two ---
+		ImGui::TableNextColumn();
+		if (ImGui::BeginTable("network", 2))
+		{
+			section(_S("Network"));
+			f(_S("Download"), 8 * compact_bandwidth_rx * 1e-6, "Mbit/s");
+			f(_S("Upload"), 8 * compact_bandwidth_tx * 1e-6, "Mbit/s");
+			f(_S("Network time"), compact_network_time * 1000, "ms");
+
+			ImGui::EndTable();
+		}
+
+		// --- Headset: its own resource usage and what it actually shows ---
+		ImGui::TableNextColumn();
+		if (ImGui::BeginTable("headset", 2))
+		{
+			section(_S("Headset"));
+			f(_S("CPU time"), compact_cpu_time * 1000, "ms");
+			f(_S("GPU time"), compact_gpu_time * 1000, "ms");
+			f(_S("Decode time"), compact_decode_time * 1000, "ms");
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("%s", _S("Headset FPS"));
+			ImGui::TableNextColumn();
+			ImGui::PushStyleColor(ImGuiCol_Text, fps_color(t, compact_fps, target_fps));
+			ImGui::Text("%.1f %s", compact_fps, headset_fps_unit.c_str());
+			ImGui::PopStyleColor();
+
+			if (encoded_fps)
+			{
+				// Of what's lost between the PC's real output and the headset: "dropped" is
+				// frames missing from the sequence entirely (frame_index gap) — could be the
+				// network, could be the client abandoning a frame because the headset's decoder
+				// fell behind, no way to tell which from here. "decode" is the rest: arrived,
+				// but too late to display.
+				const float dropped_fps = compact_missing_fps;
+				const float decode_loss = std::max(0.f, (*encoded_fps - compact_fps) - dropped_fps);
+				if (dropped_fps > 0.5f or decode_loss > 0.5f)
+				{
+					ImGui::PushFont(nullptr, constants::gui::font_size_small);
+					ImGui::PushStyleColor(ImGuiCol_Text, t.text_muted);
+					if (dropped_fps > 0.5f)
+						ImGui::Text("%s", fmt::format(_F("-{:.0f} dropped"), dropped_fps).c_str());
+					if (decode_loss > 0.5f)
+						ImGui::Text("%s", fmt::format(_F("-{:.0f} decode"), decode_loss).c_str());
+					ImGui::PopStyleColor();
+					ImGui::PopFont();
+				}
+			}
+
+			ImGui::EndTable();
+		}
+
+		ImGui::EndTable();
+	}
+	ImGui::PopStyleVar(); // ImGuiStyleVar_CellPadding
+
+	ImGui::Spacing();
+	ImGui::Spacing();
+
+	// Not part of any column above: it's the round-trip, end-to-end experience.
+	if (ImGui::BeginTable("motion_to_photon", 2))
+	{
+		f(_S("Motion to photon latency"), tracking_control.lock()->motions_to_photons / 1'000'000.f, "ms");
+		ImGui::EndTable();
+	}
+
+	// Sustained (not a blip) loss: the headset's decoder is very likely the limit, not the
+	// network — suggest the settings most likely to bring it back under budget.
+	if (compact_loss_ratio > 0.15f)
+		wivrn::ui::chip(_("High frame loss: try a lower bitrate, resolution or refresh rate."), wivrn::ui::chip_style::warning);
 }
 
 static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config)
