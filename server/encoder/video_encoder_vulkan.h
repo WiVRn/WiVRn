@@ -111,6 +111,14 @@ protected:
 	virtual void * encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> reference_slot) = 0;
 	virtual vk::ExtensionProperties std_header_version() = 0;
 
+	// Codec-specific structures to prepend to the vkCmdBeginVideoCodingKHR pNext chain.
+	// Note that this chain accepts structures the vkCmdControlVideoCodingKHR one does not,
+	// so it must not be reused for rate control updates.
+	virtual const void * begin_coding_next(const void * next)
+	{
+		return next;
+	}
+
 public:
 	void present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, uint8_t slot, uint64_t frame_index) override;
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
