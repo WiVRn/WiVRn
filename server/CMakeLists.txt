@@ -90,6 +90,10 @@ set(XRT_OXR_RUNTIME_SUFFIX        "wivrn"          CACHE STRING "OpenXR client l
 
 FetchContent_MakeAvailable(monado)
 
+if (WIVRN_BUILD_BENCH_RUNTIME)
+	include(BenchRuntime)
+endif()
+
 if (WIVRN_BUILD_SERVER)
 	add_executable(wivrn-server
 			accept_connection.cpp

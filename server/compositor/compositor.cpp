@@ -308,7 +308,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        .alpha = layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND,
 	};
 
-	trace::instant_feedback("begin", frame.rendering.id, os_monotonic_get_ns());
+	trace::instant_feedback("begin", os_monotonic_get_ns(), frame.rendering.id);
 
 	cmd_pool.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
