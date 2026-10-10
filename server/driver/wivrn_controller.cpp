@@ -738,7 +738,8 @@ wivrn_controller::wivrn_controller(xrt_device_name name,
         palm(hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM),
         pinch_ext(hand_id == 0 ? device_id::LEFT_PINCH_POSE : device_id::RIGHT_PINCH_POSE),
         poke_ext(hand_id == 0 ? device_id::LEFT_POKE : device_id::RIGHT_POKE),
-        joints(hand_id),
+        joints_unobstructed(hand_id == 0 ? from_headset::hand_tracking::hand_id::left : from_headset::hand_tracking::hand_id::right),
+        joints_conforming(hand_id == 0 ? from_headset::hand_tracking::hand_id::left_controller : from_headset::hand_tracking::hand_id::right_controller),
         inputs_array(input_count, xrt_input{}),
         cnx(cnx)
 {
@@ -971,12 +972,15 @@ xrt_result_t wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t de
 {
 	switch (name)
 	{
+		case XRT_INPUT_HT_CONFORMING_LEFT:
+		case XRT_INPUT_HT_CONFORMING_RIGHT:
 		case XRT_INPUT_HT_UNOBSTRUCTED_LEFT:
 		case XRT_INPUT_HT_UNOBSTRUCTED_RIGHT: {
+			auto & joints = (name == XRT_INPUT_HT_CONFORMING_LEFT or name == XRT_INPUT_HT_CONFORMING_RIGHT) ? joints_conforming : joints_unobstructed;
 			*out_timestamp_ns = desired_timestamp_ns;
 			XrTime production_timestamp;
 			std::tie(production_timestamp, *out_value) = joints.get_at(desired_timestamp_ns);
-			cnx->add_tracking_request(joints.hand_id == 0 ? device_id::LEFT_HAND : device_id::RIGHT_HAND, desired_timestamp_ns, production_timestamp);
+			cnx->add_tracking_request((name == XRT_INPUT_HT_CONFORMING_LEFT or name == XRT_INPUT_HT_UNOBSTRUCTED_LEFT) ? device_id::LEFT_HAND : device_id::RIGHT_HAND, desired_timestamp_ns, production_timestamp);
 			return XRT_SUCCESS;
 		}
 
@@ -1013,7 +1017,8 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 
 void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
-	joints.update_tracking(tracking, offset);
+	joints_unobstructed.update_tracking(tracking, offset);
+	joints_conforming.update_tracking(tracking, offset);
 }
 
 xrt_result_t wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)

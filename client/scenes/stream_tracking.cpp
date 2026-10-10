@@ -155,16 +155,33 @@ public:
 
 } // namespace
 
-static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> locate_hands(xr::hand_tracker & hand, XrSpace space, XrTime time)
+static from_headset::hand_tracking locate_hands(
+        xr::hand_tracker & tracker,
+        XrSpace space,
+        XrTime now,
+        XrTime time)
 {
-	auto located = hand.locate(space, time);
+	using hand_id = from_headset::hand_tracking::hand_id;
+	auto located = tracker.locate(space, time);
 
-	if (located and located->is_input_source())
+	from_headset::hand_tracking res{
+	        .production_timestamp = now,
+	        .timestamp = time,
+	        .hand = tracker.hand() == XR_HAND_LEFT_EXT ? hand_id::left : hand_id::right,
+	};
+
+	if (located.data_source == XR_HAND_TRACKING_DATA_SOURCE_CONTROLLER_EXT)
+		res.hand = tracker.hand() == XR_HAND_LEFT_EXT
+		                   ? hand_id::left_controller
+		                   : hand_id::right_controller;
+
+	if (located.joints)
 	{
-		std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
+		const auto & joints = *located.joints;
+		auto & poses = res.joints.emplace();
 		for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 		{
-			const auto & joint = located->joints[i];
+			const auto & joint = joints[i];
 			poses[i] = {
 			        .position = joint.first.pose.position,
 			        .orientation = pack(joint.first.pose.orientation),
@@ -174,11 +191,9 @@ static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT
 			        .flags = from_headset::to_pose_flags(joint.first.locationFlags, joint.second.velocityFlags),
 			};
 		}
-
-		return poses;
 	}
-	else
-		return std::nullopt;
+
+	return res;
 }
 
 template <typename T>
@@ -504,23 +519,19 @@ void scenes::stream::tracking()
 							break;
 						case wivrn::device_id::LEFT_HAND:
 							if (left_hand)
-							{
-								hands.emplace_back(
+								hands.emplace_back(locate_hands(
+								        *left_hand,
+								        height_offset_space,
 								        t0,
-								        at_time,
-								        from_headset::hand_tracking::left,
-								        locate_hands(*left_hand, height_offset_space, tracking.timestamp));
-							}
+								        at_time));
 							break;
 						case wivrn::device_id::RIGHT_HAND:
 							if (right_hand)
-							{
-								hands.emplace_back(
+								hands.emplace_back(locate_hands(
+								        *right_hand,
+								        height_offset_space,
 								        t0,
-								        at_time,
-								        from_headset::hand_tracking::right,
-								        locate_hands(*right_hand, height_offset_space, tracking.timestamp));
-							}
+								        at_time));
 							break;
 						case wivrn::device_id::BODY:
 							std::visit(utils::overloaded{

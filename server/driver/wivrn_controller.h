@@ -41,7 +41,8 @@ class wivrn_controller : public xrt_device
 	pose_list palm;
 	pose_list pinch_ext;
 	pose_list poke_ext;
-	hand_joints_list joints;
+	hand_joints_list joints_unobstructed;
+	hand_joints_list joints_conforming;
 
 	std::vector<xrt_input> inputs_staging;
 	std::vector<xrt_input> inputs_array;

@@ -27,7 +27,8 @@
 #include <spdlog/spdlog.h>
 
 xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info) :
-        handle(inst.get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT"))
+        handle(inst.get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT")),
+        hand_{info.hand}
 {
 	auto xrCreateHandTrackerEXT = inst.get_proc<PFN_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT");
 	assert(xrCreateHandTrackerEXT);
@@ -61,10 +62,10 @@ xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandT
 	}
 }
 
-std::optional<xr::hand_tracker::located_hand> xr::hand_tracker::locate(XrSpace space, XrTime time)
+xr::hand_tracker::located_hand xr::hand_tracker::locate(XrSpace space, XrTime time)
 {
 	if (!id || !xrLocateHandJointsEXT)
-		return std::nullopt;
+		return {};
 
 	XrHandJointsLocateInfoEXT info{
 	        .type = XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT,
@@ -107,29 +108,33 @@ std::optional<xr::hand_tracker::located_hand> xr::hand_tracker::locate(XrSpace s
 
 	CHECK_XR(xrLocateHandJointsEXT(id, &info, &locations));
 
-	if (!locations.isActive)
-		return std::nullopt;
+	located_hand res{};
 
-	if (hand_tracking_data_source_supported && !data_source_state.isActive)
-		// returned joints are not valid
-		return std::nullopt;
-
-	// bail if any of the joint is invalid
-	if (std::ranges::any_of(joints_pos, [](const auto & loc) { return loc.locationFlags == 0; }))
-		return std::nullopt;
-
-	joint_array joints;
-	for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+	if (locations.isActive)
 	{
-		joints[i] = {joints_pos[i], joints_vel[i]};
+		res.joints.emplace();
+		auto & joints = *res.joints;
+		for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+		{
+			if (joints_pos[i].locationFlags == 0)
+			{
+				// bail if any of the joint is invalid
+				res.joints.reset();
+				break;
+			}
+			joints[i] = {joints_pos[i], joints_vel[i]};
+		}
 	}
 
-	return located_hand{
-	        .joints = joints,
-	        .data_source = hand_tracking_data_source_supported
-	                               ? std::optional{data_source_state.dataSource}
-	                               : std::nullopt,
-	};
+	if (hand_tracking_data_source_supported)
+	{
+		res.data_source = data_source_state.dataSource;
+		if (not data_source_state.isActive)
+			// returned joints are not valid
+			res.joints.reset();
+	}
+
+	return res;
 }
 
 const xr::hand_tracker::mesh_data * xr::hand_tracker::mesh()
