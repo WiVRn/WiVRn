@@ -187,8 +187,6 @@ private:
 	vk::raii::DebugReportCallbackEXT debug_report_callback = nullptr;
 #endif
 
-	void set_server_uri(std::string uri);
-
 public:
 	using singleton<application>::instance;
 	application(application_info info);
@@ -213,6 +211,8 @@ public:
 		return instance().input_handler;
 	}
 #endif
+
+	void set_server_uri(std::string uri);
 
 	static bool is_session_running()
 	{
