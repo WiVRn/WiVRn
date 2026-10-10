@@ -39,7 +39,7 @@ public:
 
 	struct located_hand
 	{
-		joint_array joints;
+		std::optional<joint_array> joints;
 		std::optional<XrHandTrackingDataSourceEXT> data_source;
 
 		// should these joints be used for input?
@@ -69,13 +69,19 @@ private:
 	bool hand_tracking_data_source_supported = false;
 	std::optional<mesh_data> cached_hand_mesh_fb;
 	bool hand_mesh_fb_fetched = false;
+	XrHandEXT hand_;
 
 public:
 	hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info);
 
-	std::optional<located_hand> locate(XrSpace space, XrTime time);
+	located_hand locate(XrSpace space, XrTime time);
 	const mesh_data * mesh();
 
 	static bool check_flags(const joint_array & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity);
+
+	XrHandEXT hand() const
+	{
+		return hand_;
+	}
 };
 } // namespace xr

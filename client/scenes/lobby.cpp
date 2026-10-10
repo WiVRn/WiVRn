@@ -981,28 +981,28 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		auto windows = imgui_ctx->windows();
 
 		auto left = left_hand->locate(world_space, frame_state.predictedDisplayTime);
-		if (left)
+		if (left.joints)
 		{
-			if (left->is_input_source())
-				stick_finger_to_gui(left->joints, windows);
+			if (left.is_input_source())
+				stick_finger_to_gui(*left.joints, windows);
 			hide_left_controller = true;
 		}
 
 		auto right = right_hand->locate(world_space, frame_state.predictedDisplayTime);
-		if (right)
+		if (right.joints)
 		{
-			if (right->is_input_source())
-				stick_finger_to_gui(right->joints, windows);
+			if (right.is_input_source())
+				stick_finger_to_gui(*right.joints, windows);
 			hide_right_controller = true;
 		}
 
-		hand_model::apply(world, left ? &left->joints : nullptr, right ? &right->joints : nullptr);
+		hand_model::apply(world, left.joints ? &*left.joints : nullptr, right.joints ? &*right.joints : nullptr);
 
-		if (not new_gui_position and head_position and left and left->is_input_source())
-			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, left->joints, *head_position);
+		if (not new_gui_position and head_position and left.joints and left.is_input_source())
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, *left.joints, *head_position);
 
-		if (not new_gui_position and head_position and right and right->is_input_source())
-			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, right->joints, *head_position);
+		if (not new_gui_position and head_position and right.joints and right.is_input_source())
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, *right.joints, *head_position);
 	}
 
 	if (head_position and new_gui_position)

@@ -123,11 +123,15 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		static_roles.face = &hmd;
 
 	roles.left = left_controller_index = static_xdev_count++;
-	static_roles.hand_tracking.unobstructed.left = static_xdevs[left_controller_index] = &left_controller;
+	static_roles.hand_tracking.conforming.left =
+	        static_roles.hand_tracking.unobstructed.left =
+	                static_xdevs[left_controller_index] = &left_controller;
 	static_xdevs[left_hand_interaction_index = static_xdev_count++] = &left_hand_interaction;
 
 	roles.right = right_controller_index = static_xdev_count++;
-	static_roles.hand_tracking.unobstructed.right = static_xdevs[right_controller_index] = &right_controller;
+	static_roles.hand_tracking.conforming.right =
+	        static_roles.hand_tracking.unobstructed.right =
+	                static_xdevs[right_controller_index] = &right_controller;
 	static_xdevs[right_hand_interaction_index = static_xdev_count++] = &right_hand_interaction;
 
 	// Expose a gamepad forwarded from the headset as a native OpenXR device (/user/gamepad).

@@ -100,7 +100,7 @@ static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_hea
 
 void hand_joints_list::update_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
-	if (tracking.hand == hand_id)
+	if (tracking.hand == hand)
 		add_sample(
 		        tracking.production_timestamp,
 		        tracking.timestamp,

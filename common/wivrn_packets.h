@@ -479,6 +479,10 @@ struct hand_tracking
 	{
 		left,
 		right,
+
+		// with data_source
+		left_controller,
+		right_controller,
 	};
 	struct pose
 	{
