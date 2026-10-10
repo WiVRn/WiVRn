@@ -40,6 +40,8 @@ struct deleter
 	}
 	void operator()(pw_stream * stream)
 	{
+		pw_stream_set_active(stream, false);
+		pw_stream_flush(stream, false);
 		pw_stream_destroy(stream);
 	}
 };
