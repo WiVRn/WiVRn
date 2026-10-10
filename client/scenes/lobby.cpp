@@ -958,6 +958,12 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	// assert(views.size() == swapchains_lobby.size());
 	assert(views.size() == 2); // FIXME
 
+	if (not(flags & XR_VIEW_STATE_POSITION_VALID_BIT and flags & XR_VIEW_STATE_ORIENTATION_VALID_BIT))
+	{
+		spdlog::warn("Invalid view state, skip frame");
+		return;
+	}
+
 	bool hide_left_controller = false;
 	bool hide_right_controller = false;
 
