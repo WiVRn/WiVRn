@@ -38,7 +38,7 @@
 #ifdef __ANDROID__
 void real_main(android_app * native_app)
 #else
-void real_main()
+void real_main(int argc, char ** argv)
 #endif
 {
 	if (wivrn::is_tag)
@@ -54,6 +54,11 @@ void real_main()
 		info.name = "WiVRn";
 		info.version = VK_MAKE_VERSION(1, 0, 0);
 		application app(info);
+
+#ifndef __ANDROID__
+		if (argc == 2)
+			app.set_server_uri(argv[1]);
+#endif
 
 		app.push_scene<scenes::lobby>();
 
@@ -123,6 +128,6 @@ int main(int argc, char * argv[])
 			spdlog::warn("Invalid value for WIVRN_LOGLEVEL environment variable");
 	}
 
-	real_main();
+	real_main(argc, argv);
 }
 #endif
