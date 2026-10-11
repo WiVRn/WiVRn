@@ -30,6 +30,7 @@
             pkgs.kdePackages.kirigami-addons
           ];
           extraNativeBuildInputs = [
+            pkgs.ninja
             pkgs.util-linux
           ];
 
