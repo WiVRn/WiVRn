@@ -172,6 +172,8 @@ if (WIVRN_BUILD_DASHBOARD)
         find_package(Qt6 REQUIRED COMPONENTS QmlPrivate)
     endif()
 
+    # Prevent KDE cmake module from overwriting defaults
+    set(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT FALSE)
     find_package(ECM 5.115 REQUIRED NO_MODULE)
     list(APPEND CMAKE_MODULE_PATH "${ECM_MODULE_PATH}")
 
