@@ -70,7 +70,7 @@
                     # Keep in sync with CMakeLists.txt monado rev
                     rev = lib.strings.trim (builtins.readFile ./monado-rev);
                     # Nix will output the correct hash when it doesn't match
-                    hash = "sha256-GuX8YKgKr28YcmZ94tZxB5YZULJqKhpc2A8FCM7g3yA=";
+                    hash = "sha256-yGkuD2jAG/ACSGkH1Cz8o23wHLtEqtNCUe2kS5OyC68=";
                   };
                 };
 
