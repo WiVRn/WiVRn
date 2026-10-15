@@ -157,7 +157,6 @@ void pacer::on_feedback(const wivrn::from_headset::feedback & feedback, const cl
 		if (d < 0)
 			d += frame_duration_ns;
 		d -= frame_duration_ns / 2;
-		auto l = last_ns;
 		last_ns += d / 10;
 	}
 

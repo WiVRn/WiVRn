@@ -894,8 +894,6 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	session.begin_frame();
 
-	std::array<int, view_count> image_indices;
-
 #if WIVRN_FEATURE_RENDERDOC
 	renderdoc_begin(*vk_instance);
 #endif

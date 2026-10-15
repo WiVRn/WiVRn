@@ -494,7 +494,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		        info.frame_id);
 	}
 
-	auto j = encode_request.exchange(i);
+	[[maybe_unused]] auto j = encode_request.exchange(i);
 	encode_request.notify_all();
 	assert(j == -1);
 

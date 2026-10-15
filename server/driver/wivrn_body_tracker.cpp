@@ -197,7 +197,6 @@ void body_joints_list::update_tracking(const wivrn::from_headset::meta_body & tr
 
 			                   if (auto it = parent.virtual_trackers.find(joint); it != parent.virtual_trackers.cend())
 			                   {
-				                   const auto body_part = parent.joint_body_parts.at(joint);
 				                   auto & tracker = it->second;
 
 				                   // Quest reports VALID bit not TRACKED bit, make sure TRACKED is set when VALID
@@ -240,7 +239,6 @@ void body_joints_list::update_tracking(const wivrn::from_headset::bd_body & trac
 
 		if (auto it = parent.virtual_trackers.find(joint); it != parent.virtual_trackers.cend())
 		{
-			const auto body_part = parent.joint_body_parts.at(joint);
 			auto & tracker = it->second;
 			tracker.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
 		}

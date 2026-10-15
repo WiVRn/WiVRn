@@ -53,7 +53,6 @@ xrt_result_t instance::create_system(
 	auto u_sys = b_system_create();
 	*out_xsys = &u_sys->base;
 
-	struct xrt_system_compositor * xsysc = NULL;
 	auto res = wivrn::wivrn_session::create_session(
 	        std::move(connection),
 	        *u_sys,

@@ -594,7 +594,6 @@ std::array<to_headset::foveation_parameter, 2> foveation::foveate(
         bool alpha)
 {
 	update_ubo(cmd, flip_y, src_rect, src_fov);
-	auto ubo = gpu_buffer.data<ubo_data>();
 
 	std::array src_image_info{
 	        vk::DescriptorImageInfo{

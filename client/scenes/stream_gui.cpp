@@ -363,8 +363,6 @@ void scenes::stream::gui_performance_metrics()
 
 void scenes::stream::gui_compact_view()
 {
-	const auto & metrics = global_metrics[(metrics_offset + global_metrics.size() - 1) % global_metrics.size()];
-
 	if (ImGui::BeginTable("metrics", 2))
 	{
 		auto f = [&](const char * label, float value, const char * unit) {

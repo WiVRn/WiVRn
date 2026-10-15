@@ -72,14 +72,6 @@ std::shared_ptr<shader> shader_loader::operator()(std::span<const uint32_t> spir
 		for (SpvReflectSpecializationConstant * variable: enumerate<SpvReflectSpecializationConstant>(spvReflectEnumerateSpecializationConstants, reflect))
 			specialization_constants.emplace_back(variable->constant_id, variable->name);
 
-		for (SpvReflectDescriptorSet * variable: enumerate<SpvReflectDescriptorSet>(spvReflectEnumerateDescriptorSets, reflect))
-		{
-		}
-
-		for (SpvReflectDescriptorBinding * variable: enumerate<SpvReflectDescriptorBinding>(spvReflectEnumerateDescriptorBindings, reflect))
-		{
-		}
-
 		spvReflectDestroyShaderModule(&reflect);
 	}
 	else

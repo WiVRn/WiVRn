@@ -560,7 +560,6 @@ void imgui_context::initialize_fonts()
 std::vector<imgui_context::controller_state> imgui_context::read_controllers_state(XrTime display_time)
 {
 	float scroll_scale = io.DeltaTime * constants::gui::scroll_ratio;
-	size_t new_focused_controller = focused_controller;
 
 	std::vector<controller_state> new_states;
 	new_states.resize(controllers.size());

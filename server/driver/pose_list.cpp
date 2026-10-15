@@ -77,7 +77,6 @@ xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xr
 
 	float dt = (t - tb) / 1.e9;
 
-	float dt2_over_2 = dt * dt / 2;
 	res.pose.position = res.pose.position + lin_vel * dt;
 
 	if (res.relation_flags & XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT)

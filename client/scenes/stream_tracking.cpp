@@ -280,7 +280,6 @@ void scenes::stream::tracking()
 	float applied_height_offset = config.get_height_offset();
 	xr::space height_offset_space = make_height_offset_space(applied_height_offset);
 
-	XrTime t0 = instance.now();
 	from_headset::tracking tracking;
 	std::vector<from_headset::hand_tracking> hands;
 	std::vector<std::variant<from_headset::meta_body, from_headset::bd_body, from_headset::htc_body>> body;

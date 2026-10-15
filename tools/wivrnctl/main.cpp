@@ -336,19 +336,19 @@ int main(int argc, char ** argv)
 	int pairing_duration;
 	auto pair_command = app.add_subcommand("pair", "Allow a new headset to connect")
 	                            ->callback([&]() { return pair(pairing_duration); });
-	auto duration = pair_command
-	                        ->add_option("--duration,-d", pairing_duration, "Duration in minutes to allow new connections")
-	                        ->transform(CLI::Validator([](std::string & input) {
-		                        if (input.starts_with("-"))
-			                        throw CLI::ValidationError("duration must be positive");
-		                        if (input == "unlimited")
-			                        input = "-1";
-		                        return "";
-	                        },
-	                                                   "",
-	                                                   ""))
-	                        ->default_val(2)
-	                        ->option_text("INT|unlimited");
+	pair_command
+	        ->add_option("--duration,-d", pairing_duration, "Duration in minutes to allow new connections")
+	        ->transform(CLI::Validator([](std::string & input) {
+		        if (input.starts_with("-"))
+			        throw CLI::ValidationError("duration must be positive");
+		        if (input == "unlimited")
+			        input = "-1";
+		        return "";
+	        },
+		                           "",
+		                           ""))
+	        ->default_val(2)
+	        ->option_text("INT|unlimited");
 
 	size_t headset_id;
 	auto unpair_command = app.add_subcommand("unpair", "Remove a headset")

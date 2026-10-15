@@ -31,7 +31,6 @@
 #include "render/imgui_impl.h"
 #include "render/ui_theme.h"
 #include "render/ui_widgets.h"
-#include "stream.h"
 #include "utils/i18n.h"
 #include "xr/instance.h"
 #include "xr/session.h"
@@ -488,7 +487,7 @@ void settings_post_processing(const settings_context & ctx)
 					        o.push_back(flag_name(f));
 				        return o; },
 			        .title = std::move(title),
-			        .default_int = index(flags, config.openxr_post_processing.*member).value_or(0),
+			        .default_int = index(flags, default_config.openxr_post_processing.*member).value_or(0),
 			});
 		};
 

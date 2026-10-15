@@ -642,8 +642,6 @@ libcurl::curl_handle * scenes::lobby::parse_environment_list()
 
 void scenes::lobby::gui_customize(XrTime predicted_display_time)
 {
-	auto & config = application::get_config();
-
 	namespace ui = wivrn::ui;
 
 	ui::page_header(_cS("page header title", "Environment"), _cS("page header subtitle", "Choose the environment your panels float in."));

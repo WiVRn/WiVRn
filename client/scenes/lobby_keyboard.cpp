@@ -316,17 +316,7 @@ virtual_keyboard::key_status virtual_keyboard::button_behavior(const ImRect & bb
 		if (mouse_down)
 		{
 			held = true;
-
-			float prev_held_duration = held_duration;
 			held_duration += g.IO.DeltaTime;
-			// if ((flags & ImGuiButtonFlags_Repeat) and held_duration > g.IO.KeyRepeatDelay)
-			// {
-			// 	int n1 = (prev_held_duration - g.IO.KeyRepeatDelay) / g.IO.KeyRepeatRate;
-			// 	int n2 = (held_duration - g.IO.KeyRepeatDelay) / g.IO.KeyRepeatRate;
-			//
-			// 	if (n2 != n1)
-			// 		pressed = true;
-			// }
 		}
 		else
 		{

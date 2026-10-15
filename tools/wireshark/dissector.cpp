@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <epan/ftypes/ftypes.h>
 #include <epan/packet.h>
 #include <epan/proto.h>
@@ -171,7 +170,7 @@ ftenum field_type<uint32_t> = FT_UINT32;
 template <>
 ftenum field_type<uint64_t> = FT_UINT64;
 template <>
-ftenum field_type<int8_t> = FT_INT8;
+[[maybe_unused]] ftenum field_type<int8_t> = FT_INT8;
 template <>
 ftenum field_type<int16_t> = FT_INT16;
 template <>
@@ -181,7 +180,7 @@ ftenum field_type<int64_t> = FT_INT64;
 template <>
 ftenum field_type<float> = FT_FLOAT;
 template <>
-ftenum field_type<double> = FT_DOUBLE;
+[[maybe_unused]] ftenum field_type<double> = FT_DOUBLE;
 
 } // namespace details
 
@@ -491,9 +490,6 @@ struct tree_traits<abbrev, std::optional<T>>
 
 	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
-		int start2 = start;
-		size_t size2 = size(tvb, start2);
-
 		bool has_value = get_uint8(tvb, start);
 
 		if (has_value)

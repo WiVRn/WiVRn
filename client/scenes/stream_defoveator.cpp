@@ -119,8 +119,6 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 
 	target.layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
 
-	const auto & vk_device_extensions = application::get_vk_device_extensions();
-
 	// Vertex shader
 	auto vertex_shader = load_shader(device, "reprojection.vert");
 

@@ -831,6 +831,10 @@ void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
 	        },
 	};
 	auto result = xrt_session_event_sink_push(&xrt_system.broadcast, &event);
+	if (result != XRT_SUCCESS)
+	{
+		U_LOG_W("failed to push visibility mask changed event");
+	}
 }
 
 void wivrn_session::operator()(from_headset::session_state_changed && event)

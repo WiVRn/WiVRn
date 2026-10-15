@@ -289,8 +289,6 @@ wivrn::vk_bundle::vk_bundle() :
 				device_extensions.push_back(*it);
 		}
 
-		float prio = 1.0;
-
 		std::vector<vk::DeviceQueueCreateInfo> queues_info;
 		int queue_index = get_queue_index(queues, queues_info, queue.family_index);
 		U_LOG_D("queue index: %d", queue_index);

@@ -198,7 +198,6 @@ std::vector<glm::dvec4> read_vertex_attribute_aux2(const fastgltf::Asset & asset
 	std::vector<glm::dvec4> output;
 	output.resize(accessor.count);
 
-	size_t index = 0;
 	switch (fastgltf::getNumComponents(accessor.type))
 	{
 		case 1:
@@ -549,7 +548,6 @@ class loader_context
 	fastgltf::Asset & gltf;
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
-	thread_safe<vk::raii::Queue> & queue;
 	image_loader loader;
 	const std::map<std::tuple<fastgltf::Category, size_t, std::string>, std::string> & extras;
 
@@ -581,7 +579,6 @@ public:
 	        gltf(gltf),
 	        physical_device(physical_device),
 	        device(device),
-	        queue(queue),
 	        loader(device, physical_device, queue, queue_family_index),
 	        extras(extras)
 	{
@@ -1080,7 +1077,6 @@ public:
 						break;
 				}
 
-				size_t count = time.count;
 				switch (channel.path)
 				{
 					// TODO: templatize the switch
@@ -1264,7 +1260,6 @@ static void write_cache_entry(const std::filesystem::path & path, const cache_en
 	{
 		auto mtime = std::chrono::file_clock::to_sys(std::filesystem::last_write_time(entry.filename));
 		auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
-		auto size = entry.size;
 
 		json << ",\"timestamp\":" << timestamp;
 	}

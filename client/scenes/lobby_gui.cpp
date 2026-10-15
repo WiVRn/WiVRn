@@ -1115,7 +1115,6 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::SetNextWindowSize({1400, 900});
 		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
-		auto & config = application::get_config();
 		const float TopBarH = wivrn::ui::metrics::top_bar_height;
 
 		// Top bar: logo left, feature toggles / battery / connection status right

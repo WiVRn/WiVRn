@@ -63,7 +63,7 @@ constexpr uint32_t target_latency_ms = 5;
 
 void init_pipewire()
 {
-	static bool done = [] {
+	[[maybe_unused]] static bool done = [] {
 		int argc = 0;
 		pw_init(&argc, nullptr);
 		return true;
