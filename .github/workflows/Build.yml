@@ -191,7 +191,7 @@ jobs:
     if: ${{ vars.APK_ONLY == '' }}
     container:
       # Tag matches runtime-version in the manifest.
-      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
       options: --privileged
 
     steps:
