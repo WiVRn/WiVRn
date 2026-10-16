@@ -86,6 +86,7 @@ public:
 	bool forward_keyboard = false;
 	bool forward_mouse = false;
 	bool forward_gamepad = false;
+	bool emulated_gamepad = false;
 
 	std::underlying_type_t<wivrn::from_headset::body_part_mask> body_part_mask = ~0;
 
