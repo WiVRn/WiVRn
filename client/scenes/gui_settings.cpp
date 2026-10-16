@@ -574,6 +574,19 @@ void settings_devices(const settings_context & ctx)
 	        .default_bool = default_config.forward_gamepad,
 	});
 
+	if (ctx.instance.has_extension("XR_VALVE_frame_controller_interaction"))
+	{
+		list.push_back({
+		        .id = "##emulated_gamepad",
+		        .label = _C("setting name", "Emulated Gamepad"),
+		        .description = _("Double-click both grips to start using your controllers as a gamepad."),
+		        .ui = ui_kind::toggle,
+		        .get_bool = [&config] { return config.emulated_gamepad; },
+		        .set_bool = [&config](bool v) { config.emulated_gamepad = v; config.save(); },
+		        .default_bool = default_config.emulated_gamepad,
+		});
+	}
+
 	ui::page_header(_cS("page header title", "Devices"), _cS("page header subtitle", "Forward input devices to the PC."));
 	render_settings(ctx, "##devices", list);
 
