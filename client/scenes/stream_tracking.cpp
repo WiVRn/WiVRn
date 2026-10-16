@@ -471,11 +471,19 @@ void scenes::stream::tracking()
 				if (auto htc = std::get_if<xr::htc_body_tracker>(&body_tracker))
 					htc->update_active();
 
+			const bool emulating_gamepad = using_frame_gamepad();
 			tracking.interaction_profiles = {
 			        interaction_profiles[0].load(),
 			        interaction_profiles[1].load(),
 			        interaction_profiles[2].load(),
 			};
+			if (emulating_gamepad)
+			{
+				// The server must see *only* a gamepad, not two VR controllers.
+				tracking.interaction_profiles[0] = interaction_profile::none;
+				tracking.interaction_profiles[1] = interaction_profile::none;
+				tracking.interaction_profiles[2] = interaction_profile::microsoft_xbox_controller;
+			}
 
 			tracking.production_timestamp = t0;
 			tracking.timestamp = t0 + pattern[pattern_position].prediction_ns;
@@ -522,7 +530,8 @@ void scenes::stream::tracking()
 						case wivrn::device_id::LEFT_POKE:
 						case wivrn::device_id::RIGHT_PINCH_POSE:
 						case wivrn::device_id::RIGHT_POKE:
-							locate_spaces.add_space(item.device, spaces[item.device], tracking.timestamp, tracking.device_poses);
+							if (not emulating_gamepad)
+								locate_spaces.add_space(item.device, spaces[item.device], tracking.timestamp, tracking.device_poses);
 							break;
 						case wivrn::device_id::EYE_GAZE:
 							if (eye_gaze_enabled)
@@ -539,19 +548,19 @@ void scenes::stream::tracking()
 							break;
 						case wivrn::device_id::LEFT_HAND:
 							if (left_hand)
-								hands.emplace_back(locate_hands(
-								        *left_hand,
-								        height_offset_space,
-								        t0,
-								        at_time));
+							{
+								auto hand = locate_hands(*left_hand, height_offset_space, t0, at_time);
+								if (not emulating_gamepad or hand.hand != from_headset::hand_tracking::hand_id::left_controller)
+									hands.emplace_back(std::move(hand));
+							}
 							break;
 						case wivrn::device_id::RIGHT_HAND:
 							if (right_hand)
-								hands.emplace_back(locate_hands(
-								        *right_hand,
-								        height_offset_space,
-								        t0,
-								        at_time));
+							{
+								auto hand = locate_hands(*right_hand, height_offset_space, t0, at_time);
+								if (not emulating_gamepad or hand.hand != from_headset::hand_tracking::hand_id::right_controller)
+									hands.emplace_back(std::move(hand));
+							}
 							break;
 						case wivrn::device_id::BODY:
 							std::visit(utils::overloaded{
@@ -634,7 +643,7 @@ void scenes::stream::tracking()
 			network_session->send_stream(std::span(packets.data(), packet_count));
 
 			XrTime old = scheduled_derived_pose;
-			if (old and now > old)
+			if (old and now > old and not emulating_gamepad)
 			{
 				send_derived_pose();
 				scheduled_derived_pose.compare_exchange_strong(old, 0);
