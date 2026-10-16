@@ -19,29 +19,166 @@
 
 #include "application.h"
 #include "stream.h"
+#include <algorithm>
+#include <array>
+#include <optional>
+#include <ranges>
 #include <spdlog/spdlog.h>
+
+namespace
+{
+using wivrn::device_id;
+
+std::optional<device_id> frame_gamepad_input(device_id id)
+{
+	switch (id)
+	{
+		case device_id::VIEW_CLICK:
+			return device_id::GAMEPAD_VIEW_CLICK;
+		case device_id::RIGHT_MENU_CLICK:
+			return device_id::GAMEPAD_MENU_CLICK;
+		case device_id::A_CLICK:
+			return device_id::GAMEPAD_A_CLICK;
+		case device_id::B_CLICK:
+			return device_id::GAMEPAD_B_CLICK;
+		case device_id::RIGHT_X_CLICK:
+			return device_id::GAMEPAD_X_CLICK;
+		case device_id::RIGHT_Y_CLICK:
+			return device_id::GAMEPAD_Y_CLICK;
+		case device_id::DPAD_UP_CLICK:
+			return device_id::GAMEPAD_DPAD_UP_CLICK;
+		case device_id::LEFT_X_CLICK:
+			return device_id::GAMEPAD_DPAD_DOWN_CLICK;
+		case device_id::DPAD_LEFT_CLICK:
+			return device_id::GAMEPAD_DPAD_LEFT_CLICK;
+		case device_id::LEFT_Y_CLICK:
+			return device_id::GAMEPAD_DPAD_RIGHT_CLICK;
+		case device_id::LEFT_BUMPER_CLICK:
+			return device_id::GAMEPAD_SHOULDER_LEFT_CLICK;
+		case device_id::RIGHT_BUMPER_CLICK:
+			return device_id::GAMEPAD_SHOULDER_RIGHT_CLICK;
+		case device_id::LEFT_THUMBSTICK_CLICK:
+			return device_id::GAMEPAD_THUMBSTICK_LEFT_CLICK;
+		case device_id::RIGHT_THUMBSTICK_CLICK:
+			return device_id::GAMEPAD_THUMBSTICK_RIGHT_CLICK;
+		case device_id::LEFT_TRIGGER_VALUE:
+			return device_id::GAMEPAD_TRIGGER_LEFT_VALUE;
+		case device_id::RIGHT_TRIGGER_VALUE:
+			return device_id::GAMEPAD_TRIGGER_RIGHT_VALUE;
+		case device_id::LEFT_THUMBSTICK_X:
+			return device_id::GAMEPAD_THUMBSTICK_LEFT_X;
+		case device_id::RIGHT_THUMBSTICK_X:
+			return device_id::GAMEPAD_THUMBSTICK_RIGHT_X;
+		default:
+			return std::nullopt;
+	}
+}
+
+constexpr std::array frame_gamepad_ids = {
+        device_id::GAMEPAD_MENU_CLICK,
+        device_id::GAMEPAD_VIEW_CLICK,
+        device_id::GAMEPAD_A_CLICK,
+        device_id::GAMEPAD_B_CLICK,
+        device_id::GAMEPAD_X_CLICK,
+        device_id::GAMEPAD_Y_CLICK,
+        device_id::GAMEPAD_DPAD_UP_CLICK,
+        device_id::GAMEPAD_DPAD_DOWN_CLICK,
+        device_id::GAMEPAD_DPAD_LEFT_CLICK,
+        device_id::GAMEPAD_DPAD_RIGHT_CLICK,
+        device_id::GAMEPAD_SHOULDER_LEFT_CLICK,
+        device_id::GAMEPAD_SHOULDER_RIGHT_CLICK,
+        device_id::GAMEPAD_THUMBSTICK_LEFT_CLICK,
+        device_id::GAMEPAD_THUMBSTICK_RIGHT_CLICK,
+        device_id::GAMEPAD_TRIGGER_LEFT_VALUE,
+        device_id::GAMEPAD_TRIGGER_RIGHT_VALUE,
+        device_id::GAMEPAD_THUMBSTICK_LEFT_X,
+        device_id::GAMEPAD_THUMBSTICK_LEFT_Y,
+        device_id::GAMEPAD_THUMBSTICK_RIGHT_X,
+        device_id::GAMEPAD_THUMBSTICK_RIGHT_Y,
+};
+} // namespace
+
+bool scenes::stream::check_gamepad_mode_chord(XrActionStateBoolean state_1, XrActionStateBoolean state_2)
+{
+	constexpr XrDuration gamepad_chord_press_tolerance = 150'000'000; // 150ms between grip presses
+	constexpr XrDuration gamepad_chord_timeout = 400'000'000;         // 400ms between chord taps
+
+	if (not state_1.isActive or not state_2.isActive)
+	{
+		gamepad_chord = {};
+		return false;
+	}
+
+	const bool down_1 = state_1.currentState;
+	const bool down_2 = state_2.currentState;
+
+	if (not down_1 and not down_2)
+	{
+		gamepad_chord.armed = true;
+		return false;
+	}
+
+	if (not(down_1 and down_2) or not gamepad_chord.armed)
+		return false;
+
+	// both grips down
+	gamepad_chord.armed = false;
+	const XrTime press_1 = state_1.lastChangeTime;
+	const XrTime press_2 = state_2.lastChangeTime;
+	const XrDuration press_separation = press_1 >= press_2 ? press_1 - press_2 : press_2 - press_1;
+
+	// grips were not pressed together
+	if (press_separation > gamepad_chord_press_tolerance)
+	{
+		gamepad_chord.waiting_for_second_tap = false;
+		return false;
+	}
+
+	const XrTime tap_time = std::max(press_1, press_2);
+	if (gamepad_chord.waiting_for_second_tap and
+	    tap_time > gamepad_chord.first_tap_time and
+	    tap_time - gamepad_chord.first_tap_time <= gamepad_chord_timeout)
+	{
+		gamepad_chord.waiting_for_second_tap = false;
+		return true;
+	}
+
+	gamepad_chord.first_tap_time = tap_time;
+	gamepad_chord.waiting_for_second_tap = true;
+	return false;
+}
 
 void scenes::stream::read_actions()
 {
 	from_headset::inputs inputs;
+	const bool emulating_gamepad = using_frame_gamepad();
 
 	if (not is_gui_interactable())
 	{
 		for (const auto & [id, action, action_type]: input_actions)
 		{
+			device_id output_id = id;
+			if (emulating_gamepad)
+			{
+				auto mapped_id = frame_gamepad_input(id);
+				if (not mapped_id)
+					continue; // No VR inputs in gamepad mode
+				output_id = *mapped_id;
+			}
+
 			switch (action_type)
 			{
 				case XR_ACTION_TYPE_BOOLEAN_INPUT: {
 					auto value = application::read_action_bool(action);
 					if (value)
-						inputs.values.push_back({id, (float)value->second, value->first});
+						inputs.values.push_back({output_id, (float)value->second, value->first});
 				}
 				break;
 
 				case XR_ACTION_TYPE_FLOAT_INPUT: {
 					auto value = application::read_action_float(action);
 					if (value)
-						inputs.values.push_back({id, value->second, value->first});
+						inputs.values.push_back({output_id, value->second, value->first});
 				}
 				break;
 
@@ -49,8 +186,12 @@ void scenes::stream::read_actions()
 					auto value = application::read_action_vec2(action);
 					if (value)
 					{
-						inputs.values.push_back({id, value->second.x, value->first});
-						inputs.values.push_back({(device_id)((int)id + 1), value->second.y, value->first});
+						inputs.values.push_back({output_id, value->second.x, value->first});
+						float y = value->second.y;
+						if (emulating_gamepad &&
+						    (id == device_id::LEFT_THUMBSTICK_X || id == device_id::RIGHT_THUMBSTICK_X))
+							y = -y;
+						inputs.values.push_back({(device_id)((int)output_id + 1), y, value->first});
 					}
 				}
 				break;
@@ -59,6 +200,15 @@ void scenes::stream::read_actions()
 				default:
 					break;
 			}
+		}
+	}
+
+	if (emulating_gamepad)
+	{
+		for (auto id: frame_gamepad_ids)
+		{
+			if (std::ranges::none_of(inputs.values, [id](const auto & value) { return value.id == id; }))
+				inputs.values.push_back({id, 0, 0});
 		}
 	}
 
@@ -74,6 +224,22 @@ void scenes::stream::read_actions()
 
 void scenes::stream::operator()(to_headset::haptics && haptics)
 {
+	if (using_frame_gamepad())
+	{
+		switch (haptics.id)
+		{
+			case device_id::GAMEPAD_HAPTIC_LEFT:
+			case device_id::GAMEPAD_HAPTIC_LEFT_TRIGGER:
+				haptics.id = device_id::LEFT_CONTROLLER_HAPTIC;
+				break;
+			case device_id::GAMEPAD_HAPTIC_RIGHT:
+			case device_id::GAMEPAD_HAPTIC_RIGHT_TRIGGER:
+				haptics.id = device_id::RIGHT_CONTROLLER_HAPTIC;
+				break;
+			default:
+				break;
+		}
+	}
 	auto range = haptics_actions.equal_range(haptics.id);
 	for (auto it = range.first; it != range.second; ++it)
 	{

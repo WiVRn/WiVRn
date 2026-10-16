@@ -36,6 +36,7 @@
 #include "decoder/shard_accumulator.h"
 #include "inplace_vector.hpp"
 #include "spdlog/spdlog.h"
+#include "utils/i18n.h"
 #include "utils/named_thread.h"
 #include "utils/ranges.h"
 #include "wivrn_packets.h"
@@ -564,6 +565,8 @@ void scenes::stream::on_focused()
 
 	plots_toggle_1 = get_action("plots_toggle_1").first;
 	plots_toggle_2 = get_action("plots_toggle_2").first;
+	gamepad_mode_1 = get_action("gamepad_mode_1").first;
+	gamepad_mode_2 = get_action("gamepad_mode_2").first;
 	recenter_left = get_action("recenter_left").first;
 	recenter_right = get_action("recenter_right").first;
 	gui_distance_left = get_action("gui_distance_left").first;
@@ -1241,6 +1244,50 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		}
 	}
 
+	auto show_gamepad_toast = [this](bool enabled) {
+		{
+			auto toast = gui_toast.lock();
+			toast->emplace(enabled
+			                       ? _("Now emulating a gamepad. Double-click both grips to go back to using VR controllers.")
+			                       : _("No longer emulating a gamepad."),
+			               false);
+		}
+		gui_status_last_change = instance.now();
+	};
+
+	if (not application::get_config().emulated_gamepad)
+	{
+		if (gamepad_mode.exchange(false))
+		{
+			scheduled_derived_pose = instance.now();
+			show_gamepad_toast(false);
+			spdlog::info("Controller gamepad emulation disabled due to setting change");
+		}
+		gamepad_chord = {};
+	}
+	else
+	{
+		XrActionStateGetInfo get_info{
+		        .type = XR_TYPE_ACTION_STATE_GET_INFO,
+		        .action = gamepad_mode_1,
+		};
+		XrActionStateBoolean state_1{XR_TYPE_ACTION_STATE_BOOLEAN};
+		CHECK_XR(xrGetActionStateBoolean(session, &get_info, &state_1));
+		get_info.action = gamepad_mode_2;
+		XrActionStateBoolean state_2{XR_TYPE_ACTION_STATE_BOOLEAN};
+		CHECK_XR(xrGetActionStateBoolean(session, &get_info, &state_2));
+
+		if (check_gamepad_mode_chord(state_1, state_2))
+		{
+			const bool enabled = not gamepad_mode.load();
+			gamepad_mode = enabled;
+			if (not enabled)
+				scheduled_derived_pose = instance.now();
+			show_gamepad_toast(enabled);
+			spdlog::info("Controller gamepad mode {}", enabled ? "enabled" : "disabled");
+		}
+	}
+
 	read_actions();
 
 	if (application::get_config().enable_stream_gui)
@@ -1372,6 +1419,8 @@ scene::meta & scenes::stream::get_meta_scene()
 
 	                {"plots_toggle_1", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	                {"plots_toggle_2", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	                {"gamepad_mode_1", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	                {"gamepad_mode_2", XR_ACTION_TYPE_BOOLEAN_INPUT},
 
 	                {"recenter_left", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	                {"recenter_right", XR_ACTION_TYPE_BOOLEAN_INPUT},
@@ -1421,6 +1470,15 @@ scene::meta & scenes::stream::get_meta_scene()
 
 	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
 	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
+	                        },
+	                },
+	                suggested_binding{
+	                        {
+	                                "/interaction_profiles/valve/frame_controller_valve",
+	                        },
+	                        {
+	                                {"gamepad_mode_1", "/user/hand/left/input/squeeze/click"},
+	                                {"gamepad_mode_2", "/user/hand/right/input/squeeze/click"},
 	                        },
 	                },
 	                suggested_binding{
