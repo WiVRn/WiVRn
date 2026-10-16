@@ -20,6 +20,7 @@
 
 #include "util/u_pacing.h"
 
+#include <deque>
 #include <mutex>
 #include <vector>
 
@@ -36,14 +37,23 @@ class pacing_app_factory : public u_pacing_app_factory
 	std::vector<app_pacer *> app_pacers;
 	void remove_app(app_pacer *);
 
+	// Timestamps of mark_delivered calls from the base (non-overlay) session's pacer only:
+	// a real per-application "the game just called xrEndFrame" signal, unlike the system
+	// compositor's own commit rate which also includes any overlay (e.g. WayVR).
+	std::deque<int64_t> base_session_delivered;
+	void record_base_session_delivered(int64_t when_ns);
+
 public:
 	using base_t = u_pacing_app_factory;
 
 	pacing_app_factory();
-	xrt_result_t create(struct u_pacing_app ** out_upa);
+	xrt_result_t create(bool is_overlay, struct u_pacing_app ** out_upa);
 	void destroy();
 
 	int64_t get_frame_time();
+
+	// Windowed average fps of the base session's real frame delivery, 0 if no data yet.
+	float base_session_fps();
 };
 
 } // namespace wivrn

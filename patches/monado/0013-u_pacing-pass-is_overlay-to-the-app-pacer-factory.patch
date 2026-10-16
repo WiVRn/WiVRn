@@ -1,0 +1,87 @@
+From 9cda3aa92976d2204df260f42f67664b41114615 Mon Sep 17 00:00:00 2001
+From: moi952 <52632400+moi952@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 15:15:50 +0200
+Subject: [PATCH] u_pacing: pass is_overlay to the app pacer factory
+
+The system compositor already knows, at the point it creates a
+client's app pacer, whether that client's session is an overlay
+(xrt_session_info::is_overlay) rather than the main application. This
+was previously not passed to u_pacing_app_factory::create, so an app
+pacer factory implementation had no way to distinguish the main
+application's frame pacing from an overlay's.
+
+Threading it through lets a factory implementation record frame
+delivery/discard events (mark_delivered/mark_discarded) only for the
+base session, instead of an aggregate across every connected client.
+---
+ src/xrt/auxiliary/util/u_pacing.h                | 12 +++++++-----
+ src/xrt/auxiliary/util/u_pacing_app.c            |  4 +++-
+ src/xrt/compositor/multi/comp_multi_compositor.c |  2 +-
+ 3 files changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/src/xrt/auxiliary/util/u_pacing.h b/src/xrt/auxiliary/util/u_pacing.h
+index 5f21bb6..935c04b 100644
+--- a/src/xrt/auxiliary/util/u_pacing.h
++++ b/src/xrt/auxiliary/util/u_pacing.h
+@@ -620,10 +620,12 @@ struct u_pacing_app_factory
+ 	/*!
+ 	 * Create a @ref u_pacing_app.
+ 	 *
+-	 * @param      upaf    App pacing factory.
+-	 * @param[out] out_upa Created app pacer.
++	 * @param      upaf       App pacing factory.
++	 * @param[in]  is_overlay Whether the session this pacer is for is an overlay session,
++	 *                        rather than the main application.
++	 * @param[out] out_upa    Created app pacer.
+ 	 */
+-	xrt_result_t (*create)(struct u_pacing_app_factory *upaf, struct u_pacing_app **out_upa);
++	xrt_result_t (*create)(struct u_pacing_app_factory *upaf, bool is_overlay, struct u_pacing_app **out_upa);
+ 
+ 	/*!
+ 	 * Destroy this u_pacing_app_factory.
+@@ -640,9 +642,9 @@ struct u_pacing_app_factory
+  * @ingroup aux_pacing
+  */
+ static inline void
+-u_paf_create(struct u_pacing_app_factory *upaf, struct u_pacing_app **out_upa)
++u_paf_create(struct u_pacing_app_factory *upaf, bool is_overlay, struct u_pacing_app **out_upa)
+ {
+-	upaf->create(upaf, out_upa);
++	upaf->create(upaf, is_overlay, out_upa);
+ }
+ 
+ /*!
+diff --git a/src/xrt/auxiliary/util/u_pacing_app.c b/src/xrt/auxiliary/util/u_pacing_app.c
+index d5697ff..a63e374 100644
+--- a/src/xrt/auxiliary/util/u_pacing_app.c
++++ b/src/xrt/auxiliary/util/u_pacing_app.c
+@@ -800,10 +800,12 @@ pa_create(int64_t session_id, struct u_pacing_app **out_upa)
+  */
+ 
+ static xrt_result_t
+-paf_create(struct u_pacing_app_factory *upaf, struct u_pacing_app **out_upa)
++paf_create(struct u_pacing_app_factory *upaf, bool is_overlay, struct u_pacing_app **out_upa)
+ {
+ 	static int64_t session_id_gen = 0; // For now until global session id is introduced.
+ 
++	(void)is_overlay;
++
+ 	return pa_create(session_id_gen++, out_upa);
+ }
+ 
+diff --git a/src/xrt/compositor/multi/comp_multi_compositor.c b/src/xrt/compositor/multi/comp_multi_compositor.c
+index 33675d4..fa46061 100644
+--- a/src/xrt/compositor/multi/comp_multi_compositor.c
++++ b/src/xrt/compositor/multi/comp_multi_compositor.c
+@@ -1023,7 +1023,7 @@ multi_compositor_create(struct multi_system_compositor *msc,
+ 	os_precise_sleeper_init(&mc->scheduled_sleeper);
+ 
+ 	// This is safe to do without a lock since we are not on the list yet.
+-	u_paf_create(msc->upaf, &mc->upa);
++	u_paf_create(msc->upaf, xsi->is_overlay, &mc->upa);
+ 
+ 	os_mutex_lock(&msc->list_and_timing_lock);
+ 
+-- 
+2.54.0 (Apple Git-157)
+

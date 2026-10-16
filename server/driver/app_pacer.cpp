@@ -36,6 +36,7 @@ namespace wivrn
 class app_pacer : public u_pacing_app
 {
 	pacing_app_factory & parent;
+	bool is_overlay;
 	int64_t frame_id = 0;
 	int64_t compositor_display_time = 0;
 	int64_t last_display_time = 0;
@@ -65,7 +66,7 @@ class app_pacer : public u_pacing_app
 public:
 	using base_t = u_pacing_app;
 
-	app_pacer(pacing_app_factory & parent) :
+	app_pacer(pacing_app_factory & parent, bool is_overlay) :
 	        u_pacing_app{
 	                .predict = method_pointer<&app_pacer::predict>,
 	                .mark_point = method_pointer<&app_pacer::mark_point>,
@@ -78,6 +79,7 @@ public:
 	                .destroy = method_pointer<&app_pacer::destroy>,
 	        },
 	        parent(parent),
+	        is_overlay(is_overlay),
 	        min_margin_ms{
 	                .val = debug_get_float_option_min_margin_ms(),
 	                .step = 0.1,
@@ -183,6 +185,9 @@ void app_pacer::mark_delivered(int64_t frame_id, int64_t when_ns, int64_t displa
 	if (frame.frame_id != frame_id)
 		return;
 	frame.delivered = when_ns;
+
+	if (not is_overlay)
+		parent.record_base_session_delivered(when_ns);
 }
 
 void app_pacer::mark_discarded(int64_t frame_id, int64_t when_ns)
@@ -234,15 +239,36 @@ void pacing_app_factory::remove_app(app_pacer * app)
 	std::erase(app_pacers, app);
 }
 
-xrt_result_t pacing_app_factory::create(struct u_pacing_app ** out_upa)
+xrt_result_t pacing_app_factory::create(bool is_overlay, struct u_pacing_app ** out_upa)
 {
 	std::lock_guard lock(mutex);
-	*out_upa = app_pacers.emplace_back(new app_pacer(*this));
+	*out_upa = app_pacers.emplace_back(new app_pacer(*this, is_overlay));
 	return XRT_SUCCESS;
 }
 
 void pacing_app_factory::destroy()
 {
+}
+
+namespace
+{
+constexpr int64_t base_session_fps_window_ns = 1'000'000'000; // 1s
+}
+
+void pacing_app_factory::record_base_session_delivered(int64_t when_ns)
+{
+	std::lock_guard lock(mutex);
+	base_session_delivered.push_back(when_ns);
+	while (base_session_delivered.size() > 1 and when_ns - base_session_delivered.front() > base_session_fps_window_ns)
+		base_session_delivered.pop_front();
+}
+
+float pacing_app_factory::base_session_fps()
+{
+	std::lock_guard lock(mutex);
+	if (base_session_delivered.size() < 2)
+		return 0;
+	return (base_session_delivered.size() - 1) / ((base_session_delivered.back() - base_session_delivered.front()) * 1e-9f);
 }
 
 int64_t pacing_app_factory::get_frame_time()

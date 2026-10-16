@@ -34,6 +34,7 @@
 
 #include <array>
 #include <atomic>
+#include <deque>
 #include <memory>
 #include <thread>
 
@@ -112,6 +113,13 @@ private:
 		comp_frame waited{.id = -1};
 		comp_frame rendering{.id = -1};
 	} frame;
+
+	// Timestamps of layer_commit calls that made it past the encoder-busy/no-free-image drop
+	// checks below, used together with the app pacer's own base-session fps (the real per-app
+	// rate, not the system compositor's aggregate) for a drop ratio sent to the headset; and
+	// the last time it was sent.
+	std::deque<int64_t> encoded_frame_times;
+	int64_t last_game_fps_sent_ns = 0;
 
 	xrt_result_t begin_session(const xrt_begin_session_info * info)
 	{
