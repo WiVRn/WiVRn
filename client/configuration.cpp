@@ -392,6 +392,19 @@ void configuration::save()
 	json << ",\"openxr_post_processing\":{\"super_sampling\":" << openxr_post_processing.super_sampling;
 	json << ",\"sharpening\":" << openxr_post_processing.sharpening << "}";
 
+	{
+		bool first = true;
+		json << ",\"body_parts\": {";
+		for (const auto & [b, name]: magic_enum::enum_entries<wivrn::from_headset::body_part_mask>())
+		{
+			if (not first)
+				json << ",";
+			first = false;
+			json << '"' << name << "\":" << std::boolalpha << bool(body_part_mask & std::to_underlying(b));
+		}
+		json << "}";
+	}
+
 	// feature flags, keyed by enum name
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
