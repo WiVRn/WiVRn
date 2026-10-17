@@ -9,6 +9,8 @@ _deps/
 
 build/
 build-*/
+out/
+out-*/
 **/result
 
 __pycache__/
