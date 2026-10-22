@@ -184,6 +184,13 @@ center::center(xr::instance & inst, xr::system & sys, xr::session & xr_session, 
 		}
 	}
 
+	if (foveation_profile.has_value())
+		spdlog::info("XR_META_foveation_eye_tracked will be used for this stream");
+	else if (application::get_eye_gaze_supported())
+		spdlog::info("Eye gaze tracking will be used for this stream");
+	else
+		spdlog::info("Static foveation will be used for this stream");
+
 	auto [flags, views] = session.locate_views(
 	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
 	        instance.now(),

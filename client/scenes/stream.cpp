@@ -242,9 +242,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	std::shared_ptr<stream> self{new stream{std::move(server_name), parent_scene}};
 	self->network_session = std::move(network_session);
 
-	if (self->foveation_center.supports_meta())
-		spdlog::info("XR_META_foveation_eye_tracked will be used for this stream");
-
 	self->network_session->send_control([&]() {
 		from_headset::headset_info_packet info{
 		        .language = application::get_messages_info().language,
