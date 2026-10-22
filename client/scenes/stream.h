@@ -24,6 +24,7 @@
 #include "audio/audio.h"
 #include "configuration.h"
 #include "decoder/shard_accumulator.h"
+#include "foveation.h"
 #include "render/imgui_impl.h"
 #include "scene.h"
 #include "scenes/input_profile.h"
@@ -119,6 +120,7 @@ private:
 		state_.compare_exchange_strong(prev, new_state);
 	}
 
+	client_foveation::center foveation_center;
 	xr::swapchain swapchain;
 
 	std::optional<audio> audio_handle;
@@ -189,10 +191,6 @@ private:
 	// Position of the GUI relative to the world space, in world space axes, used when the GUI is interactable
 	glm::vec3 world_gui_position;
 	glm::quat world_gui_orientation;
-
-	bool override_foveation_enable;
-	float override_foveation_pitch; // The pitch is the opposite as the height displayed in the GUI
-	float override_foveation_distance;
 
 	// Which controller is used for recentering and position of the GUI relative to the controller, in controller axes, during recentering
 	std::optional<std::tuple<xr::spaces, glm::vec3, glm::quat>> recentering_context;
@@ -279,7 +277,8 @@ private:
 	void send_derived_pose();
 
 	void setup(const to_headset::video_stream_description &);
-	void setup_reprojection_swapchain(uint32_t width, uint32_t height);
+	void setup_reprojection_swapchain(uint32_t width, uint32_t height, bool foveation);
+	void ensure_foveation_mode(bool cropped, uint32_t width, uint32_t height);
 
 	vk::raii::QueryPool query_pool = nullptr;
 	bool query_pool_filled = false;

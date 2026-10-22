@@ -38,6 +38,7 @@
 #include <unordered_map>
 
 #include <spdlog/spdlog.h>
+#include <openxr/openxr.h>
 
 #ifdef __ANDROID__
 #include "utils/wrap_lambda.h"
@@ -229,11 +230,13 @@ void hmd_traits::init()
 
 	else if (manufacturer == "Play For Dream" and model == "PFDM MR")
 	{
+		blacklisted_extensions.insert(XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME);
 		controller_profile = "yvr-touch-v2";
 	}
 
 	else if (manufacturer == "Pico")
 	{
+		blacklisted_extensions.insert(XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME);
 		permissions[feature::eye_gaze] = "com.picovr.permission.EYE_TRACKING";
 		permissions[feature::face_tracking] = "com.picovr.permission.FACE_TRACKING";
 		view_locate = false;
@@ -315,6 +318,7 @@ void hmd_traits::init()
 	}
 	if (manufacturer == "samsung")
 	{
+		blacklisted_extensions.insert(XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME);
 		if (model == "SM-I610") // Galaxy XR
 		{
 			panel_width_override = 3552;
@@ -359,6 +363,8 @@ void hmd_traits::init()
 			break;
 	}
 
+	// frame: always returns 0,0
+	blacklisted_extensions.insert(XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME);
 #endif
 
 	spdlog::info("HMD traits initialized");
