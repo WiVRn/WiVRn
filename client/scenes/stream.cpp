@@ -289,7 +289,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
-		info.foveation_center = self->foveation_center.supports_meta();
 
 		if (self->instance.has_extension(XR_EXT_USER_PRESENCE_EXTENSION_NAME))
 		{
