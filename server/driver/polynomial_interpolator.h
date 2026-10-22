@@ -58,6 +58,29 @@ public:
 private:
 	std::array<sample, stored_samples> data;
 
+	// q and -q are the same rotation, use the sign of the sample closest in time
+	void align_sign(sample & stored)
+	{
+		if constexpr (quaternion)
+		{
+			if (stored.y)
+			{
+				sample * closest = nullptr;
+				for (auto & i: data)
+				{
+					if (&i == &stored or not i.y)
+						continue;
+					if (not closest)
+						closest = &i;
+					else if (std::abs(closest->timestamp - stored.timestamp) > std::abs(i.timestamp - stored.timestamp))
+						closest = &i;
+				}
+				if (closest and closest->y->dot(*stored.y) < 0)
+					*stored.y *= -1;
+			}
+		}
+	}
+
 public:
 	polynomial_interpolator() = default;
 	polynomial_interpolator(XrDuration window, float time_constant) : window(window), time_constant(time_constant) {}
@@ -76,31 +99,17 @@ public:
 			if (std::abs(i.timestamp - s.timestamp) < 2'000'000)
 			{
 				if (i.production_timestamp < s.production_timestamp)
+				{
 					i = s;
+					align_sign(i);
+				}
 				return;
 			}
 			if ((not oldest) or oldest->production_timestamp > i.production_timestamp)
 				oldest = &i;
 		}
 		*oldest = s;
-		if constexpr (quaternion)
-		{
-			if (s.y)
-			{
-				sample * closest = nullptr;
-				for (auto & i: data)
-				{
-					if (&i == oldest or not i.y)
-						continue;
-					if (not closest)
-						closest = &i;
-					else if (std::abs(closest->timestamp - s.timestamp) > std::abs(i.timestamp - s.timestamp))
-						closest = &i;
-				}
-				if (closest and closest->y->dot(*s.y) < 0)
-					*oldest->y *= -1;
-			}
-		}
+		align_sign(*oldest);
 	}
 
 	std::pair<XrTime, XrTime> get_bounds() const
