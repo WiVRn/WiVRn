@@ -415,12 +415,11 @@ void scenes::stream::gui_settings(float)
 	        .enter_foveation_adjust = [this] { next_gui_status = stream_tab::foveation_settings; },
 	        .on_foveation_override_changed = [this] {
 		        const auto & config = application::get_config();
-		        auto override = foveation_override.lock();
-		        *override = {
+		        foveation_center.set_manual_mode({
 		                .enabled = config.override_foveation_enable,
 		                .pitch = config.override_foveation_pitch,
 		                .distance = config.override_foveation_distance,
-		        }; },
+		        }); },
 	};
 
 	switch (current_settings_page)
@@ -480,11 +479,7 @@ void scenes::stream::gui_bitrate_settings(float predicted_display_period)
 
 void scenes::stream::gui_foveation_settings(float predicted_display_period)
 {
-	client_foveation::manual_override override;
-	{
-		auto locked = foveation_override.lock();
-		override = *locked;
-	}
+	auto override = foveation_center.get_manual_mode();
 
 	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 	ImGui::Text("%s", _S("Use the thumbsticks to move the foveation center"));
@@ -530,10 +525,7 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 		};
 	}
 
-	{
-		auto locked = foveation_override.lock();
-		*locked = override;
-	}
+	foveation_center.set_manual_mode(override);
 }
 
 void scenes::stream::gui_applications()
@@ -734,11 +726,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		switch (gui_status)
 		{
 			case stream_tab::foveation_settings: {
-				client_foveation::manual_override override;
-				{
-					auto locked = foveation_override.lock();
-					override = *locked;
-				}
+				auto override = foveation_center.get_manual_mode();
 
 				imgui_ctx->layers()[0].orientation = head_position->second;
 				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, override.distance * sin(override.pitch), -override.distance};
