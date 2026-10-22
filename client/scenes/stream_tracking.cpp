@@ -400,10 +400,14 @@ void scenes::stream::tracking()
 
 					if (hand_tracking)
 					{
+						std::array data_sources = {
+						        XR_HAND_TRACKING_DATA_SOURCE_UNOBSTRUCTED_EXT,
+						        XR_HAND_TRACKING_DATA_SOURCE_CONTROLLER_EXT,
+						};
 						if (std::ranges::contains(pattern, device_id::LEFT_HAND, &to_headset::tracking_control::sample::device))
 						{
 							if (not left_hand)
-								left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
+								left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT, data_sources);
 						}
 						else
 							left_hand.reset();
@@ -411,7 +415,7 @@ void scenes::stream::tracking()
 						if (std::ranges::contains(pattern, device_id::RIGHT_HAND, &to_headset::tracking_control::sample::device))
 						{
 							if (not right_hand)
-								right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
+								right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT, data_sources);
 						}
 						else
 							right_hand.reset();

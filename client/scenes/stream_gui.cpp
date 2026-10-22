@@ -1095,15 +1095,15 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 		if (left_hand and right_hand)
 		{
-			auto left = left_hand->locate(world_space, predicted_display_time);
-			auto right = right_hand->locate(world_space, predicted_display_time);
+			auto left = left_hand->locate(world_space, predicted_display_time).joints;
+			auto right = right_hand->locate(world_space, predicted_display_time).joints;
 
-			if (left.joints and left.is_input_source() and
-			    xr::hand_tracker::check_flags(*left.joints, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
+			if (left and
+			    xr::hand_tracker::check_flags(*left, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
 				hide_left_controller = true;
 
-			if (right.joints and right.is_input_source() and
-			    xr::hand_tracker::check_flags(*right.joints, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
+			if (right and
+			    xr::hand_tracker::check_flags(*right, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
 				hide_right_controller = true;
 		}
 
