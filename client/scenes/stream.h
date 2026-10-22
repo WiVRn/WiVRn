@@ -60,7 +60,6 @@ public:
 private:
 	static const size_t view_count = 2;
 	static const size_t decoder_count = view_count + 1;
-	static constexpr int32_t foveation_dummy_swapchain_size = 512;
 
 	struct accumulator_images
 	{
@@ -121,13 +120,8 @@ private:
 		state_.compare_exchange_strong(prev, new_state);
 	}
 
-	client_foveation::eye_tracked_center foveation_center;
+	client_foveation::center foveation_center;
 	xr::swapchain swapchain;
-	xr::swapchain foveation_dummy_swapchain;
-	bool meta_foveation_enabled = false;
-	std::array<XrFovf, view_count> headset_fov{};
-	std::optional<bool> cropped_mode;
-	thread_safe<client_foveation::manual_override> foveation_override{};
 
 	std::optional<audio> audio_handle;
 
@@ -284,9 +278,7 @@ private:
 
 	void setup(const to_headset::video_stream_description &);
 	void setup_reprojection_swapchain(uint32_t width, uint32_t height, bool foveation);
-	void setup_foveation_dummy_swapchain();
 	void ensure_foveation_mode(bool cropped, uint32_t width, uint32_t height);
-	void add_foveation_dummy_layer(XrTime display_time);
 
 	vk::raii::QueryPool query_pool = nullptr;
 	bool query_pool_filled = false;

@@ -18,6 +18,7 @@
 
 #include "foveation.h"
 
+#include "application.h"
 #include "xr/instance.h"
 #include "xr/session.h"
 #include "xr/system.h"
@@ -25,6 +26,9 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <spdlog/spdlog.h>
+#include <stdexcept>
+#include <type_traits>
 
 namespace
 {
@@ -74,19 +78,22 @@ client_foveation::angles center_to_angles(const std::array<XrVector2f, 2> & cent
 	return result;
 }
 
-} // namespace
-
-namespace client_foveation
+bool fov_equal(const XrFovf & a, const XrFovf & b, const float epsilon)
 {
+	return std::abs(a.angleLeft - b.angleLeft) <= epsilon and
+	       std::abs(a.angleRight - b.angleRight) <= epsilon and
+	       std::abs(a.angleUp - b.angleUp) <= epsilon and
+	       std::abs(a.angleDown - b.angleDown) <= epsilon;
+}
 
-static angles target_angles(
+client_foveation::angles target_angles(
         float yaw,
         float pitch,
         float convergence_distance,
         std::span<const XrView> views)
 {
 	assert(views.size() == 2);
-	angles result{};
+	client_foveation::angles result{};
 
 	for (size_t i = 0; i < result.size(); ++i)
 	{
@@ -97,14 +104,14 @@ static angles target_angles(
 	return result;
 }
 
-static std::optional<angles> eye_gaze_angles(
+std::optional<client_foveation::angles> eye_gaze_angles(
         XrSpace eye_gaze_space,
         XrSpace view_space,
         XrTime time,
         XrViewStateFlags view_flags,
         std::span<const XrView> views)
 {
-	if (not view_space or views.size() != 2)
+	if (not eye_gaze_space or not view_space or views.size() != 2)
 		return {};
 
 	XrSpaceLocation location{
@@ -121,13 +128,25 @@ static std::optional<angles> eye_gaze_angles(
 		return {};
 
 	const XrVector2f gaze = yaw_pitch(location.pose.orientation);
-	return target_angles(-gaze.x, gaze.y, default_convergence_distance, views);
+	return target_angles(-gaze.x, gaze.y, client_foveation::default_convergence_distance, views);
 }
 
-eye_tracked_center::eye_tracked_center(xr::instance & inst, xr::system & sys, xr::session & xr_session) :
-        session(xr_session)
+} // namespace
+
+namespace client_foveation
 {
-	if (inst.has_extension(XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME) and
+
+center::center(xr::instance & inst, xr::system & sys, xr::session & xr_session, vk::raii::Device & vk_device, vk::raii::CommandPool & vk_commandpool, thread_safe<vk::raii::Queue> & vk_queue, vk::Format format) :
+        instance(inst),
+        session(xr_session),
+        device(vk_device),
+        commandpool(vk_commandpool),
+        queue(vk_queue),
+        swapchain_format(format)
+{
+	if (application::get_foveation_center_supported() and
+	    application::get_foveation_vulkan_supported() and
+	    inst.has_extension(XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME) and
 	    inst.has_extension(XR_FB_FOVEATION_EXTENSION_NAME) and
 	    inst.has_extension(XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME) and
 	    inst.has_extension(XR_FB_FOVEATION_VULKAN_EXTENSION_NAME) and
@@ -140,7 +159,8 @@ eye_tracked_center::eye_tracked_center(xr::instance & inst, xr::system & sys, xr
 		xrUpdateSwapchainFB = inst.get_proc<PFN_xrUpdateSwapchainFB>("xrUpdateSwapchainFB");
 		xrGetFoveationEyeTrackedStateMETA = inst.get_proc<PFN_xrGetFoveationEyeTrackedStateMETA>("xrGetFoveationEyeTrackedStateMETA");
 
-		if (supports_meta_foveation())
+		if (xrCreateFoveationProfileFB and xrDestroyFoveationProfileFB and
+		    xrUpdateSwapchainFB and xrGetFoveationEyeTrackedStateMETA)
 		{
 			XrFoveationEyeTrackedProfileCreateInfoMETA eye_tracked_info{
 			        .type = XR_TYPE_FOVEATION_EYE_TRACKED_PROFILE_CREATE_INFO_META,
@@ -164,22 +184,82 @@ eye_tracked_center::eye_tracked_center(xr::instance & inst, xr::system & sys, xr
 				foveation_profile.emplace(raw_profile, xrDestroyFoveationProfileFB);
 		}
 	}
+
+	auto [flags, views] = session.locate_views(
+	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
+	        instance.now(),
+	        application::space(xr::spaces::view));
+	(void)flags;
+	assert(views.size() == headset_fov.size());
+	for (size_t i = 0; i < headset_fov.size(); ++i)
+		headset_fov[i] = views[i].fov;
+
+	const auto & config = application::get_config();
+	set_manual_mode({
+	        .enabled = config.override_foveation_enable,
+	        .pitch = config.override_foveation_pitch,
+	        .distance = config.override_foveation_distance,
+	});
 }
 
-eye_tracked_center::~eye_tracked_center()
+// member order ensures swapchain is dropped before foveation profile
+center::~center() = default;
+
+bool center::supports_meta() const
 {
-	foveation_profile.reset();
+	return foveation_profile.has_value();
 }
 
-bool eye_tracked_center::supports_meta_foveation() const
+manual_override center::get_manual_mode() const
 {
-	return xrCreateFoveationProfileFB and xrDestroyFoveationProfileFB and xrUpdateSwapchainFB and xrGetFoveationEyeTrackedStateMETA;
+	return *manual_mode_.lock();
 }
 
-bool eye_tracked_center::update_swapchain(XrSwapchain swapchain) const
+void center::set_manual_mode(manual_override mode)
 {
-	// foveation_profile implies supports_meta_foveation()
-	if (!foveation_profile)
+	*manual_mode_.lock() = mode;
+}
+
+bool center::is_cropped(std::span<const XrFovf> submitted_fov, std::span<const bool> valid) const
+{
+	assert(submitted_fov.size() == view_count and valid.size() == view_count);
+	for (size_t i = 0; i < view_count; ++i)
+	{
+		// generous epsilon of ~6° per-side to filter out false positives
+		if (valid[i] and not fov_equal(submitted_fov[i], headset_fov[i], 0.1f))
+			return true;
+	}
+	return false;
+}
+
+bool center::needs_swapchain_recreation(bool cropped) const
+{
+	return supports_meta() and (not cropped_mode or *cropped_mode != cropped);
+}
+
+bool center::use_meta_swapchain(bool cropped) const
+{
+	return supports_meta() and not cropped;
+}
+
+void center::set_cropped(bool cropped)
+{
+	if (not cropped_mode or *cropped_mode != cropped)
+		spdlog::info("Stream FOV mode: {}", cropped ? "cropped" : "full");
+	cropped_mode = cropped;
+}
+
+void center::on_swapchain_recreated(bool cropped)
+{
+	dummy_swapchain = {};
+	if (supports_meta() and cropped)
+		create_dummy_swapchain();
+	set_cropped(cropped);
+}
+
+bool center::update_meta_swapchain(XrSwapchain swapchain) const
+{
+	if (not supports_meta() or not swapchain)
 		return false;
 
 	XrSwapchainStateFoveationFB swapchain_state{
@@ -194,60 +274,215 @@ bool eye_tracked_center::update_swapchain(XrSwapchain swapchain) const
 	return XR_SUCCEEDED(update_result);
 }
 
-std::optional<angles> eye_tracked_center::get_foveation_center(
-        XrSwapchain swapchain,
-        std::span<const XrFovf> fovs,
-        XrViewStateFlags view_flags,
-        std::span<const XrView> views,
-        XrSpace eye_gaze_space,
-        XrSpace view_space,
-        XrTime time) const
+std::optional<angles> center::meta_angles(XrSwapchain swapchain, std::span<const XrFovf> fov) const
 {
-	// Try Meta foveation first
-	// foveation_profile implies supports_meta_foveation()
-	if (foveation_profile and update_swapchain(swapchain))
-	{
-		XrFoveationEyeTrackedStateMETA state{
-		        .type = XR_TYPE_FOVEATION_EYE_TRACKED_STATE_META,
-		};
+	if (not update_meta_swapchain(swapchain))
+		return {};
 
-		XrResult state_result = xrGetFoveationEyeTrackedStateMETA(session, &state);
-		if (XR_SUCCEEDED(state_result) and (state.flags & XR_FOVEATION_EYE_TRACKED_STATE_VALID_BIT_META))
+	XrFoveationEyeTrackedStateMETA state{
+	        .type = XR_TYPE_FOVEATION_EYE_TRACKED_STATE_META,
+	};
+
+	XrResult result = xrGetFoveationEyeTrackedStateMETA(session, &state);
+	if (XR_FAILED(result) or not(state.flags & XR_FOVEATION_EYE_TRACKED_STATE_VALID_BIT_META))
+		return {};
+
+	std::array<XrVector2f, view_count> ndc_center{state.foveationCenter[0], state.foveationCenter[1]};
+	return center_to_angles(ndc_center, fov);
+}
+
+void center::update(std::span<const XrFovf> submitted_fov, std::span<const bool> valid, XrSwapchain stream_swapchain, XrTime display_time)
+{
+	assert(submitted_fov.size() == view_count and valid.size() == view_count);
+	layer_.reset();
+	packet_.reset();
+
+	XrSpace view_space = application::space(xr::spaces::view);
+	auto [view_flags, views] = session.locate_views(
+	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, display_time, view_space);
+
+	constexpr XrViewStateFlags layer_flags =
+	        XR_VIEW_STATE_POSITION_VALID_BIT | XR_VIEW_STATE_ORIENTATION_VALID_BIT;
+	if (supports_meta() and cropped_mode.value_or(false) and dummy_swapchain and
+	    views.size() == view_count and (view_flags & layer_flags) == layer_flags)
+	{
+		projection_layer layer{
+		        .flags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+		        .space = view_space,
+		};
+		for (size_t i = 0; i < view_count; ++i)
 		{
-			std::array<XrVector2f, 2> center{state.foveationCenter[0], state.foveationCenter[1]};
-			return center_to_angles(center, fovs);
+			layer.views[i] = {
+			        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
+			        .pose = views[i].pose,
+			        .fov = headset_fov[i],
+			        .subImage = {
+			                .swapchain = dummy_swapchain,
+			                .imageRect = {
+			                        .offset = {0, 0},
+			                        .extent = {dummy_swapchain_size, dummy_swapchain_size},
+			                },
+			                .imageArrayIndex = uint32_t(i),
+			        },
+			};
+		}
+		layer_ = layer;
+	}
+
+	if (views.size() != view_count or not(view_flags & XR_VIEW_STATE_POSITION_VALID_BIT))
+		return;
+
+	// dummy layer is always full FOV
+	std::array<XrFovf, view_count> effective_fov{};
+	for (size_t i = 0; i < view_count; ++i)
+		effective_fov[i] = valid[i] ? submitted_fov[i] : headset_fov[i];
+	const XrSwapchain meta_swapchain = cropped_mode.value_or(false) ? static_cast<XrSwapchain>(dummy_swapchain) : stream_swapchain;
+	const std::span<const XrFovf> meta_fov = cropped_mode.value_or(false) ? std::span<const XrFovf>(headset_fov) : std::span<const XrFovf>(effective_fov);
+
+	const auto manual = get_manual_mode();
+	state = fixed_state{};
+	if (manual.enabled)
+	{
+		if (supports_meta())
+			update_meta_swapchain(meta_swapchain);
+		state = fixed_state{manual.pitch, manual.distance};
+	}
+	else
+	{
+		if (supports_meta())
+		{
+			if (auto a = meta_angles(meta_swapchain, meta_fov))
+				state = meta_state{*a};
+		}
+
+		if (std::holds_alternative<fixed_state>(state) and application::get_eye_gaze_supported())
+		{
+			if (auto a = eye_gaze_angles(application::space(xr::spaces::eye_gaze),
+			                             view_space,
+			                             display_time,
+			                             view_flags,
+			                             views))
+				state = eye_gaze_state{*a};
 		}
 	}
 
-	// Fall back to eye gaze
-	if (eye_gaze_space and view_space)
-	{
-		return eye_gaze_angles(
-		        eye_gaze_space,
-		        view_space,
-		        time,
-		        view_flags,
-		        views);
-	}
-
-	return {};
+	angles value = std::visit([&views](const auto & selected) -> angles {
+		using T = std::decay_t<decltype(selected)>;
+		if constexpr (std::is_same_v<T, fixed_state>)
+			return target_angles(0, selected.pitch, selected.distance, views);
+		else
+			return selected.center;
+	},
+	                          state);
+	packet_ = wivrn::from_headset::foveation{.angles = value};
 }
 
-angles fixed_angles(std::span<const XrView> views, float pitch, float convergence_distance)
+std::optional<center::projection_layer> center::get_layer() const
 {
-	return target_angles(0.0f, pitch, convergence_distance, views);
+	return layer_;
 }
 
-void update_angles(angle_update_state & state, const angles & value)
+std::optional<wivrn::from_headset::foveation> center::take_packet()
 {
-	if (state.valid and
-	    state.value[0].x == value[0].x and state.value[0].y == value[0].y and
-	    state.value[1].x == value[1].x and state.value[1].y == value[1].y)
-		return;
+	// A skipped render must not resend the previous frame's center.
+	auto result = packet_;
+	packet_.reset();
+	return result;
+}
 
-	state.value = value;
-	state.valid = true;
-	state.dirty = true;
+void center::create_dummy_swapchain()
+{
+	device.waitIdle();
+
+	dummy_swapchain = xr::swapchain(
+	        instance,
+	        session,
+	        device,
+	        swapchain_format,
+	        dummy_swapchain_size,
+	        dummy_swapchain_size,
+	        1,
+	        view_count,
+	        true,
+	        true);
+
+	if (not update_meta_swapchain(dummy_swapchain))
+		throw std::runtime_error("Failed to apply eye-tracked foveation profile to dummy swapchain");
+
+	const int image_index = dummy_swapchain.acquire();
+	dummy_swapchain.wait();
+
+	auto clear_command_buffer = std::move(device.allocateCommandBuffers({
+	        .commandPool = *commandpool,
+	        .level = vk::CommandBufferLevel::ePrimary,
+	        .commandBufferCount = 1,
+	})[0]);
+	auto clear_fence = device.createFence({});
+
+	clear_command_buffer.begin(vk::CommandBufferBeginInfo{
+	        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+	});
+
+	vk::ImageMemoryBarrier to_transfer{
+	        .srcAccessMask = vk::AccessFlagBits::eNone,
+	        .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
+	        .oldLayout = vk::ImageLayout::eUndefined,
+	        .newLayout = vk::ImageLayout::eTransferDstOptimal,
+	        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	        .image = dummy_swapchain.image(image_index),
+	        .subresourceRange = {
+	                .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                .baseMipLevel = 0,
+	                .levelCount = 1,
+	                .baseArrayLayer = 0,
+	                .layerCount = view_count,
+	        },
+	};
+	clear_command_buffer.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eTopOfPipe,
+	        vk::PipelineStageFlagBits::eTransfer,
+	        {},
+	        {},
+	        {},
+	        to_transfer);
+
+	clear_command_buffer.clearColorImage(
+	        dummy_swapchain.image(image_index),
+	        vk::ImageLayout::eTransferDstOptimal,
+	        vk::ClearColorValue{std::array<float, 4>{0, 0, 0, 0}},
+	        to_transfer.subresourceRange);
+
+	vk::ImageMemoryBarrier to_runtime{
+	        .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
+	        .dstAccessMask = vk::AccessFlagBits::eMemoryRead,
+	        .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+	        .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+	        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	        .image = dummy_swapchain.image(image_index),
+	        .subresourceRange = to_transfer.subresourceRange,
+	};
+	clear_command_buffer.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eTransfer,
+	        vk::PipelineStageFlagBits::eAllCommands,
+	        {},
+	        {},
+	        {},
+	        to_runtime);
+	clear_command_buffer.end();
+
+	vk::SubmitInfo submit_info;
+	submit_info.setCommandBuffers(*clear_command_buffer);
+	queue.lock()->submit(submit_info, *clear_fence);
+	if (device.waitForFences(*clear_fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
+		throw std::runtime_error("Vulkan fence timeout while clearing foveation dummy swapchain");
+
+	dummy_swapchain.release();
+	spdlog::info(
+	        "Created {}x{} eye-tracked foveation dummy swapchain",
+	        dummy_swapchain_size,
+	        dummy_swapchain_size);
 }
 
 } // namespace client_foveation

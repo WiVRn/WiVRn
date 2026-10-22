@@ -54,14 +54,6 @@
 using namespace wivrn;
 using namespace beman::inplace_vector;
 
-static bool fov_equal(const XrFovf & a, const XrFovf & b, const float epsilon)
-{
-	return std::abs(a.angleLeft - b.angleLeft) <= epsilon and
-	       std::abs(a.angleRight - b.angleRight) <= epsilon and
-	       std::abs(a.angleUp - b.angleUp) <= epsilon and
-	       std::abs(a.angleDown - b.angleDown) <= epsilon;
-}
-
 // clang-format off
 static const std::unordered_map<std::string, device_id> device_ids = {
 	{"/user/hand/left/input/dpad_up/click",       device_id::DPAD_UP_CLICK},
@@ -210,7 +202,7 @@ static const std::array supported_depth_formats{
 scenes::stream::stream(std::string server_name, scene & parent_scene) :
         scene_impl<stream>(supported_color_formats, supported_depth_formats, parent_scene),
         apps{*this, std::move(server_name)},
-        foveation_center{instance, system, session}
+        foveation_center{instance, system, session, device, commandpool, queue, swapchain_format}
 {
 	auto views = system.view_configuration_views(viewconfig);
 	width = views[0].recommendedImageRectWidth;
@@ -250,25 +242,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	std::shared_ptr<stream> self{new stream{std::move(server_name), parent_scene}};
 	self->network_session = std::move(network_session);
 
-	self->meta_foveation_enabled =
-	        application::get_foveation_center_supported() and
-	        application::get_foveation_vulkan_supported() and
-	        self->foveation_center.supports_meta_foveation();
-
-	if (self->meta_foveation_enabled)
+	if (self->foveation_center.supports_meta())
 		spdlog::info("XR_META_foveation_eye_tracked will be used for this stream");
-
-	{
-		auto [flags, views] = self->session.locate_views(
-		        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-		        self->instance.now(),
-		        application::space(xr::spaces::view));
-		(void)flags;
-
-		assert(views.size() == self->headset_fov.size());
-		for (size_t i = 0; i < self->headset_fov.size(); ++i)
-			self->headset_fov[i] = views[i].fov;
-	}
 
 	self->network_session->send_control([&]() {
 		from_headset::headset_info_packet info{
@@ -314,7 +289,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
-		info.foveation_center = self->meta_foveation_enabled;
+		info.foveation_center = self->foveation_center.supports_meta();
 
 		if (self->instance.has_extension(XR_EXT_USER_PRESENCE_EXTENSION_NAME))
 		{
@@ -416,16 +391,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 				spdlog::warn("Failed to get visibility mask: ", e.what());
 			}
 		}
-	}
-
-	{
-		const auto & config = application::get_config();
-		auto override = self->foveation_override.lock();
-		*override = {
-		        .enabled = config.override_foveation_enable,
-		        .pitch = config.override_foveation_pitch,
-		        .distance = config.override_foveation_distance,
-		};
 	}
 
 	self->network_thread = utils::named_thread("network_thread", &stream::process_packets, self.get());
@@ -923,13 +888,12 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	// If no such frame exists, use the latest frame for each decoder
 	current_blit_handles = common_frame(frame_state.predictedDisplayTime);
 	std::array<XrPosef, view_count> pose;
-	std::array<XrFovf, view_count> fov;
+	std::array<XrFovf, view_count> fov{};
+	std::array<bool, view_count> valid_fov{};
 	std::array<wivrn::to_headset::foveation_parameter, view_count> foveation;
 	std::array<XrExtent2Di, view_count> extents;
-	std::optional<client_foveation::angles> foveation_angles;
 	int32_t max_width = 0;
 	int32_t max_height = 0;
-	bool frame_cropped = false;
 	for (size_t i = 0; i < view_count; ++i)
 	{
 		auto & blit_handle = current_blit_handles[i];
@@ -937,16 +901,15 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			continue;
 
 		fov[i] = blit_handle->view_info.fov[i];
+		valid_fov[i] = true;
 		foveation[i] = blit_handle->view_info.foveation[i];
 		extents[i] = stream_defoveator::defoveated_size(foveation[i]);
 		max_width = std::max(max_width, extents[i].width);
 		max_height = std::max(max_height, extents[i].height);
-		// generous epsilon of ~6° per-side to filter out false positives
-		frame_cropped |= !fov_equal(fov[i], headset_fov[i], 0.1);
 	}
 
 	if (max_width > 0 and max_height > 0)
-		ensure_foveation_mode(frame_cropped, max_width, max_height);
+		ensure_foveation_mode(foveation_center.is_cropped(fov, valid_fov), max_width, max_height);
 
 	session.begin_frame();
 
@@ -1085,36 +1048,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			extents[i].height = std::min(extents[i].height, swapchain.height());
 		}
 
-		// Calculate foveation angles (sent with feedback batch later)
-		{
-			XrSpace view_space = application::space(xr::spaces::view);
-			auto [view_flags, views] = session.locate_views(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, frame_state.predictedDisplayTime, view_space);
-
-			if (view_flags & XR_VIEW_STATE_POSITION_VALID_BIT and views.size() == 2)
-			{
-				XrSpace eye_gaze_space = application::get_eye_gaze_supported()
-				                                 ? application::space(xr::spaces::eye_gaze)
-				                                 : XR_NULL_HANDLE;
-
-				XrSwapchain foveation_swapchain = cropped_mode.value_or(false)
-				                                          ? static_cast<XrSwapchain>(foveation_dummy_swapchain)
-				                                          : static_cast<XrSwapchain>(swapchain);
-
-				foveation_angles = foveation_center.get_foveation_center(
-				        foveation_swapchain,
-				        headset_fov,
-				        view_flags,
-				        views,
-				        eye_gaze_space,
-				        view_space,
-				        frame_state.predictedDisplayTime);
-
-				if (!foveation_angles)
-				{
-					foveation_angles = client_foveation::fixed_angles(views);
-				}
-			}
-		}
+		foveation_center.update(fov, valid_fov, swapchain, frame_state.predictedDisplayTime);
 
 		// defoveate the image, apply scale/bias
 		int image_index = swapchain.acquire();
@@ -1225,8 +1159,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		render_start(use_alpha, frame_state.predictedDisplayTime);
 
-		// In cropped mode, we keep an invisible layer covering the entire HMD FOV
-		add_foveation_dummy_layer(frame_state.predictedDisplayTime);
+		// full-FOV dummy layer for Meta foveation, used when cropping FOV
+		if (auto layer = foveation_center.get_layer())
+			add_projection_layer(layer->flags, layer->space, layer->views);
 
 		// Add the layer with the streamed content
 		std::array<XrCompositionLayerProjectionView, view_count> layer_view;
@@ -1292,10 +1227,10 @@ void scenes::stream::render(const XrFrameState & frame_state)
 				wivrn_session::control_socket_t::serialize(packet, feedbacks.emplace_back(handle->feedback));
 			}
 		}
-		if (foveation_angles)
+		if (auto foveation_packet = foveation_center.take_packet())
 		{
 			auto & packet = packets.emplace_back();
-			wivrn_session::control_socket_t::serialize(packet, from_headset::foveation{.angles = *foveation_angles});
+			wivrn_session::control_socket_t::serialize(packet, *foveation_packet);
 		}
 		if (not packets.empty())
 		{
@@ -1410,163 +1345,17 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 	        swapchain.format());
 }
 
-void scenes::stream::setup_foveation_dummy_swapchain()
-{
-	assert(meta_foveation_enabled);
-	device.waitIdle();
-
-	foveation_dummy_swapchain = xr::swapchain(
-	        instance,
-	        session,
-	        device,
-	        swapchain_format,
-	        foveation_dummy_swapchain_size,
-	        foveation_dummy_swapchain_size,
-	        1,
-	        view_count,
-	        true,
-	        true);
-
-	if (!foveation_center.update_swapchain(foveation_dummy_swapchain))
-		throw std::runtime_error("Failed to apply eye-tracked foveation profile to dummy swapchain");
-
-	const int image_index = foveation_dummy_swapchain.acquire();
-	foveation_dummy_swapchain.wait();
-
-	auto clear_command_buffer = std::move(device.allocateCommandBuffers({
-	        .commandPool = *commandpool,
-	        .level = vk::CommandBufferLevel::ePrimary,
-	        .commandBufferCount = 1,
-	})[0]);
-	auto clear_fence = device.createFence({});
-
-	clear_command_buffer.begin(vk::CommandBufferBeginInfo{
-	        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
-	});
-
-	vk::ImageMemoryBarrier to_transfer{
-	        .srcAccessMask = vk::AccessFlagBits::eNone,
-	        .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
-	        .oldLayout = vk::ImageLayout::eUndefined,
-	        .newLayout = vk::ImageLayout::eTransferDstOptimal,
-	        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	        .image = foveation_dummy_swapchain.image(image_index),
-	        .subresourceRange = {
-	                .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                .baseMipLevel = 0,
-	                .levelCount = 1,
-	                .baseArrayLayer = 0,
-	                .layerCount = view_count,
-	        },
-	};
-	clear_command_buffer.pipelineBarrier(
-	        vk::PipelineStageFlagBits::eTopOfPipe,
-	        vk::PipelineStageFlagBits::eTransfer,
-	        {},
-	        {},
-	        {},
-	        to_transfer);
-
-	clear_command_buffer.clearColorImage(
-	        foveation_dummy_swapchain.image(image_index),
-	        vk::ImageLayout::eTransferDstOptimal,
-	        vk::ClearColorValue{std::array<float, 4>{0, 0, 0, 0}},
-	        to_transfer.subresourceRange);
-
-	vk::ImageMemoryBarrier to_runtime{
-	        .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-	        .dstAccessMask = vk::AccessFlagBits::eMemoryRead,
-	        .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-	        .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-	        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	        .image = foveation_dummy_swapchain.image(image_index),
-	        .subresourceRange = to_transfer.subresourceRange,
-	};
-	clear_command_buffer.pipelineBarrier(
-	        vk::PipelineStageFlagBits::eTransfer,
-	        vk::PipelineStageFlagBits::eAllCommands,
-	        {},
-	        {},
-	        {},
-	        to_runtime);
-	clear_command_buffer.end();
-
-	vk::SubmitInfo submit_info;
-	submit_info.setCommandBuffers(*clear_command_buffer);
-	queue.lock()->submit(submit_info, *clear_fence);
-	if (device.waitForFences(*clear_fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
-		throw std::runtime_error("Vulkan fence timeout while clearing foveation dummy swapchain");
-
-	foveation_dummy_swapchain.release();
-	spdlog::info(
-	        "Created {}x{} eye-tracked foveation dummy swapchain",
-	        foveation_dummy_swapchain_size,
-	        foveation_dummy_swapchain_size);
-}
-
 void scenes::stream::ensure_foveation_mode(bool cropped, uint32_t width, uint32_t height)
 {
-	const bool mode_changed = !cropped_mode or *cropped_mode != cropped;
-	const bool swapchain_configuration_changed = meta_foveation_enabled and mode_changed;
-
-	if (!swapchain or swapchain_configuration_changed)
+	if (!swapchain or foveation_center.needs_swapchain_recreation(cropped))
 	{
-		const bool real_swapchain_foveation = meta_foveation_enabled and !cropped;
-		setup_reprojection_swapchain(width, height, real_swapchain_foveation);
-
-		// setup_reprojection_swapchain waits for the Vulkan device, so the old
-		// dummy is no longer in use by us when it is destroyed here.
-		foveation_dummy_swapchain = {};
-		if (meta_foveation_enabled and cropped)
-			setup_foveation_dummy_swapchain();
+		setup_reprojection_swapchain(width, height, foveation_center.use_meta_swapchain(cropped));
+		foveation_center.on_swapchain_recreated(cropped);
 	}
-
-	if (mode_changed)
+	else
 	{
-		spdlog::info("Stream FOV mode: {}", cropped ? "cropped" : "full");
-		cropped_mode = cropped;
+		foveation_center.set_cropped(cropped);
 	}
-}
-
-void scenes::stream::add_foveation_dummy_layer(XrTime display_time)
-{
-	if (!meta_foveation_enabled or !cropped_mode.value_or(false) or !foveation_dummy_swapchain)
-		return;
-
-	auto [view_flags, views] = session.locate_views(
-	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-	        display_time,
-	        application::space(xr::spaces::view));
-
-	constexpr XrViewStateFlags required_view_flags =
-	        XR_VIEW_STATE_POSITION_VALID_BIT | XR_VIEW_STATE_ORIENTATION_VALID_BIT;
-	if (views.size() != view_count or (view_flags & required_view_flags) != required_view_flags)
-		return;
-
-	std::array<XrCompositionLayerProjectionView, view_count> layer_views;
-	for (size_t i = 0; i < view_count; ++i)
-	{
-		layer_views[i] = {
-		        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-		        .pose = views[i].pose,
-		        .fov = headset_fov[i],
-		        .subImage = {
-		                .swapchain = foveation_dummy_swapchain,
-		                .imageRect = {
-		                        .offset = {0, 0},
-		                        .extent = {foveation_dummy_swapchain_size, foveation_dummy_swapchain_size},
-		                },
-		                .imageArrayIndex = uint32_t(i),
-		        },
-		};
-	}
-
-	add_projection_layer(
-	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-	        application::space(xr::spaces::view),
-	        layer_views);
 }
 
 scene::meta & scenes::stream::get_meta_scene()

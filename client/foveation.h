@@ -19,11 +19,14 @@
 #pragma once
 
 #include "utils/handle.h"
+#include "utils/thread_safe.h"
 #include "wivrn_packets.h"
+#include "xr/swapchain.h"
 
 #include <array>
 #include <optional>
 #include <span>
+#include <variant>
 #include <openxr/openxr.h>
 
 namespace xr
@@ -41,13 +44,6 @@ inline constexpr float default_convergence_distance = 1.0f;
 // Default foveation target is 1 m forward and 10 degrees below horizontal.
 inline constexpr float default_foveation_pitch = -0.17453292519943295f; // -10 degrees
 
-struct angle_update_state
-{
-	angles value{};
-	bool valid = false;
-	bool dirty = false;
-};
-
 struct manual_override
 {
 	bool enabled = false;
@@ -55,32 +51,78 @@ struct manual_override
 	float distance = default_convergence_distance;
 };
 
-class eye_tracked_center
+// Unified class for static, meta and eye-gaze based foveation.
+class center
 {
-	XrSession session = XR_NULL_HANDLE;
+public:
+	static constexpr size_t view_count = 2;
+	static constexpr int32_t dummy_swapchain_size = 512;
+
+	struct projection_layer
+	{
+		XrCompositionLayerFlags flags;
+		XrSpace space;
+		std::array<XrCompositionLayerProjectionView, view_count> views;
+	};
+
+	center(xr::instance &, xr::system &, xr::session &, vk::raii::Device &, vk::raii::CommandPool &, thread_safe<vk::raii::Queue> &, vk::Format swapchain_format);
+	~center();
+
+	bool supports_meta() const;
+
+	manual_override get_manual_mode() const;
+	void set_manual_mode(manual_override mode);
+
+	bool is_cropped(std::span<const XrFovf> submitted_fov, std::span<const bool> valid) const;
+	bool needs_swapchain_recreation(bool cropped) const;
+	bool use_meta_swapchain(bool cropped) const;
+	void on_swapchain_recreated(bool cropped);
+	void set_cropped(bool cropped);
+
+	void update(std::span<const XrFovf> submitted_fov, std::span<const bool> valid, XrSwapchain stream_swapchain, XrTime display_time);
+	std::optional<projection_layer> get_layer() const;
+	std::optional<wivrn::from_headset::foveation> take_packet();
+
+private:
+	struct fixed_state
+	{
+		float pitch = default_foveation_pitch;
+		float distance = default_convergence_distance;
+	};
+	struct meta_state
+	{
+		angles center;
+	};
+	struct eye_gaze_state
+	{
+		angles center;
+	};
+
+	std::variant<fixed_state, meta_state, eye_gaze_state> state = fixed_state{};
+	mutable thread_safe<manual_override> manual_mode_{};
+
+	xr::instance & instance;
+	xr::session & session;
+	vk::raii::Device & device;
+	vk::raii::CommandPool & commandpool;
+	thread_safe<vk::raii::Queue> & queue;
+	vk::Format swapchain_format;
+
 	PFN_xrCreateFoveationProfileFB xrCreateFoveationProfileFB = nullptr;
 	PFN_xrDestroyFoveationProfileFB xrDestroyFoveationProfileFB = nullptr;
 	PFN_xrUpdateSwapchainFB xrUpdateSwapchainFB = nullptr;
 	PFN_xrGetFoveationEyeTrackedStateMETA xrGetFoveationEyeTrackedStateMETA = nullptr;
-	mutable std::optional<utils::handle<XrFoveationProfileFB>> foveation_profile;
+	std::optional<utils::handle<XrFoveationProfileFB>> foveation_profile;
 
-public:
-	eye_tracked_center() = default;
-	eye_tracked_center(xr::instance &, xr::system &, xr::session &);
-	~eye_tracked_center();
+	std::array<XrFovf, view_count> headset_fov{};
+	std::optional<bool> cropped_mode;
+	xr::swapchain dummy_swapchain;
+	std::optional<projection_layer> layer_;
+	std::optional<wivrn::from_headset::foveation> packet_;
 
-	bool supports_meta_foveation() const;
-	bool update_swapchain(XrSwapchain swapchain) const;
-	std::optional<angles> get_foveation_center(
-	        XrSwapchain swapchain,
-	        std::span<const XrFovf> fovs,
-	        XrViewStateFlags view_flags,
-	        std::span<const XrView> views,
-	        XrSpace eye_gaze_space = XR_NULL_HANDLE,
-	        XrSpace view_space = XR_NULL_HANDLE,
-	        XrTime time = 0) const;
+	bool update_meta_swapchain(XrSwapchain swapchain) const;
+	std::optional<angles> meta_angles(XrSwapchain swapchain, std::span<const XrFovf> fov) const;
+	void create_dummy_swapchain();
 };
-angles fixed_angles(std::span<const XrView> views, float pitch = default_foveation_pitch, float convergence_distance = default_convergence_distance);
-void update_angles(angle_update_state & state, const angles & value);
 
 } // namespace client_foveation
