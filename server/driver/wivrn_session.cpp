@@ -1233,7 +1233,6 @@ std::pair<bool, std::optional<std::string>> wivrn_session::validate_headset_info
 		warn |= prev_info.hand_tracking != info.hand_tracking;
 		warn |= prev_info.face_tracking != info.face_tracking;
 		warn |= prev_info.eye_gaze != info.eye_gaze;
-		warn |= prev_info.foveation_center != info.foveation_center;
 
 		warn |= prev_info.num_generic_trackers != info.num_generic_trackers;
 

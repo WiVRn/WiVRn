@@ -348,7 +348,6 @@ struct headset_info_packet
 	std::optional<audio_description> microphone;
 	bool hand_tracking;
 	bool eye_gaze;
-	bool foveation_center;
 	bool palm_pose;
 	bool user_presence;
 	bool passthrough;
