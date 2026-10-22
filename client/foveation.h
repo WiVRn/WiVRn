@@ -26,7 +26,6 @@
 #include <array>
 #include <optional>
 #include <span>
-#include <variant>
 #include <openxr/openxr.h>
 
 namespace xr
@@ -84,21 +83,6 @@ public:
 	std::optional<wivrn::from_headset::foveation> take_packet();
 
 private:
-	struct fixed_state
-	{
-		float pitch = default_foveation_pitch;
-		float distance = default_convergence_distance;
-	};
-	struct meta_state
-	{
-		angles center;
-	};
-	struct eye_gaze_state
-	{
-		angles center;
-	};
-
-	std::variant<fixed_state, meta_state, eye_gaze_state> state = fixed_state{};
 	mutable thread_safe<manual_override> manual_mode_{};
 
 	xr::instance & instance;
