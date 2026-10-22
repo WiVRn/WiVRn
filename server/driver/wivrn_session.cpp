@@ -675,7 +675,6 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 
 	if (eye_tracker)
 		eye_tracker->update_tracking(tracking, offset);
-	compositor.update_tracking(tracking);
 
 	if (android_face_tracker)
 		android_face_tracker->update_tracking(tracking, offset);
@@ -685,9 +684,9 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 		htc_face_tracker->update_tracking(tracking, offset);
 }
 
-void wivrn_session::operator()(from_headset::override_foveation_center && foveation_center)
+void wivrn_session::operator()(const from_headset::foveation & packet)
 {
-	compositor.update_foveation_center_override(foveation_center);
+	compositor.update_foveation(packet);
 }
 
 void wivrn_session::operator()(from_headset::derived_pose && derived)

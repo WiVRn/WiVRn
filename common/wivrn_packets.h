@@ -399,6 +399,11 @@ inline uint8_t to_pose_flags(XrSpaceLocationFlags location_flags, XrSpaceVelocit
 	return flags;
 }
 
+struct foveation
+{
+	std::array<XrVector2f, 2> angles; // Per-eye x/y view angles in radians
+};
+
 struct tracking
 {
 	enum state_flags : uint8_t
@@ -690,13 +695,6 @@ struct stream_tab_changed
 	stream_tab tab;
 };
 
-struct override_foveation_center
-{
-	bool enabled;
-	float pitch;
-	float distance;
-};
-
 struct get_application_list
 {
 	std::string language;
@@ -747,13 +745,13 @@ using packets = std::variant<
         session_state_changed,
         user_presence_changed,
         stream_tab_changed,
-        override_foveation_center,
         get_application_list,
         start_app,
         get_running_applications,
         set_active_application,
         hid::input,
-        stop_application>;
+        stop_application,
+        foveation>;
 } // namespace from_headset
 
 namespace to_headset
