@@ -28,7 +28,6 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <type_traits>
 
 namespace
 {
@@ -340,41 +339,34 @@ void center::update(std::span<const XrFovf> submitted_fov, std::span<const bool>
 	const std::span<const XrFovf> meta_fov = cropped_mode.value_or(false) ? std::span<const XrFovf>(headset_fov) : std::span<const XrFovf>(effective_fov);
 
 	const auto manual = get_manual_mode();
-	state = fixed_state{};
+	std::optional<angles> angles;
 	if (manual.enabled)
 	{
 		if (supports_meta())
 			update_meta_swapchain(meta_swapchain);
-		state = fixed_state{manual.pitch, manual.distance};
+		angles = target_angles(0, manual.pitch, manual.distance, views);
 	}
 	else
 	{
 		if (supports_meta())
 		{
 			if (auto a = meta_angles(meta_swapchain, meta_fov))
-				state = meta_state{*a};
+				angles = *a;
 		}
-
-		if (std::holds_alternative<fixed_state>(state) and application::get_eye_gaze_supported())
+		if (not angles and application::get_eye_gaze_supported())
 		{
 			if (auto a = eye_gaze_angles(application::space(xr::spaces::eye_gaze),
 			                             view_space,
 			                             display_time,
 			                             view_flags,
 			                             views))
-				state = eye_gaze_state{*a};
+				angles = *a;
 		}
+		if (not angles)
+			angles = target_angles(0, default_foveation_pitch, default_convergence_distance, views);
 	}
-
-	angles value = std::visit([&views](const auto & selected) -> angles {
-		using T = std::decay_t<decltype(selected)>;
-		if constexpr (std::is_same_v<T, fixed_state>)
-			return target_angles(0, selected.pitch, selected.distance, views);
-		else
-			return selected.center;
-	},
-	                          state);
-	packet_ = wivrn::from_headset::foveation{.angles = value};
+	// angles guaranteed to have a value at this point
+	packet_ = wivrn::from_headset::foveation{.angles = *angles};
 }
 
 std::optional<center::projection_layer> center::get_layer() const
