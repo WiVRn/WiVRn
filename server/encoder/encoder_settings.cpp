@@ -267,7 +267,8 @@ public:
 			}
 		}
 #endif
-		U_LOG_W("No suitable hardware accelerated codec found");
+		if (config.name != encoder_x264)
+			U_LOG_W("No suitable hardware accelerated codec found");
 #if WIVRN_USE_X264
 		if (config.name.empty() or config.name == encoder_x264)
 			return {encoder_x264, video_codec::h264};
