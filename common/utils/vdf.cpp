@@ -145,12 +145,19 @@ wivrn::vdf::keyvalue const & wivrn::vdf::keyvalue::operator[](const char * key) 
 
 wivrn::vdf::root::root(const std::filesystem::path & file)
 {
-	boost::iostreams::mapped_file in{file};
-	opaque = in;
+	try
+	{
+		boost::iostreams::mapped_file_source in{file};
+		opaque = in;
 
-	const char * pos = in.begin();
-	key = read_string(pos, in.end());
-	value = read_value(pos, in.end());
+		const char * pos = in.begin();
+		key = read_string(pos, in.end());
+		value = read_value(pos, in.end());
+	}
+	catch (std::exception & e)
+	{
+		throw std::runtime_error(std::format("failed to parse {}: {}", file.native(), e.what()));
+	}
 }
 
 void dump(const wivrn::vdf::keyvalue & kv, int depth)

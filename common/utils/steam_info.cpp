@@ -177,21 +177,26 @@ std::optional<uint32_t> guess_steam_userid(const std::filesystem::path & root)
 
 std::unordered_set<uint64_t> installed_appids(std::filesystem::path root)
 {
-	wivrn::vdf::root vdf(root / "config/libraryfolders.vdf");
-	using values_t = std::vector<wivrn::vdf::keyvalue>;
-	if (vdf.key != "libraryfolders")
-		return {};
-
 	std::unordered_set<uint64_t> res;
-	for (const auto & kv: std::get<values_t>(vdf.value))
+	try
 	{
-		for (const auto & [appid, _]: std::get<values_t>(kv["apps"].value))
+		wivrn::vdf::root vdf(root / "config/libraryfolders.vdf");
+		using values_t = std::vector<wivrn::vdf::keyvalue>;
+		if (vdf.key != "libraryfolders")
+			return {};
+
+		for (const auto & kv: std::get<values_t>(vdf.value))
 		{
-			uint64_t val;
-			if (std::from_chars(appid.data.begin(), appid.data.end(), val).ec == std::errc())
-				res.emplace(val);
+			for (const auto & [appid, _]: std::get<values_t>(kv["apps"].value))
+			{
+				uint64_t val;
+				if (std::from_chars(appid.data.begin(), appid.data.end(), val).ec == std::errc())
+					res.emplace(val);
+			}
 		}
 	}
+	catch (...)
+	{}
 	return res;
 }
 
@@ -476,6 +481,7 @@ std::vector<wivrn::steam::application> wivrn::steam::list_applications()
 		}
 		catch (std::exception & e)
 		{
+			std::cerr << "Listing Steam applications failed (user id " << *default_userid << "): " << e.what() << std::endl;
 		}
 	}
 	else
@@ -496,6 +502,7 @@ std::vector<wivrn::steam::application> wivrn::steam::list_applications()
 			}
 			catch (std::exception & e)
 			{
+				std::cerr << "Listing Steam applications failed (" << entry.path().filename() << "): " << e.what() << std::endl;
 			}
 	}
 
