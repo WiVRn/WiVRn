@@ -40,6 +40,8 @@ struct keyvalue
 {
 	string key;
 	std::variant<string, std::vector<keyvalue>> value;
+
+	keyvalue const & operator[](const char *) const;
 };
 
 struct root : public keyvalue

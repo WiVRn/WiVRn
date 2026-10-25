@@ -35,19 +35,13 @@ public:
 		// localised names, with empty locale for default
 		std::unordered_map<std::string, std::string> name;
 		std::string url;
-	};
-	struct icon
-	{
-		std::string clienticon;
-		std::string linuxclienticon;
+		std::filesystem::path icon;
 	};
 
 private:
 	std::filesystem::path root;
 	bool flatpak;
 	std::optional<uint32_t> default_userid;
-	std::optional<std::unordered_map<uint32_t, icon>> icons;
-	std::unordered_map<uint32_t, std::filesystem::path> shortcut_icons;
 
 	steam(std::filesystem::path root, bool flatpak);
 
@@ -55,7 +49,6 @@ public:
 	static std::vector<steam> find_installations();
 
 	std::vector<application> list_applications();
-	std::optional<std::filesystem::path> get_icon(uint64_t app_id);
 	std::string get_steam_command() const;
 };
 

@@ -237,7 +237,7 @@ std::unordered_map<std::string, application> list_applications()
 			            application{
 			                    .name = std::move(app.name),
 			                    .exec = cmd + app.url,
-			                    .icon_path = steam.get_icon(app.appid),
+			                    .icon_path = std::move(app.icon),
 			            });
 		}
 	}

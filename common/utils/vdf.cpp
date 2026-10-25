@@ -19,6 +19,7 @@
 #include "vdf.h"
 
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <format>
 #include <iostream>
 
 namespace
@@ -130,6 +131,16 @@ bool wivrn::vdf::string::operator==(const char * b) const
 			return false;
 	}
 	return *b == '\0';
+}
+
+wivrn::vdf::keyvalue const & wivrn::vdf::keyvalue::operator[](const char * key) const
+{
+	for (auto const & kv: std::get<std::vector<keyvalue>>(value))
+	{
+		if (kv.key == key)
+			return kv;
+	}
+	throw std::out_of_range{std::format("no key {}", key)};
 }
 
 wivrn::vdf::root::root(const std::filesystem::path & file)
