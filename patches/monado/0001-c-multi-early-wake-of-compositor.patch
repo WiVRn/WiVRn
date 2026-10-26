@@ -1,7 +1,7 @@
-From 337ab13148cddef8ba9a21b3829a3bc6bedebed8 Mon Sep 17 00:00:00 2001
+From 374837e51f367f156defb24cf7d10884b47243b2 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
-Subject: [PATCH 1/9] c/multi: early wake of compositor
+Subject: [PATCH 01/11] c/multi: early wake of compositor
 
 ---
  .../compositor/multi/comp_multi_compositor.c  | 14 +++++++++
@@ -10,7 +10,7 @@ Subject: [PATCH 1/9] c/multi: early wake of compositor
  3 files changed, 41 insertions(+), 7 deletions(-)
 
 diff --git a/src/xrt/compositor/multi/comp_multi_compositor.c b/src/xrt/compositor/multi/comp_multi_compositor.c
-index 33675d43f..71c5ebf9e 100644
+index b542b606b..0dcf90ca6 100644
 --- a/src/xrt/compositor/multi/comp_multi_compositor.c
 +++ b/src/xrt/compositor/multi/comp_multi_compositor.c
 @@ -236,7 +236,21 @@ wait_for_scheduled_free(struct multi_compositor *mc)
@@ -36,10 +36,10 @@ index 33675d43f..71c5ebf9e 100644
  
  static void *
 diff --git a/src/xrt/compositor/multi/comp_multi_private.h b/src/xrt/compositor/multi/comp_multi_private.h
-index 6c7ec05f8..588878e38 100644
+index af631826a..34e48e4ff 100644
 --- a/src/xrt/compositor/multi/comp_multi_private.h
 +++ b/src/xrt/compositor/multi/comp_multi_private.h
-@@ -365,6 +365,10 @@ struct multi_system_compositor
+@@ -366,6 +366,10 @@ struct multi_system_compositor
  	 */
  	struct os_mutex list_and_timing_lock;
  
@@ -51,7 +51,7 @@ index 6c7ec05f8..588878e38 100644
  	{
  		int64_t predicted_display_time_ns;
 diff --git a/src/xrt/compositor/multi/comp_multi_system.c b/src/xrt/compositor/multi/comp_multi_system.c
-index 37bdc3bc5..717f6ae4c 100644
+index 0eb8db141..ac45962f4 100644
 --- a/src/xrt/compositor/multi/comp_multi_system.c
 +++ b/src/xrt/compositor/multi/comp_multi_system.c
 @@ -15,6 +15,8 @@
@@ -109,7 +109,7 @@ index 37bdc3bc5..717f6ae4c 100644
  
  		// Now we know the diff, broadcast to pacers.
  		broadcast_timings_to_pacers(msc, predicted_display_time_ns, predicted_display_period_ns, diff_ns);
-@@ -798,6 +810,8 @@ system_compositor_destroy(struct xrt_system_compositor *xsc)
+@@ -815,6 +827,8 @@ system_compositor_destroy(struct xrt_system_compositor *xsc)
  	xrt_comp_native_destroy(&msc->xcn);
  
  	os_mutex_destroy(&msc->list_and_timing_lock);
@@ -118,7 +118,7 @@ index 37bdc3bc5..717f6ae4c 100644
  
  	free(msc);
  }
-@@ -856,6 +870,8 @@ comp_multi_create_system_compositor(struct xrt_compositor_native *xcn,
+@@ -874,6 +888,8 @@ comp_multi_create_system_compositor(struct xrt_compositor_native *xcn,
  	msc->get_view_config_callback = get_view_config_callback;
  
  	os_mutex_init(&msc->list_and_timing_lock);
@@ -128,5 +128,5 @@ index 37bdc3bc5..717f6ae4c 100644
  	//! @todo Make the clients not go from IDLE to READY before we have completed a first frame.
  	// Make sure there is at least some sort of valid frame data here.
 -- 
-2.55.0
+2.56.0
 

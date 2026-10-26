@@ -1,7 +1,7 @@
-From f4851833957c41dfd6635e78000dba1d20cbc658 Mon Sep 17 00:00:00 2001
+From f6d8b3fa62a2962cd7637fe4b1634554ee119bbc Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Sun, 25 Jan 2026 10:09:10 +0100
-Subject: [PATCH 7/9] don't verify GL stuff
+Subject: [PATCH 07/11] don't verify GL stuff
 
 ---
  src/xrt/state_trackers/oxr/oxr_verify.c | 10 ----------
@@ -29,5 +29,5 @@ index dcdb12d96..051291e2c 100644
  }
  
 -- 
-2.55.0
+2.56.0
 
