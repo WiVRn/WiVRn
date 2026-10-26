@@ -108,7 +108,7 @@ else()
         target_link_libraries(wivrn openxr_loader)
     endif()
 
-    target_link_libraries(wivrn Fontconfig::Fontconfig CURL::libcurl)
+    target_link_libraries(wivrn Fontconfig::Fontconfig CURL::libcurl PkgConfig::GIO_CLIENT)
 
     if(WIVRN_USE_V4L2)
         file(GLOB CLIENT_V4L2_SOURCE CONFIGURE_DEPENDS
