@@ -926,6 +926,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, 0);
 
 	bool use_alpha = false;
+	auto now = instance.now();
 
 	std::array<stream_defoveator::input, view_count> images;
 	for (size_t i = 0; i < view_count + use_alpha; ++i)
@@ -938,7 +939,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			continue;
 		}
 
-		blit_handle->feedback.blitted = instance.now();
+		blit_handle->feedback.blitted = now;
 		if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
 			set_state(state::stalled);
 		++blit_handle->feedback.times_displayed;
@@ -1244,7 +1245,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		}
 	}
 
-	auto show_gamepad_toast = [this](bool enabled) {
+	auto show_gamepad_toast = [this, now](bool enabled) {
 		{
 			auto toast = gui_toast.lock();
 			toast->emplace(enabled
@@ -1252,32 +1253,32 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			                       : _("No longer emulating a gamepad."),
 			               false);
 		}
-		gui_status_last_change = instance.now();
+		gui_status_last_change = now;
 	};
 
 	if (not application::get_config().emulated_gamepad)
 	{
 		if (gamepad_mode.exchange(false))
 		{
-			scheduled_derived_pose = instance.now();
+			scheduled_derived_pose = now;
 			show_gamepad_toast(false);
 			spdlog::info("Controller gamepad emulation disabled due to setting change");
 		}
 		gamepad_chord.reset();
 	}
-	else if (gamepad_chord.check(instance.now()))
+	else if (gamepad_chord.check(now))
 	{
 		const bool enabled = not gamepad_mode.load();
 		gamepad_mode = enabled;
 		if (not enabled)
-			scheduled_derived_pose = instance.now();
+			scheduled_derived_pose = now;
 		show_gamepad_toast(enabled);
 		spdlog::info("Controller gamepad mode {}", enabled ? "enabled" : "disabled");
 	}
 
 	read_actions();
 
-	if (application::get_config().enable_stream_gui and menu_chord.check(instance.now()))
+	if (application::get_config().enable_stream_gui and menu_chord.check(now))
 	{
 		// Arbitrary transitions can happen from network commands
 		// Ensure we can't have a set of 2 non interactable states
