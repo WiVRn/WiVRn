@@ -98,56 +98,58 @@ constexpr std::array frame_gamepad_ids = {
 };
 } // namespace
 
-bool scenes::stream::check_gamepad_mode_chord(XrActionStateBoolean state_1, XrActionStateBoolean state_2)
+bool scenes::stream::chord_state::check(XrTime now)
 {
-	constexpr XrDuration gamepad_chord_press_tolerance = 150'000'000; // 150ms between grip presses
-	constexpr XrDuration gamepad_chord_timeout = 400'000'000;         // 400ms between chord taps
+	constexpr XrDuration press_tolerance = 150'000'000; // 150ms between button presses
+	constexpr XrDuration click_timeout = 400'000'000;   // 400ms between chord clicks
 
-	if (not state_1.isActive or not state_2.isActive)
+	auto state_1 = application::read_action_bool(a);
+	auto state_2 = application::read_action_bool(b);
+	if (not state_1 or not state_2)
 	{
-		gamepad_chord = {};
+		reset();
 		return false;
 	}
 
-	const bool down_1 = state_1.currentState;
-	const bool down_2 = state_2.currentState;
+	if (clicks_done != 0 and now - first_click_time > click_timeout)
+		clicks_done = 0;
+
+	const bool down_1 = state_1->second;
+	const bool down_2 = state_2->second;
 
 	if (not down_1 and not down_2)
 	{
-		gamepad_chord.both_released = true;
+		both_released = true;
 		return false;
 	}
 
-	// require both inputs to be released between the double-tap
+	// require both inputs to be released between taps
 	// to avoid accidental activation
-	if (not(down_1 and down_2) or not gamepad_chord.both_released)
+	if (not(down_1 and down_2) or not both_released)
 		return false;
 
-	// both grips are down
-	gamepad_chord.both_released = false;
-	const XrTime press_1 = state_1.lastChangeTime;
-	const XrTime press_2 = state_2.lastChangeTime;
+	// both inputs are down
+	both_released = false;
+	const XrTime press_1 = state_1->first;
+	const XrTime press_2 = state_2->first;
 	const XrDuration press_separation = press_1 >= press_2 ? press_1 - press_2 : press_2 - press_1;
 
-	// grips were not pressed together
-	if (press_separation > gamepad_chord_press_tolerance)
+	// inputs were not pressed together
+	if (press_separation > press_tolerance)
 	{
-		gamepad_chord.waiting_for_second_tap = false;
+		clicks_done = 0;
 		return false;
 	}
 
-	const XrTime tap_time = std::max(press_1, press_2);
-	if (gamepad_chord.waiting_for_second_tap and
-	    tap_time > gamepad_chord.first_tap_time and
-	    tap_time - gamepad_chord.first_tap_time <= gamepad_chord_timeout)
-	{
-		gamepad_chord.waiting_for_second_tap = false;
-		return true;
-	}
+	if (clicks_done == 0)
+		first_click_time = std::max(press_1, press_2);
 
-	gamepad_chord.first_tap_time = tap_time;
-	gamepad_chord.waiting_for_second_tap = true;
-	return false;
+	++clicks_done;
+	if (clicks_done < clicks_needed)
+		return false;
+
+	reset();
+	return true;
 }
 
 void scenes::stream::read_actions()

@@ -565,8 +565,8 @@ void scenes::stream::on_focused()
 
 	plots_toggle_1 = get_action("plots_toggle_1").first;
 	plots_toggle_2 = get_action("plots_toggle_2").first;
-	gamepad_mode_1 = get_action("gamepad_mode_1").first;
-	gamepad_mode_2 = get_action("gamepad_mode_2").first;
+	gamepad_chord.a = get_action("gamepad_mode_1").first;
+	gamepad_chord.b = get_action("gamepad_mode_2").first;
 	recenter_left = get_action("recenter_left").first;
 	recenter_right = get_action("recenter_right").first;
 	gui_distance_left = get_action("gui_distance_left").first;
@@ -1263,29 +1263,16 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			show_gamepad_toast(false);
 			spdlog::info("Controller gamepad emulation disabled due to setting change");
 		}
-		gamepad_chord = {};
+		gamepad_chord.reset();
 	}
-	else
+	else if (gamepad_chord.check(instance.now()))
 	{
-		XrActionStateGetInfo get_info{
-		        .type = XR_TYPE_ACTION_STATE_GET_INFO,
-		        .action = gamepad_mode_1,
-		};
-		XrActionStateBoolean state_1{XR_TYPE_ACTION_STATE_BOOLEAN};
-		CHECK_XR(xrGetActionStateBoolean(session, &get_info, &state_1));
-		get_info.action = gamepad_mode_2;
-		XrActionStateBoolean state_2{XR_TYPE_ACTION_STATE_BOOLEAN};
-		CHECK_XR(xrGetActionStateBoolean(session, &get_info, &state_2));
-
-		if (check_gamepad_mode_chord(state_1, state_2))
-		{
-			const bool enabled = not gamepad_mode.load();
-			gamepad_mode = enabled;
-			if (not enabled)
-				scheduled_derived_pose = instance.now();
-			show_gamepad_toast(enabled);
-			spdlog::info("Controller gamepad mode {}", enabled ? "enabled" : "disabled");
-		}
+		const bool enabled = not gamepad_mode.load();
+		gamepad_mode = enabled;
+		if (not enabled)
+			scheduled_derived_pose = instance.now();
+		show_gamepad_toast(enabled);
+		spdlog::info("Controller gamepad mode {}", enabled ? "enabled" : "disabled");
 	}
 
 	read_actions();
