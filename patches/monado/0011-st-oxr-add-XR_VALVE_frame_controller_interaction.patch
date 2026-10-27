@@ -1,7 +1,7 @@
-From 3033e3e9e4eb16693f21b12a00eacf60ea816b6b Mon Sep 17 00:00:00 2001
+From cdd0a756a872e391f38b23ce73259497209c559b Mon Sep 17 00:00:00 2001
 From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
 Date: Fri, 18 Sep 2026 14:59:50 +0900
-Subject: [PATCH 1/1] st/oxr: add XR_VALVE_frame_controller_interaction
+Subject: [PATCH 11/13] st/oxr: add XR_VALVE_frame_controller_interaction
 
 Signed-off-by: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
 ---
@@ -17,10 +17,10 @@ Signed-off-by: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
  create mode 100644 src/external/openxr_includes/openxr/XR_VALVE_frame_controller_interaction.h
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index c4c06a042..7d3ae8b5e 100644
+index 7f35c711d..f24211755 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -440,6 +440,7 @@ option(XRT_FEATURE_OPENXR_INTERACTION_CONTACTGLOVE2 "Enable XR_MND_contactglove2
+@@ -444,6 +444,7 @@ option(XRT_FEATURE_OPENXR_INTERACTION_CONTACTGLOVE2 "Enable XR_MND_contactglove2
  option(XRT_FEATURE_OPENXR_INTERACTION_VIVE_COSMOS "Enable XR_HTC_vive_cosmos_controller_interaction" ON)
  option(XRT_FEATURE_OPENXR_INTERACTION_VIVE_FOCUS3 "Enable XR_HTC_vive_focus3_controller_interaction" ON)
  option(XRT_FEATURE_OPENXR_INTERACTION_FB_PROXIMITY "Enable XR_FB_touch_controller_proximity" ON)
@@ -28,7 +28,7 @@ index c4c06a042..7d3ae8b5e 100644
  option(XRT_FEATURE_OPENXR_INTERACTION_TOUCH_PRO "Enable XR_FB_touch_controller_pro" ON)
  option(XRT_FEATURE_OPENXR_INTERACTION_TOUCH_PLUS "Enable XR_META_touch_controller_plus" ON)
  option(XRT_FEATURE_OPENXR_INTERACTION_LOGITECH_MX_INK "Enable XR_LOGITECH_mx_ink_stylus_interaction" OFF)
-@@ -696,6 +697,7 @@ if(XRT_MODULE_OPENXR_STATE_TRACKER)
+@@ -707,6 +708,7 @@ if(XRT_MODULE_OPENXR_STATE_TRACKER)
  	message(STATUS "#    FEATURE_OPENXR_INTERACTION_EXT_EYE_GAZE:               ${XRT_FEATURE_OPENXR_INTERACTION_EXT_EYE_GAZE}")
  	message(STATUS "#    FEATURE_OPENXR_INTERACTION_EXT_HAND:                   ${XRT_FEATURE_OPENXR_INTERACTION_EXT_HAND}")
  	message(STATUS "#    FEATURE_OPENXR_INTERACTION_EXT_PALM_POSE:              ${XRT_FEATURE_OPENXR_INTERACTION_EXT_PALM_POSE}")
@@ -361,7 +361,7 @@ index 873b15b0a..81c547b90 100644
  #cmakedefine XRT_FEATURE_OPENXR_INTERACTION_LOGITECH_MX_INK
  #cmakedefine XRT_FEATURE_OPENXR_INTERACTION_ML2
 diff --git a/src/xrt/include/xrt/xrt_defines.h b/src/xrt/include/xrt/xrt_defines.h
-index a5c5bd65f..404f617c9 100644
+index 996010e1a..3fa2bdd6a 100644
 --- a/src/xrt/include/xrt/xrt_defines.h
 +++ b/src/xrt/include/xrt/xrt_defines.h
 @@ -832,6 +832,9 @@ enum xrt_device_name
@@ -455,5 +455,5 @@ index e9be594f9..12b54fec4 100644
      ['XR_EXTX_overlay', 'XRT_FEATURE_OPENXR_OVERLAY'],
      ['XR_HTCX_vive_tracker_interaction', 'ALWAYS_DISABLED'],
 -- 
-2.55.0
+2.56.0
 

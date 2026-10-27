@@ -1,0 +1,111 @@
+From 6b03fa953e4309e1dd7c011434a4147435bca803 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Mon, 26 Oct 2026 18:58:21 +0100
+Subject: [PATCH 12/13] st/oxr: Add quirk to disable layerFlags validation
+
+Signed-off-by: Patrick Nicolas <patricknicolas@laposte.net>
+Part-of: <https://gitlab.freedesktop.org/monado/monado/-/merge_requests/3063>
+---
+ src/xrt/state_trackers/oxr/oxr_instance.c     | 45 ++++++++++---------
+ src/xrt/state_trackers/oxr/oxr_objects.h      |  7 +++
+ .../oxr/oxr_session_frame_end.c               |  3 ++
+ 3 files changed, 34 insertions(+), 21 deletions(-)
+
+diff --git a/src/xrt/state_trackers/oxr/oxr_instance.c b/src/xrt/state_trackers/oxr/oxr_instance.c
+index 82e4ed4f8..4ecf12770 100644
+--- a/src/xrt/state_trackers/oxr/oxr_instance.c
++++ b/src/xrt/state_trackers/oxr/oxr_instance.c
+@@ -209,6 +209,7 @@ apply_quirks(struct oxr_logger *log, struct oxr_instance *inst, const XrInstance
+ 	inst->quirks.parallel_views = false;
+ 	inst->quirks.no_texture_source_alpha = false;
+ 	inst->quirks.no_usage_bit_validation_in_create_swapchain = false;
++	inst->quirks.no_layer_flags_bit_validation = false;
+ 
+ 	if (starts_with("UnrealEngine", inst->appinfo.detected.engine.name) && //
+ 	    inst->appinfo.detected.engine.major == 4 &&                        //
+@@ -426,27 +427,29 @@ oxr_instance_create(struct oxr_logger *log,
+ 	        "\tquirks.skip_end_session: %s\n"
+ 	        "\tquirks.parallel_views: %s\n"
+ 	        "\tquirks.no_texture_source_alpha: %s\n"
+-	        "\tquirks.ignore_invalid_swapchain_usage_bits: %s\n",
+-	        createInfo->applicationInfo.applicationName,                                //
+-	        createInfo->applicationInfo.applicationVersion,                             //
+-	        createInfo->applicationInfo.engineName,                                     //
+-	        createInfo->applicationInfo.engineVersion,                                  //
+-	        XR_VERSION_MAJOR(createInfo->applicationInfo.apiVersion),                   //
+-	        XR_VERSION_MINOR(createInfo->applicationInfo.apiVersion),                   //
+-	        XR_VERSION_PATCH(createInfo->applicationInfo.apiVersion),                   //
+-	        inst->appinfo.detected.engine.name,                                         //
+-	        inst->appinfo.detected.engine.major,                                        //
+-	        inst->appinfo.detected.engine.minor,                                        //
+-	        inst->appinfo.detected.engine.patch,                                        //
+-	        inst->quirks.disable_vulkan_format_depth ? "true" : "false",                //
+-	        inst->quirks.disable_vulkan_format_depth_stencil ? "true" : "false",        //
+-	        inst->quirks.disable_quad_views ? "true" : "false",                         //
+-	        inst->quirks.no_validation_error_in_create_ref_space ? "true" : "false",    //
+-	        inst->quirks.skip_end_session ? "true" : "false",                           //
+-	        inst->quirks.parallel_views ? "true" : "false",                             //
+-	        inst->quirks.no_texture_source_alpha ? "true" : "false",                    //
+-	        inst->quirks.no_usage_bit_validation_in_create_swapchain ? "true" : "false" //
+-	);                                                                                  //
++	        "\tquirks.ignore_invalid_swapchain_usage_bits: %s\n"
++	        "\tquirks.ignore_invalid_layer_flags_bits: %s\n",
++	        createInfo->applicationInfo.applicationName,                                 //
++	        createInfo->applicationInfo.applicationVersion,                              //
++	        createInfo->applicationInfo.engineName,                                      //
++	        createInfo->applicationInfo.engineVersion,                                   //
++	        XR_VERSION_MAJOR(createInfo->applicationInfo.apiVersion),                    //
++	        XR_VERSION_MINOR(createInfo->applicationInfo.apiVersion),                    //
++	        XR_VERSION_PATCH(createInfo->applicationInfo.apiVersion),                    //
++	        inst->appinfo.detected.engine.name,                                          //
++	        inst->appinfo.detected.engine.major,                                         //
++	        inst->appinfo.detected.engine.minor,                                         //
++	        inst->appinfo.detected.engine.patch,                                         //
++	        inst->quirks.disable_vulkan_format_depth ? "true" : "false",                 //
++	        inst->quirks.disable_vulkan_format_depth_stencil ? "true" : "false",         //
++	        inst->quirks.disable_quad_views ? "true" : "false",                          //
++	        inst->quirks.no_validation_error_in_create_ref_space ? "true" : "false",     //
++	        inst->quirks.skip_end_session ? "true" : "false",                            //
++	        inst->quirks.parallel_views ? "true" : "false",                              //
++	        inst->quirks.no_texture_source_alpha ? "true" : "false",                     //
++	        inst->quirks.no_usage_bit_validation_in_create_swapchain ? "true" : "false", //
++	        inst->quirks.no_layer_flags_bit_validation ? "true" : "false"                //
++	);                                                                                   //
+ 
+ #ifdef XRT_FEATURE_RENDERDOC
+ 
+diff --git a/src/xrt/state_trackers/oxr/oxr_objects.h b/src/xrt/state_trackers/oxr/oxr_objects.h
+index c8fbdadcd..0839b1606 100644
+--- a/src/xrt/state_trackers/oxr/oxr_objects.h
++++ b/src/xrt/state_trackers/oxr/oxr_objects.h
+@@ -1286,6 +1286,13 @@ struct oxr_instance
+ 		 * calling xrCreateSwapchain.
+ 		 */
+ 		bool no_usage_bit_validation_in_create_swapchain;
++
++		/*!
++		 * Don't return XR_ERROR_VALIDATION_FAILURE if an
++		 * application sets unsupported flags in XrCompositionLayer
++		 * when calling xrEndFrame.
++		 */
++		bool no_layer_flags_bit_validation;
+ 	} quirks;
+ 
+ 	//! Debug messengers
+diff --git a/src/xrt/state_trackers/oxr/oxr_session_frame_end.c b/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
+index 5bc5d81fb..fb6cf09f9 100644
+--- a/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
++++ b/src/xrt/state_trackers/oxr/oxr_session_frame_end.c
+@@ -412,6 +412,9 @@ verify_layer_flags(struct oxr_logger *log,
+                    uint32_t layer_index,
+                    XrCompositionLayerFlags layerFlags)
+ {
++	if (sess->sys->inst->quirks.no_layer_flags_bit_validation) {
++		return XR_SUCCESS;
++	}
+ 
+ 	// Check if any invalid bits are set
+ 	if ((layerFlags & ~XR_COMPOSITION_LAYER_FLAGS_ALL_VALID) != 0) {
+-- 
+2.56.0
+

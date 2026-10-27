@@ -1,0 +1,32 @@
+From 7f8d9723e09978fd13d588cedef4815e1a8c5674 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Mon, 26 Oct 2026 19:13:17 +0100
+Subject: [PATCH 13/13] st/oxr: enable layer flags quirk for FS2020
+
+Issue reported in https://github.com/WiVRn/WiVRn/issues/1193
+
+Signed-off-by: Patrick Nicolas <patricknicolas@laposte.net>
+Part-of: <https://gitlab.freedesktop.org/monado/monado/-/merge_requests/3063>
+---
+ src/xrt/state_trackers/oxr/oxr_instance.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/xrt/state_trackers/oxr/oxr_instance.c b/src/xrt/state_trackers/oxr/oxr_instance.c
+index 4ecf12770..c2fcd5f25 100644
+--- a/src/xrt/state_trackers/oxr/oxr_instance.c
++++ b/src/xrt/state_trackers/oxr/oxr_instance.c
+@@ -228,6 +228,11 @@ apply_quirks(struct oxr_logger *log, struct oxr_instance *inst, const XrInstance
+ 		inst->quirks.no_usage_bit_validation_in_create_swapchain = true;
+ 	}
+ 
++	// Microsoft Flight Simulator 2020 writes garbage in layerFlags for xrEndFrame
++	if (strcmp("FS2020", create_info->applicationInfo.applicationName) == 0) {
++		inst->quirks.no_layer_flags_bit_validation = true;
++	}
++
+ 	// Currently always true.
+ 	inst->quirks.no_validation_error_in_create_ref_space = true;
+ 
+-- 
+2.56.0
+
