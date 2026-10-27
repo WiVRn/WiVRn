@@ -83,13 +83,27 @@ private:
 	std::array<std::atomic<interaction_profile>, 3> interaction_profiles; // left hand, right hand, gamepad
 	std::atomic<bool> gamepad_mode = false;
 
-	struct gamepad_chord_state
+	struct chord_state
 	{
+		XrAction a = XR_NULL_HANDLE;
+		XrAction b = XR_NULL_HANDLE;
+		uint32_t clicks_needed = 1;
+
 		bool both_released = false;
-		bool waiting_for_second_tap = false;
-		XrTime first_tap_time = 0;
+		uint32_t clicks_done = 0;
+		XrTime first_click_time = 0;
+
+		void reset()
+		{
+			both_released = false;
+			clicks_done = 0;
+			first_click_time = 0;
+		}
+
+		// Read actions a and b and determine if they were activated together clicks_needed times in a row
+		bool check(XrTime now);
 	};
-	gamepad_chord_state gamepad_chord = {};
+	chord_state gamepad_chord = {.clicks_needed = 2};
 
 	bool using_frame_gamepad() const
 	{
@@ -97,7 +111,6 @@ private:
 		       interaction_profiles[0].load() == interaction_profile::valve_frame_controller_valve and
 		       interaction_profiles[1].load() == interaction_profile::valve_frame_controller_valve;
 	}
-	bool check_gamepad_mode_chord(XrActionStateBoolean state_1, XrActionStateBoolean state_2);
 	std::atomic<bool> interaction_profile_changed = false;
 	std::atomic<XrTime> scheduled_derived_pose = 0; // Tracking thread will compute derived pose when time is reached
 	std::atomic<bool> recenter_requested = false;
@@ -192,8 +205,6 @@ private:
 
 	XrAction plots_toggle_1 = XR_NULL_HANDLE;
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
-	XrAction gamepad_mode_1 = XR_NULL_HANDLE;
-	XrAction gamepad_mode_2 = XR_NULL_HANDLE;
 	XrAction recenter_left = XR_NULL_HANDLE;
 	XrAction recenter_right = XR_NULL_HANDLE;
 	XrAction gui_distance_left = XR_NULL_HANDLE;
