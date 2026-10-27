@@ -103,6 +103,7 @@ private:
 		// Read actions a and b and determine if they were activated together clicks_needed times in a row
 		bool check(XrTime now);
 	};
+	chord_state menu_chord = {};
 	chord_state gamepad_chord = {.clicks_needed = 2};
 
 	bool using_frame_gamepad() const
@@ -203,8 +204,6 @@ private:
 
 	thread_safe<std::queue<std::string>> stream_error_queue;
 
-	XrAction plots_toggle_1 = XR_NULL_HANDLE;
-	XrAction plots_toggle_2 = XR_NULL_HANDLE;
 	XrAction recenter_left = XR_NULL_HANDLE;
 	XrAction recenter_right = XR_NULL_HANDLE;
 	XrAction gui_distance_left = XR_NULL_HANDLE;
