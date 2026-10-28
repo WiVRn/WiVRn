@@ -821,7 +821,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 	}
 
 	video_cmd_buf.beginVideoCodingKHR({
-	        .pNext = (session_initialized and rate_control) ? &rate_control.value() : nullptr,
+	        .pNext = begin_coding_next((session_initialized and rate_control) ? &rate_control.value() : nullptr),
 	        .videoSession = *video_session,
 	        .videoSessionParameters = *video_session_parameters,
 	        .referenceSlotCount = ref_slot ? 2u : 1u,
