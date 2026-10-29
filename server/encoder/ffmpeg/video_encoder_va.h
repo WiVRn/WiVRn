@@ -56,6 +56,8 @@ public:
 	void present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo info, uint8_t slot, uint64_t frame_index) override;
 
 protected:
+	void wait_input(uint8_t slot, uint64_t frame_index) override;
+
 	void push_frame(bool idr, uint8_t slot) override;
 };
 } // namespace wivrn
