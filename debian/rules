@@ -26,7 +26,7 @@ override_dh_auto_configure:
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DWIVRN_BUILD_CLIENT=OFF          \
 	-DWIVRN_BUILD_SERVER=ON           \
-	-DWIVRN_BUILD_DASHBOARD=ON        \
+	-DWIVRN_BUILD_DASHBOARD=OFF       \
 	-DWIVRN_BUILD_DISSECTOR=OFF       \
 	-DWIVRN_USE_VAAPI=ON              \
 	-DWIVRN_USE_VULKAN_ENCODE=OFF     \
@@ -37,6 +37,7 @@ override_dh_auto_configure:
 	-DWIVRN_USE_PIPEWIRE=ON           \
 	-DWIVRN_WERROR=OFF                \
 	-DGIT_DESC=v26.9-tracked           \
+	-DFETCHCONTENT_FULLY_DISCONNECTED=OFF \
 	-DFETCHCONTENT_BASE_DIR=$(shell pwd)
 
 # Don't add the ldconfig trigger
