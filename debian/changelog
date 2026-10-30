@@ -1,0 +1,6 @@
+wivrn (26.9+tracked1) unstable; urgency=medium
+
+  * Local build: keep the headset's "tracked" flags instead of marking every
+    valid pose as tracked (server/driver/pose_list.cpp).
+
+ -- Aneta Suns <suns.echoes@gmail.com>  Fri, 30 Oct 2026 16:05:27 +0100

@@ -163,9 +163,8 @@ void pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const 
 	production_timestamp = offset.from_headset(production_timestamp);
 	timestamp = offset.from_headset(timestamp);
 
-	// TODO keep the tracked flag
-
 	polynomial_interpolator<3>::sample position{production_timestamp, timestamp};
+	position.tracked = pose.flags & from_headset::pose_flags::position_tracked;
 	if (pose.flags & from_headset::pose_flags::position_valid)
 		position.y.emplace(
 		        pose.pose.position.x,
@@ -178,6 +177,7 @@ void pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const 
 		        pose.linear_velocity.z);
 
 	polynomial_interpolator<4, true>::sample orientation{production_timestamp, timestamp};
+	orientation.tracked = pose.flags & from_headset::pose_flags::orientation_tracked;
 	if (pose.flags & from_headset::pose_flags::orientation_valid)
 	{
 		orientation.y.emplace(
@@ -215,6 +215,8 @@ void pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const 
 		        .production_timestamp = production_timestamp,
 		        .timestamp = timestamp,
 		        .now = os_monotonic_get_ns(),
+		        .position_tracked = position.tracked,
+		        .orientation_tracked = orientation.tracked,
 		};
 		if (position.y)
 			Eigen::Map<Eigen::Vector<float, 3>>(item.position.data()) = *position.y;
@@ -242,7 +244,9 @@ std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
 
 	if (position.y)
 	{
-		flags(XRT_SPACE_RELATION_POSITION_VALID_BIT | XRT_SPACE_RELATION_POSITION_TRACKED_BIT);
+		flags(XRT_SPACE_RELATION_POSITION_VALID_BIT);
+		if (position.tracked)
+			flags(XRT_SPACE_RELATION_POSITION_TRACKED_BIT);
 		ret.pose.position = {
 		        position.y->x(),
 		        position.y->y(),
@@ -262,7 +266,9 @@ std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
 	{
 		if (auto norm2 = orientation.y->squaredNorm(); norm2 > 0.1)
 		{
-			flags(XRT_SPACE_RELATION_ORIENTATION_VALID_BIT | XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
+			flags(XRT_SPACE_RELATION_ORIENTATION_VALID_BIT);
+			if (orientation.tracked)
+				flags(XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
 
 			orientation.y->normalize();
 
@@ -303,6 +309,8 @@ std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
 		        .production_timestamp = position.production_timestamp,
 		        .timestamp = at_timestamp_ns,
 		        .now = os_monotonic_get_ns(),
+		        .position_tracked = position.tracked,
+		        .orientation_tracked = orientation.tracked,
 		};
 		if (position.y)
 			Eigen::Map<Eigen::Vector<float, 3>>(item.position.data()) = *position.y;

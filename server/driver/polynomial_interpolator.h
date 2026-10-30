@@ -50,6 +50,7 @@ public:
 		XrTime timestamp = std::numeric_limits<XrTime>::lowest();
 		std::optional<value_type> y;
 		std::optional<value_type> dy;
+		bool tracked = false; // the headset measured y, not only inferred it
 	};
 
 	XrDuration window = 30'000'000; // time span of samples to use for extrapolation
@@ -203,6 +204,8 @@ public:
 		        .timestamp = timestamp,
 		        .y = sol.template block<N, 1>(0, 0),
 		        .dy = sol.template block<N, 1>(0, 1),
+		        // Like validity, tracking follows the sample closest in time
+		        .tracked = closest->tracked,
 		};
 	}
 };

@@ -52,6 +52,8 @@ class pose_list
 		std::array<float, 3> dposition;
 		std::array<float, 4> orientation;
 		std::array<float, 4> dorientation;
+		bool position_tracked;
+		bool orientation_tracked;
 	};
 
 	std::optional<csv_logger<debug_data>> dumper;

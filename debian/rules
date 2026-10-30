@@ -36,6 +36,7 @@ override_dh_auto_configure:
 	-DWIVRN_USE_SYSTEM_BOOST=ON       \
 	-DWIVRN_USE_PIPEWIRE=ON           \
 	-DWIVRN_WERROR=OFF                \
+	-DGIT_DESC=v26.9-tracked           \
 	-DFETCHCONTENT_BASE_DIR=$(shell pwd)
 
 # Don't add the ldconfig trigger
