@@ -104,29 +104,18 @@ client_foveation::angles target_angles(
 }
 
 std::optional<client_foveation::angles> eye_gaze_angles(
-        XrSpace eye_gaze_space,
-        XrSpace view_space,
         XrTime time,
         XrViewStateFlags view_flags,
         std::span<const XrView> views)
 {
-	if (not eye_gaze_space or not view_space or views.size() != 2)
-		return {};
-
-	XrSpaceLocation location{
-	        .type = XR_TYPE_SPACE_LOCATION,
-	};
-
-	XrResult res = xrLocateSpace(eye_gaze_space, view_space, time, &location);
-	if (XR_FAILED(res) or
-	    not(location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) or
-	    not(location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT))
-		return {};
-
 	if (not(view_flags & XR_VIEW_STATE_POSITION_VALID_BIT))
-		return {};
+		return std::nullopt;
 
-	const XrVector2f gaze = yaw_pitch(location.pose.orientation);
+	auto gaze_quat = application::instance().locate_gaze(time);
+	if (not gaze_quat)
+		return std::nullopt;
+
+	const XrVector2f gaze = yaw_pitch(*gaze_quat);
 	return target_angles(-gaze.x, gaze.y, client_foveation::default_convergence_distance, views);
 }
 
@@ -362,9 +351,7 @@ void center::update(std::span<const XrFovf> submitted_fov, std::span<const bool>
 		}
 		if (not angles and application::get_eye_gaze_supported())
 		{
-			if (auto a = eye_gaze_angles(application::space(xr::spaces::eye_gaze),
-			                             view_space,
-			                             display_time,
+			if (auto a = eye_gaze_angles(display_time,
 			                             view_flags,
 			                             views))
 				angles = *a;
