@@ -278,6 +278,8 @@ public:
 		return std::make_pair(position, orientation);
 	}
 
+	std::optional<XrQuaternionf> locate_gaze(XrTime time);
+
 	void run();
 
 	static void push_scene(std::shared_ptr<scene>);

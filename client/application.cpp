@@ -1841,6 +1841,59 @@ void application::loop()
 	}
 }
 
+std::optional<XrQuaternionf> application::locate_gaze(XrTime time)
+{
+	XrSpaceLocation res{
+	        .type = XR_TYPE_SPACE_LOCATION,
+	};
+	if (get_hmd_traits().view_locate)
+	{
+		xrLocateSpace(spaces[size_t(xr::spaces::eye_gaze)],
+		              spaces[size_t(xr::spaces::view)],
+		              time,
+		              &res);
+	}
+	else
+	{
+		XrSpaceLocation tmp{
+		        .type = XR_TYPE_SPACE_LOCATION,
+		};
+		auto xr_res = xrLocateSpace(spaces[size_t(xr::spaces::view)],
+		                            spaces[size_t(xr::spaces::world)],
+		                            time,
+		                            &tmp);
+		if (XR_FAILED(xr_res))
+			return std::nullopt;
+		xr_res = xrLocateSpace(spaces[size_t(xr::spaces::eye_gaze)],
+		                       spaces[size_t(xr::spaces::world)],
+		                       time,
+		                       &res);
+		if (XR_FAILED(xr_res))
+			return std::nullopt;
+
+		glm::quat target_quat(
+		        res.pose.orientation.w,
+		        res.pose.orientation.x,
+		        res.pose.orientation.y,
+		        res.pose.orientation.z);
+		const glm::quat view_quat(
+		        tmp.pose.orientation.w,
+		        tmp.pose.orientation.x,
+		        tmp.pose.orientation.y,
+		        tmp.pose.orientation.z);
+		target_quat = glm::conjugate(view_quat) * target_quat;
+		res.pose.orientation = {
+		        .x = target_quat.x,
+		        .y = target_quat.y,
+		        .z = target_quat.z,
+		        .w = target_quat.w};
+		res.locationFlags &= tmp.locationFlags;
+	}
+	if (res.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+		return res.pose.orientation;
+	return std::nullopt;
+}
+
 #ifdef __ANDROID__
 void application::run()
 {
