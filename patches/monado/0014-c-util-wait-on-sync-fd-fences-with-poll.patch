@@ -1,0 +1,164 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DawsSangio <daws72@gmail.com>
+Date: Sat, 31 Oct 2026 14:13:30 +0100
+Subject: [PATCH] c/util: wait on sync fd fences with poll
+
+When a client hands over a sync fd, comp_fence_import imports it into
+a VkFence and the wait thread waits on it with vkWaitForFences. On the
+NVIDIA proprietary driver that wait does not wake up when the fence
+signals: it either returns at once, if the fence is already signaled,
+or after about 10 ms. At 90 Hz a frame lasts 11.1 ms, so every frame
+that is not done at the first check is delivered almost a frame late
+and misses its display slot, which shows up as judder.
+
+A sync fd becomes readable when its fence signals, so wait on it
+directly with ppoll instead. This wakes up as soon as the GPU is done,
+on any driver, and skips creating and destroying a VkFence per frame.
+
+Set XRT_COMPOSITOR_POLL_SYNC_FD=0 to go back to the Vulkan fence wait.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/xrt/compositor/util/comp_sync.c | 97 +++++++++++++++++++++++++++++
+ 1 file changed, 97 insertions(+)
+
+diff --git a/src/xrt/compositor/util/comp_sync.c b/src/xrt/compositor/util/comp_sync.c
+index 6a4ffb8..34e3817 100644
+--- a/src/xrt/compositor/util/comp_sync.c
++++ b/src/xrt/compositor/util/comp_sync.c
+@@ -10,7 +10,9 @@
+ #include "xrt/xrt_config_os.h"
+ 
+ #include "util/u_misc.h"
++#include "util/u_debug.h"
+ #include "util/u_handles.h"
++#include "util/u_logging.h"
+ #include "util/u_trace_marker.h"
+ 
+ #include "util/comp_sync.h"
+@@ -22,6 +24,14 @@
+ #include <unistd.h>
+ #endif
+ 
++#ifdef XRT_GRAPHICS_SYNC_HANDLE_IS_FD
++#include <errno.h>
++#include <poll.h>
++#include <time.h>
++#endif
++
++DEBUG_GET_ONCE_BOOL_OPTION(poll_sync_fd, "XRT_COMPOSITOR_POLL_SYNC_FD", true)
++
+ 
+ /*
+  *
+@@ -42,6 +52,19 @@ struct fence
+ };
+ 
+ 
++#ifdef XRT_GRAPHICS_SYNC_HANDLE_IS_FD
++/*!
++ * A fence that waits on a sync fd with poll, without importing it into Vulkan.
++ */
++struct fd_fence
++{
++	struct xrt_compositor_fence base;
++
++	int fd;
++};
++#endif
++
++
+ /*
+  *
+  * Fence member functions.
+@@ -90,6 +113,61 @@ fence_destroy(struct xrt_compositor_fence *xcf)
+ }
+ 
+ 
++#ifdef XRT_GRAPHICS_SYNC_HANDLE_IS_FD
++static xrt_result_t
++fd_fence_wait(struct xrt_compositor_fence *xcf, uint64_t timeout)
++{
++	COMP_TRACE_MARKER();
++
++	struct fd_fence *f = (struct fd_fence *)xcf;
++
++	// Count no handle as signaled fence.
++	if (f->fd < 0) {
++		return XRT_SUCCESS;
++	}
++
++	struct timespec ts = {
++	    .tv_sec = (time_t)(timeout / 1000000000),
++	    .tv_nsec = (long)(timeout % 1000000000),
++	};
++	struct pollfd pfd = {
++	    .fd = f->fd,
++	    .events = POLLIN,
++	};
++
++	int ret;
++	do {
++		ret = ppoll(&pfd, 1, &ts, NULL);
++	} while (ret < 0 && errno == EINTR);
++
++	if (ret == 0) {
++		return XRT_TIMEOUT;
++	}
++	if (ret < 0 || (pfd.revents & (POLLERR | POLLNVAL)) != 0) {
++		U_LOG_E("ppoll on sync fd failed: %d", ret < 0 ? errno : pfd.revents);
++		return XRT_ERROR_FENCE_CREATE_FAILED;
++	}
++
++	return XRT_SUCCESS;
++}
++
++static void
++fd_fence_destroy(struct xrt_compositor_fence *xcf)
++{
++	COMP_TRACE_MARKER();
++
++	struct fd_fence *f = (struct fd_fence *)xcf;
++
++	if (f->fd >= 0) {
++		close(f->fd);
++		f->fd = -1;
++	}
++
++	free(f);
++}
++#endif
++
++
+ /*
+  *
+  * 'Exported' function.
+@@ -101,6 +179,25 @@ comp_fence_import(struct vk_bundle *vk, xrt_graphics_sync_handle_t handle, struc
+ {
+ 	COMP_TRACE_MARKER();
+ 
++#ifdef XRT_GRAPHICS_SYNC_HANDLE_IS_FD
++	if (debug_get_bool_option_poll_sync_fd()) {
++		static bool logged = false;
++		if (!logged) {
++			U_LOG_I("Waiting on client sync fds with poll instead of Vulkan fences");
++			logged = true;
++		}
++
++		struct fd_fence *ff = U_TYPED_CALLOC(struct fd_fence);
++		ff->base.wait = fd_fence_wait;
++		ff->base.destroy = fd_fence_destroy;
++		ff->fd = handle;
++
++		*out_xcf = &ff->base;
++
++		return XRT_SUCCESS;
++	}
++#endif
++
+ 	VkFence fence = VK_NULL_HANDLE;
+ 
+ 	VkResult ret = vk_create_fence_sync_from_native(vk, handle, &fence);
+-- 
+2.43.0
+
