@@ -2,16 +2,80 @@
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
+import sys
+import time
 from urllib.request import urlopen
 
-import flatpakcargogenerator
-import toml
-
 TEMPLATE = "flatpak/io.github.wivrn.wivrn.yml.in"
+
+# Local caches, regenerated or downloaded only when the xrizer commit or
+# monado-rev changes. The xrizer commit is part of the cache filename, so
+# its presence alone tells us whether it's still valid.
+CARGO_SOURCES = "flatpak/xrizer-gen-src-{0}.json"
+CARGO_SOURCES_OUT_NAME = "xrizer-gen-src.json"
+MONADO_ARCHIVE = "flatpak/monado-{0}.tar.gz"
+
+XRIZER_REPO = "https://github.com/Supreeeme/xrizer"
+MONADO_URL = "https://gitlab.freedesktop.org/monado/monado/-/archive/{0}/monado-{0}.tar.gz"
+
+
+def read_file(path: str) -> str:
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""
+
+
+def fetch(url: str, attempts: int = 4) -> bytes:
+    for attempt in range(1, attempts + 1):
+        try:
+            with urlopen(url, timeout=120) as response:
+                return response.read()
+        except OSError as e:
+            if attempt == attempts:
+                raise
+            print(f"Downloading {url} failed ({e}), retrying", file=sys.stderr)
+            time.sleep(30 * attempt)
+
+
+def write_cargo_sources(path: str, gen_src) -> None:
+    with open(path, "w") as f:
+        json.dump(gen_src, f, indent=4, sort_keys=False)
+        f.write("\n")
+
+
+def generate_cargo_sources(xrizer_commit: str):
+    try:
+        import flatpakcargogenerator
+        import toml
+    except ImportError as e:
+        print(
+            f"Generating {CARGO_SOURCES_OUT_NAME} requires python modules toml and aiohttp: {e}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    print(f"Generating cargo sources for xrizer {xrizer_commit}", file=sys.stderr)
+    lock = fetch(f"{XRIZER_REPO}/raw/{xrizer_commit}/Cargo.lock")
+    return asyncio.run(flatpakcargogenerator.generate_sources(toml.loads(lock.decode())))
+
+
+def monado_sha256(root: str, monado_commit: str) -> str:
+    archive = os.path.join(root, MONADO_ARCHIVE.format(monado_commit))
+    if not os.path.exists(archive):
+        print(f"Downloading monado archive for {monado_commit}", file=sys.stderr)
+        with open(archive + ".part", "wb") as f:
+            f.write(fetch(MONADO_URL.format(monado_commit)))
+        os.replace(archive + ".part", archive)
+    with open(archive, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
 
 
 class CMakeFile:
@@ -48,16 +112,23 @@ if __name__ == "__main__":
     with open(os.path.join(root, TEMPLATE)) as f:
         template = f.read()
 
-    # Get dependencies for xrizer
-    xrizer_repo = "https://github.com/Supreeeme/xrizer"
-    xrizer_commit = re.findall(f"url: {xrizer_repo}.git[ \n]*commit: ([a-f0-9]*)", template)[0]
-    lock = urlopen(f"{xrizer_repo}/raw/{xrizer_commit}/Cargo.lock")
-    gen_src = asyncio.run(flatpakcargogenerator.generate_sources(toml.loads(lock.read().decode())))
-    with open(os.path.join(args.out, "xrizer-gen-src.json"), "w") as f:
-        json.dump(gen_src, f, indent=4, sort_keys=False)
+    # Cargo dependencies for xrizer
+    xrizer_commit = re.findall(f"url: {XRIZER_REPO}/archive/([a-f0-9]{{40}})\\.tar\\.gz", template)[
+        0
+    ]
+    cargo_sources = os.path.join(root, CARGO_SOURCES.format(xrizer_commit))
+    out_cargo_sources = os.path.join(args.out, CARGO_SOURCES_OUT_NAME)
+    if os.path.exists(cargo_sources):
+        if not os.path.exists(out_cargo_sources) or not os.path.samefile(
+            cargo_sources, out_cargo_sources
+        ):
+            shutil.copyfile(cargo_sources, out_cargo_sources)
+    else:
+        gen_src = generate_cargo_sources(xrizer_commit)
+        write_cargo_sources(cargo_sources, gen_src)
+        write_cargo_sources(out_cargo_sources, gen_src)
 
-    with open(os.path.join(root, "monado-rev")) as f:
-        monado_commit = f.read()
+    monado_commit = read_file(os.path.join(root, "monado-rev"))
     boost_url = cmake.get("boost", "URL")
     boost_sha256 = cmake.get("boost", "URL_HASH").split("=")[-1]
 
@@ -102,7 +173,8 @@ if __name__ == "__main__":
 
     template = template.replace("BOOST_URL", boost_url)
     template = template.replace("BOOST_SHA256", boost_sha256)
-    template = template.replace("MONADO_COMMIT", monado_commit)
+    template = template.replace("MONADO_URL", MONADO_URL.format(monado_commit))
+    template = template.replace("MONADO_SHA256", monado_sha256(root, monado_commit))
 
     with open(os.path.join(args.out, "io.github.wivrn.wivrn.yml"), "w") as f:
         f.write(template)
