@@ -8,6 +8,7 @@ env:
   BUILD_TYPE: Release
   SERVER_DEPS: libx264-dev libavcodec-dev libavutil-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev nlohmann-json3-dev librsvg2-dev libdrm-dev libglib2.0-dev-bin libpipewire-0.3-dev libcli11-dev libnotify-dev libarchive-dev libudev-dev
   CSS: images/wivrn-${{(github.ref_type == 'tag' && 'release') || 'nightly'}}.css
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
 
 jobs:
   build-linux:
@@ -47,9 +48,10 @@ jobs:
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2.23
       with:
-        key: linux-${{matrix.config.preset}}
+        # The trailing "." keeps one preset's key from being a prefix of another's
+        key: linux-${{matrix.config.preset}}.
         job-summary: ""
-        restore-keys: linux-
+        restore-keys: linux
 
     - uses: actions/cache@v5
       with:
@@ -193,35 +195,216 @@ jobs:
       # Tag matches runtime-version in the manifest.
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
       options: --privileged
+      # Preinstalled toolchains unused by this job, removed by "Free disk space" when needed
+      volumes:
+        - /usr/share/dotnet:/host-unused/dotnet
+        - /usr/local/lib/android:/host-unused/android
+        - /opt/ghc:/host-unused/ghc
+        - /usr/local/.ghcup:/host-unused/ghcup
+        - /opt/hostedtoolcache/CodeQL:/host-unused/codeql
+        - /usr/local/share/boost:/host-unused/boost
+    defaults:
+      run:
+        shell: bash
+    env:
+      MANIFEST: flatpak/io.github.wivrn.wivrn.yml
+      STATE_DIR: .flatpak-builder
+      # Common flatpak-builder options. --disable-updates: never contact a source
+      # that is already in the downloads cache.
+      FB_OPTS: --user --disable-rofiles-fuse --disable-updates --state-dir=.flatpak-builder --arch=x86_64
 
+    # Caching is split in layers so that each one is restored and saved on its own:
+    #  1. sources (downloads): saved as soon as everything is downloaded
+    #  2. dependency build stages (flatpak-builder ostree cache): everything
+    #     before wivrn-library; saved even when a later module fails
+    #  3. ccache: rolling, saved on every run
+    # On a regular commit only wivrn-library and wivrn are built, offline.
     steps:
+    # The SDK, its extensions and the build need more space than some runner
+    # images leave free: remove preinstalled toolchains this job does not use.
+    - name: Free disk space
+      run: |
+        df -h /__w
+        free=$(df --output=avail -BG /__w | tail -1 | tr -dc 0-9)
+        if [ "$free" -lt 30 ]; then
+          find /host-unused -mindepth 2 -delete || true
+          df -h /__w
+        fi
+
     - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
+    # sha256 of the monado archive, computed by the generator when monado-rev changes
+    - name: Restore monado sha256
+      id: monado-sha
+      uses: actions/cache/restore@v5
+      with:
+        path: flatpak/monado.sha256
+        key: flatpak-monado-${{ hashFiles('monado-rev') }}
+
     - name: Create the flatpak manifest
+      id: manifest
       run: |
         git config --global --add safe.directory $(pwd)
-        pip install toml aiohttp
-        tools/gen_flatpak_manifest.py --gitlocal --out flatpak
-        cat flatpak/io.github.wivrn.wivrn.yml
+        # Needs network if flatpak/monado.sha256 is not cached, and python modules
+        # toml and aiohttp if flatpak/xrizer-gen-src.json is out of date (exit code 2)
+        tools/gen_flatpak_manifest.py --gitlocal --out flatpak || {
+          [ $? = 2 ] && pip install --retries 5 toml aiohttp && tools/gen_flatpak_manifest.py --gitlocal --out flatpak
+        }
+        cat $MANIFEST
 
-    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
+        extra_files() { cat flatpak/ct-ng-x86_64.config flatpak/ct-ng-aarch64.config flatpak/xrizer-gen-src.json; }
+        # Dependency modules: everything before wivrn-library
+        deps=$( { sed '/^  - name: wivrn-library$/,$d' $MANIFEST; extra_files; } | sha256sum | cut -c1-32)
+        # All sources, except the lines that change with every wivrn commit
+        sources=$( { grep -v -e "$(git rev-parse HEAD)" -e '-DGIT_' $MANIFEST; extra_files; } | sha256sum | cut -c1-32)
+        echo "deps=$deps" >> $GITHUB_OUTPUT
+        echo "sources=$sources" >> $GITHUB_OUTPUT
+
+    - name: Save monado sha256
+      if: steps.monado-sha.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
       with:
-        manifest-path: flatpak/io.github.wivrn.wivrn.yml
-        bundle: wivrn-server.flatpak
-        # The manifest is regenerated on every commit with the git hash embedded,
-        # so its default (manifest-hash) cache key never hits. Key on the files
-        # that actually define the dependency set instead, so the toolchain
-        # downloads and build cache persist across commits.
-        cache-key: flatpak-builder-${{ hashFiles('flatpak/io.github.wivrn.wivrn.yml.in', 'flatpak/ct-ng-x86_64.config', 'flatpak/ct-ng-aarch64.config', 'monado-rev') }}
+        path: flatpak/monado.sha256
+        key: flatpak-monado-${{ hashFiles('monado-rev') }}
+
+    - name: Install runtime and SDK
+      run: |
+        retry() { for i in 1 2 3 4; do "$@" && return 0; echo "::warning::attempt $i failed: $*"; sleep $((30 * i)); done; return 1; }
+        flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        retry flatpak-builder $FB_OPTS --install-deps-from=flathub --install-deps-only flatpak_app $MANIFEST
+
+    # Layer 1: sources
+    - name: Restore sources cache
+      id: sources-cache
+      uses: actions/cache/restore@v5
+      with:
+        path: |
+          ${{ env.STATE_DIR }}/downloads
+          ${{ env.STATE_DIR }}/git
+        key: flatpak-src-${{ steps.manifest.outputs.sources }}
+        restore-keys: flatpak-src-
+
+    - name: Download sources
+      run: |
+        retry() { for i in 1 2 3 4; do "$@" && return 0; echo "::warning::attempt $i failed: $*"; sleep $((30 * i)); done; return 1; }
+        retry flatpak-builder $FB_OPTS --download-only flatpak_app $MANIFEST
+
+    - name: Save sources cache
+      if: steps.sources-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
+      with:
+        path: |
+          ${{ env.STATE_DIR }}/downloads
+          ${{ env.STATE_DIR }}/git
+        key: flatpak-src-${{ steps.manifest.outputs.sources }}
+
+    # Layer 2: dependency build stages. After a fallback restore, every module
+    # before the first changed one is still a cache hit.
+    - name: Restore dependencies cache
+      id: deps-cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ env.STATE_DIR }}/cache
+        key: flatpak-deps-${{ steps.manifest.outputs.deps }}
+        restore-keys: |
+          flatpak-deps-partial-${{ steps.manifest.outputs.deps }}-
+          flatpak-deps-
+
+    # Layer 3: ccache
+    - name: Restore ccache
+      id: ccache
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ env.STATE_DIR }}/ccache
+        key: flatpak-ccache-${{ github.run_id }}
+        restore-keys: flatpak-ccache-
+
+    - name: Build dependencies
+      id: build-deps
+      run: |
+        mkdir -p $STATE_DIR/ccache
+        # compiler_check = content: identify compilers by hash, not size and mtime
+        printf 'max_size = 750M\ncompiler_check = content\n' > $STATE_DIR/ccache/ccache.conf
+        xvfb-run --auto-servernum flatpak-builder $FB_OPTS --disable-download --ccache --force-clean \
+          --stop-at=wivrn-library flatpak_app $MANIFEST
+
+    - name: Prune dependencies cache
+      if: always() && steps.deps-cache.outputs.cache-hit != 'true' && steps.build-deps.outcome != 'skipped'
+      run: ostree --repo=$STATE_DIR/cache prune --refs-only
+
+    - name: Save dependencies cache
+      if: steps.deps-cache.outputs.cache-hit != 'true' && steps.build-deps.outcome == 'success'
+      uses: actions/cache/save@v5
+      with:
+        path: ${{ env.STATE_DIR }}/cache
+        key: flatpak-deps-${{ steps.manifest.outputs.deps }}
+
+    # Keep the stages that did build (e.g. the toolchain) when a later one fails
+    - name: Save partial dependencies cache
+      if: failure() && steps.deps-cache.outputs.cache-hit != 'true' && steps.build-deps.outcome == 'failure'
+      uses: actions/cache/save@v5
+      with:
+        path: ${{ env.STATE_DIR }}/cache
+        key: flatpak-deps-partial-${{ steps.manifest.outputs.deps }}-${{ github.run_id }}
+
+    - name: Build WiVRn
+      id: build-wivrn
+      run: |
+        CCACHE_DIR=$STATE_DIR/ccache ccache -z
+        xvfb-run --auto-servernum flatpak-builder $FB_OPTS --disable-download --ccache --force-clean \
+          --repo=repo --default-branch=master --subject="Built from $GITHUB_SHA" \
+          flatpak_app $MANIFEST
+
+    # Statistics of the WiVRn build only (zeroed before it). Warns when
+    # compilations bypass ccache, or on a low hit rate with a restored cache.
+    - name: ccache statistics
+      if: always() && steps.build-wivrn.outcome != 'skipped'
+      env:
+        CCACHE_DIR: ${{ env.STATE_DIR }}/ccache
+        CCACHE_RESTORED: ${{ steps.ccache.outputs.cache-matched-key }}
+      run: |
+        ccache -s -v
+        stat() { ccache --print-stats | awk -v k="$1" '$1 == k { print $2; f = 1 } END { if (!f) print 0 }'; }
+        hits=$(( $(stat direct_cache_hit) + $(stat preprocessed_cache_hit) ))
+        misses=$(stat cache_miss)
+        unsupported=$(( $(stat unsupported_compiler_option) + $(stat unsupported_source_language) ))
+        total=$(( hits + misses ))
+        rate=$(( total > 0 ? 100 * hits / total : 0 ))
+        echo "WiVRn modules: $hits hits, $misses misses ($rate%), $unsupported unsupported"
+        if [ "$unsupported" -gt 0 ]; then
+          echo "::warning::$unsupported compilations bypass ccache (unsupported compiler option or language)"
+        fi
+        if [ -n "$CCACHE_RESTORED" ] && [ "$total" -gt 0 ] && [ "$rate" -lt 70 ]; then
+          echo "::warning::ccache hit rate is $rate% with a restored cache ($CCACHE_RESTORED)"
+        fi
+
+    - name: Save ccache
+      if: always() && steps.build-deps.outcome != 'skipped'
+      uses: actions/cache/save@v5
+      with:
+        path: ${{ env.STATE_DIR }}/ccache
+        key: flatpak-ccache-${{ github.run_id }}
+
+    - name: Create bundle
+      run: |
+        flatpak build-bundle repo wivrn-server.flatpak --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
+          --arch=x86_64 io.github.wivrn.wivrn master
+
+    - name: Upload bundle
+      uses: actions/upload-artifact@v7
+      with:
+        name: wivrn-server-x86_64.flatpak
+        path: wivrn-server.flatpak
+        if-no-files-found: error
 
     - name: Debug bundle
       uses: actions/upload-artifact@v7
       if: failure()
       with:
         name: flatpak-debug
-        path: .flatpak-builder
+        path: ${{ env.STATE_DIR }}/build
         include-hidden-files: true
         retention-days: 1
 
@@ -264,6 +447,14 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*.tgz
         restore-keys: cmake-android-
 
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2.23
+      with:
+        # The trailing "." keeps one build type's key from being a prefix of another's
+        key: android-${{matrix.buildtype}}.
+        job-summary: ""
+        restore-keys: android
+
     # Gradle distribution and the Android plugin's dependencies.
     - uses: actions/cache@v5
       with:
@@ -305,6 +496,9 @@ jobs:
         echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
 
     - name: Build
+      env:
+        # Paths under the workspace are hashed relative to it
+        CCACHE_BASEDIR: ${{github.workspace}}
       run: |
         VERSION=$(git describe --tags --always | sed "s/^v\([0-9]\)/\1/")
         if [ ${{ matrix.buildtype }} = 'Oculus' ]
@@ -342,6 +536,7 @@ jobs:
           -Pwivrn_app_name="$APPNAME" \
           -Pwivrn_compress_glb=ON \
           -Pfetchcontent_base_dir=${{github.workspace}}/cmake-fetch \
+          -Pcompiler_launcher=ccache \
           assemble${{ matrix.buildtype }}
 
     - name: Upload build dir
@@ -393,6 +588,31 @@ jobs:
         fi
 
         ./ovr-platform-util upload-quest-build --app-id 7959676140827574 --token $OCULUS_TOKEN --apk apk/WiVRn-oculus.apk --channel $CHANNEL --age-group TEENS_AND_ADULTS $IS_DRAFT --debug_symbols_dir debug/ --debug-symbols-pattern '*.so'
+
+  # Rolling caches (ccache, flatpak partial dependency builds) are saved under a
+  # new key on every run: keep only the newest of each kind for this ref.
+  cleanup-caches:
+    name: Clean up superseded caches
+    runs-on: ubuntu-24.04
+    needs: [build-linux, build-steam-frame, build-server-flatpak, build-android]
+    if: ${{ always() && vars.APK_ONLY == '' }}
+    permissions:
+      actions: write
+    steps:
+    - name: Delete superseded caches
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        REF: ${{ github.ref }}
+      run: |
+        gh cache list --ref "$REF" --limit 1000 --json id,key,createdAt | jq -r '
+          map(select(.key | test("^(ccache-|flatpak-ccache-|flatpak-deps-partial-)"))
+            | .family = (.key | sub("-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z$"; "") | sub("-[0-9]+$"; "")))
+          | group_by(.family)[] | sort_by(.createdAt) | .[:-1][] | "\(.id) \(.key)"' |
+        while read -r id key; do
+          echo "Deleting $key"
+          gh cache delete "$id" || echo "::warning::Could not delete cache $key"
+        done
 
   build-ubuntu:
     name: Build Ubuntu package

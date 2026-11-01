@@ -10,14 +10,18 @@ if [ -d ".git" ] ; then
 fi
 
 if ! type patch 2> /dev/null ; then
-	echo "patch command not found" >&1
+	echo "patch command not found" >&2
 	exit 1
 fi
 
-# There is no reliable way to apply a patch and succeed if it was
-# already applied. Just ignore errors...
+# Outside a git checkout, skip patches that are already applied and
+# fail on any other error.
 for f in "$@" ; do
-	patch -p1 --forward < "$f"
+	if patch -p1 --reverse --force --dry-run --fuzz=0 < "$f" > /dev/null 2>&1 ; then
+		echo "already applied: $f"
+		continue
+	fi
+	patch -p1 --forward --batch --fuzz=0 < "$f" || exit 1
 done
 
 exit 0
