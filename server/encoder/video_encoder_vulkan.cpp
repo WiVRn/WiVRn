@@ -25,6 +25,7 @@
 #include "utils/wivrn_trace.h"
 #include "utils/wivrn_vk_bundle.h"
 
+#include <algorithm>
 #include <iostream>
 #include <ranges>
 #include <stdexcept>
