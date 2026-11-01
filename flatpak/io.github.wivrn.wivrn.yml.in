@@ -67,13 +67,16 @@ cleanup:
   - '*.la'
   - '*.cmake'
 
+# Sources are sha256-pinned archives, not git, so flatpak-builder reuses
+# downloads and unchanged module builds from .flatpak-builder. CI caches that
+# directory plus the monado archive, keyed on this file, ct-ng configs and monado-rev.
 modules:
   - name: crosstool
     buildsystem: autotools
     sources:
-    - type: git
-      url: https://github.com/crosstool-ng/crosstool-ng.git
-      commit: 620b909cd0713f68084378b63cf61b5232757b90
+    - type: archive
+      url: https://github.com/crosstool-ng/crosstool-ng/archive/620b909cd0713f68084378b63cf61b5232757b90.tar.gz
+      sha256: d109c9315c0ae0cbb7622d540b1f395b663243371413bbecba03e800c5caa18b
     - type: shell
       commands:
        # Make the build lighter:
@@ -94,9 +97,11 @@ modules:
     config-opts:
       - --disable-md2man
     sources:
-    - type: git
-      url: https://github.com/RsyncProject/rsync.git
-      commit: 3305a7a063ab0167cab5bf7029da53abaa9fdb6e
+    - type: archive
+      url: https://github.com/RsyncProject/rsync/releases/download/v3.4.1/rsync-3.4.1.tar.gz
+      mirror-urls:
+        - https://download.samba.org/pub/rsync/src/rsync-3.4.1.tar.gz
+      sha256: 2924bcb3a1ed8b551fc101f740b9f0fe0a202b115027647cf69850d65fd88c52
     cleanup:
       - '*'
 
@@ -209,10 +214,9 @@ modules:
       - --disable-manpages
       - --disable-static
     sources:
-    - type: git
-      url: https://github.com/avahi/avahi.git
-      tag: v0.8
-      commit: f060abee2807c943821d88839c013ce15db17b58
+    - type: archive
+      url: https://github.com/avahi/avahi/releases/download/v0.8/avahi-0.8.tar.gz
+      sha256: 060309d7a333d38d951bc27598c677af1796934dbd98e1024e7ad8de798fedda
     cleanup:
       - /share/locale
       - /share/runtime/locale
@@ -223,9 +227,9 @@ modules:
     config-opts:
       - --enable-shared
     sources:
-    - type: git
-      url: https://code.videolan.org/videolan/x264.git
-      commit: 31e19f92f00c7003fa115047ce50978bc98c3a0d
+    - type: archive
+      url: https://code.videolan.org/videolan/x264/-/archive/31e19f92f00c7003fa115047ce50978bc98c3a0d/x264-31e19f92f00c7003fa115047ce50978bc98c3a0d.tar.gz
+      sha256: d053c9d86988d6bc78237ca5205865c5ddf99c98ef4cd9927eec8f6d388f6dd9
     cleanup:
       - /bin/x264
 
@@ -251,10 +255,9 @@ modules:
       - /bin/ffplay
       - /bin/ffprobe
     sources:
-    - type: git
-      url: https://gitlab.com/freedesktop-sdk/mirrors/ffmpeg/ffmpeg.git
-      tag: n7.1.4
-      commit: 9abe92e3af7fa7becc8f7f742b1457b4c28220a6
+    - type: archive
+      url: https://ffmpeg.org/releases/ffmpeg-7.1.4.tar.xz
+      sha256: 71f4aac3573ed9060489cb62526a6c7dda815ae10993789611acd7be9fa9fbf4
 
   - name: eigen3
     buildsystem: cmake-ninja
@@ -262,10 +265,9 @@ modules:
       - -DBUILD_TESTING=OFF
     builddir: true
     sources:
-    - type: git
-      url: https://gitlab.com/libeigen/eigen.git
-      tag: 5.0.1
-      commit: bc3b39870ecb690a623a3f49149a358b95c5781d
+    - type: archive
+      url: https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.tar.gz
+      sha256: e9c326dc8c05cd1e044c71f30f1b2e34a6161a3b6ecf445d56b53ff1669e3dec
     cleanup:
       - '*'
 
@@ -274,10 +276,9 @@ modules:
     config-opts:
       - -DJSON_BuildTests=OFF
     sources:
-    - type: git
-      url: https://github.com/nlohmann/json.git
-      tag: v3.12.0
-      commit: 55f93686c01528224f448c19128836e7df245f72
+    - type: archive
+      url: https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+      sha256: 42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa
 
   - name: cli11
     buildsystem: cmake-ninja
@@ -287,10 +288,9 @@ modules:
       - -DCLI11_BUILD_TESTS=OFF
       - -DCLI11_BUILD_EXAMPLES=OFF
     sources:
-    - type: git
-      url: https://github.com/CLIUtils/CLI11
-      tag: v2.6.2
-      commit: 37bb6edc5317e99af72ef48405e65d9ca5218861
+    - type: archive
+      url: https://github.com/CLIUtils/CLI11/archive/refs/tags/v2.6.2.tar.gz
+      sha256: c6ea6b2e5608b3ea8617999bd5f47420c71b2ebdb8dc4767c1034d1da5785711
     cleanup:
       - '*'
 
@@ -314,9 +314,22 @@ modules:
       - -DUSE_SYSTEM_OPENXR=OFF
       - -DUSE_SYSTEM_GLM=OFF
     sources:
-      - type: git
-        url: https://gitlab.com/znixian/OpenOVR.git
-        commit: cff07db75c4823afe93ed7027b03d5f7bc86f164
+      - type: archive
+        url: https://gitlab.com/znixian/OpenOVR/-/archive/cff07db75c4823afe93ed7027b03d5f7bc86f164/OpenOVR-cff07db75c4823afe93ed7027b03d5f7bc86f164.tar.gz
+        sha256: d7ac1b9b12b3681414370be301909789ccdbb948412689780b2dec8cd47070bf
+      # git submodules of OpenOVR at the commit above
+      - type: archive
+        url: https://github.com/KhronosGroup/OpenXR-SDK/archive/91a8a8d9d70f4b469bca0726122c3b5a6096010e.tar.gz
+        dest: libs/openxr-sdk
+        sha256: 3b615f994adfa6184c6ff3b1b6af24965048ea1ddd3c3cf15c2b042282e74c05
+      - type: archive
+        url: https://github.com/g-truc/glm/archive/bf71a834948186f4097caa076cd2663c69a10e1e.tar.gz
+        dest: libs/glm
+        sha256: 70ad78e872c145f0164d54da833b651914c184edc65958906937b9739fb8fb1b
+      - type: archive
+        url: https://github.com/libunwind/libunwind/archive/f27f6a860335fc6c8107702dbde4b215ea74b164.tar.gz
+        dest: libs/libunwind
+        sha256: 3beb15d894759234dcb568f9d2be8b6ddc04c5d112836772e99884c58a07a285
 
   - name: xrizer
     buildsystem: simple
@@ -345,9 +358,9 @@ modules:
       - mkdir /app/xrizer
       - cp -rL target/release/bin/ /app/xrizer/
     sources:
-      - type: git
-        url: https://github.com/Supreeeme/xrizer.git
-        commit: a1216c7b53fb562a5bc4de473163e97a483042af
+      - type: archive
+        url: https://github.com/Supreeeme/xrizer/archive/a1216c7b53fb562a5bc4de473163e97a483042af.tar.gz
+        sha256: d75bb0a301bcafb57e94ca56b9ea6ccbe847f3db9181d7fb61bffccb26a40c88
       - xrizer-gen-src.json
 
   - name: wivrn-library
@@ -389,9 +402,9 @@ modules:
       - WIVRN_SRC1
         WIVRN_SRC2
         WIVRN_SRC3
-      - type: git
-        url: https://gitlab.freedesktop.org/monado/monado
-        commit: MONADO_COMMIT
+      - type: archive
+        url: MONADO_URL
+        sha256: MONADO_SHA256
         dest: deps/monado-src
       - type: shell
         commands:
@@ -429,9 +442,9 @@ modules:
         url: BOOST_URL
         dest: deps/boost-src
         sha256: BOOST_SHA256
-      - type: git
-        url: https://gitlab.freedesktop.org/monado/monado
-        commit: MONADO_COMMIT
+      - type: archive
+        url: MONADO_URL
+        sha256: MONADO_SHA256
         dest: deps/monado-src
       - type: shell
         commands:

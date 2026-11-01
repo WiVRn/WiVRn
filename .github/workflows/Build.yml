@@ -199,6 +199,16 @@ jobs:
       with:
         fetch-depth: 0
 
+    - uses: actions/cache/restore@v5
+      id: cache
+      with:
+        path: |
+          flatpak/monado-*.tar.gz
+          flatpak/xrizer-gen-src-*.json
+          .flatpak-builder
+        key: flatpak-build-${{ hashFiles('flatpak/io.github.wivrn.wivrn.yml.in', 'flatpak/ct-ng-x86_64.config', 'flatpak/ct-ng-aarch64.config', 'monado-rev') }}
+        restore-keys: flatpak-build-
+
     - name: Create the flatpak manifest
       run: |
         git config --global --add safe.directory $(pwd)
@@ -206,15 +216,30 @@ jobs:
         tools/gen_flatpak_manifest.py --gitlocal --out flatpak
         cat flatpak/io.github.wivrn.wivrn.yml
 
-    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
+    - name: Update flatpak runtimes
+      run: |
+        for i in 1 2 3; do
+          flatpak update -y --noninteractive && exit 0
+          echo "flatpak update failed (attempt $i), retrying"
+          sleep 20
+        done
+        exit 1
+
+    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.8
       with:
         manifest-path: flatpak/io.github.wivrn.wivrn.yml
         bundle: wivrn-server.flatpak
-        # The manifest is regenerated on every commit with the git hash embedded,
-        # so its default (manifest-hash) cache key never hits. Key on the files
-        # that actually define the dependency set instead, so the toolchain
-        # downloads and build cache persist across commits.
-        cache-key: flatpak-builder-${{ hashFiles('flatpak/io.github.wivrn.wivrn.yml.in', 'flatpak/ct-ng-x86_64.config', 'flatpak/ct-ng-aarch64.config', 'monado-rev') }}
+        restore-cache: false
+        save-cache: false
+
+    - uses: actions/cache/save@v5
+      if: success() && steps.cache.outputs.cache-hit != 'true'
+      with:
+        path: |
+          flatpak/monado-*.tar.gz
+          flatpak/xrizer-gen-src-*.json
+          .flatpak-builder
+        key: flatpak-build-${{ hashFiles('flatpak/io.github.wivrn.wivrn.yml.in', 'flatpak/ct-ng-x86_64.config', 'flatpak/ct-ng-aarch64.config', 'monado-rev') }}
 
     - name: Debug bundle
       uses: actions/upload-artifact@v7
@@ -429,10 +454,7 @@ jobs:
 
     - name: Patch monado
       working-directory: wivrn/monado-src
-      run: >
-        for p in ../patches/monado/*; do
-          patch -p1 --fuzz=0 --forward < "$p"
-        done
+      run: ../patches/apply.sh ../patches/monado/*
 
     - name: Download stb
       run: |

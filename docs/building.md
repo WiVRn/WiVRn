@@ -33,6 +33,8 @@ For a few dependencies it is possible to select system or embedded versions, che
 
 For more advanced options, check [CMakeLists.txt](../CMakeLists.txt).
 
+For the Flatpak, see [flatpak](flatpak.md).
+
 ## Profiling / tracing build
 
 To build the server with Perfetto tracing for local profiling, use the `server-tracing` preset (it is the `server` preset plus `WIVRN_USE_PERFETTO=ON`):
