@@ -1,0 +1,146 @@
+From caafe8cfd10de59aa416e3668e42404b88e2db18 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Mon, 2 Nov 2026 22:26:19 +0100
+Subject: [PATCH 14/14] c/util: use poll to wait on fences
+
+Based on issue report from DawsSangio <daws72@gmail.com>
+NVIDIA drivers appear to sometimes wait for up to 10ms on imported
+fences through vkWaitForFences. On Linux we can just wait on the sync fd
+without importing it.
+
+Signed-off-by: Patrick Nicolas <patricknicolas@laposte.net>
+---
+ src/xrt/compositor/util/comp_sync.c | 75 +++++++++++++++++++++++++++++
+ 1 file changed, 75 insertions(+)
+
+diff --git a/src/xrt/compositor/util/comp_sync.c b/src/xrt/compositor/util/comp_sync.c
+index 6a4ffb833..38b53197e 100644
+--- a/src/xrt/compositor/util/comp_sync.c
++++ b/src/xrt/compositor/util/comp_sync.c
+@@ -20,6 +20,13 @@
+ 
+ #ifndef XRT_OS_WINDOWS
+ #include <unistd.h>
++#include <poll.h>
++#endif
++
++// On Linux one can just poll() on a sync handle.
++// It is also a workaround for 10ms waits on NVIDIA vkWaitForFences
++#if !defined(XRT_GRAPHICS_SYNC_HANDLE_IS_FD) || defined(XRT_OS_ANDROID)
++#define XRT_IMPORT_FENCE
+ #endif
+ 
+ 
+@@ -29,6 +36,7 @@
+  *
+  */
+ 
++#if defined(XRT_IMPORT_FENCE)
+ /*!
+  * A very simple implementation of a fence primitive.
+  */
+@@ -40,6 +48,19 @@ struct fence
+ 
+ 	VkFence fence;
+ };
++#else
++/*!
++ * A sync_fd implementation of a fence primitive.
++ */
++struct sync_fd_fence
++{
++	struct xrt_compositor_fence base;
++
++	struct vk_bundle *vk;
++
++	int fd;
++};
++#endif
+ 
+ 
+ /*
+@@ -48,6 +69,7 @@ struct fence
+  *
+  */
+ 
++#if defined(XRT_IMPORT_FENCE)
+ static xrt_result_t
+ fence_wait(struct xrt_compositor_fence *xcf, uint64_t timeout)
+ {
+@@ -89,6 +111,51 @@ fence_destroy(struct xrt_compositor_fence *xcf)
+ 	free(f);
+ }
+ 
++#else
++
++static xrt_result_t
++sync_fd_fence_wait(struct xrt_compositor_fence *xcf, uint64_t timeout)
++{
++	COMP_TRACE_MARKER();
++
++	struct sync_fd_fence *f = (struct sync_fd_fence *)xcf;
++
++	// Count no handle as signled fence.
++	if (f->fd == -1) {
++		return XRT_SUCCESS;
++	}
++
++	struct pollfd fds = {
++		.fd = f->fd,
++		.events = POLLIN,
++	};
++
++	int err = poll(&fds, 1, timeout / U_TIME_1MS_IN_NS);
++
++	if (err == 0) {
++		return XRT_TIMEOUT;
++	}
++	if (err < 0) {
++		VK_ERROR(f->vk, "sync fd poll: %s", strerror(err));
++	}
++
++	return XRT_SUCCESS;
++}
++
++static void
++sync_fd_fence_destroy(struct xrt_compositor_fence *xcf)
++{
++	COMP_TRACE_MARKER();
++
++	struct sync_fd_fence *f = (struct sync_fd_fence *)xcf;
++
++	if (f->fd >= 0) {
++		close(f->fd);
++	}
++	free(f);
++}
++#endif
++
+ 
+ /*
+  *
+@@ -101,6 +168,7 @@ comp_fence_import(struct vk_bundle *vk, xrt_graphics_sync_handle_t handle, struc
+ {
+ 	COMP_TRACE_MARKER();
+ 
++#if defined(XRT_IMPORT_FENCE)
+ 	VkFence fence = VK_NULL_HANDLE;
+ 
+ 	VkResult ret = vk_create_fence_sync_from_native(vk, handle, &fence);
+@@ -116,6 +184,13 @@ comp_fence_import(struct vk_bundle *vk, xrt_graphics_sync_handle_t handle, struc
+ 	f->base.destroy = fence_destroy;
+ 	f->fence = fence;
+ 	f->vk = vk;
++#else
++	struct sync_fd_fence *f = U_TYPED_CALLOC(struct sync_fd_fence);
++	f->base.wait = sync_fd_fence_wait;
++	f->base.destroy = sync_fd_fence_destroy;
++	f->fd = handle;
++	f->vk = vk;
++#endif
+ 
+ 	*out_xcf = &f->base;
+ 
+-- 
+2.56.0
+
