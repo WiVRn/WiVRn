@@ -154,6 +154,10 @@ separate service, no IPC) with the null compositor and remote HMD driver that wi
 Monado omits. It costs a further clone and roughly 800 MB of build tree, which is why it is off by
 default. Both runtimes run from the build tree.
 
+`WIVRN_USE_BENCH_DECODER`, also enabled in this preset, replaces the client's normal video
+decoder with a stub (`client/decoder/bench/`): it still negotiates and receives the real
+h264/h265/av1 stream, but discards the bitstream instead of decoding and colour-converting it.
+
 Also required: `hello_xr` on `PATH`, a systemd user instance, a running `avahi-daemon`, a usable
 Vulkan device.
 

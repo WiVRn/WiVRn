@@ -90,7 +90,8 @@
 			"binaryDir": "${sourceDir}/build-profiling",
 			"cacheVariables": {
 				"WIVRN_BUILD_CLIENT": "ON",
-				"WIVRN_BUILD_BENCH_RUNTIME": "ON"
+				"WIVRN_BUILD_BENCH_RUNTIME": "ON",
+				"WIVRN_USE_BENCH_DECODER": "ON"
 			}
 		},
 		{
@@ -103,6 +104,7 @@
 				"CMAKE_INTERPROCEDURAL_OPTIMIZATION": "OFF",
 				"WIVRN_BUILD_CLIENT": "ON",
 				"WIVRN_BUILD_BENCH_RUNTIME": "ON",
+				"WIVRN_USE_BENCH_DECODER": "ON",
 				"WIVRN_BUILD_WIVRNCTL": "OFF",
 				"WIVRN_OPENXR_MANIFEST_TYPE": "absolute",
 				"WIVRN_USE_VULKAN_ENCODE": "ON",
