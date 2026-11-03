@@ -908,7 +908,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	}
 
 	if (max_width > 0 and max_height > 0)
-		ensure_foveation_mode(foveation_center.is_cropped(fov, valid_fov), max_width, max_height);
+		ensure_swapchain(foveation_center.is_cropped(fov, valid_fov), max_width, max_height);
 
 	session.begin_frame();
 
@@ -1362,12 +1362,19 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 	        swapchain.format());
 }
 
-void scenes::stream::ensure_foveation_mode(bool cropped, uint32_t width, uint32_t height)
+void scenes::stream::ensure_swapchain(bool cropped, uint32_t width, uint32_t height)
 {
-	if (!swapchain or foveation_center.needs_swapchain_recreation(cropped))
+	if (!swapchain or swapchain.width() < width or swapchain.height() < height or foveation_center.needs_swapchain_recreation(cropped))
 	{
-		setup_reprojection_swapchain(width, height, foveation_center.use_meta_swapchain(cropped));
-		foveation_center.on_swapchain_recreated(cropped);
+		try
+		{
+			setup_reprojection_swapchain(width, height, foveation_center.use_meta_swapchain(cropped));
+			foveation_center.on_swapchain_recreated(cropped);
+		}
+		catch (std::exception & e)
+		{
+			spdlog::warn("failed to create swapchain");
+		}
 	}
 	else
 	{

@@ -307,7 +307,7 @@ private:
 
 	void setup(const to_headset::video_stream_description &);
 	void setup_reprojection_swapchain(uint32_t width, uint32_t height, bool foveation);
-	void ensure_foveation_mode(bool cropped, uint32_t width, uint32_t height);
+	void ensure_swapchain(bool cropped, uint32_t width, uint32_t height);
 
 	vk::raii::QueryPool query_pool = nullptr;
 	bool query_pool_filled = false;
