@@ -45,11 +45,12 @@ jobs:
         packages: ccache libvulkan-dev glslang-tools spirv-tools libwayland-dev libxrandr-dev ${{matrix.config.packages}} ${{ startsWith(matrix.config.preset, 'server') && env.SERVER_DEPS || ''}}
 
     - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.23
+      uses: hendrikmuhs/ccache-action@v1.2.24
       with:
-        key: linux-${{matrix.config.preset}}
-        job-summary: ""
-        restore-keys: linux-
+        # The trailing "." keeps one preset's key from being a prefix of another's
+        key: linux-${{matrix.config.preset}}.
+        verbose: 1
+        restore-keys: linux
 
     - uses: actions/cache@v5
       with:
@@ -139,10 +140,10 @@ jobs:
         packages: librsvg2-bin npm
 
     - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.23
+      uses: hendrikmuhs/ccache-action@v1.2.24
       with:
         key: steam-frame
-        job-summary: ""
+        verbose: 1
 
     - uses: actions/cache@v5
       with:
@@ -289,6 +290,14 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*.tgz
         restore-keys: cmake-android-
 
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2.24
+      with:
+        # The trailing "." keeps one build type's key from being a prefix of another's
+        key: android-${{matrix.buildtype}}.
+        verbose: 1
+        restore-keys: android
+
     # Gradle distribution and the Android plugin's dependencies.
     - uses: actions/cache@v5
       with:
@@ -330,6 +339,9 @@ jobs:
         echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
 
     - name: Build
+      env:
+        # Paths under the workspace are hashed relative to it
+        CCACHE_BASEDIR: ${{github.workspace}}
       run: |
         VERSION=$(git describe --tags --always | sed "s/^v\([0-9]\)/\1/")
         if [ ${{ matrix.buildtype }} = 'Oculus' ]
@@ -367,6 +379,7 @@ jobs:
           -Pwivrn_app_name="$APPNAME" \
           -Pwivrn_compress_glb=ON \
           -Pfetchcontent_base_dir=${{github.workspace}}/cmake-fetch \
+          -Pcompiler_launcher=ccache \
           assemble${{ matrix.buildtype }}
 
     - name: Upload build dir
@@ -418,6 +431,31 @@ jobs:
         fi
 
         ./ovr-platform-util upload-quest-build --app-id 7959676140827574 --token $OCULUS_TOKEN --apk apk/WiVRn-oculus.apk --channel $CHANNEL --age-group TEENS_AND_ADULTS $IS_DRAFT --debug_symbols_dir debug/ --debug-symbols-pattern '*.so'
+
+  # Rolling ccache caches are saved under a new key on every run: keep only the
+  # newest of each kind for this ref.
+  cleanup-caches:
+    name: Clean up superseded caches
+    runs-on: ubuntu-24.04
+    needs: [build-linux, build-steam-frame, build-server-flatpak, build-android]
+    if: ${{ always() && vars.APK_ONLY == '' }}
+    permissions:
+      actions: write
+    steps:
+    - name: Delete superseded caches
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        REF: ${{ github.ref }}
+      run: |
+        gh cache list --ref "$REF" --limit 1000 --json id,key,createdAt | jq -r '
+          map(select(.key | test("^ccache-"))
+            | .family = (.key | sub("-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z$"; "") | sub("-[0-9]+$"; "")))
+          | group_by(.family)[] | sort_by(.createdAt) | .[:-1][] | "\(.id) \(.key)"' |
+        while read -r id key; do
+          echo "Deleting $key"
+          gh cache delete "$id" || echo "::warning::Could not delete cache $key"
+        done
 
   build-ubuntu:
     name: Build Ubuntu package
