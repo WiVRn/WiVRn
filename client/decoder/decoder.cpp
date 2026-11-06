@@ -22,6 +22,8 @@
 #include "decoder/android/android_decoder.h"
 #elif WIVRN_USE_V4L2
 #include "decoder/v4l2/v4l2_decoder.h"
+#elif WIVRN_USE_BENCH_DECODER
+#include "decoder/bench/bench_decoder.h"
 #else
 #include "decoder/ffmpeg/ffmpeg_decoder.h"
 #endif
@@ -54,6 +56,9 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
 #elif WIVRN_USE_V4L2
 			return std::make_shared<wivrn::v4l2::decoder>(
 			        device, phys_dev, vk_queue_family_index, description, stream_index, scene, acc);
+#elif WIVRN_USE_BENCH_DECODER
+			return std::make_shared<wivrn::bench::decoder>(
+			        device, phys_dev, vk_queue_family_index, description, stream_index, scene, acc);
 #else
 			return std::make_shared<wivrn::ffmpeg::decoder>(
 			        device, phys_dev, description, stream_index, scene, acc);
@@ -78,6 +83,8 @@ static std::vector<wivrn::video_codec_capability> supported_codecs_()
 	wivrn::android::decoder::supported_codecs(codecs);
 #elif WIVRN_USE_V4L2
 	wivrn::v4l2::decoder::supported_codecs(codecs);
+#elif WIVRN_USE_BENCH_DECODER
+	wivrn::bench::decoder::supported_codecs(codecs);
 #else
 	wivrn::ffmpeg::decoder::supported_codecs(codecs);
 #endif
@@ -116,6 +123,9 @@ bool wivrn::decoder::supports_10bit(wivrn::video_codec codec)
 			return false;
 	}
 	__builtin_unreachable();
+#elif WIVRN_USE_BENCH_DECODER
+	// Mirror the ffmpeg backend's answer, for stream negotiation parity.
+	return codec == wivrn::video_codec::h265 or codec == wivrn::video_codec::av1;
 #else
 	// ffmpeg
 	return codec == wivrn::video_codec::h265 or codec == wivrn::video_codec::av1;
