@@ -39,7 +39,7 @@ One of `h264`, `h265`, `av1`, `raw`.
 
 Not all encoders support every codec:
 - `x264` encoder only supports `h264` codec
-- `vulkan` encoder supports `h264` and `h265` codecs
+- `vulkan` encoder supports `h264`, `h265` and `av1` codecs, but `av1` is never selected automatically: it must be requested by setting `encoder` to `vulkan`
 - `raw` encoder only supports `raw` codec
 - `nvenc` and `vaapi` support all codecs, except `raw`
 
