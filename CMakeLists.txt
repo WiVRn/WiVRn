@@ -210,6 +210,7 @@ if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
         pkg_check_modules(LIBAV_CLIENT REQUIRED IMPORTED_TARGET libavcodec libavutil libswscale)
     endif()
     find_package(Fontconfig REQUIRED)
+    pkg_check_modules(GIO_CLIENT REQUIRED IMPORTED_TARGET gio-2.0)
 
     if (WIVRN_USE_SYSTEM_OPENXR)
         find_package(OpenXR 1.1.59 REQUIRED)
