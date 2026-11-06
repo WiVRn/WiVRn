@@ -42,9 +42,13 @@ wivrn_gamepad::wivrn_gamepad(wivrn::wivrn_session & cnx) :
                 .str = "WiVRn Gamepad",
                 .serial = "WiVRn Gamepad",
                 .tracking_origin = &origin,
+                .supported = {
+                        .battery_status = cnx.get_info().battery_status,
+                },
                 .update_inputs = method_pointer<&wivrn_gamepad::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_gamepad::get_tracked_pose>,
                 .set_output = method_pointer<&wivrn_gamepad::set_output>,
+                .get_battery_status = method_pointer<&wivrn_gamepad::get_battery_status>,
                 .destroy = [](xrt_device *) {},
         },
         origin{
@@ -108,6 +112,34 @@ xrt_result_t wivrn_gamepad::get_tracked_pose(xrt_input_name name, int64_t, xrt_s
 	*out_relation = {};
 	U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
 	return XRT_ERROR_INPUT_UNSUPPORTED;
+}
+
+xrt_result_t wivrn_gamepad::get_battery_status(bool * out_present,
+                                               bool * out_charging,
+                                               float * out_charge)
+{
+	auto bat = battery.lock();
+
+	*out_charging = bat->charging;
+	if (bat->charge)
+	{
+		*out_present = true;
+		*out_charge = *bat->charge;
+	}
+	else
+	{
+		*out_present = false;
+	}
+
+	return XRT_SUCCESS;
+}
+
+void wivrn_gamepad::set_battery(const from_headset::battery & new_battery)
+{
+	if (new_battery.device == device_id::GAMEPAD)
+	{
+		*battery.lock() = new_battery;
+	}
 }
 
 void wivrn_gamepad::set_inputs(const from_headset::inputs & inputs)

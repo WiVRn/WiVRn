@@ -164,8 +164,10 @@ void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const c
 
 void wivrn_hmd::update_battery(const from_headset::battery & new_battery)
 {
-	// We will only request a new sample if the current one is consumed
-	*battery.lock() = new_battery;
+	if (new_battery.device == device_id::HEAD)
+	{
+		*battery.lock() = new_battery;
+	}
 }
 
 xrt_result_t wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
@@ -214,9 +216,17 @@ xrt_result_t wivrn_hmd::get_battery_status(bool * out_present,
                                            float * out_charge)
 {
 	auto bat = battery.lock();
-	*out_present = bat->present;
+
 	*out_charging = bat->charging;
-	*out_charge = bat->charge;
+	if (bat->charge)
+	{
+		*out_present = true;
+		*out_charge = *bat->charge;
+	}
+	else
+	{
+		*out_present = false;
+	}
 
 	return XRT_SUCCESS;
 }

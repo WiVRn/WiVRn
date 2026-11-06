@@ -728,11 +728,13 @@ wivrn_controller::wivrn_controller(xrt_device_name name,
                         .orientation_tracking = true,
                         .position_tracking = true,
                         .hand_tracking = name != XRT_DEVICE_EXT_HAND_INTERACTION and cnx->get_info().hand_tracking,
+                        .battery_status = cnx->get_info().battery_status,
                 },
                 .update_inputs = method_pointer<&wivrn_controller::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_controller::get_tracked_pose>,
                 .get_hand_tracking = method_pointer<&wivrn_controller::get_hand_tracking>,
                 .set_output = method_pointer<&wivrn_controller::set_output>,
+                .get_battery_status = method_pointer<&wivrn_controller::get_battery_status>,
                 .destroy = [](xrt_device *) {},
         },
         grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
@@ -992,6 +994,26 @@ xrt_result_t wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t de
 	}
 }
 
+xrt_result_t wivrn_controller::get_battery_status(bool * out_present,
+                                                  bool * out_charging,
+                                                  float * out_charge)
+{
+	auto bat = battery.lock();
+
+	*out_charging = bat->charging;
+	if (bat->charge)
+	{
+		*out_present = true;
+		*out_charge = *bat->charge;
+	}
+	else
+	{
+		*out_present = false;
+	}
+
+	return XRT_SUCCESS;
+}
+
 void wivrn_controller::set_derived_pose(const from_headset::derived_pose & derived)
 {
 	auto list = [this](device_id id) -> pose_list * {
@@ -1008,6 +1030,14 @@ void wivrn_controller::set_derived_pose(const from_headset::derived_pose & deriv
 		target->set_derived(source, xrt_cast(derived.relation));
 }
 
+void wivrn_controller::update_battery(const from_headset::battery & new_battery)
+{
+	const device_id device = device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER ? device_id::LEFT_CONTROLLER : device_id::RIGHT_CONTROLLER;
+	if (new_battery.device == device)
+	{
+		*battery.lock() = new_battery;
+	}
+}
 void wivrn_controller::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	aim.update_tracking(tracking, offset);

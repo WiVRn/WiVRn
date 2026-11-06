@@ -154,10 +154,14 @@ enum class device_id : uint8_t
 	RIGHT_GRASP_VALUE,            // /user/hand/right/input/grasp_ext/value
 	RIGHT_GRASP_READY,            // /user/hand/right/input/grasp_ext/ready_ext
 	EYE_GAZE,                     // /user/eyes_ext/input/gaze_ext/pose
-	LEFT_HAND,                    // identify hand tracking
-	RIGHT_HAND,                   // identify hand tracking
-	BODY,                         // identify body tracking
-	FACE,                         // identify face tracking
+
+	LEFT_CONTROLLER,               // identify controller
+	RIGHT_CONTROLLER,              // identify controller
+	LEFT_HAND = LEFT_CONTROLLER,   // identify hand tracking
+	RIGHT_HAND = RIGHT_CONTROLLER, // identify hand tracking
+	BODY,                          // identify body tracking
+	FACE,                          // identify face tracking
+	GAMEPAD,                       // identify gamepad
 
 	// Gamepad, microsoft/xbox_controller profile (/user/gamepad)
 	GAMEPAD_MENU_CLICK,             // /user/gamepad/input/menu/click
@@ -346,6 +350,7 @@ struct headset_info_packet
 	};
 	std::optional<audio_description> speaker;
 	std::optional<audio_description> microphone;
+	bool battery_status; // supports XR_EXT_interaction_profile_battery_state_display, for reporting controller/gamepad battery status
 	bool hand_tracking;
 	bool eye_gaze;
 	bool palm_pose;
@@ -668,8 +673,8 @@ struct feedback
 
 struct battery
 {
-	float charge;
-	bool present;
+	device_id device;
+	std::optional<float> charge;
 	bool charging;
 };
 
