@@ -1469,6 +1469,15 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                },
 	                suggested_binding{
 	                        {
+	                                "/interaction_profiles/valve/frame_controller_valve",
+	                        },
+	                        {
+	                                {"left_trigger", "/user/hand/left/input/bumper/click"},
+	                                {"right_trigger", "/user/hand/right/input/bumper/click"},
+	                        },
+	                },
+	                suggested_binding{
+	                        {
 	                                "/interaction_profiles/khr/simple_controller",
 	                        },
 	                        {

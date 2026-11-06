@@ -1458,6 +1458,9 @@ scene::meta & scenes::stream::get_meta_scene()
 	                                "/interaction_profiles/valve/frame_controller_valve",
 	                        },
 	                        {
+	                                {"left_trigger", "/user/hand/left/input/bumper/click"},
+	                                {"right_trigger", "/user/hand/right/input/bumper/click"},
+
 	                                {"gamepad_mode_1", "/user/hand/left/input/squeeze/click"},
 	                                {"gamepad_mode_2", "/user/hand/right/input/squeeze/click"},
 	                        },
