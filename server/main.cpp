@@ -806,6 +806,7 @@ void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & inf
 	wivrn_server_set_mic_channels(dbus_server, mic.num_channels);
 	wivrn_server_set_mic_sample_rate(dbus_server, mic.sample_rate);
 
+	wivrn_server_set_battery_status(dbus_server, info.battery);
 	wivrn_server_set_hand_tracking(dbus_server, info.hand_tracking);
 	wivrn_server_set_eye_gaze(dbus_server, info.eye_gaze);
 	wivrn_server_set_face_tracking(dbus_server, info.face_tracking != wivrn::from_headset::face_type::none);

@@ -110,6 +110,34 @@ xrt_result_t wivrn_gamepad::get_tracked_pose(xrt_input_name name, int64_t, xrt_s
 	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
+xrt_result_t wivrn_gamepad::get_battery_status(bool * out_present,
+                                               bool * out_charging,
+                                               float * out_charge)
+{
+	auto bat = battery.lock();
+
+	*out_charging = bat->charging;
+	if (bat->charge)
+	{
+		*out_present = true;
+		*out_charge = *bat->charge;
+	}
+	else
+	{
+		*out_present = false;
+	}
+
+	return XRT_SUCCESS;
+}
+
+void wivrn_gamepad::set_battery(const from_headset::battery & new_battery)
+{
+	if (new_battery.device == device_id::GAMEPAD)
+	{
+		*battery.lock() = new_battery;
+	}
+}
+
 void wivrn_gamepad::set_inputs(const from_headset::inputs & inputs)
 {
 	std::lock_guard lock(mutex);

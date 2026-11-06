@@ -822,6 +822,12 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 void wivrn_session::operator()(from_headset::battery && battery)
 {
 	hmd.update_battery(battery);
+	left_controller.update_battery(battery);
+	left_hand_interaction.update_battery(battery);
+	right_controller.update_battery(battery);
+	right_hand_interaction.update_battery(battery);
+	if (gamepad_device)
+		gamepad_device->set_battery(battery);
 }
 
 void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
