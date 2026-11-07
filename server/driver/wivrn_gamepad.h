@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "utils/thread_safe.h"
 #include "wivrn_packets.h"
 
 #include "xrt/xrt_defines.h"
@@ -43,6 +44,8 @@ class wivrn_gamepad : public xrt_device
 	std::array<xrt_input, 18> inputs_staging; // written from the network thread, published by update_inputs
 	std::array<xrt_output, 4> outputs_array;
 
+	thread_safe<from_headset::battery> battery{};
+
 	wivrn::wivrn_session * cnx;
 
 public:
@@ -51,8 +54,12 @@ public:
 
 	xrt_result_t update_inputs();
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
+	xrt_result_t get_battery_status(bool * out_present,
+	                                bool * out_charging,
+	                                float * out_charge);
 	xrt_result_t set_output(xrt_output_name name, const xrt_output_value * value);
 
+	void set_battery(const from_headset::battery &);
 	// Update from a forwarded inputs packet (gamepad device_ids).
 	void set_inputs(const from_headset::inputs &);
 	void set_connected(bool);

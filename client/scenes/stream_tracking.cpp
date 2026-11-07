@@ -18,7 +18,6 @@
  */
 
 #include "application.h"
-#include "battery.h"
 #include "stream.h"
 #include "utils/overloaded.h"
 #include "wivrn_packets.h"
@@ -278,9 +277,6 @@ void scenes::stream::tracking()
 	// Runtime may use JNI and needs the thread to be attached
 	application::instance().setup_jni();
 #endif
-
-	XrTime next_battery_check = 0;
-	const XrDuration battery_check_interval = 30'000'000'000; // 30s
 
 	magic_enum::containers::array<device_id, XrSpace> spaces{};
 
@@ -588,19 +584,6 @@ void scenes::stream::tracking()
 				if (e.code().category() != xr::error_category() or
 				    e.code().value() != XR_ERROR_TIME_INVALID)
 					throw;
-			}
-
-			// FIXME: switch to event based
-			if (next_battery_check < now)
-			{
-				auto status = get_battery_status();
-				network_session->send_stream(from_headset::battery{
-				        .charge = status.charge.value_or(-1),
-				        .present = status.charge.has_value(),
-				        .charging = status.charging,
-				});
-
-				next_battery_check = now + battery_check_interval;
 			}
 
 			if (auto fb = std::get_if<xr::fb_body_tracker>(&body_tracker); fb and fb->should_send_skeleton())

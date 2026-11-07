@@ -285,6 +285,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		info.settings.mirror_gamepad = config.forward_gamepad;
 		info.settings.enabled_body_parts = config.body_part_mask;
 
+		info.battery = self->instance.has_extension(XR_EXT_INTERACTION_PROFILE_BATTERY_STATE_DISPLAY_EXTENSION_NAME);
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
 
@@ -1303,6 +1304,12 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	spdlog::info("setup, refresh rate {}", description.refresh_rate);
 	session.set_refresh_rate(description.refresh_rate);
 
+	battery & battery_monitor = application::instance().get_battery_monitor();
+	for (auto device: magic_enum::enum_values<battery::device>())
+	{
+		on_battery_update(device, battery_monitor.get_battery_status(device));
+	}
+
 	std::unique_lock lock(decoder_mutex);
 	if (video_stream_description == description)
 		return;
@@ -1458,6 +1465,9 @@ scene::meta & scenes::stream::get_meta_scene()
 	                                "/interaction_profiles/valve/frame_controller_valve",
 	                        },
 	                        {
+	                                {"left_trigger", "/user/hand/left/input/bumper/click"},
+	                                {"right_trigger", "/user/hand/right/input/bumper/click"},
+
 	                                {"gamepad_mode_1", "/user/hand/left/input/squeeze/click"},
 	                                {"gamepad_mode_2", "/user/hand/right/input/squeeze/click"},
 	                        },
@@ -1529,6 +1539,31 @@ void scenes::stream::on_xr_event(const xr::event & event)
 		default:
 			break;
 	}
+}
+
+void scenes::stream::on_battery_update(battery::device device, const battery::battery_status & battery)
+{
+	device_id id = [&] {
+		switch (device)
+		{
+			case battery::device::head:
+				return device_id::HEAD;
+			case battery::device::left_controller:
+				return device_id::LEFT_CONTROLLER;
+			case battery::device::right_controller:
+				return device_id::RIGHT_CONTROLLER;
+			case battery::device::gamepad:
+				return device_id::GAMEPAD;
+			default:
+				assert(false);
+				__builtin_unreachable();
+		}
+	}();
+	network_session->send_control(from_headset::battery{
+	        .device = id,
+	        .charge = battery.charge,
+	        .charging = battery.charging,
+	});
 }
 
 bool scenes::stream::forward_hid_input(from_headset::hid::input_t packet, bool device_enabled)

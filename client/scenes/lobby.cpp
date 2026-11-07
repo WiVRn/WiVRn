@@ -1416,6 +1416,11 @@ void scenes::lobby::on_xr_event(const xr::event & event)
 	if (next_scene)
 		next_scene->on_xr_event(event);
 }
+void scenes::lobby::on_battery_update(battery::device device, const battery::battery_status & battery)
+{
+	if (next_scene)
+		next_scene->on_battery_update(device, battery);
+}
 
 scene::meta & scenes::lobby::get_meta_scene()
 {
@@ -1465,6 +1470,15 @@ scene::meta & scenes::lobby::get_meta_scene()
 
 	                                {"recenter_left", "/user/hand/left/input/squeeze/value"},
 	                                {"recenter_right", "/user/hand/right/input/squeeze/value"},
+	                        },
+	                },
+	                suggested_binding{
+	                        {
+	                                "/interaction_profiles/valve/frame_controller_valve",
+	                        },
+	                        {
+	                                {"left_trigger", "/user/hand/left/input/bumper/click"},
+	                                {"right_trigger", "/user/hand/right/input/bumper/click"},
 	                        },
 	                },
 	                suggested_binding{

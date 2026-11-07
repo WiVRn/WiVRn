@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "utils/thread_safe.h"
 #include "xrt/xrt_device.h"
 
 #include "hand_joints_list.h"
@@ -48,6 +49,8 @@ class wivrn_controller : public xrt_device
 	std::vector<xrt_input> inputs_array;
 	std::vector<xrt_output> outputs_array;
 
+	thread_safe<from_headset::battery> battery{};
+
 	wivrn::wivrn_session * cnx;
 
 public:
@@ -58,12 +61,16 @@ public:
 
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 	xrt_result_t get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns, xrt_hand_joint_set * out_value, int64_t * out_timestamp_ns);
+	xrt_result_t get_battery_status(bool * out_present,
+	                                bool * out_charging,
+	                                float * out_charge);
 
 	xrt_result_t set_output(xrt_output_name name, const xrt_output_value * value);
 
 	void set_inputs(const from_headset::inputs &, const clock_offset &);
-
 	void set_derived_pose(const from_headset::derived_pose &);
+
+	void update_battery(const from_headset::battery &);
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	void update_hand_tracking(const from_headset::hand_tracking &, const clock_offset &);
 

@@ -584,6 +584,7 @@ void scene::remove(entt::entity entity)
 void scene::on_unfocused() {}
 void scene::on_focused() {}
 void scene::on_xr_event(const xr::event &) {}
+void scene::on_battery_update(battery::device, const battery::battery_status &) {}
 
 bool scene::on_input_key_down(uint8_t key_code)
 {

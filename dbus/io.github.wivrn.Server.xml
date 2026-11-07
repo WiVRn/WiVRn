@@ -56,6 +56,7 @@
 		<property name="SpeakerSampleRate"     type="u" access="read"/>
 		<property name="MicChannels"           type="u" access="read"/>
 		<property name="MicSampleRate"         type="u" access="read"/>
+		<property name="BatteryStatus"         type="b" access="read"/>
 		<property name="HandTracking"          type="b" access="read"/>
 		<property name="EyeGaze"               type="b" access="read"/>
 		<property name="FaceTracking"          type="b" access="read"/>
