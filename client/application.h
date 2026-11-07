@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "battery.h"
 #ifdef __ANDROID__
 #include "android/hid.h"
 #include <android_native_app_glue.h>
@@ -148,6 +149,7 @@ private:
 	std::filesystem::path cache_path;
 
 	std::shared_ptr<wifi_lock> wifi;
+	std::optional<battery> battery_monitor;
 
 	std::mutex server_intent_mutex;
 	std::optional<wivrn_discover::service> server_intent;
@@ -314,6 +316,12 @@ public:
 	static wifi_lock & get_wifi_lock()
 	{
 		return *instance().wifi;
+	}
+
+	static battery & get_battery_monitor()
+	{
+		assert(instance().battery_monitor);
+		return *instance().battery_monitor;
 	}
 
 #ifdef __ANDROID__

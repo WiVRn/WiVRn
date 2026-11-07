@@ -2,6 +2,7 @@
  * WiVRn VR streaming
  * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
  * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2026  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,20 +20,19 @@
 
 #include "battery.h"
 #include "android/jnipp.h"
+#include "application.h"
 
 #include <mutex>
 #include <spdlog/spdlog.h>
 
-namespace
+battery::battery(xr::instance & instance, xr::session & session, jobject activity) : battery(instance, session)
 {
-std::mutex last_status_lock;
-battery_status last_status;
-} // namespace
+	jni::object<""> act(activity);
+	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
+	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
 
-battery_status get_battery_status()
-{
-	std::unique_lock _{last_status_lock};
-	return last_status;
+	auto bat_receiver = act.field<jni::object<"android/content/BroadcastReceiver">>("BatteryInfoReceiver");
+	ctx.call<jni::object<"android/content/Intent">>("registerReceiver", bat_receiver, jni::new_object<"android/content/IntentFilter">(jni::string{"android.intent.action.BATTERY_CHANGED"}));
 }
 
 extern "C" void Java_org_meumeu_wivrn_BroadcastReceiver_onReceive(JNIEnv * env, jobject instance, jobject ctxt_obj, jobject intent_obj)
@@ -51,16 +51,19 @@ extern "C" void Java_org_meumeu_wivrn_BroadcastReceiver_onReceive(JNIEnv * env, 
 	auto scale_jint = intent.call<jni::Int>(get_int_extra, scale_jstr, default_jint);
 	auto plugged_jint = intent.call<jni::Int>(get_int_extra, plugged_jstr, default_jint);
 
-	{
-		std::unique_lock _{last_status_lock};
-		if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
-			last_status.charge = (float)(level_jint.value) / (float)(scale_jint.value);
-		else
-			last_status.charge = std::nullopt;
+	std::optional<float> charge{};
+	if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
+		charge = (float)(level_jint.value) / (float)(scale_jint.value);
 
-		last_status.charging = plugged_jint && plugged_jint.value > 0;
-	}
+	bool charging = plugged_jint && plugged_jint.value > 0;
 
 	if (level_jint and scale_jint and plugged_jint)
-		spdlog::debug("Received ACTION_BATTERY_CHANGED: level {}%, plugged {}", *last_status.charge * 100, last_status.charging);
+		spdlog::debug("Received ACTION_BATTERY_CHANGED: level {}%, plugged {}", *charge * 100, charging);
+
+	application::get_battery_monitor().on_status_update(
+	        battery::device::head,
+	        {
+	                .charge = charge,
+	                .charging = charging,
+	        });
 }

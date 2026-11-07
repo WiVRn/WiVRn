@@ -19,6 +19,7 @@
 
 #include "gui_common.h"
 
+#include "application.h"
 #include "battery.h"
 #include "render/ui_theme.h"
 #include "render/ui_widgets.h"
@@ -37,7 +38,7 @@ float toggle_width()
 
 std::optional<battery_indicator> battery_status_indicator(XrTime now)
 {
-	const auto battery = get_battery_status();
+	const auto battery = application::get_battery_monitor().get_battery_status(battery::device::head);
 	if (not battery.charge)
 		return std::nullopt;
 

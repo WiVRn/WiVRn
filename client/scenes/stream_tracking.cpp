@@ -18,7 +18,6 @@
  */
 
 #include "application.h"
-#include "battery.h"
 #include "stream.h"
 #include "utils/overloaded.h"
 #include "wivrn_packets.h"
@@ -279,9 +278,6 @@ void scenes::stream::tracking()
 	application::instance().setup_jni();
 #endif
 
-	XrTime next_battery_check = 0;
-	const XrDuration battery_check_interval = 30'000'000'000; // 30s
-
 	magic_enum::containers::array<device_id, XrSpace> spaces{};
 
 	const auto & config = application::get_config();
@@ -345,8 +341,6 @@ void scenes::stream::tracking()
 	std::vector<XrView> views;
 
 	std::vector<serialization_packet> packets;
-
-	const bool battery = instance.has_extension(XR_EXT_INTERACTION_PROFILE_BATTERY_STATE_DISPLAY_EXTENSION_NAME);
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
 	std::optional<xr::hand_tracker> left_hand;
@@ -590,63 +584,6 @@ void scenes::stream::tracking()
 				if (e.code().category() != xr::error_category() or
 				    e.code().value() != XR_ERROR_TIME_INVALID)
 					throw;
-			}
-
-			// FIXME: switch to event based
-			if (next_battery_check < now)
-			{
-				auto status = get_battery_status();
-				network_session->send_control(from_headset::battery{
-				        .device = device_id::HEAD,
-				        .charge = status.charge,
-				        .charging = status.charging,
-				});
-
-				if (battery)
-				{
-					static std::array paths{
-					        std::make_pair("/user/hand/left", device_id::LEFT_CONTROLLER),
-					        std::make_pair("/user/hand/right", device_id::RIGHT_CONTROLLER),
-					        std::make_pair("/user/gamepad", device_id::GAMEPAD),
-					};
-
-					for (auto [path, device]: paths)
-					{
-						XrResult res;
-						XrPath p;
-						if (res = xrStringToPath(instance, path, &p); !XR_SUCCEEDED(res))
-						{
-							spdlog::warn("xrStringToPath(\"{}\") returned {} when querying battery, continuing", path, xr::to_string(res));
-							continue;
-						}
-
-						XrBatteryStateDisplayEXT battery_state{
-						        .type = XR_TYPE_BATTERY_STATE_DISPLAY_EXT,
-						};
-						XrInteractionProfileState profile_state{
-						        .type = XR_TYPE_INTERACTION_PROFILE_STATE,
-						        .next = &battery_state,
-						};
-
-						if (res = xrGetCurrentInteractionProfile(session, p, &profile_state); !XR_SUCCEEDED(res))
-						{
-							spdlog::warn("xrGetCurrentInteractionProfile returned {} when querying battery, continuing", xr::to_string(res));
-							continue;
-						}
-
-						std::optional<float> charge{};
-						if (battery_state.stateFlags & XR_BATTERY_STATE_DISPLAY_STATE_VALID_BIT_EXT)
-							charge = battery_state.batteryLevel;
-
-						network_session->send_control(from_headset::battery{
-						        .device = device,
-						        .charge = charge,
-						        .charging = (battery_state.stateFlags & XR_BATTERY_STATE_DISPLAY_STATE_CHARGING_BIT_EXT) != 0,
-						});
-					}
-				}
-
-				next_battery_check = now + battery_check_interval;
 			}
 
 			if (auto fb = std::get_if<xr::fb_body_tracker>(&body_tracker); fb and fb->should_send_skeleton())
