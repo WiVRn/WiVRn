@@ -271,6 +271,7 @@ public:
 	void on_unfocused() override;
 	void on_focused() override;
 	void on_xr_event(const xr::event &) override;
+	void on_battery_update(battery::device device, const battery::battery_status &) override;
 
 	static meta & get_meta_scene();
 };

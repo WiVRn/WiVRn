@@ -19,21 +19,10 @@
 
 #include "battery.h"
 #include "android/jnipp.h"
+#include "application.h"
 
 #include <mutex>
 #include <spdlog/spdlog.h>
-
-namespace
-{
-std::mutex last_status_lock;
-battery_status last_status;
-} // namespace
-
-battery_status get_battery_status()
-{
-	std::unique_lock _{last_status_lock};
-	return last_status;
-}
 
 extern "C" void Java_org_meumeu_wivrn_BroadcastReceiver_onReceive(JNIEnv * env, jobject instance, jobject ctxt_obj, jobject intent_obj)
 {
@@ -51,16 +40,19 @@ extern "C" void Java_org_meumeu_wivrn_BroadcastReceiver_onReceive(JNIEnv * env, 
 	auto scale_jint = intent.call<jni::Int>(get_int_extra, scale_jstr, default_jint);
 	auto plugged_jint = intent.call<jni::Int>(get_int_extra, plugged_jstr, default_jint);
 
-	{
-		std::unique_lock _{last_status_lock};
-		if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
-			last_status.charge = (float)(level_jint.value) / (float)(scale_jint.value);
-		else
-			last_status.charge = std::nullopt;
+	std::optional<float> charge{};
+	if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
+		charge = (float)(level_jint.value) / (float)(scale_jint.value);
 
-		last_status.charging = plugged_jint && plugged_jint.value > 0;
-	}
+	bool charging = plugged_jint && plugged_jint.value > 0;
 
 	if (level_jint and scale_jint and plugged_jint)
-		spdlog::debug("Received ACTION_BATTERY_CHANGED: level {}%, plugged {}", *last_status.charge * 100, last_status.charging);
+		spdlog::debug("Received ACTION_BATTERY_CHANGED: level {}%, plugged {}", *charge * 100, charging);
+
+	application::instance().get_battery_monitor().on_status_update(
+	        battery::device::head,
+	        {
+	                .charge = std::move(charge),
+	                .charging = charging,
+	        });
 }

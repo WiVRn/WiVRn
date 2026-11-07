@@ -1416,6 +1416,11 @@ void scenes::lobby::on_xr_event(const xr::event & event)
 	if (next_scene)
 		next_scene->on_xr_event(event);
 }
+void scenes::lobby::on_battery_update(battery::device device, const battery::battery_status & battery)
+{
+	if (next_scene)
+		next_scene->on_battery_update(device, battery);
+}
 
 scene::meta & scenes::lobby::get_meta_scene()
 {

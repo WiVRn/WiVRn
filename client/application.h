@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "battery.h"
 #ifdef __ANDROID__
 #include "android/hid.h"
 #include <android_native_app_glue.h>
@@ -73,6 +74,7 @@ struct application_info
 
 class application : public singleton<application>
 {
+	friend class battery;
 	friend class scene;
 
 private:
@@ -148,6 +150,7 @@ private:
 	std::filesystem::path cache_path;
 
 	std::shared_ptr<wifi_lock> wifi;
+	battery battery_monitor;
 
 	std::mutex server_intent_mutex;
 	std::optional<wivrn_discover::service> server_intent;
@@ -314,6 +317,11 @@ public:
 	static wifi_lock & get_wifi_lock()
 	{
 		return *instance().wifi;
+	}
+
+	static class battery & get_battery_monitor()
+	{
+		return instance().battery_monitor;
 	}
 
 #ifdef __ANDROID__

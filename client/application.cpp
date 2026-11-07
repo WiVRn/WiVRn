@@ -1533,6 +1533,8 @@ void application::initialize()
 
 	initialize_actions();
 	load_locale();
+
+	battery_monitor.start();
 }
 
 void application::load_locale()

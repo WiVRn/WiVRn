@@ -25,10 +25,6 @@
 
 namespace
 {
-std::mutex last_status_lock;
-battery_status last_status;
-std::chrono::steady_clock::time_point last_read;
-
 std::optional<std::string> read_line(const std::filesystem::path & path)
 {
 	std::ifstream file(path);
@@ -37,7 +33,6 @@ std::optional<std::string> read_line(const std::filesystem::path & path)
 		return line;
 	return std::nullopt;
 }
-
 std::optional<float> read_percent(const std::filesystem::path & path)
 {
 	std::ifstream file(path);
@@ -47,7 +42,7 @@ std::optional<float> read_percent(const std::filesystem::path & path)
 	return std::nullopt;
 }
 
-battery_status read_battery_status(const std::filesystem::path & percent_path, const std::filesystem::path & status_path)
+battery::battery_status read_battery_status(const std::filesystem::path & percent_path, const std::filesystem::path & status_path)
 {
 	auto charge = read_percent(percent_path);
 	if (not charge)
@@ -58,8 +53,9 @@ battery_status read_battery_status(const std::filesystem::path & percent_path, c
 	        .charging = status == "Charging" or status == "Full",
 	};
 }
+} // namespace
 
-battery_status read_battery_status()
+battery::battery_status battery::get_hmd_battery()
 {
 	// SteamOS on the Steam Frame: the charger daemon's percentage is what the system UI shows
 	const std::filesystem::path deckard = "/run/deckardcharger";
@@ -77,18 +73,4 @@ battery_status read_battery_status()
 	}
 
 	return {};
-}
-} // namespace
-
-battery_status get_battery_status()
-{
-	// The lobby asks every frame, the files only change every few seconds
-	std::unique_lock _{last_status_lock};
-	auto now = std::chrono::steady_clock::now();
-	if (now - last_read > std::chrono::seconds(5))
-	{
-		last_status = read_battery_status();
-		last_read = now;
-	}
-	return last_status;
 }

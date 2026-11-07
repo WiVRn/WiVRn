@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "battery.h"
 #include "render/image_loader.h"
 #include "render/scene_loader.h"
 #include "render/scene_renderer.h"
@@ -209,6 +210,7 @@ public:
 	void set_focused(bool status);
 	virtual void render(const XrFrameState &) = 0;
 	virtual void on_xr_event(const xr::event &);
+	virtual void on_battery_update(battery::device device, const battery::battery_status &);
 
 	virtual bool on_input_key_down(uint8_t key_code);
 	virtual bool on_input_key_up(uint8_t key_code);

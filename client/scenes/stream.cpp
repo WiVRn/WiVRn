@@ -1304,6 +1304,12 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	spdlog::info("setup, refresh rate {}", description.refresh_rate);
 	session.set_refresh_rate(description.refresh_rate);
 
+	battery & battery_monitor = application::instance().get_battery_monitor();
+	for (auto device: magic_enum::enum_values<battery::device>())
+	{
+		on_battery_update(device, battery_monitor.get_battery_status(device));
+	}
+
 	std::unique_lock lock(decoder_mutex);
 	if (video_stream_description == description)
 		return;
@@ -1533,6 +1539,31 @@ void scenes::stream::on_xr_event(const xr::event & event)
 		default:
 			break;
 	}
+}
+
+void scenes::stream::on_battery_update(battery::device device, const battery::battery_status & battery)
+{
+	device_id id = [&] {
+		switch (device)
+		{
+			case battery::device::head:
+				return device_id::HEAD;
+			case battery::device::left_controller:
+				return device_id::LEFT_CONTROLLER;
+			case battery::device::right_controller:
+				return device_id::RIGHT_CONTROLLER;
+			case battery::device::gamepad:
+				return device_id::GAMEPAD;
+			default:
+				assert(false);
+				__builtin_unreachable();
+		}
+	}();
+	network_session->send_control(from_headset::battery{
+	        .device = id,
+	        .charge = battery.charge,
+	        .charging = battery.charging,
+	});
 }
 
 bool scenes::stream::forward_hid_input(from_headset::hid::input_t packet, bool device_enabled)
