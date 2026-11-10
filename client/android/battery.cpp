@@ -57,7 +57,7 @@ extern "C" void Java_org_meumeu_wivrn_BroadcastReceiver_onReceive(JNIEnv * env, 
 
 	bool charging = plugged_jint && plugged_jint.value > 0;
 
-	if (level_jint and scale_jint and plugged_jint)
+	if (charge)
 		spdlog::debug("Received ACTION_BATTERY_CHANGED: level {}%, plugged {}", *charge * 100, charging);
 
 	application::get_battery_monitor().on_status_update(
