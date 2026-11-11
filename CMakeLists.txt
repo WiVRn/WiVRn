@@ -342,6 +342,7 @@ foreach(TARGET_NAME wivrn wivrn-server wivrn-dashboard wivrn-common wivrn-dissec
         target_compile_options(${TARGET_NAME} PRIVATE
             -fdiagnostics-color -Wall -Wextra -pedantic
             -ffast-math
+            -fno-finite-math-only
             -Wundef
             -Wno-missing-field-initializers
             -Wno-unused-parameter
