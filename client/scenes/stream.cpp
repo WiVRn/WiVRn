@@ -208,6 +208,7 @@ scenes::stream::stream(std::string server_name, scene & parent_scene) :
 	auto views = system.view_configuration_views(viewconfig);
 	width = views[0].recommendedImageRectWidth;
 	height = views[0].recommendedImageRectHeight;
+	stream_view = application::get_hmd_traits().override_view(views[0]);
 }
 
 static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::instance & inst, xr::session & session, int view)
@@ -252,13 +253,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		const auto & config = application::get_config();
 
-		{
-			auto view = self->system.view_configuration_views(self->viewconfig)[0];
-			view = application::get_hmd_traits().override_view(view);
-
-			info.render_eye_width = view.recommendedImageRectWidth * config.resolution_scale;
-			info.render_eye_height = view.recommendedImageRectHeight * config.resolution_scale;
-		}
+		info.render_eye_width = self->stream_view.recommendedImageRectWidth * config.resolution_scale;
+		info.render_eye_height = self->stream_view.recommendedImageRectHeight * config.resolution_scale;
 
 		{
 			auto scale = config.get_stream_scale();

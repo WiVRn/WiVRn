@@ -166,6 +166,8 @@ private:
 	uint32_t width;
 	uint32_t height;
 
+	XrViewConfigurationView stream_view;
+
 	std::optional<imgui_context> imgui_ctx;
 	ImTextureID wivrn_logo = 0; // wordmark logo shown in the top bar, like the lobby
 	struct gui_toast
