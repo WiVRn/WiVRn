@@ -65,9 +65,9 @@ enum class device_id : uint8_t
 	LEFT_X_TOUCH,                 // /user/hand/left/input/x/touch
 	LEFT_Y_CLICK,                 // /user/hand/left/input/y/click
 	LEFT_Y_TOUCH,                 // /user/hand/left/input/y/touch
-	VIEW_CLICK,                   // /user/hand/left/input/view/click
-	VIEW_TOUCH,                   // /user/hand/left/input/view/touch
-	LEFT_MENU_CLICK,              // /user/hand/left/input/{menu,system}/click
+	LEFT_MENU_CLICK,              // /user/hand/left/input/{menu,view}/click
+	LEFT_MENU_TOUCH,              // /user/hand/left/input/{menu,view}/touch
+	LEFT_SYSTEM_CLICK,            // /user/hand/left/input/system/click
 	LEFT_SYSTEM_TOUCH,            // /user/hand/left/input/system/touch
 	LEFT_BUMPER_CLICK,            // /user/hand/left/input/bumper/click
 	LEFT_BUMPER_TOUCH,            // /user/hand/left/input/bumper/touch

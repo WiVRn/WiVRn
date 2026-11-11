@@ -33,7 +33,7 @@ std::optional<device_id> frame_gamepad_input(device_id id)
 {
 	switch (id)
 	{
-		case device_id::VIEW_CLICK:
+		case device_id::LEFT_MENU_CLICK:
 			return device_id::GAMEPAD_VIEW_CLICK;
 		case device_id::RIGHT_MENU_CLICK:
 			return device_id::GAMEPAD_MENU_CLICK;
