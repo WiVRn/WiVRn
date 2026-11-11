@@ -444,7 +444,7 @@ static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t
 	double ratio = double(width) / view.recommendedImageRectWidth;
 	view.recommendedImageRectWidth = width;
 	view.recommendedImageRectHeight *= ratio;
-	spdlog::info("Using panel size: {}x{}", view.recommendedImageRectWidth, view.recommendedImageRectHeight);
+	spdlog::debug("Using panel size: {}x{}", view.recommendedImageRectWidth, view.recommendedImageRectHeight);
 	return view;
 }
 
