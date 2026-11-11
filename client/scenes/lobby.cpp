@@ -144,6 +144,10 @@ void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position
 scenes::lobby::lobby() :
         scene_impl<lobby>(supported_color_formats, supported_depth_formats)
 {
+	const auto & view = system.stereo_view();
+	width = view.recommendedImageRectWidth;
+	height = view.recommendedImageRectHeight;
+
 	spdlog::info("Using formats {} and {}", vk::to_string(swapchain_format), vk::to_string(depth_format));
 
 	if (composition_layer_depth_test_supported)
@@ -1139,15 +1143,6 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 void scenes::lobby::on_focused()
 {
 	recenter_gui = true;
-
-	auto views = system.view_configuration_views(viewconfig);
-	assert(views.size() == 2); // FIXME
-	stream_view = application::get_hmd_traits().override_view(views[0]);
-	width = views[0].recommendedImageRectWidth;
-	height = views[0].recommendedImageRectHeight;
-
-	// assert(std::ranges::all_of(views, [width](const XrViewConfigurationView & view) { return view.recommendedImageRectWidth == width; }));
-	// assert(std::ranges::all_of(views, [height](const XrViewConfigurationView & view) { return view.recommendedImageRectHeight == height; }));
 
 	auto & config = application::get_config();
 

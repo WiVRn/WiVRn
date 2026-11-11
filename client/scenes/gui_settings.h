@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <cstdint>
 #include <functional>
 #include <optional>
 
@@ -45,10 +44,6 @@ struct settings_context
 	xr::session & session;
 	xr::system & system;
 	imgui_context & imgui_ctx;
-
-	// recommended per-eye render resolution, for the resolution description
-	uint32_t recommended_width = 0;
-	uint32_t recommended_height = 0;
 
 	// streaming: connection-time settings are disabled, in-stream controls appear
 	bool in_game = false;

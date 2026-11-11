@@ -53,6 +53,10 @@ xr::system::system(xr::instance & inst, XrFormFactor formfactor)
 
 	body_tracker = xr::body_tracker_supported(inst, *this);
 	face_tracker = xr::face_tracker_supported(inst, *this);
+
+	auto views = view_configuration_views(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO);
+	assert(views.size() == 2);
+	stereo_view_ = views[0];
 }
 
 XrGraphicsRequirementsVulkan2KHR xr::system::graphics_requirements() const

@@ -95,7 +95,6 @@ class lobby : public scene_impl<lobby>
 
 	uint32_t width;
 	uint32_t height;
-	XrViewConfigurationView stream_view;
 
 #if WIVRN_CLIENT_DEBUG_MENU
 	// GUI debug

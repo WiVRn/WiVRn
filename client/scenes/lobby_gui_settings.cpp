@@ -26,7 +26,7 @@
 
 namespace
 {
-wivrn::gui::settings_context lobby_settings_context(xr::instance & instance, xr::session & session, xr::system & system, imgui_context & imgui_ctx, const XrViewConfigurationView & stream_view, std::optional<bool> server_hid_forwarding)
+wivrn::gui::settings_context lobby_settings_context(xr::instance & instance, xr::session & session, xr::system & system, imgui_context & imgui_ctx, std::optional<bool> server_hid_forwarding)
 {
 	return {
 	        .config = application::get_config(),
@@ -35,8 +35,6 @@ wivrn::gui::settings_context lobby_settings_context(xr::instance & instance, xr:
 	        .session = session,
 	        .system = system,
 	        .imgui_ctx = imgui_ctx,
-	        .recommended_width = stream_view.recommendedImageRectWidth,
-	        .recommended_height = stream_view.recommendedImageRectHeight,
 	        .in_game = false,
 	        .server_hid_forwarding = server_hid_forwarding,
 	};
@@ -45,40 +43,40 @@ wivrn::gui::settings_context lobby_settings_context(xr::instance & instance, xr:
 
 void scenes::lobby::gui_video()
 {
-	wivrn::gui::settings_video(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_video(lobby_settings_context(instance, session, system, *imgui_ctx, server_hid_forwarding));
 }
 
 void scenes::lobby::gui_streaming()
 {
-	wivrn::gui::settings_streaming(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_streaming(lobby_settings_context(instance, session, system, *imgui_ctx, server_hid_forwarding));
 }
 
 void scenes::lobby::gui_post_processing()
 {
-	wivrn::gui::settings_post_processing(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_post_processing(lobby_settings_context(instance, session, system, *imgui_ctx, server_hid_forwarding));
 }
 
 void scenes::lobby::gui_audio()
 {
-	wivrn::gui::settings_audio(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_audio(lobby_settings_context(instance, session, system, *imgui_ctx, server_hid_forwarding));
 }
 
 void scenes::lobby::gui_devices()
 {
-	wivrn::gui::settings_devices(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_devices(lobby_settings_context(instance, session, system, *imgui_ctx, server_hid_forwarding));
 }
 
 void scenes::lobby::gui_tracking()
 {
-	wivrn::gui::settings_tracking(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_tracking(lobby_settings_context(instance, session, system, *imgui_ctx, server_hid_forwarding));
 }
 
 void scenes::lobby::gui_system()
 {
-	wivrn::gui::settings_system(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_system(lobby_settings_context(instance, session, system, *imgui_ctx, server_hid_forwarding));
 }
 
 void scenes::lobby::gui_theme()
 {
-	wivrn::gui::settings_theme(lobby_settings_context(instance, session, system, *imgui_ctx, stream_view, server_hid_forwarding));
+	wivrn::gui::settings_theme(lobby_settings_context(instance, session, system, *imgui_ctx, server_hid_forwarding));
 }

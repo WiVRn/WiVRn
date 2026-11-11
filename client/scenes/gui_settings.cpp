@@ -267,8 +267,9 @@ void settings_video(const settings_context & ctx)
 	}
 
 	{
-		const auto width = ctx.recommended_width;
-		const auto height = ctx.recommended_height;
+		const auto & view = ctx.system.stereo_view();
+		const auto width = view.recommendedImageRectWidth;
+		const auto height = view.recommendedImageRectHeight;
 		list.push_back({
 		        .id = "##resolution",
 		        .label = _("Render resolution"),

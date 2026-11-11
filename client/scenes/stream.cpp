@@ -205,9 +205,9 @@ scenes::stream::stream(std::string server_name, scene & parent_scene) :
         apps{*this, std::move(server_name)},
         foveation_center{instance, system, session, device, commandpool, queue, swapchain_format}
 {
-	auto views = system.view_configuration_views(viewconfig);
-	width = views[0].recommendedImageRectWidth;
-	height = views[0].recommendedImageRectHeight;
+	const auto & view = system.stereo_view();
+	width = view.recommendedImageRectWidth;
+	height = view.recommendedImageRectHeight;
 }
 
 static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::instance & inst, xr::session & session, int view)
@@ -253,7 +253,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		const auto & config = application::get_config();
 
 		{
-			auto view = self->system.view_configuration_views(self->viewconfig)[0];
+			auto view = self->system.stereo_view();
 			view = application::get_hmd_traits().override_view(view);
 
 			info.render_eye_width = view.recommendedImageRectWidth * config.resolution_scale;

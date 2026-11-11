@@ -407,8 +407,6 @@ void scenes::stream::gui_settings(float)
 	        .session = session,
 	        .system = system,
 	        .imgui_ctx = *imgui_ctx,
-	        .recommended_width = width,
-	        .recommended_height = height,
 	        .in_game = true,
 	        .server_hid_forwarding = hid_forwarding_enabled(),
 	        .on_streaming_changed = [this] { send_settings_changed_packet(session, network_session.get(), application::get_config()); },

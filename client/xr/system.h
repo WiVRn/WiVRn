@@ -66,6 +66,7 @@ class system
 	passthrough_type passthrough;
 	body_tracker_type body_tracker;
 	face_tracker_type face_tracker;
+	XrViewConfigurationView stereo_view_;
 
 public:
 	system() = default;
@@ -106,6 +107,10 @@ public:
 	vk::raii::Device create_device(vk::raii::PhysicalDevice & pdev, vk::DeviceCreateInfo & create_info) const;
 
 	std::vector<XrViewConfigurationType> view_configurations() const;
+	const XrViewConfigurationView & stereo_view() const
+	{
+		return stereo_view_;
+	}
 	XrViewConfigurationProperties view_configuration_properties(XrViewConfigurationType) const;
 	std::vector<XrViewConfigurationView> view_configuration_views(XrViewConfigurationType) const;
 	std::vector<XrEnvironmentBlendMode> environment_blend_modes(XrViewConfigurationType) const;
