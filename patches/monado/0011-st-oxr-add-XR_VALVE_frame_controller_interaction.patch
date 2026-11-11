@@ -1,4 +1,4 @@
-From cdd0a756a872e391f38b23ce73259497209c559b Mon Sep 17 00:00:00 2001
+From 9873bdc4f2432a2530c4bd559d5d80610ffbacbb Mon Sep 17 00:00:00 2001
 From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
 Date: Fri, 18 Sep 2026 14:59:50 +0900
 Subject: [PATCH 11/13] st/oxr: add XR_VALVE_frame_controller_interaction
@@ -7,13 +7,13 @@ Signed-off-by: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
 ---
  CMakeLists.txt                                |   2 +
  cmake/MonadoSetOptions.cmake                  |   1 +
- .../XR_VALVE_frame_controller_interaction.h   |  25 ++
- src/xrt/auxiliary/bindings/bindings.json      | 257 ++++++++++++++++++
+ .../XR_VALVE_frame_controller_interaction.h   |  25 +++
+ src/xrt/auxiliary/bindings/bindings.json      | 191 ++++++++++++++++++
  .../include/xrt/xrt_config_build.h.cmake_in   |   1 +
- src/xrt/include/xrt/xrt_defines.h             |  48 ++++
+ src/xrt/include/xrt/xrt_defines.h             |  48 +++++
  src/xrt/include/xrt/xrt_openxr_includes.h     |   1 +
  .../oxr_extension_support.py                  |   1 +
- 8 files changed, 336 insertions(+)
+ 8 files changed, 270 insertions(+)
  create mode 100644 src/external/openxr_includes/openxr/XR_VALVE_frame_controller_interaction.h
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
@@ -81,10 +81,10 @@ index 000000000..d67826910
 +#endif
 \ No newline at end of file
 diff --git a/src/xrt/auxiliary/bindings/bindings.json b/src/xrt/auxiliary/bindings/bindings.json
-index 462ffbf43..dbb0129a3 100644
+index 462ffbf43..003716a98 100644
 --- a/src/xrt/auxiliary/bindings/bindings.json
 +++ b/src/xrt/auxiliary/bindings/bindings.json
-@@ -3258,6 +3258,263 @@
+@@ -3258,6 +3258,197 @@
  			}
  		},
  
@@ -266,72 +266,6 @@ index 462ffbf43..dbb0129a3 100644
 +					"monado_bindings": {
 +						"click": "XRT_INPUT_FRAME_VIEW_CLICK",
 +						"touch": "XRT_INPUT_FRAME_VIEW_TOUCH"
-+					}
-+				},
-+				"/input/bumper_left": {
-+					"type": "button",
-+					"localized_name": "Bumper",
-+					"components": ["click", "touch"],
-+					"side": "left",
-+					"monado_bindings": {
-+						"click": "XRT_INPUT_FRAME_BUMPER_CLICK",
-+						"touch": "XRT_INPUT_FRAME_BUMPER_TOUCH"
-+					}
-+				},
-+				"/input/squeeze_left": {
-+					"type": "button",
-+					"localized_name": "Squeeze",
-+					"components": ["click", "touch", "value"],
-+					"side": "left",
-+					"monado_bindings": {
-+						"click": "XRT_INPUT_FRAME_SQUEEZE_CLICK",
-+						"touch": "XRT_INPUT_FRAME_SQUEEZE_TOUCH",
-+						"value": "XRT_INPUT_FRAME_SQUEEZE_VALUE"
-+					}
-+				},
-+				"/input/trigger_left": {
-+					"type": "trigger",
-+					"localized_name": "Trigger",
-+					"components": ["click", "value", "touch"],
-+					"side": "left",
-+					"monado_bindings": {
-+						"click": "XRT_INPUT_FRAME_TRIGGER_CLICK",
-+						"value": "XRT_INPUT_FRAME_TRIGGER_VALUE",
-+						"touch": "XRT_INPUT_FRAME_TRIGGER_TOUCH"
-+					}
-+				},
-+				"/input/thumbstick_left": {
-+					"type": "joystick",
-+					"localized_name": "Thumbstick",
-+					"components": ["click", "touch", "position"],
-+					"dpad_emulation": {
-+						"position": "position",
-+						"activate": "click",
-+						"center": true
-+					},
-+					"side": "left",
-+					"monado_bindings": {
-+						"click": "XRT_INPUT_FRAME_THUMBSTICK_CLICK",
-+						"touch": "XRT_INPUT_FRAME_THUMBSTICK_TOUCH",
-+						"position": "XRT_INPUT_FRAME_THUMBSTICK"
-+					}
-+				},
-+				"/input/grip_left": {
-+					"type": "pose",
-+					"localized_name": "Grip",
-+					"components": ["pose"],
-+					"side": "left",
-+					"monado_bindings": {
-+						"pose": "XRT_INPUT_FRAME_GRIP_POSE"
-+					}
-+				},
-+				"/input/aim_left": {
-+					"type": "pose",
-+					"localized_name": "Aim",
-+					"components": ["pose"],
-+					"side": "left",
-+					"monado_bindings": {
-+						"pose": "XRT_INPUT_FRAME_AIM_POSE"
 +					}
 +				},
 +				"/output/haptic": {
