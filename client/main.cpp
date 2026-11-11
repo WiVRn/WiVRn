@@ -20,10 +20,13 @@
 #include "application.h"
 #include "scenes/lobby.h"
 #include "spdlog/spdlog.h"
+#include "utils/env.h"
 #include "version.h"
 
+#include <algorithm>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -41,6 +44,28 @@ void real_main(android_app * native_app)
 void real_main(int argc, char ** argv)
 #endif
 {
+	auto log_level = env<std::string>("loglevel");
+	if (log_level)
+	{
+		std::transform(log_level->begin(), log_level->end(), log_level->begin(), [](char c) { return tolower(c); });
+		if (log_level == "trace")
+			spdlog::set_level(spdlog::level::trace);
+		else if (log_level == "debug")
+			spdlog::set_level(spdlog::level::debug);
+		else if (log_level == "info")
+			spdlog::set_level(spdlog::level::info);
+		else if (log_level == "warning")
+			spdlog::set_level(spdlog::level::warn);
+		else if (log_level == "error")
+			spdlog::set_level(spdlog::level::err);
+		else if (log_level == "critical")
+			spdlog::set_level(spdlog::level::critical);
+		else if (log_level == "off")
+			spdlog::set_level(spdlog::level::off);
+		else
+			spdlog::warn("Invalid value for log level: {}", *log_level);
+	}
+
 	if (wivrn::is_tag)
 		spdlog::info("Starting WiVRn version {}", wivrn::display_version());
 	else
@@ -106,27 +131,6 @@ void android_main(android_app * native_app)
 int main(int argc, char * argv[])
 {
 	spdlog::set_default_logger(spdlog::stdout_color_mt("WiVRn"));
-
-	char * loglevel = getenv("WIVRN_LOGLEVEL");
-	if (loglevel)
-	{
-		if (!strcasecmp(loglevel, "trace"))
-			spdlog::set_level(spdlog::level::trace);
-		else if (!strcasecmp(loglevel, "debug"))
-			spdlog::set_level(spdlog::level::debug);
-		else if (!strcasecmp(loglevel, "info"))
-			spdlog::set_level(spdlog::level::info);
-		else if (!strcasecmp(loglevel, "warning"))
-			spdlog::set_level(spdlog::level::warn);
-		else if (!strcasecmp(loglevel, "error"))
-			spdlog::set_level(spdlog::level::err);
-		else if (!strcasecmp(loglevel, "critical"))
-			spdlog::set_level(spdlog::level::critical);
-		else if (!strcasecmp(loglevel, "off"))
-			spdlog::set_level(spdlog::level::off);
-		else
-			spdlog::warn("Invalid value for WIVRN_LOGLEVEL environment variable");
-	}
 
 	real_main(argc, argv);
 }

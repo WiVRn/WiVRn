@@ -19,8 +19,8 @@
 
 #include "hmd_traits.h"
 
+#include "utils/env.h"
 #include "utils/overloaded.h"
-#include "utils/strings.h"
 #include "xr/to_string.h"
 
 #include <boost/pfr.hpp>
@@ -41,113 +41,10 @@
 #include <openxr/openxr.h>
 
 #ifdef __ANDROID__
-#include "utils/wrap_lambda.h"
-
-#include <sys/system_properties.h>
-
-static std::optional<std::string> get_property(const char * property)
-{
-	auto info = __system_property_find(property);
-	if (not info)
-		return std::nullopt;
-
-	std::string result;
-	wrap_lambda cb = [&result](const char * name, const char * value, uint32_t serial) {
-		result = value;
-	};
-
-	__system_property_read_callback(info, cb.userdata_first(), cb);
-	return result;
-}
+#include "android/property.h"
+#include "utils/env.h"
+#include "utils/strings.h"
 #endif
-
-template <typename T>
-std::optional<T> env(std::string_view name);
-
-template <>
-std::optional<std::string> env(std::string_view name)
-{
-#ifdef __ANDROID__
-	auto android_sysprop_name = std::format("debug.wivrn.{}", name);
-	return get_property(android_sysprop_name.c_str());
-#else
-	std::string env_name = "WIVRN_";
-	env_name.reserve(env_name.size() + name.size());
-	for (const auto & c: name)
-		env_name += std::toupper(c);
-	const char * value = std::getenv(env_name.c_str());
-	if (value)
-		return value;
-	return std::nullopt;
-#endif
-}
-
-template <>
-std::optional<uint32_t> env(std::string_view name)
-{
-	const auto value = env<std::string>(name);
-	if (not value)
-		return std::nullopt;
-	try
-	{
-		const unsigned long parsed = std::stoul(*value);
-		if (parsed > std::numeric_limits<uint32_t>::max())
-			return std::nullopt;
-		return static_cast<uint32_t>(parsed);
-	}
-	catch (std::runtime_error & e)
-	{
-		spdlog::warn("failed to parse {} (value: {}: {}", name, *value, e.what());
-		return std::nullopt;
-	}
-}
-
-template <>
-std::optional<bool> env(std::string_view name)
-{
-	const auto value = env<std::string>(name);
-	if (not value)
-		return std::nullopt;
-	if (strcmp(value->c_str(), "1") == 0 || strcasecmp(value->c_str(), "true") == 0 || strcasecmp(value->c_str(), "yes") == 0 || strcasecmp(value->c_str(), "on") == 0)
-		return true;
-	if (strcmp(value->c_str(), "0") == 0 || strcasecmp(value->c_str(), "false") == 0 || strcasecmp(value->c_str(), "no") == 0 || strcasecmp(value->c_str(), "off") == 0)
-		return false;
-	return std::nullopt;
-}
-
-template <>
-std::optional<std::unordered_map<std::string, std::string>> env(std::string_view name)
-{
-	const auto values = env<std::string>(name);
-	if (not values)
-		return std::nullopt;
-
-	std::unordered_map<std::string, std::string> map;
-	for (auto value: utils::split(*values, ","))
-	{
-		if (auto pos = value.find('='); pos != std::string::npos)
-			map.insert(std::make_pair(value.substr(0, pos), value.substr(pos + 1)));
-	}
-
-	return map;
-}
-
-template <>
-std::optional<std::unordered_set<std::string>> env(std::string_view name)
-{
-	const auto values = env<std::string>(name);
-	if (not values)
-		return std::nullopt;
-
-#if defined(__cpp_lib_containers_ranges) && __cpp_lib_containers_ranges >= 202202L
-	return std::unordered_set<std::string>{std::from_range, utils::split(*values, ",")};
-#else
-	std::optional<std::unordered_set<std::string>> res{std::in_place};
-	for (auto & val: utils::split(*values))
-		res->insert(std::move(val));
-	return res;
-#endif
-}
 
 void hmd_traits::init()
 {
