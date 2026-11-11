@@ -267,9 +267,11 @@ void settings_video(const settings_context & ctx)
 	}
 
 	{
-		const auto & view = ctx.system.stereo_view();
+		auto view = ctx.system.stereo_view();
+		view = application::get_hmd_traits().override_view(view);
 		const auto width = view.recommendedImageRectWidth;
 		const auto height = view.recommendedImageRectHeight;
+
 		list.push_back({
 		        .id = "##resolution",
 		        .label = _("Render resolution"),
