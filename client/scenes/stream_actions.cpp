@@ -47,10 +47,10 @@ std::optional<device_id> frame_gamepad_input(device_id id)
 			return device_id::GAMEPAD_Y_CLICK;
 		case device_id::DPAD_UP_CLICK:
 			return device_id::GAMEPAD_DPAD_UP_CLICK;
-		case device_id::LEFT_X_CLICK:
-			return device_id::GAMEPAD_DPAD_DOWN_CLICK;
 		case device_id::DPAD_LEFT_CLICK:
 			return device_id::GAMEPAD_DPAD_LEFT_CLICK;
+		case device_id::LEFT_X_CLICK:
+			return device_id::GAMEPAD_DPAD_DOWN_CLICK;
 		case device_id::LEFT_Y_CLICK:
 			return device_id::GAMEPAD_DPAD_RIGHT_CLICK;
 		case device_id::LEFT_BUMPER_CLICK:

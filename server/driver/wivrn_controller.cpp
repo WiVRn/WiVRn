@@ -57,18 +57,18 @@ enum wivrn_controller_input_index
 	WIVRN_CONTROLLER_MENU_TOUCH,        // /user/hand/XXXX/input/menu/touch
 	WIVRN_CONTROLLER_SYSTEM_CLICK,      // /user/hand/XXXX/input/system/click
 	WIVRN_CONTROLLER_SYSTEM_TOUCH,      // /user/hand/XXXX/input/system/touch
+	WIVRN_CONTROLLER_DPAD_UP_CLICK,     // /user/hand/left/input/dpad_up/click
+	WIVRN_CONTROLLER_DPAD_UP_TOUCH,     // /user/hand/left/input/dpad_up/touch
+	WIVRN_CONTROLLER_DPAD_LEFT_CLICK,   // /user/hand/left/input/dpad_left/click
+	WIVRN_CONTROLLER_DPAD_LEFT_TOUCH,   // /user/hand/left/input/dpad_left/touch
+	WIVRN_CONTROLLER_X_CLICK,           // /user/hand/XXXX/input/x/click or /user/hand/left/input/dpad_down/click
+	WIVRN_CONTROLLER_X_TOUCH,           // /user/hand/XXXX/input/x/touch or /user/hand/left/input/dpad_down/touch
+	WIVRN_CONTROLLER_Y_CLICK,           // /user/hand/XXXX/input/y/click or /user/hand/left/input/dpad_right/click
+	WIVRN_CONTROLLER_Y_TOUCH,           // /user/hand/XXXX/input/y/touch or /user/hand/left/input/dpad_right/touch
 	WIVRN_CONTROLLER_A_CLICK,           // /user/hand/right/input/a/click
 	WIVRN_CONTROLLER_A_TOUCH,           // /user/hand/right/input/a/touch
 	WIVRN_CONTROLLER_B_CLICK,           // /user/hand/right/input/b/click
 	WIVRN_CONTROLLER_B_TOUCH,           // /user/hand/right/input/b/touch
-	WIVRN_CONTROLLER_X_CLICK,           // /user/hand/XXXX/input/x/click
-	WIVRN_CONTROLLER_X_TOUCH,           // /user/hand/XXXX/input/x/touch
-	WIVRN_CONTROLLER_Y_CLICK,           // /user/hand/XXXX/input/y/click
-	WIVRN_CONTROLLER_Y_TOUCH,           // /user/hand/XXXX/input/y/touch
-	WIVRN_CONTROLLER_DPAD_UP_CLICK,     // /user/hand/XXXX/input/dpad_up/click
-	WIVRN_CONTROLLER_DPAD_UP_TOUCH,     // /user/hand/XXXX/input/dpad_up/touch
-	WIVRN_CONTROLLER_DPAD_LEFT_CLICK,   // /user/hand/XXXX/input/dpad_left/click
-	WIVRN_CONTROLLER_DPAD_LEFT_TOUCH,   // /user/hand/XXXX/input/dpad_left/touch
 	WIVRN_CONTROLLER_SQUEEZE_CLICK,     // /user/hand/XXXX/input/squeeze/click
 	WIVRN_CONTROLLER_SQUEEZE_FORCE,     // /user/hand/XXXX/input/squeeze/force
 	WIVRN_CONTROLLER_SQUEEZE_TOUCH,     // /user/hand/XXXX/input/squeeze/touch
@@ -148,6 +148,14 @@ input_data map_input(device_id id)
 			return {WIVRN_CONTROLLER_PALM_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
 		case device_id::RIGHT_PALM:
 			return {WIVRN_CONTROLLER_PALM_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::DPAD_UP_CLICK:
+			return {WIVRN_CONTROLLER_DPAD_UP_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::DPAD_UP_TOUCH:
+			return {WIVRN_CONTROLLER_DPAD_UP_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::DPAD_LEFT_CLICK:
+			return {WIVRN_CONTROLLER_DPAD_LEFT_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::DPAD_LEFT_TOUCH:
+			return {WIVRN_CONTROLLER_DPAD_LEFT_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
 		case device_id::LEFT_X_CLICK:
 			return {WIVRN_CONTROLLER_X_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
 		case device_id::LEFT_X_TOUCH:
@@ -172,14 +180,6 @@ input_data map_input(device_id id)
 			return {WIVRN_CONTROLLER_B_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
 		case device_id::B_TOUCH:
 			return {WIVRN_CONTROLLER_B_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		case device_id::DPAD_UP_CLICK:
-			return {WIVRN_CONTROLLER_DPAD_UP_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::DPAD_UP_TOUCH:
-			return {WIVRN_CONTROLLER_DPAD_UP_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::DPAD_LEFT_CLICK:
-			return {WIVRN_CONTROLLER_DPAD_LEFT_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::DPAD_LEFT_TOUCH:
-			return {WIVRN_CONTROLLER_DPAD_LEFT_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
 		case device_id::LEFT_MENU_CLICK:
 			return {WIVRN_CONTROLLER_MENU_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
 		case device_id::LEFT_MENU_TOUCH:
@@ -404,10 +404,10 @@ xrt_binding_input_pair index_input_binding_right[] = {
 xrt_binding_input_pair frame_input_binding_left[] = {
         {XRT_INPUT_FRAME_DPAD_UP_CLICK, XRT_INPUT_FRAME_DPAD_UP_CLICK},
         {XRT_INPUT_FRAME_DPAD_UP_TOUCH, XRT_INPUT_FRAME_DPAD_UP_TOUCH},
-        {XRT_INPUT_FRAME_DPAD_DOWN_CLICK, XRT_INPUT_TOUCH_X_CLICK},
-        {XRT_INPUT_FRAME_DPAD_DOWN_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
         {XRT_INPUT_FRAME_DPAD_LEFT_CLICK, XRT_INPUT_FRAME_DPAD_LEFT_CLICK},
         {XRT_INPUT_FRAME_DPAD_LEFT_TOUCH, XRT_INPUT_FRAME_DPAD_LEFT_TOUCH},
+        {XRT_INPUT_FRAME_DPAD_DOWN_CLICK, XRT_INPUT_TOUCH_X_CLICK},
+        {XRT_INPUT_FRAME_DPAD_DOWN_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
         {XRT_INPUT_FRAME_DPAD_RIGHT_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
         {XRT_INPUT_FRAME_DPAD_RIGHT_TOUCH, XRT_INPUT_TOUCH_Y_TOUCH},
         {XRT_INPUT_FRAME_VIEW_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
@@ -784,16 +784,16 @@ wivrn_controller::wivrn_controller(xrt_device_name name,
 			SET_INPUT(TOUCH, MENU_CLICK);
 			inputs[WIVRN_CONTROLLER_MENU_TOUCH].name = XRT_INPUT_FRAME_VIEW_TOUCH;
 			inputs[WIVRN_CONTROLLER_MENU_TOUCH].active = true;
-			SET_INPUT(TOUCH, X_CLICK);
-			SET_INPUT(TOUCH, Y_CLICK);
-			SET_INPUT(TOUCH, X_TOUCH);
-			SET_INPUT(TOUCH, Y_TOUCH);
 
 			SET_INPUT(FRAME, SYSTEM_CLICK);
 			SET_INPUT(FRAME, DPAD_UP_CLICK);
 			SET_INPUT(FRAME, DPAD_UP_TOUCH);
 			SET_INPUT(FRAME, DPAD_LEFT_CLICK);
 			SET_INPUT(FRAME, DPAD_LEFT_TOUCH);
+			SET_INPUT(TOUCH, X_CLICK);
+			SET_INPUT(TOUCH, X_TOUCH);
+			SET_INPUT(TOUCH, Y_CLICK);
+			SET_INPUT(TOUCH, Y_TOUCH);
 		}
 		else
 		{
@@ -804,12 +804,12 @@ wivrn_controller::wivrn_controller(xrt_device_name name,
 
 			SET_INPUT(TOUCH, SYSTEM_CLICK);
 			SET_INPUT(TOUCH, A_CLICK);
-			SET_INPUT(TOUCH, B_CLICK);
 			SET_INPUT(TOUCH, A_TOUCH);
+			SET_INPUT(TOUCH, B_CLICK);
 			SET_INPUT(TOUCH, B_TOUCH);
 			SET_INPUT(FRAME, X_CLICK);
-			SET_INPUT(FRAME, Y_CLICK);
 			SET_INPUT(FRAME, X_TOUCH);
+			SET_INPUT(FRAME, Y_CLICK);
 			SET_INPUT(FRAME, Y_TOUCH);
 		}
 		SET_INPUT(VIVE_FOCUS3, SQUEEZE_CLICK);
