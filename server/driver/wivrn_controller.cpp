@@ -429,6 +429,8 @@ xrt_binding_input_pair frame_input_binding_left[] = {
         {XRT_INPUT_FRAME_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
         {XRT_INPUT_FRAME_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
         {XRT_INPUT_FRAME_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+        {XRT_INPUT_HAND_PINCH_POSE, XRT_INPUT_HAND_PINCH_POSE},
+        {XRT_INPUT_HAND_POKE_POSE, XRT_INPUT_HAND_POKE_POSE},
 };
 
 xrt_binding_input_pair frame_input_binding_right[] = {
@@ -457,6 +459,8 @@ xrt_binding_input_pair frame_input_binding_right[] = {
         {XRT_INPUT_FRAME_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
         {XRT_INPUT_FRAME_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
         {XRT_INPUT_FRAME_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+        {XRT_INPUT_HAND_PINCH_POSE, XRT_INPUT_HAND_PINCH_POSE},
+        {XRT_INPUT_HAND_POKE_POSE, XRT_INPUT_HAND_POKE_POSE},
 };
 
 xrt_binding_output_pair frame_output_binding[] = {
