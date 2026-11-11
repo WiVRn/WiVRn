@@ -45,11 +45,14 @@ jobs:
         packages: ccache libvulkan-dev glslang-tools spirv-tools libwayland-dev libxrandr-dev ${{matrix.config.packages}} ${{ startsWith(matrix.config.preset, 'server') && env.SERVER_DEPS || ''}}
 
     - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.23
+      uses: hendrikmuhs/ccache-action@v1.2.24
       with:
-        key: linux-${{matrix.config.preset}}
-        job-summary: ""
-        restore-keys: linux-
+        # The trailing "." keeps one preset's key from being a prefix of another's
+        key: linux-${{matrix.config.preset}}.
+        verbose: 1
+        job-summary: ''
+        evict-old-files: job
+        save: ${{ github.ref == 'refs/heads/master' }}
 
     - uses: actions/cache@v5
       with:
@@ -139,10 +142,14 @@ jobs:
         packages: librsvg2-bin npm
 
     - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.23
+      uses: hendrikmuhs/ccache-action@v1.2.24
       with:
         key: steam-frame
-        job-summary: ""
+        verbose: 1
+        job-summary: ''
+        evict-old-files: job
+        save: ${{ github.ref == 'refs/heads/master' }}
+        restore-keys: steam-frame
 
     - uses: actions/cache@v5
       with:
@@ -289,6 +296,16 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*.tgz
         restore-keys: cmake-android-
 
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2.24
+      with:
+        # The trailing "." keeps one build type's key from being a prefix of another's
+        key: android-${{matrix.buildtype}}.
+        verbose: 1
+        job-summary: ''
+        evict-old-files: job
+        save: ${{ github.ref == 'refs/heads/master' }}
+
     # Gradle distribution and the Android plugin's dependencies.
     - uses: actions/cache@v5
       with:
@@ -330,6 +347,9 @@ jobs:
         echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
 
     - name: Build
+      env:
+        # Paths under the workspace are hashed relative to it
+        CCACHE_BASEDIR: ${{github.workspace}}
       run: |
         VERSION=$(git describe --tags --always | sed "s/^v\([0-9]\)/\1/")
         if [ ${{ matrix.buildtype }} = 'Oculus' ]
@@ -367,6 +387,7 @@ jobs:
           -Pwivrn_app_name="$APPNAME" \
           -Pwivrn_compress_glb=ON \
           -Pfetchcontent_base_dir=${{github.workspace}}/cmake-fetch \
+          -Pcompiler_launcher=ccache \
           assemble${{ matrix.buildtype }}
 
     - name: Upload build dir
