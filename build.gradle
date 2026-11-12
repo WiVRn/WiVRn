@@ -117,6 +117,8 @@ android {
         def compressGlb = project.hasProperty('wivrn_compress_glb') ? wivrn_compress_glb : 'OFF'
         def fetchcontentBaseDir = project.hasProperty('fetchcontent_base_dir') ? ['-DFETCHCONTENT_BASE_DIR=' + fetchcontent_base_dir] : []
 
+        def compilerLauncher = project.hasProperty('compiler_launcher') ? ['-DCMAKE_C_COMPILER_LAUNCHER=' + compiler_launcher, '-DCMAKE_CXX_COMPILER_LAUNCHER=' + compiler_launcher] : []
+
         def asan = use_asan ? 'ON': 'OFF'
         def stl = use_asan ? 'c++_shared' : "c++_static"
 
@@ -146,7 +148,8 @@ android {
                           '-DWIVRN_COMPRESS_GLB=' + compressGlb,
                           '-DWIVRN_ADDRESS_SANITIZER=' + asan,
                           ] +
-                          fetchcontentBaseDir
+                          fetchcontentBaseDir +
+                          compilerLauncher
                 resValue "string", "app_name", project.hasProperty('wivrn_app_name') ? project.wivrn_app_name : "WiVRn Local"
                 abiFilters 'arm64-v8a'//, 'x86_64'
             }
