@@ -984,27 +984,29 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	{
 		auto windows = imgui_ctx->windows();
 
-		auto left = left_hand->locate(world_space, frame_state.predictedDisplayTime).joints;
-		if (left)
+		auto left = left_hand->locate(world_space, frame_state.predictedDisplayTime);
+		if (left.joints)
 		{
-			stick_finger_to_gui(*left, windows);
+			if (left.is_input_source())
+				stick_finger_to_gui(*left.joints, windows);
 			hide_left_controller = true;
 		}
 
-		auto right = right_hand->locate(world_space, frame_state.predictedDisplayTime).joints;
-		if (right)
+		auto right = right_hand->locate(world_space, frame_state.predictedDisplayTime);
+		if (right.joints)
 		{
-			stick_finger_to_gui(*right, windows);
+			if (right.is_input_source())
+				stick_finger_to_gui(*right.joints, windows);
 			hide_right_controller = true;
 		}
 
-		hand_model::apply(world, left ? &*left : nullptr, right ? &*right : nullptr);
+		hand_model::apply(world, left.joints ? &*left.joints : nullptr, right.joints ? &*right.joints : nullptr);
 
-		if (not new_gui_position and head_position and left)
-			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, *left, *head_position);
+		if (not new_gui_position and head_position and left.joints and left.is_input_source())
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, *left.joints, *head_position);
 
-		if (not new_gui_position and head_position and right)
-			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, *right, *head_position);
+		if (not new_gui_position and head_position and right.joints and right.is_input_source())
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, *right.joints, *head_position);
 	}
 
 	if (head_position and new_gui_position)
@@ -1198,8 +1200,13 @@ void scenes::lobby::on_focused()
 
 	if (system.hand_tracking_supported())
 	{
-		left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
-		right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
+		std::array data_sources = {
+		        XR_HAND_TRACKING_DATA_SOURCE_UNOBSTRUCTED_EXT,
+		        XR_HAND_TRACKING_DATA_SOURCE_CONTROLLER_EXT,
+		};
+
+		left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT, data_sources);
+		right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT, data_sources);
 
 		bool using_hand_mesh_fb = false;
 		if (system.hand_mesh_fb_supported())

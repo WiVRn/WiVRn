@@ -42,6 +42,13 @@ public:
 	{
 		std::optional<joint_array> joints;
 		std::optional<XrHandTrackingDataSourceEXT> data_source;
+
+		// should these joints be used for GUI interaction?
+		// true if UNOBSTRUCTED, or no data sources explicitly requested / XR_EXT_hand_tracking_data_source not supported
+		bool is_input_source() const
+		{
+			return !data_source or *data_source == XR_HAND_TRACKING_DATA_SOURCE_UNOBSTRUCTED_EXT;
+		}
 	};
 
 	struct mesh_data
