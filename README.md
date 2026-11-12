@@ -1,5 +1,7 @@
 <h1 align="center"> WiVRn </h1>
 
+BUILD TEST
+
 <div align="center">
   
 [![License: GPL v3](images/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![CI](https://github.com/WiVRn/WiVRn/workflows/Build/badge.svg) ![Format](https://github.com/WiVRn/WiVRn/workflows/Format/badge.svg)
