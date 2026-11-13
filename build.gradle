@@ -103,7 +103,8 @@ android {
     }
 
     defaultConfig {
-        applicationId "org.meumeu.wivrn"
+        // Goggles Link: its own application ID, so it installs beside WiVRn's app
+        applicationId project.hasProperty('wivrn_app_id') ? wivrn_app_id : "org.meumeu.wivrn"
         // for Vulkan, need at least 24
         // for AImage_getHardwareBuffer, API 26
         minSdkVersion 29

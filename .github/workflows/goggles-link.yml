@@ -1,0 +1,237 @@
+# Goggles Link: builds what Goggles OS installs.
+#
+#   goggles-link-server-<version>-x86_64.tar.zst   the PC side, installed to /opt/goggles-link:
+#       streaming server, OpenXR runtime, libmonado, wivrnctl and xrizer (runs SteamVR games)
+#   goggles-link-<version>.apk                      the headset app (Quest 1, 2, 3, 3S, Pro)
+#   SHA256SUMS                                      what Goggles OS pins
+#
+# Every push builds both (download them from the run's Artifacts). A tag named gl-<version>
+# also publishes them as a GitHub release.
+#
+# The APK is signed when the repository has these secrets (Settings > Secrets > Actions):
+#   APK_KEYSTORE_BASE64        the keystore file, base64-encoded (key alias: default_key)
+#   APK_SIGNINGKEYPASSWORD     its password
+# Without them the APK is built unsigned and can't be installed.
+name: Goggles Link
+
+on:
+  push:
+    branches: ['**']
+    tags: ['gl-*']
+  workflow_dispatch:
+
+env:
+  PREFIX: /opt/goggles-link
+  APP_ID: org.gogglesos.link
+  APP_NAME: Goggles Link
+  # The OpenVR translator, pinned to the commit WiVRn's Flatpak uses (flatpak/io.github.wivrn.wivrn.yml.in)
+  XRIZER_REV: a1216c7b53fb562a5bc4de473163e97a483042af
+  XRIZER_SHA256: d75bb0a301bcafb57e94ca56b9ea6ccbe847f3db9181d7fb61bffccb26a40c88
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+    - id: v
+      run: |
+        if [ "${{ github.ref_type }}" = tag ]; then
+          version="${GITHUB_REF_NAME#gl-}"
+        else
+          version="0.$(git rev-list --count HEAD).$(git rev-parse --short HEAD)"
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "Goggles Link $version"
+
+  server:
+    name: PC server
+    needs: version
+    runs-on: ubuntu-26.04      # the same Ubuntu as Goggles OS, so it runs there without a Flatpak
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends ninja-build ccache zstd \
+          libvulkan-dev glslang-tools spirv-tools libwayland-dev libxrandr-dev \
+          libx264-dev libavcodec-dev libavutil-dev libbsd-dev libavahi-client-dev libavahi-glib-dev \
+          libeigen3-dev nlohmann-json3-dev librsvg2-dev libdrm-dev libglib2.0-dev-bin libpipewire-0.3-dev \
+          libcli11-dev libnotify-dev libarchive-dev libudev-dev libboost-all-dev libsystemd-dev \
+          libclang-dev
+
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2.24
+      with:
+        key: goggles-link-server.
+        job-summary: ''
+
+    - uses: actions/cache@v5
+      with:
+        key: goggles-link-server-fetch-${{ hashFiles('monado-rev', 'CMakeLists.txt') }}
+        path: |
+          ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.tar.*
+          ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
+          ${{github.workspace}}/cmake-fetch/*.tar.*
+          ${{github.workspace}}/cmake-fetch/*.tgz
+        restore-keys: goggles-link-server-fetch-
+
+    - name: Configure
+      run: >
+        cmake -B build --preset server
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX=${{env.PREFIX}}
+        -DFETCHCONTENT_BASE_DIR=${{github.workspace}}/cmake-fetch
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        -DWIVRN_USE_SYSTEM_OPENXR=OFF
+        -DWIVRN_WERROR=OFF
+        -DGIT_DESC=goggles-link-${{needs.version.outputs.version}}
+        -DOVR_COMPAT_SEARCH_PATH=${{env.PREFIX}}/xrizer
+
+    - name: Build and install
+      run: |
+        cmake --build build
+        DESTDIR="$PWD/stage" cmake --install build --strip
+
+    - name: xrizer (runs SteamVR games on OpenXR)
+      run: |
+        curl -fsSL -o xrizer.tar.gz "https://github.com/Supreeeme/xrizer/archive/$XRIZER_REV.tar.gz"
+        echo "$XRIZER_SHA256  xrizer.tar.gz" | sha256sum -c
+        mkdir xrizer && tar -xf xrizer.tar.gz -C xrizer --strip-components=1
+        cd xrizer
+        cargo xbuild --release -F static-openxr
+        mkdir -p "$GITHUB_WORKSPACE/stage$PREFIX/xrizer"
+        cp -rL target/release/bin "$GITHUB_WORKSPACE/stage$PREFIX/xrizer/"
+
+    - name: Package
+      run: |
+        root="stage$PREFIX"
+        echo "${{needs.version.outputs.version}}" > "$root/VERSION"
+        # The Ubuntu packages its programs and libraries need at run time, for Goggles OS to install
+        find "$root" -type f \( -name '*.so*' -o -perm -u+x \) -exec sh -c 'file -b "$1" | grep -q ELF && ldd "$1" 2>/dev/null' _ {} \; \
+          | awk '/=> \//{print $3}' | sort -u | xargs -r dpkg -S 2>/dev/null | cut -d: -f1 | sort -u > "$root/DEPENDS"
+        echo "Runtime packages:"; cat "$root/DEPENDS"
+        find "$root" | sort
+        tar --zstd -cf "goggles-link-server-${{needs.version.outputs.version}}-x86_64.tar.zst" \
+          --owner=0 --group=0 -C "stage$PREFIX" .
+
+    - name: The server starts
+      run: |
+        sudo mkdir -p "$PREFIX" && sudo tar --zstd -xf goggles-link-server-*.tar.zst -C "$PREFIX"
+        "$PREFIX/bin/wivrn-server" --version
+        test -f "$PREFIX/share/openxr/1/openxr_wivrn.json"
+        test -d "$PREFIX/xrizer/bin"
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: goggles-link-server
+        path: goggles-link-server-*.tar.zst
+        if-no-files-found: error
+
+  headset:
+    name: Headset app
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - uses: actions/cache@v5
+      with:
+        key: goggles-link-android-fetch
+        path: |
+          ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.tar.*
+          ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
+          ${{github.workspace}}/cmake-fetch/*.tar.*
+          ${{github.workspace}}/cmake-fetch/*.zip
+          ${{github.workspace}}/cmake-fetch/*.tgz
+
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2.24
+      with:
+        key: goggles-link-android.
+        job-summary: ''
+
+    - uses: actions/cache@v5
+      with:
+        key: gradle-android-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'build.gradle') }}
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        restore-keys: gradle-android-
+
+    - name: Dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install -y glslang-tools spirv-tools librsvg2-bin gettext
+        wget -q https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.deb
+        sudo dpkg --install KTX-Software-4.3.2-Linux-x86_64.deb
+        npm install --global @gltf-transform/cli
+
+    - name: Signing key
+      id: key
+      env:
+        APK_SIGNINGKEYPASSWORD: ${{ secrets.APK_SIGNINGKEYPASSWORD }}
+        APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+      run: |
+        if [ -n "$APK_SIGNINGKEYPASSWORD" ] && [ -n "$APK_KEYSTORE_BASE64" ]; then
+          echo signingKeyPassword="$APK_SIGNINGKEYPASSWORD" > gradle.properties
+          echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning::No signing key in this repository's secrets: the APK is unsigned and can't be installed"
+          echo "signed=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Build
+      env:
+        CCACHE_BASEDIR: ${{github.workspace}}
+      run: |
+        chmod +x gradlew
+        ./gradlew \
+          -Pwivrn_version="${{needs.version.outputs.version}}" \
+          -Pwivrn_versionCode="$(git rev-list --count HEAD)" \
+          -Pwivrn_app_id="$APP_ID" \
+          -Psuffix= \
+          -Pwivrn_css=images/wivrn-release.css \
+          -Pwivrn_app_name="$APP_NAME" \
+          -Pwivrn_compress_glb=ON \
+          -Pfetchcontent_base_dir=${{github.workspace}}/cmake-fetch \
+          -Pcompiler_launcher=ccache \
+          assembleRelease
+        apk=$(find build/outputs/apk -name '*.apk' | head -n1)
+        test -n "$apk"
+        cp "$apk" "goggles-link-${{needs.version.outputs.version}}${{ steps.key.outputs.signed == 'false' && '-unsigned' || '' }}.apk"
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: goggles-link-apk
+        path: goggles-link-*.apk
+        if-no-files-found: error
+
+  release:
+    name: Release
+    if: github.ref_type == 'tag'
+    needs: [version, server, headset]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/download-artifact@v7
+      with:
+        merge-multiple: true
+    - run: sha256sum goggles-link-* > SHA256SUMS && cat SHA256SUMS
+    - uses: softprops/action-gh-release@v2
+      with:
+        name: Goggles Link ${{needs.version.outputs.version}}
+        files: |
+          goggles-link-*
+          SHA256SUMS
