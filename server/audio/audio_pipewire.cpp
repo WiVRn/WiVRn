@@ -127,9 +127,11 @@ struct pipewire_device : public audio_device
 			                "Audio/Sink",
 			                PW_KEY_MEDIA_ROLE,
 			                "Game",
+			                PW_KEY_PRIORITY_SESSION,
+			                "1700", // wireplumber gives priorities in range 1000-1600 for alsa sinks
+			                PW_KEY_NODE_RATE,
 			                // Set stream rate to match client, preventing PipeWire from doing
 			                // unnecessary resampling which degrades audio quality
-			                PW_KEY_NODE_RATE,
 			                rate_str.c_str(),
 			                // Declare target latency to help PipeWire optimize buffering
 			                PW_KEY_NODE_LATENCY,
@@ -206,9 +208,11 @@ struct pipewire_device : public audio_device
 			                "Audio/Source",
 			                PW_KEY_MEDIA_ROLE,
 			                "Game",
+			                PW_KEY_PRIORITY_SESSION,
+			                "2700", // wireplumber gives priorities in range 2000-2600 for alsa sources
+			                PW_KEY_NODE_RATE,
 			                // Set stream rate to match client, preventing PipeWire from doing
 			                // unnecessary resampling which degrades audio quality
-			                PW_KEY_NODE_RATE,
 			                rate_str.c_str(),
 			                // Declare target latency to help PipeWire optimize buffering
 			                PW_KEY_NODE_LATENCY,
