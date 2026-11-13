@@ -175,6 +175,9 @@ jobs:
         wget -q https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.3.2-Linux-x86_64.deb
         npm install --global @gltf-transform/cli
+        # Make sure the build (run by Gradle) can find it
+        echo "$(npm config get prefix)/bin" >> "$GITHUB_PATH"
+        ls -l "$(npm config get prefix)/bin/gltf-transform"
 
     - name: Signing key
       id: key
