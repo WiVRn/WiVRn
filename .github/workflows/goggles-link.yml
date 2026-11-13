@@ -65,7 +65,7 @@ jobs:
           libx264-dev libavcodec-dev libavutil-dev libbsd-dev libavahi-client-dev libavahi-glib-dev \
           libeigen3-dev nlohmann-json3-dev librsvg2-dev libdrm-dev libglib2.0-dev-bin libpipewire-0.3-dev \
           libcli11-dev libnotify-dev libarchive-dev libudev-dev libboost-all-dev libsystemd-dev \
-          libclang-dev
+          libclang-dev glslc
 
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2.24
@@ -210,6 +210,13 @@ jobs:
         apk=$(find build/outputs/apk -name '*.apk' | head -n1)
         test -n "$apk"
         cp "$apk" "goggles-link-${{needs.version.outputs.version}}${{ steps.key.outputs.signed == 'false' && '-unsigned' || '' }}.apk"
+
+    - name: Why the build failed
+      if: failure()
+      run: |
+        # Gradle buries the C++ configure error under a long Java stack trace: show it on its own
+        find .cxx -name '*.txt' -newer build.gradle \( -name 'configure_stderr*' -o -name 'build_stderr*' \) -exec tail -n 60 {} + 2>/dev/null || true
+        find .cxx -name 'CMakeError.log' -o -name 'CMakeConfigureLog.yaml' | head -n 2
 
     - uses: actions/upload-artifact@v7
       with:
