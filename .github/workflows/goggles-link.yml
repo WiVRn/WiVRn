@@ -194,7 +194,9 @@ jobs:
     - name: Build
       env:
         CCACHE_BASEDIR: ${{github.workspace}}
+      shell: bash
       run: |
+        set -o pipefail
         chmod +x gradlew
         ./gradlew \
           -Pwivrn_version="${{needs.version.outputs.version}}" \
@@ -206,7 +208,7 @@ jobs:
           -Pwivrn_compress_glb=ON \
           -Pfetchcontent_base_dir=${{github.workspace}}/cmake-fetch \
           -Pcompiler_launcher=ccache \
-          assembleRelease
+          assembleRelease 2>&1 | tee gradle.log
         apk=$(find build/outputs/apk -name '*.apk' | head -n1)
         test -n "$apk"
         cp "$apk" "goggles-link-${{needs.version.outputs.version}}${{ steps.key.outputs.signed == 'false' && '-unsigned' || '' }}.apk"
@@ -214,9 +216,8 @@ jobs:
     - name: Why the build failed
       if: failure()
       run: |
-        # Gradle buries the C++ configure error under a long Java stack trace: show it on its own
-        find .cxx -name '*.txt' -newer build.gradle \( -name 'configure_stderr*' -o -name 'build_stderr*' \) -exec tail -n 60 {} + 2>/dev/null || true
-        find .cxx -name 'CMakeError.log' -o -name 'CMakeConfigureLog.yaml' | head -n 2
+        # Gradle buries the real error under a long Java stack trace: show it on its own
+        grep -n -B3 -A20 -E "CMake Error|FAILED:|error:|What went wrong" gradle.log | grep -v "^[0-9]*[-:]\s*at " | head -n 160 || true
 
     - uses: actions/upload-artifact@v7
       with:
