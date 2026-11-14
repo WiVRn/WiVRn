@@ -1,4 +1,17 @@
 cmake_minimum_required(VERSION 3.28)
+
+if(ANDROID)
+    cmake_minimum_required(VERSION 4.5)
+
+    if (CMAKE_SYSTEM_VERSION LESS 29)
+        message(FATAL_ERROR "Android API level must be at least 29" )
+    endif()
+
+    if (CMAKE_ANDROID_NDK_VERSION VERSION_LESS 29.0.14206865)
+        message(FATAL_ERROR "Android NDJK version must be at least 29.0.14206865" )
+    endif()
+endif()
+
 project(WiVRn VERSION 0.0.0 LANGUAGES C CXX)
 
 # Workaround for boost CMake error
@@ -17,6 +30,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 if(ANDROID)
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/android)
+
+    # Used for subprojects (libktx) that assume they are called by gradle
+    set(ANDROID_PLATFORM "android-${CMAKE_SYSTEM_VERSION}")
+    set(ANDROID_ABI "${CMAKE_ANDROID_ARCH_ABI}")
+    set(ANDROID_NDK "${CMAKE_ANDROID_NDK}")
 endif()
 
 # Default to PIC code
@@ -103,6 +121,12 @@ option(WIVRN_OPENXR_MANIFEST_ABI "Generate an ABI specific OpenXR manifest")
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
 
 set(WIVRN_ENVIRONMENTS_URL "https://github.com/WiVRn/WiVRn-environments/releases/latest/download/index.json" CACHE STRING "URL hosting the custom environments json file")
+
+set(WIVRN_APK_VERSION_CODE 1 CACHE STRING "APK version code (must be an integer)")
+set(WIVRN_APK_NAME "WiVRn Local" CACHE STRING "APK package name, displayed to the user")
+set(WIVRN_APK_PACKAGE "org.meumeu.wivrn.local" CACHE STRING "APK package ID")
+option(WIVRN_APK_DEBUGGABLE "Whether the APK is debuggable" ON)
+set(WIVRN_APK_SUPPORTED_DEVICES "all" CACHE STRING "List of supported devices for the Meta store")
 
 if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_SERVER OR WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_DISSECTOR)
     set(NEED_COMMON TRUE)
@@ -226,8 +250,8 @@ if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
 endif()
 
 if(ANDROID)
-    set(ANDROID_NDK $ENV{ANDROID_NDK_ROOT})
-    set(CMAKE_ANDROID_NDK $ENV{ANDROID_NDK_ROOT})
+    # AndroidNdkModules uses ANDROID_NDK instead of CMAKE_ANDROID_NDK
+    set(ANDROID_NDK ${CMAKE_ANDROID_NDK})
     include(AndroidNdkModules)
     android_ndk_import_module_native_app_glue()
 endif()

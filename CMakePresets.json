@@ -14,6 +14,7 @@
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
 				"CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
 				"CMAKE_BUILD_TYPE": "Debug",
+				"FETCHCONTENT_BASE_DIR": "${sourceDir}/build-deps",
 				"WIVRN_BUILD_CLIENT": "OFF",
 				"WIVRN_BUILD_SERVER": "OFF",
 				"WIVRN_BUILD_SERVER_LIBRARY": "OFF",
@@ -28,6 +29,37 @@
 				"WIVRN_USE_SYSTEM_BOOST": "ON",
 				"WIVRN_USE_PIPEWIRE": "ON",
 				"WIVRN_WERROR": "ON"
+			}
+		},
+		{
+			"name": "android-base",
+			"hidden": true,
+			"generator": "Ninja",
+			"cacheVariables": {
+				"CMAKE_SYSTEM_NAME": "Android",
+				"CMAKE_SYSTEM_VERSION": "29",
+				"CMAKE_ANDROID_NDK_VERSION": "29.0.14206865",
+				"CMAKE_ANDROID_ARCH_ABI": "arm64-v8a",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
+				"FETCHCONTENT_BASE_DIR": "${sourceDir}/build-deps-android",
+				"WIVRN_BUILD_CLIENT": "ON",
+				"WIVRN_BUILD_DASHBOARD": "OFF",
+				"WIVRN_BUILD_SERVER": "OFF",
+				"WIVRN_BUILD_SERVER_LIBRARY": "OFF",
+				"WIVRN_BUILD_WIVRNCTL": "OFF",
+				"WIVRN_USE_ANDROID_BIN_LIBKTX": "ON",
+				"WIVRN_USE_SYSTEM_BOOST": "OFF",
+				"WIVRN_USE_SYSTEM_FREETYPE": "OFF",
+				"WIVRN_WERROR": "ON",
+				"WIVRN_SHOW_IMGUI_DEMO_WINDOW": "OFF",
+				"WIVRN_CLIENT_DEBUG_MENU": "OFF",
+				"WIVRN_COMPRESS_GLB": "OFF",
+				"WIVRN_ADDRESS_SANITIZER": "OFF",
+				"WIVRN_CSS": "images/wivrn-local.css",
+				"WIVRN_APK_VERSION_CODE": "1",
+				"WIVRN_APK_NAME": "WiVRn Local",
+				"WIVRN_APK_PACKAGE": "org.meumeu.wivrn.local"
 			}
 		},
 		{
@@ -178,6 +210,75 @@
 				"WIVRN_USE_SYSTEM_OPENXR": "OFF",
 				"WIVRN_COMPRESS_GLB": "ON",
 				"WIVRN_WERROR": "ON"
+			}
+		},
+		{
+			"name": "android-Debug",
+			"displayName": "Android (debug)",
+			"inherits": "android-base",
+			"binaryDir": "${sourceDir}/build-android-Debug",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "android-DebugWithValidationLayer",
+			"displayName": "Android (debug with Vulkan validation layer)",
+			"inherits": "android-Debug",
+			"binaryDir": "${sourceDir}/build-android-DebugWithValidationLayer",
+			"cacheVariables": {
+				"WIVRN_USE_ANDROID_VALIDATION_LAYER": "ON"
+			}
+		},
+		{
+			"name": "android-DebugAsan",
+			"displayName": "Android (debug with Address Sanitizer)",
+			"inherits": "android-Debug",
+			"binaryDir": "${sourceDir}/build-android-DebugAsan",
+			"cacheVariables": {
+				"WIVRN_ADDRESS_SANITIZER": "ON"
+			}
+		},
+		{
+			"name": "android-DebugKtx",
+			"displayName": "Android (debug, compile libktx from source)",
+			"inherits": "android-Debug",
+			"binaryDir": "${sourceDir}/build-android-DebugKtx",
+			"cacheVariables": {
+				"WIVRN_USE_ANDROID_BIN_LIBKTX": "OFF"
+			}
+		},
+		{
+			"name": "android-Release",
+			"displayName": "Android (release)",
+			"inherits": "android-base",
+			"binaryDir": "${sourceDir}/build-android-Release",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"WIVRN_APK_DEBUGGABLE": "OFF",
+				"WIVRN_CSS": "images/wivrn-nightly.css"
+			}
+		},
+		{
+			"name": "android-ReleaseDebuggable",
+			"displayName": "Android (release, debuggable)",
+			"inherits": "android-Release",
+			"binaryDir": "${sourceDir}/build-android-ReleaseDebuggable",
+			"cacheVariables": {
+				"WIVRN_APK_DEBUGGABLE": "ON",
+				"WIVRN_APK_NAME": "WiVRn Nightly",
+				"WIVRN_APK_PACKAGE": "org.meumeu.wivrn.nightly"
+			}
+		},
+		{
+			"name": "android-Oculus",
+			"displayName": "Android (Meta Store)",
+			"inherits": "android-Release",
+			"binaryDir": "${sourceDir}/build-android-Oculus",
+			"cacheVariables": {
+				"WIVRN_APK_NAME": "WiVRn",
+				"WIVRN_APK_PACKAGE": "org.meumeu.wivrn",
+				"WIVRN_APK_SUPPORTED_DEVICES": "quest2|quest3|questpro"
 			}
 		}
 	],

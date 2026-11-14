@@ -87,7 +87,7 @@ QCoro::Task<> apk_installer::doRefreshLatestVersion()
 		{
 			std::string name = i["name"];
 
-			if (name.ends_with("-release.apk"))
+			if (name.ends_with("-Release.apk"))
 			{
 				m_apkUrl = QString::fromStdString(i["browser_download_url"]);
 				break;

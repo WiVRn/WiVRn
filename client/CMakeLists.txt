@@ -12,22 +12,37 @@ set(SPIRV_REFLECT_STATIC_LIB ON)
 set(SPIRV_REFLECT_INSTALL OFF)
 
 FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt spirv-reflect)
-if(ANDROID AND WIVRN_USE_ANDROID_BIN_LIBKTX)
-    if(NOT EXISTS ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android.zip)
-        file(DOWNLOAD
-            https://github.com/KhronosGroup/KTX-Software/releases/download/${KTX_VERSION_FULL}/KTX-Software-${KTX_VERSION}-Android.zip
-            ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android.zip
-            EXPECTED_HASH SHA256=9f84a395f37a185e2e21e77cfd3893e67271b616edf5feb39125f09ab4c06b29
-            )
+
+if(ANDROID)
+
+    if(WIVRN_USE_ANDROID_BIN_LIBKTX)
+        if(NOT EXISTS ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android.zip)
+            file(DOWNLOAD
+                https://github.com/KhronosGroup/KTX-Software/releases/download/${KTX_VERSION_FULL}/KTX-Software-${KTX_VERSION}-Android.zip
+                ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android.zip
+                EXPECTED_HASH SHA256=9f84a395f37a185e2e21e77cfd3893e67271b616edf5feb39125f09ab4c06b29
+                )
+        endif()
+        file(ARCHIVE_EXTRACT INPUT ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android.zip DESTINATION ${FETCHCONTENT_BASE_DIR})
+        add_library(ktx INTERFACE)
+        target_link_libraries(ktx INTERFACE ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android/${CMAKE_ANDROID_ARCH_ABI}/lib/libktx.so)
+        target_include_directories(ktx INTERFACE ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android/${CMAKE_ANDROID_ARCH_ABI}/include)
+
+        install(FILES ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android/${CMAKE_ANDROID_ARCH_ABI}/lib/libktx.so
+                DESTINATION lib/${CMAKE_ANDROID_ARCH_ABI})
+    else()
+        FetchContent_MakeAvailable(libktx)
+        # libktx is compiled as a static library, no need to install it
     endif()
-    file(ARCHIVE_EXTRACT INPUT ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android.zip DESTINATION ${FETCHCONTENT_BASE_DIR})
-    add_library(ktx INTERFACE)
-    target_link_libraries(ktx INTERFACE ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android/${ANDROID_ABI}/lib/libktx.so)
-    target_include_directories(ktx INTERFACE ${FETCHCONTENT_BASE_DIR}/KTX-Software-${KTX_VERSION}-Android/${ANDROID_ABI}/include)
-elseif(WIVRN_USE_SYSTEM_LIBKTX AND NOT ANDROID)
+
 else()
-    FetchContent_MakeAvailable(libktx)
+
+    if(NOT WIVRN_USE_SYSTEM_LIBKTX)
+        FetchContent_MakeAvailable(libktx)
+    endif()
+
 endif()
+
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
@@ -38,7 +53,6 @@ add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
 if(ANDROID)
-    file(REMOVE_RECURSE ${RESOURCES_DIRECTORIES}/lib ${ANDROID_LIB_DIRECTORIES})
     add_library(wivrn MODULE)
 
     find_library(ANDROID_LIBRARY NAMES android REQUIRED)
@@ -83,20 +97,24 @@ if(ANDROID)
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 
     if (WIVRN_ADDRESS_SANITIZER)
-        file(MAKE_DIRECTORY
-            ${RESOURCES_DIRECTORIES}/lib/${CMAKE_ANDROID_ARCH_ABI}
-            ${ANDROID_LIB_DIRECTORIES}/${CMAKE_ANDROID_ARCH_ABI})
         file(GLOB _asan_location
-            ${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/*/lib/linux/libclang_rt.asan-${CMAKE_SYSTEM_PROCESSOR}-android.so
+            ${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/*/lib/linux/libclang_rt.asan-${CMAKE_SYSTEM_PROCESSOR}-android.so
         )
-        file(COPY
+
+        install(FILES
             ${_asan_location}
-            DESTINATION ${ANDROID_LIB_DIRECTORIES}/${CMAKE_ANDROID_ARCH_ABI}
+            DESTINATION lib/${CMAKE_ANDROID_ARCH_ABI}
         )
-        file(COPY_FILE
-            ${ANDROID_NDK}/wrap.sh/asan.sh
-            ${RESOURCES_DIRECTORIES}/lib/${CMAKE_ANDROID_ARCH_ABI}/wrap.sh
+
+        install(FILES
+            ${CMAKE_ANDROID_NDK}/wrap.sh/asan.sh
+            DESTINATION lib/${CMAKE_ANDROID_ARCH_ABI}
+            RENAME wrap.sh
         )
+
+        set(CMAKE_ANDROID_STL_TYPE "c++_shared")
+    else()
+        set(CMAKE_ANDROID_STL_TYPE "c++_static")
     endif()
 else()
     add_executable(wivrn)
@@ -249,9 +267,8 @@ if(WIVRN_USE_ANDROID_VALIDATION_LAYER)
 
     file(ARCHIVE_EXTRACT INPUT ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip DESTINATION ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayer)
 
-    file(COPY
-        ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayer/android-binaries-${VVL_VERSION}/${CMAKE_ANDROID_ARCH_ABI}
-        DESTINATION ${ANDROID_LIB_DIRECTORIES})
+    install(FILES ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayer/android-binaries-${VVL_VERSION}/${CMAKE_ANDROID_ARCH_ABI}/libVkLayer_khronos_validation.so
+            DESTINATION lib/${CMAKE_ANDROID_ARCH_ABI})
 endif()
 
 
@@ -259,7 +276,10 @@ endif()
 # Assets
 #
 if(ANDROID)
-    set(ASSETS_DIR ${CMAKE_ANDROID_ASSETS_DIRECTORIES})
+    set(ASSETS_DIR ${CMAKE_CURRENT_BINARY_DIR}/assets)
+    file(MAKE_DIRECTORY ${ASSETS_DIR})
+    install(DIRECTORY "${ASSETS_DIR}/" DESTINATION assets)
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../assets/" DESTINATION assets)
 else()
     set(ASSETS_DIR ${CMAKE_CURRENT_BINARY_DIR}/share/wivrn/assets)
     file(MAKE_DIRECTORY ${ASSETS_DIR})
@@ -289,7 +309,7 @@ endif()
 
 
 ##############################################################################
-# Generate assets
+# Generate assets and Android resources
 #
 file(REAL_PATH ${WIVRN_CSS} WIVRN_CSS_ABS BASE_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
@@ -301,6 +321,14 @@ wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn-pride.svg         DESTINATION
 wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn-christmas.svg     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/wivrn-christmas.png     WIDTH 540 HEIGHT 540 CSS ${WIVRN_CSS_ABS})
 wivrn_rasterize_svg(SOURCE ${ASSETS_SRC_DIR}/passthrough.svg         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/passthrough.png         WIDTH 256 HEIGHT 256)
 wivrn_rasterize_svg(SOURCE ${ASSETS_SRC_DIR}/default-environment.svg DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/default-environment.png WIDTH 256 HEIGHT 256)
+
+if(ANDROID)
+    wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn.svg DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/res/mipmap-mdpi/ic_wivrn_launcher.png    WIDTH 48  HEIGHT 48  CSS ${WIVRN_CSS_ABS} TARGET wivrn)
+    wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn.svg DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/res/mipmap-hdpi/ic_wivrn_launcher.png    WIDTH 72  HEIGHT 72  CSS ${WIVRN_CSS_ABS} TARGET wivrn)
+    wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn.svg DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/res/mipmap-xhdpi/ic_wivrn_launcher.png   WIDTH 96  HEIGHT 96  CSS ${WIVRN_CSS_ABS} TARGET wivrn)
+    wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn.svg DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/res/mipmap-xxhdpi/ic_wivrn_launcher.png  WIDTH 144 HEIGHT 144 CSS ${WIVRN_CSS_ABS} TARGET wivrn)
+    wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn.svg DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/res/mipmap-xxxhdpi/ic_wivrn_launcher.png WIDTH 192 HEIGHT 192 CSS ${WIVRN_CSS_ABS} TARGET wivrn)
+endif()
 
 wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png                 DESTINATION ${ASSETS_DIR}/wivrn.ktx2                          TARGET wivrn)
 wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/wivrn-pride.png           DESTINATION ${ASSETS_DIR}/wivrn-pride.ktx2                    TARGET wivrn)
@@ -360,4 +388,60 @@ if(NOT ANDROID)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/io.github.wivrn.wivrn-client.desktop
     	DESTINATION share/applications
     )
+endif()
+
+##############################################################################
+# APK generation
+
+if(ANDROID)
+    set(WIVRN_APP_NAME         ${WIVRN_APK_NAME})
+    set(CPACK_APK_VERSION_CODE ${WIVRN_APK_VERSION_CODE})
+    set(CPACK_APK_PACKAGE      ${WIVRN_APK_PACKAGE})
+    # set(CPACK_APK_KEYSTORE "")
+    # set(CPACK_APK_KEYSTORE_PASSWORD "")
+    # set(CPACK_APK_KEY_ALIAS "")
+
+    set(CPACK_APK_MIN_SDK_VERSION 29)
+    set(CPACK_APK_TARGET_SDK_VERSION 32)
+
+    if (WIVRN_ADDRESS_SANITIZER)
+        # See https://developer.android.com/guide/topics/manifest/application-element#extractNativeLibs
+        # Required for ASAN, see https://developer.android.com/ndk/guides/asan#running
+        list(APPEND CPACK_APK_MANIFEST_PLACEHOLDERS ExtractNativeLibs=true)
+    else()
+        list(APPEND CPACK_APK_MANIFEST_PLACEHOLDERS ExtractNativeLibs=false)
+    endif()
+
+    # Set android:debuggable, see https://developer.android.com/guide/topics/manifest/application-element#debug
+    if (WIVRN_APK_DEBUGGABLE OR WIVRN_ADDRESS_SANITIZER)
+        list(APPEND CPACK_APK_MANIFEST_PLACEHOLDERS debuggable=true)
+    else()
+        list(APPEND CPACK_APK_MANIFEST_PLACEHOLDERS debuggable=false)
+    endif()
+
+    list(APPEND CPACK_APK_MANIFEST_PLACEHOLDERS ComOculusSupportedDevices=${WIVRN_APK_SUPPORTED_DEVICES})
+
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/CPackConfig.cmake.in CPackConfig.cmake @ONLY)
+    set(CPACK_PROJECT_CONFIG_FILE ${CMAKE_CURRENT_BINARY_DIR}/CPackConfig.cmake)
+
+    configure_file(generated_resources.xml.in generated_resources.xml @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/generated_resources.xml DESTINATION res/values)
+
+    install(TARGETS wivrn openxr_loader LIBRARY DESTINATION lib/${CMAKE_ANDROID_ARCH_ABI})
+
+    get_target_property(OpenSSL_Crypto_LOCATION OpenSSL::Crypto IMPORTED_LOCATION)
+    get_target_property(OpenSSL_SSL_LOCATION    OpenSSL::SSL    IMPORTED_LOCATION)
+
+    install(FILES
+        ${OpenSSL_Crypto_LOCATION}
+        ${OpenSSL_SSL_LOCATION}
+        DESTINATION lib/${CMAKE_ANDROID_ARCH_ABI})
+
+    install(FILES     ../AndroidManifest.xml           DESTINATION .)
+    install(DIRECTORY ../resources/                    DESTINATION res)
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/res/ DESTINATION res)
+
+    set(CPACK_GENERATOR APK)
+    set(CPACK_APK_JAVA_SOURCE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/java")
+    include(CPack)
 endif()

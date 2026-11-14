@@ -10,7 +10,7 @@ env:
 jobs:
   build-android-only:
     name: Android
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: ${{ vars.APK_ONLY != '' }}
 
     strategy:
@@ -25,20 +25,11 @@ jobs:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    # Gradle distribution and the Android plugin's dependencies.
-    - uses: actions/cache@v5
-      with:
-        key: gradle-android-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'build.gradle') }}
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        restore-keys: gradle-android-
-
     - name: Install dependencies
       run: |
         sudo apt-get update && sudo apt-get install glslang-tools spirv-tools librsvg2-bin gettext npm
-        wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.0/KTX-Software-4.4.0-Linux-x86_64.deb
-        sudo dpkg --install KTX-Software-4.4.0-Linux-x86_64.deb
+        wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb
+        sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
         npm install --global @gltf-transform/cli@4.1.1
 
     - name: Check for Secret availability
@@ -62,15 +53,33 @@ jobs:
 
     - name: Build
       run: |
-        chmod +x gradlew
-        ./gradlew -Psuffix=".github.nightly" -Pwivrn_css=images/wivrn-nightly.css -Pwivrn_app_name="WiVRn Nightly" -Pwivrn_compress_glb=ON assemble${{ matrix.buildtype }}
+
+        KS_OPTS="-DCPACK_APK_KEYSTORE=$(pwd)/ks.keystore -DCPACK_APK_KEYSTORE_PASSWORD=$(cat signing_key_password) -DCPACK_APK_KEY_ALIAS=default_key -DCPACK_APK_KEY_PASSWORD=$(cat signing_key_password)"
+        SUFFIX=".github.nightly"
+        APPNAME="WiVRn Nightly"
+
+        cmake --preset android-${{ matrix.buildtype }} -B build \
+          -DCMAKE_ANDROID_NDK=$ANDROID_NDK_LATEST_HOME \
+          -DWIVRN_APK_VERSION_CODE=$VERSION_CODE \
+          -DWIVRN_APK_PACKAGE=org.meumeu.wivrn$SUFFIX \
+          -DWIVRN_CSS=images/wivrn-nightly.css \
+          -DWIVRN_APK_NAME="$APPNAME" \
+          -DWIVRN_COMPRESS_GLB=ON \
+          -DFETCHCONTENT_BASE_DIR=${{github.workspace}}/cmake-fetch \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          $KS_OPTS
+
+        ( cd build && ninja && cpack )
 
     - name: Prepare before archiving artifacts
       run: |
         mkdir apk
-        mv $(find build/outputs/apk/ -name "*.apk") apk/
+        mv build/_CPack_Packages/Android/APK/WiVRn-*.apk apk/WiVRn-${{ matrix.buildtype }}.apk
+
         mkdir debug
-        mv build/intermediates/merged_native_libs/*/*/out/lib/* debug/
+        mv build/_CPack_Packages/Android/APK/WiVRn-*/lib/arm64-v8a/*.so debug/
+
         find debug -name libopenxr_loader.so -delete
 
     - name: Archive APK
