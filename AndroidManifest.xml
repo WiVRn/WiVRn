@@ -80,7 +80,9 @@
         android:hasCode="true"
         android:icon="@mipmap/ic_wivrn_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_wivrn_launcher">
+        android:roundIcon="@mipmap/ic_wivrn_launcher"
+        android:extractNativeLibs="${ExtractNativeLibs}"
+        android:debuggable="${debuggable}">
 
         <profileable android:shell="true" />
 
