@@ -106,6 +106,7 @@ private:
 	clock_offset clock;
 
 	std::ofstream video_dump;
+	size_t frame_bytes = 0; // of the frame being sent, for the timeline
 
 	std::shared_ptr<sender> shared_sender;
 

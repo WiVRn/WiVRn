@@ -107,6 +107,19 @@ class wivrn_session : public xrt_system_devices
 	bool gamepad_connected = false; // network thread only
 
 	clock_offset_estimator offset_est;
+
+	// vr-server: the rate the headset really shows frames at, read off its own display times.
+	// (Seen 2026-11-14: a headset set to 90 Hz showing a frame every 13.89 ms while the server
+	// made one every 11.11 ms; every fifth frame was never drawn.)
+	struct
+	{
+		uint64_t frame = 0; // the last frame counted, and when the headset displayed it
+		XrTime displayed = 0;
+		int steps = 0; // steps between consecutive frames seen since the last verdict
+		float rate = 0; // the other rate most of them agree on
+		int votes = 0;
+	} shown_rate;
+	void watch_shown_rate(const from_headset::feedback & feedback);
 	std::atomic<XrDuration> tracking_latency; // production to reception time
 
 	std::unique_ptr<audio_device> audio_handle;

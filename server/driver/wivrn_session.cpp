@@ -791,12 +791,77 @@ void wivrn_session::operator()(from_headset::timesync_response && timesync)
 	offset_est.add_sample(timesync);
 }
 
+// vr-server: when the headset's own display times say it shows frames at another of its
+// rates than the one frames are made at, make them at that rate. WIVRN_FOLLOW_SHOWN_RATE=0
+// turns it off.
+void wivrn_session::watch_shown_rate(const from_headset::feedback & feedback)
+{
+	static const bool on = [] {
+		const char * v = std::getenv("WIVRN_FOLLOW_SHOWN_RATE");
+		return not(v and std::string_view(v) == "0");
+	}();
+	// One eye is enough; a frame's first showing only (it is reported again when repeated)
+	if (not on or feedback.stream_index != 0 or not feedback.displayed or feedback.times_displayed != 1 or feedback.frame_index == shown_rate.frame)
+		return;
+
+	const bool next = feedback.frame_index == shown_rate.frame + 1 and feedback.displayed > shown_rate.displayed;
+	const XrDuration step = feedback.displayed - shown_rate.displayed;
+	shown_rate.frame = feedback.frame_index;
+	shown_rate.displayed = feedback.displayed;
+	if (not next)
+		return;
+
+	const float divider = std::max<uint32_t>(1, settings.lock()->fps_divider);
+	const float made = compositor.get_framerate();
+	// The headset's rate whose period this step is, within 2 %
+	float seen = 0;
+	for (float rate: get_info().available_refresh_rates)
+	{
+		const double period = 1e9 * divider / rate;
+		if (std::abs(step - period) < 0.02 * period)
+			seen = rate / divider;
+	}
+	++shown_rate.steps;
+	if (seen != 0 and std::abs(seen - made) > 0.5f)
+	{
+		if (seen != shown_rate.rate)
+		{
+			shown_rate.rate = seen;
+			shown_rate.votes = 0;
+		}
+		++shown_rate.votes;
+	}
+
+	// A verdict every 180 steps: two thirds of them at one other rate
+	if (shown_rate.steps < 180)
+		return;
+	const bool change = shown_rate.votes >= 120;
+	const float to = shown_rate.rate;
+	shown_rate.steps = 0;
+	shown_rate.votes = 0;
+	shown_rate.rate = 0;
+	if (not change)
+		return;
+
+	U_LOG_W("The headset shows frames at %.0f Hz while they are made at %.0f Hz: making them at %.0f Hz", to, made, to);
+	compositor.set_framerate(to);
+	push_event(
+	        {
+	                .display = {
+	                        .type = XRT_SESSION_EVENT_DISPLAY_REFRESH_RATE_CHANGE,
+	                        .from_display_refresh_rate_hz = made,
+	                        .to_display_refresh_rate_hz = to,
+	                },
+	        });
+}
+
 void wivrn_session::operator()(from_headset::feedback && feedback)
 {
 	clock_offset o = offset_est.get_offset();
 	if (not o)
 		return;
 	compositor.on_feedback(feedback, o);
+	watch_shown_rate(feedback);
 
 	if (feedback.received_first_packet)
 		trace::instant_feedback("receive_begin", o.from_headset(feedback.received_first_packet), feedback.frame_index, feedback.stream_index);
@@ -810,6 +875,7 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 		trace::instant_feedback("blit", o.from_headset(feedback.blitted), feedback.frame_index, feedback.stream_index);
 	if (feedback.displayed)
 		trace::instant_feedback("display", o.from_headset(feedback.displayed), feedback.frame_index, feedback.stream_index);
+	trace::value("times_displayed", feedback.frame_index, feedback.stream_index, feedback.times_displayed);
 }
 
 void wivrn_session::operator()(from_headset::battery && battery)

@@ -463,33 +463,154 @@ void cpu_end(cpu_track which, uint8_t, uint64_t, const char *)
 }
 } // namespace wivrn::trace
 
+namespace wivrn::trace
+{
+void value(const char *, uint64_t, uint8_t, int64_t) {}
+} // namespace wivrn::trace
+
 #else // !WIVRN_USE_PERFETTO
+
+// The timeline: a plain text backend with no dependency. WIVRN_TIMELINE=<file> turns it on
+// (%t = timestamp, %p = pid; one file per session process). One line per event, tab separated:
+//   I <name> <frame> <stream> <time_ns>              an instant (the headset's feedback too)
+//   S <name> <frame> <stream> <begin_ns> <dur_ns>    a CPU span
+//   B / E <name> <frame> <stream> <time_ns>          a span's two ends
+//   G <name> <frame> <stream> <begin_ns> <dur_ns>    a GPU span
+//   V <name> <frame> <stream> <time_ns> <value>      a number
+// Times are CLOCK_MONOTONIC ns of this machine.
+
+#include "os/os_time.h"
+#include "util/u_logging.h"
+
+#include <cinttypes>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <mutex>
+#include <string>
+#include <unistd.h>
 
 namespace wivrn::trace
 {
+namespace
+{
+std::mutex timeline_mutex;
+FILE * timeline = nullptr;
+bool timeline_on = false;
+int64_t timeline_flushed_ns = 0;
+::vk_bundle * calibration = nullptr;
+
+void line(char kind, const char * name, uint64_t frame, uint8_t stream, int64_t a, int64_t b, bool two)
+{
+	std::lock_guard lock(timeline_mutex);
+	if (not timeline)
+		return;
+	if (two)
+		fprintf(timeline, "%c\t%s\t%" PRIu64 "\t%d\t%" PRId64 "\t%" PRId64 "\n", kind, name, frame, int(stream), a, b);
+	else
+		fprintf(timeline, "%c\t%s\t%" PRIu64 "\t%d\t%" PRId64 "\n", kind, name, frame, int(stream), a);
+	// At most a second of events is lost if the process is killed
+	int64_t now = os_monotonic_get_ns();
+	if (now - timeline_flushed_ns > 1'000'000'000)
+	{
+		fflush(timeline);
+		timeline_flushed_ns = now;
+	}
+}
+} // namespace
+
 void init()
 {
 	u_trace_marker_init();
+	std::lock_guard lock(timeline_mutex);
+	if (timeline)
+		return;
+	const char * file = std::getenv("WIVRN_TIMELINE");
+	if (not file or not *file)
+		return;
+	std::string path = file;
+	char ts[32];
+	std::time_t t = std::time(nullptr);
+	std::tm tm{};
+	localtime_r(&t, &tm);
+	std::strftime(ts, sizeof(ts), "%Y%m%d-%H%M%S", &tm);
+	if (auto pos = path.find("%t"); pos != std::string::npos)
+		path.replace(pos, 2, ts);
+	if (auto pos = path.find("%p"); pos != std::string::npos)
+		path.replace(pos, 2, std::to_string(getpid()));
+	timeline = fopen(path.c_str(), "w");
+	if (not timeline)
+	{
+		U_LOG_W("wivrn::trace: cannot write the timeline %s", path.c_str());
+		return;
+	}
+	setvbuf(timeline, nullptr, _IOFBF, 1 << 20);
+	timeline_on = true;
+	fprintf(timeline, "# wivrn timeline 1\tmonotonic_ns=%" PRId64 "\trealtime_s=%" PRId64 "\n", os_monotonic_get_ns(), int64_t(t));
+	U_LOG_W("wivrn::trace: the timeline goes to %s", path.c_str());
 }
-void flush_session() {}
-void shutdown() {}
+void flush_session()
+{
+	std::lock_guard lock(timeline_mutex);
+	if (timeline)
+		fflush(timeline);
+}
+void shutdown()
+{
+	std::lock_guard lock(timeline_mutex);
+	if (timeline)
+		fclose(timeline);
+	timeline = nullptr;
+}
 bool is_enabled()
 {
-	return false;
+	return timeline_on;
 }
-void set_calibration_source(::vk_bundle *) {}
+void set_calibration_source(::vk_bundle * monado_vk)
+{
+	calibration = monado_vk;
+}
 ::vk_bundle * calibration_source()
 {
-	return nullptr;
+	return calibration;
 }
-void instant_feedback(const char *, int64_t, uint64_t, uint8_t) {}
-void gpu_slice(gpu_track, const char *, int64_t, int64_t, uint64_t, uint8_t) {}
+void instant_feedback(const char * name, int64_t time_ns, uint64_t frame, uint8_t stream)
+{
+	if (timeline_on)
+		line('I', name, frame, stream, time_ns, 0, false);
+}
+void gpu_slice(gpu_track, const char * slice_name, int64_t begin_ns, int64_t end_ns, uint64_t frame, uint8_t stream)
+{
+	if (timeline_on)
+		line('G', slice_name, frame, stream, begin_ns, end_ns - begin_ns, true);
+}
 scope::scope(cpu_track which, uint8_t stream, uint64_t frame, const char * name) :
-        which(which), stream(stream), frame(frame), name(name), begin_ns(0), active(false) {}
-scope::~scope() {}
-void cpu_instant(cpu_track, const char *, uint64_t, uint8_t) {}
-void cpu_begin(cpu_track, uint8_t, uint64_t, const char *) {}
-void cpu_end(cpu_track, uint8_t, uint64_t, const char *) {}
+        which(which), stream(stream), frame(frame), name(name), begin_ns(timeline_on ? os_monotonic_get_ns() : 0), active(timeline_on) {}
+scope::~scope()
+{
+	if (active)
+		line('S', name, frame, stream, begin_ns, os_monotonic_get_ns() - begin_ns, true);
+}
+void cpu_instant(cpu_track, const char * name, uint64_t frame, uint8_t stream)
+{
+	if (timeline_on)
+		line('I', name, frame, stream, os_monotonic_get_ns(), 0, false);
+}
+void cpu_begin(cpu_track, uint8_t stream, uint64_t frame, const char * name)
+{
+	if (timeline_on)
+		line('B', name, frame, stream, os_monotonic_get_ns(), 0, false);
+}
+void cpu_end(cpu_track, uint8_t stream, uint64_t frame, const char * name)
+{
+	if (timeline_on)
+		line('E', name, frame, stream, os_monotonic_get_ns(), 0, false);
+}
+void value(const char * name, uint64_t frame, uint8_t stream, int64_t v)
+{
+	if (timeline_on)
+		line('V', name, frame, stream, os_monotonic_get_ns(), v, true);
+}
 } // namespace wivrn::trace
 
 #endif // WIVRN_USE_PERFETTO

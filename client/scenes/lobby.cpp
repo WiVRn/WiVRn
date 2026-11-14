@@ -130,6 +130,7 @@ void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position
 	using constants::lobby::keyboard_position;
 
 	auto q = compute_gui_orientation(head_position, new_gui_position);
+	kept_gui = {head_position, new_gui_position};
 
 	// Main window
 	imgui_ctx->layers()[0].position = new_gui_position;
@@ -1127,7 +1128,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 void scenes::lobby::on_focused()
 {
-	recenter_gui = true;
+	// The window's own place is given back once its context exists (below)
+	recenter_gui = not kept_gui;
 
 	auto views = system.view_configuration_views(viewconfig);
 	assert(views.size() == 2); // FIXME
@@ -1296,6 +1298,9 @@ void scenes::lobby::on_focused()
 	        vps,
 	        image_cache);
 
+	if (kept_gui)
+		move_gui(kept_gui->first, kept_gui->second);
+
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
 	switch (tm->tm_mon)
@@ -1394,9 +1399,12 @@ void scenes::lobby::on_xr_event(const xr::event & event)
 		case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED:
 			if (event.state_changed.state == XR_SESSION_STATE_FOCUSED)
 				autoconnect_enabled = true;
-			recenter_gui = true;
+			// vr-server: a change of the session's state no longer brings the window to the front
+			if (not kept_gui)
+				recenter_gui = true;
 			break;
 		case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
+			kept_gui.reset();
 			recenter_gui = true;
 			break;
 		default:

@@ -285,6 +285,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	if (encode_request >= 0 // encoders have not picked up the previous frame
 	    or not session.connected() or not session.get_offset())
 	{
+		trace::cpu_instant(trace::cpu_track::compositor, encode_request >= 0 ? "drop_encoder_busy" : "drop_not_connected", frame.rendering.id, 0);
 		comp_frame_clear_locked(&frame.rendering);
 		return XRT_SUCCESS;
 	}
@@ -292,6 +293,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	int i = acquire_image();
 	if (i < 0)
 	{
+		trace::cpu_instant(trace::cpu_track::compositor, "drop_no_image", frame.rendering.id, 0);
 		comp_frame_clear_locked(&frame.rendering);
 		return XRT_SUCCESS;
 	}
@@ -308,7 +310,9 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        .alpha = layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND,
 	};
 
-	trace::instant_feedback("begin", frame.rendering.id, os_monotonic_get_ns());
+	trace::instant_feedback("begin", os_monotonic_get_ns(), frame.rendering.id);
+	trace::value("display_target", frame.rendering.id, 0, frame.rendering.predicted_display_time_ns);
+	trace::value("layers", frame.rendering.id, 0, layer_accum.layer_count);
 
 	cmd_pool.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
@@ -694,7 +698,7 @@ compositor::compositor(wivrn_session & session) :
         frame_rate(settings[0].fps),
         pacer(U_TIME_1S_IN_NS / frame_rate),
         squasher(vk, render_extent(session.get_info())),
-        foveation(vk, images[0].image.info().extent)
+        foveation(vk, images[0].image.info().extent, settings[0].bit_depth)
 {
 	comp_base * c_base = this;
 	// Ensure we can safely cast pointers

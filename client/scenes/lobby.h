@@ -113,6 +113,11 @@ class lobby : public scene_impl<lobby>
 	// Which controller is used for recentering, position of the pointed point in the GUI, in GUI axes, and distance between the controller and the pointed point during recentering
 	std::optional<std::tuple<xr::spaces, glm::vec3, float>> recentering_context;
 	bool recenter_gui = true;
+	// vr-server: where the main window was last put (the head's position then, and the
+	// window's), kept while the application lives: the window comes back to its place when
+	// the lobby is shown again, not before the user's face. Forgotten when the reference
+	// space moves (the user recentred): the place would no longer be the same.
+	std::optional<std::pair<glm::vec3, glm::vec3>> kept_gui;
 	void move_gui(glm::vec3 head_position, glm::vec3 new_gui_position);
 
 	enum class tab

@@ -28,6 +28,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #define MAX_DIM 4097
 #define MAX_SAMPLES 4
+// taps of two pixels each an axis for blocks wider than MAX_SAMPLES (covers 16 pixels whole)
+#define MAX_TAPS 8
 
 layout(set = 0, binding = 0) uniform sampler2D source[2];
 layout(set = 0, binding = 1, std430) buffer restrict Config
@@ -41,6 +43,26 @@ layout(set = 0, binding = 2) uniform writeonly restrict image2DArray luma;
 layout(set = 0, binding = 3) uniform writeonly restrict image2DArray chroma;
 
 layout(constant_id = 0) const int alpha_width = 0;
+// vr-server: the levels of a stored value (255 at 8 bits, 1023 at 10); 0 = no dither
+layout(constant_id = 1) const float levels = 0;
+
+// vr-server: a value that falls between two levels is stored as the upper one in a share of
+// the pixels equal to its fraction (an ordered 4x4 pattern), not rounded. A block's mean
+// keeps its brightness whatever the block's size: with plain rounding a game's dither of
+// 75.25 came out as 75 where a block held 2x2 or 4x4 pixels and as a pattern of 75 and 76
+// where it held 1 or 3x3, in bands to the left and right of the middle.
+const float bayer[16] = float[16](
+	 0,  8,  2, 10,
+	12,  4, 14,  6,
+	 3, 11,  1,  9,
+	15,  7, 13,  5);
+float dither(uint x, uint y)
+{
+	if (levels == 0)
+		return 0;
+	// within +-15/32 of a level: a value already on a level stays there
+	return ((bayer[(y % 4) * 4 + (x % 4)] + 0.5) / 16 - 0.5) / levels;
+}
 
 const mat3 color_space = mat3(
 //         R        G        B
@@ -115,28 +137,39 @@ void main()
 	uint xmin = ubo.x[MAX_DIM * iz + ix];
 	uint xmax = ubo.x[MAX_DIM * iz + ix + 1];
 
-	uint xstep = (xmax - xmin + MAX_SAMPLES - 1) / MAX_SAMPLES;
-	uint ystep = (ymax - ymin + MAX_SAMPLES - 1) / MAX_SAMPLES;
+	// vr-server: every source pixel of the block counts. The block was sampled at
+	// MAX_SAMPLES points an axis, a stride apart: with a block of 5 to 8 pixels that is every
+	// second pixel, always the same phase of a pattern two pixels wide (a game's dither), so
+	// the squeezed part of the picture came out at another brightness than the middle, where
+	// a pixel is a pixel (seen: luma 75.0 around a square of 75.8 on a plain colour).
+	// Up to MAX_SAMPLES pixels an axis are still read one by one; a wider block is read by
+	// taps of the linear sampler, each halfway between two pixels (their mean), side by side.
+	uint xn = xmax - xmin;
+	uint yn = ymax - ymin;
+	uint xtaps = xn <= MAX_SAMPLES ? xn : min((xn + 1) / 2, MAX_TAPS);
+	uint ytaps = yn <= MAX_SAMPLES ? yn : min((yn + 1) / 2, MAX_TAPS);
+	vec2 texel = 1.0 / vec2(textureSize(source[iz], 0));
 
 	vec4 colour = vec4(0);
-	uint count = 0;
-	for (uint y = ymin ; y < ymax; y += ystep) {
-		for (uint x = xmin ; x < xmax; x += xstep) {
-			colour += texelFetch(source[iz], ivec2(x, y), 0);
-			++count;
+	for (uint j = 0; j < ytaps; ++j) {
+		// the middle of the j-th of ytaps equal parts of the block
+		float y = float(ymin) + (float(j) + 0.5) * float(yn) / float(ytaps);
+		for (uint i = 0; i < xtaps; ++i) {
+			float x = float(xmin) + (float(i) + 0.5) * float(xn) / float(xtaps);
+			colour += textureLod(source[iz], vec2(x, y) * texel, 0);
 		}
 	}
-	colour /= max(count, 1);
+	colour /= max(xtaps * ytaps, 1);
 	colour.xyz = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
 
-	imageStore(luma, ivec3(ix, iy, iz), vec4(colour.x));
+	imageStore(luma, ivec3(ix, iy, iz), vec4(colour.x + dither(ix, iy)));
 
 	vec4 sum = colour + subgroupShuffleDown(colour, 1) + subgroupShuffleDown(colour, 2) + subgroupShuffleDown(colour, 3);
 
 	if ((id % 4)== 0)
 	{
 		// actual chroma
-		imageStore(chroma, ivec3(ix/2, iy/2, iz), vec4(sum.y, sum.z, 0, 0) / 4);
+		imageStore(chroma, ivec3(ix/2, iy/2, iz), vec4(sum.y, sum.z, 0, 0) / 4 + dither(ix/2, iy/2));
 
 		if (alpha_width > 0)
 		{

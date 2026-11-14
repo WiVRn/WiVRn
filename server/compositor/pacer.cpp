@@ -28,7 +28,10 @@
 #include "os/os_time.h"
 #include "util/u_debug.h"
 
-DEBUG_GET_ONCE_FLOAT_OPTION(client_margin_ms, "WIVRN_CLIENT_MARGIN_MS", 1.f)
+// vr-server: 4 ms in place of 1. The display time is aimed at the 99.5th percentile of the way
+// to the headset plus this; with 1 ms a frame in ~200 came too late for its turn and was never
+// drawn (runs of 2026-11-14: 28 lost in 205 s with 1 ms, 2 in 204 s with 4 ms, on the cable).
+DEBUG_GET_ONCE_FLOAT_OPTION(client_margin_ms, "WIVRN_CLIENT_MARGIN_MS", 4.f)
 
 namespace wivrn
 {

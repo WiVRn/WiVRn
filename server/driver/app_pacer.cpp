@@ -29,6 +29,11 @@
 
 // Default value is half the compositor margin
 DEBUG_GET_ONCE_FLOAT_OPTION(min_margin_ms, "U_PACING_APP_MIN_MARGIN_MS", 1.5f)
+// vr-server: an application that finishes its frames in less than a period while its smoothed
+// time reads over one is woken at once for every frame, and each frame's display time is a
+// period after the last: the lead over the clock grows (measured: 2 ms a frame, to 90 ms).
+// With this on, such a frame is not begun earlier than its display time less the app's time.
+DEBUG_GET_ONCE_BOOL_OPTION(bound_lead, "WIVRN_PACE_BOUND_LEAD", true)
 
 namespace wivrn
 {
@@ -147,6 +152,8 @@ void app_pacer::predict(int64_t now_ns,
 		while (last_display_time < min_ready)
 			last_display_time += period;
 		*out_predicted_display_time = last_display_time;
+		if (debug_get_bool_option_bound_lead())
+			*out_wake_up_time = std::max(now_ns, last_display_time - (cpu_time + gpu_time + compositor_time + int64_t(U_TIME_1MS_IN_NS * min_margin_ms.val)));
 	}
 	else
 	{

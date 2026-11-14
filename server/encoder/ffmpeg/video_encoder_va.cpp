@@ -262,6 +262,28 @@ video_encoder_va::video_encoder_va(wivrn::vk_bundle & vk,
 		case video_codec::raw:
 			throw std::runtime_error("raw codec not supported");
 	}
+	// vr-server: the size of one frame held near the mean (measured: frames over twice the
+	// usual size reach the headset too late for their turn). The values below are what the
+	// runs of 2026-11-14 settled; "off" or 0 in the variable gives WiVRn's own behaviour.
+	//   WIVRN_VA_RC_MODE        ffmpeg's rc_mode (CBR, VBR, ...), CBR when not set
+	//   WIVRN_VA_BUFFER_FRAMES  the rate control's buffer, in mean frames, 2 when not set
+	//                           (ffmpeg's own is a second)
+	//   WIVRN_VA_MAX_FRAME      the largest frame, in mean frames (max_frame_size), 2 when not set
+	const double mean_frame_bits = double(settings.bitrate) / settings.fps;
+	const auto tuned = [](const char * name, const char * usual) {
+		const char * v = std::getenv(name);
+		return std::string(v and *v ? v : usual);
+	};
+	if (auto v = tuned("WIVRN_VA_RC_MODE", "CBR"); v != "off" and v != "0")
+		av_dict_set(&opts, "rc_mode", v.c_str(), 0);
+	if (double n = std::atof(tuned("WIVRN_VA_BUFFER_FRAMES", "2").c_str()); n > 0)
+	{
+		encoder_ctx->rc_buffer_size = int(mean_frame_bits * n);
+		encoder_ctx->rc_max_rate = settings.bitrate;
+	}
+	if (double n = std::atof(tuned("WIVRN_VA_MAX_FRAME", "2").c_str()); n > 0)
+		av_dict_set_int(&opts, "max_frame_size", int64_t(mean_frame_bits / 8 * n), 0);
+	U_LOG_I("Encoder %d: mean frame %.0f kB, rc_buffer_size %d bits", stream_idx, mean_frame_bits / 8000, encoder_ctx->rc_buffer_size);
 	for (auto option: settings.options)
 	{
 		av_dict_set(&opts, option.first.c_str(), option.second.c_str(), 0);

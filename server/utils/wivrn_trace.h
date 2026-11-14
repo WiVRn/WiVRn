@@ -105,4 +105,7 @@ void cpu_instant(cpu_track which, const char * name, uint64_t frame, uint8_t str
 // Only cpu_begin reads name (copied via perfetto::DynamicString); cpu_end ignores it.
 void cpu_begin(cpu_track which, uint8_t stream, uint64_t frame, const char * name);
 void cpu_end(cpu_track which, uint8_t stream, uint64_t frame, const char * name);
+
+// A number of a frame (its bytes, how often it was shown); the timeline only.
+void value(const char * name, uint64_t frame, uint8_t stream, int64_t v);
 } // namespace wivrn::trace
