@@ -58,9 +58,12 @@
 #include <memory>
 #include <poll.h>
 #include <random>
+#include <string_view>
 #include <sys/signalfd.h>
+#include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+#include <system_error>
 #include <thread>
 #include <unistd.h>
 
@@ -87,48 +90,71 @@ static std::unique_ptr<TCPListener> listener;
 std::optional<wivrn::typed_socket<wivrn::UnixDatagram, from_monado::packets, to_monado::packets>> wivrn_ipc_socket_main_loop;
 std::optional<wivrn::typed_socket<wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;
 
-std::filesystem::path socket_path()
+static std::filesystem::path create_listen_socket()
 {
-	char sock_file[PATH_MAX];
-	size_t size = u_file_get_path_in_runtime_dir(XRT_IPC_MSG_SOCK_FILENAME, sock_file, PATH_MAX);
+    const auto [unix_address, unix_length] = []() -> std::pair<sockaddr_un, socklen_t>
+    {
+        constexpr size_t SUN_PATH_MAX = sizeof(sockaddr_un::sun_path);
 
-	return {sock_file, sock_file + size};
-}
+        sockaddr_un address;
+        address.sun_family = AF_UNIX;
 
-int create_listen_socket()
-{
-	sockaddr_un addr{};
+        // return value comes from snprintf
+        int ret = u_file_get_path_in_runtime_dir(XRT_IPC_MSG_SOCK_FILENAME, address.sun_path, SUN_PATH_MAX);
+        if (ret > 0 && ret < static_cast<int>(SUN_PATH_MAX))
+			return {address, static_cast<socklen_t>(ret)};
 
-	auto sock_file = socket_path();
+        throw std::system_error(EOVERFLOW, std::generic_category(), "Failed to initilize UNIX socket address");
+    }();
 
-	addr.sun_family = AF_UNIX;
-	strcpy(addr.sun_path, sock_file.c_str());
+	const auto address = reinterpret_cast<const sockaddr*>(&unix_address);
+	const auto length = static_cast<socklen_t>(offsetof(sockaddr_un, sun_path) + unix_length + sizeof('\0'));
 
-	int fd = socket(PF_UNIX, SOCK_STREAM, 0);
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	int ret = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+	const auto file = std::string_view(unix_address.sun_path, unix_length);
+	const auto path = std::filesystem::path(file).parent_path();
+
+	// ingore the error because it's caught from bind() anyways
+	std::error_code ec;
+	std::filesystem::create_directories(path, ec);
+
+	int fd = socket(PF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+	if (fd < 0 && errno == EINVAL)
+	{
+		// if for some reason you're on a ancient version of the kernel
+		fd = socket(PF_UNIX, SOCK_STREAM, 0);
+		int preserve = errno;
+		// fails with EBADF which we can use to avoid a conditional check
+		fcntl(fd, F_SETFD, FD_CLOEXEC);
+		errno = preserve;
+	}
+
+	if (fd < 0)
+		throw std::system_error(errno, std::system_category(), "Failed to create UNIX domain socket");
+
+	int ret = bind(fd, address, length);
 
 	// no other instance is running, or we would have never arrived here
 	if (ret < 0 && errno == EADDRINUSE)
 	{
-		std::cerr << "Removing stale socket file " << sock_file << std::endl;
+		std::cerr << "Removing stale socket file \"" << file << "\"\n";
 
-		ret = unlink(sock_file.c_str());
+		ret = unlink(file.data());
 		if (ret < 0)
 		{
-			std::cerr << "Failed to remove stale socket file " << sock_file << ": " << strerror(errno) << std::endl;
-			throw std::system_error(errno, std::system_category());
+			std::string what = "Failed to remove stale socket file \"";
+			what.append(file);
+			what.push_back('"');
+			throw std::system_error(errno, std::system_category(), what);
 		}
-		ret = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+		ret = bind(fd, address, length);
 	}
 
 	if (ret < 0)
 	{
-		std::cerr << "Could not bind socket to path " << sock_file << ": " << strerror(errno) << ". Is the service running already?" << std::endl;
+		std::cerr << "Could not bind socket to path \"" << file << "\". Is the service running already?\n";
 		if (errno == EADDRINUSE)
-		{
-			std::cerr << "If WiVRn is not running, delete " << sock_file << " before starting a new instance" << std::endl;
-		}
+			std::cerr << "If WiVRn is not running, delete \"" << file << "\" before starting a new instance\n";
+
 		close(fd);
 		throw std::system_error(errno, std::system_category());
 	}
@@ -137,10 +163,11 @@ int create_listen_socket()
 	if (ret < 0)
 	{
 		close(fd);
-		throw std::system_error(errno, std::system_category());
+		throw std::system_error(errno, std::system_category(), "Failed to listen to UNIX domain socket");
 	}
 
-	return fd;
+	listen_socket = fd;
+	return path;
 }
 
 static bool pressure_vessel_openxr_support()
@@ -948,11 +975,10 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 			std::cerr << "For Steam games, set command to " << command << std::endl;
 	}
 
-	std::filesystem::create_directories(socket_path().parent_path());
-
 	if (do_active_runtime)
 		active_runtime::cleanup_openxr();
-	listen_socket = create_listen_socket();
+
+	const std::filesystem::path socket_path = create_listen_socket();
 
 	// Initialize main loop
 	main_loop = g_main_loop_new(nullptr, false);
@@ -1013,7 +1039,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	g_main_loop_unref(main_loop);
 
 	std::error_code ec;
-	std::filesystem::remove(socket_path(), ec);
+	std::filesystem::remove(socket_path, ec);
 
 	return wivrn_exit_code::success;
 }
