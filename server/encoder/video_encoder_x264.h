@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "utils/gpu_timestamp_pool.h"
 #include "video_encoder.h"
 #include "vk/allocation.h"
 #include "x264.h"
@@ -52,6 +53,7 @@ class video_encoder_x264 : public video_encoder
 	};
 	std::array<in_t, num_slots> in;
 	uint32_t chroma_width;
+	gpu_timestamp_pool ts_pool;
 
 	struct pending_nal
 	{

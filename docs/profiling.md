@@ -122,6 +122,76 @@ tools/perfetto/pftrace_summary.py nvenc.pftrace                 # one trace
 tools/perfetto/pftrace_summary.py nvenc.pftrace vulkan.pftrace  # diff with Δmean
 ```
 
+## Headless sessions
+
+Two scripts stream a full encode -> decode session with no headset, over one harness
+(`tools/perfetto/wivrn_session.py`):
+
+| Script | Question |
+| ------ | -------- |
+| `encoder_profile.py` | which encoder is fastest in this build? (below) |
+| `encoder_bench.py` | did this commit make encoding slower? drives `git bisect run` — see [benchmarking.md](benchmarking.md) |
+
+A session wires up three processes:
+
+| Process | Runtime | Role |
+| ------- | ------- | ---- |
+| `hello_xr`, launched by the server | WiVRn (`openxr_wivrn.json`) | renders frames into the encoder |
+| WiVRn client | Monado, null compositor + remote HMD, in-process (`openxr_monado.json`) | sends poses, swallows presents |
+
+```bash
+cmake --preset profiling
+cmake --build build-profiling
+tools/perfetto/encoder_profile.py -o out/
+```
+
+Each encoder gets one session and one `out/<enc>.pftrace`; the run prints per-encoder stats and a
+diff against a baseline. An encoder that cannot run is reported and skipped.
+
+`WIVRN_BUILD_BENCH_RUNTIME`, enabled in this preset, builds a second, unpatched Monado under
+`build-profiling/bench-runtime` (`cmake/BenchRuntime.cmake`): an in-process runtime library (no
+separate service, no IPC) with the null compositor and remote HMD driver that wivrn-server's own
+Monado omits. It costs a further clone and roughly 800 MB of build tree, which is why it is off by
+default. Both runtimes run from the build tree.
+
+`WIVRN_USE_BENCH_DECODER`, also enabled in this preset, replaces the client's normal video
+decoder with a stub (`client/decoder/bench/`): it still negotiates and receives the real
+h264/h265/av1 stream, but discards the bitstream instead of decoding and colour-converting it.
+
+Also required: `hello_xr` on `PATH`, a systemd user instance, a running `avahi-daemon`, a usable
+Vulkan device.
+
+| Flag | Default | |
+| ---- | ------- | - |
+| `--encoders` | what the GPUs support | comma-separated |
+| `--codec` | encoder default | `h264` / `h265` / `av1` |
+| `--bitrate` | `50000000` | bps |
+| `--eye-width` | `1920` | per-eye render width |
+| `--eye-height` | `1472` | per-eye render height |
+| `--resolution-scale` | `1.0` | extra scale on top of `--eye-width`/`--eye-height` |
+| `--stream-scale` | `1.0` | encoded resolution, as a fraction of the render resolution |
+| `--compositor-fps` | `90` | the null compositor's rate and advertised refresh |
+| `--duration` | `35` | seconds streamed per encoder |
+| `--warmup` | `15` | seconds excluded from the stats, from the start of each run |
+| `--graphics` | `Vulkan2` | `hello_xr` graphics API |
+| `--xr-app` | `hello_xr -g <--graphics>` | full command to launch instead, e.g. `"xrgears"` |
+| `--baseline` | first success | encoder the others are diffed against |
+| `--build-dir` | `build-profiling` | |
+| `-o` | `.` | output directory |
+
+Paths come from `--build-dir`, then `PATH`, then the install prefixes; `--server`, `--client`,
+`--hello-xr`, `--wivrn-manifest` and `--monado-manifest` override individually.
+
+### Workload
+
+`--eye-width`/`--eye-height` set the remote HMD driver's display size (`monado/config_v0.json`),
+which the null compositor reports as both the recommended and the max view size — so the client
+renders at exactly that resolution before `resolution_scale`. Anything under 640 wide is reported
+as too small to measure. `--compositor-fps` sets `XRT_COMPOSITOR_NULL_FPS`, the compositor's
+rate and advertised refresh, against Monado's own default of 20.
+
+The negotiated stream is printed per encoder; compare those lines before comparing numbers.
+
 ## Tracing Monado too
 
 Monado's own `u_trace` (built on percetto) can join the same session. Build with
