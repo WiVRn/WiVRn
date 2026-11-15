@@ -565,8 +565,8 @@ std::array<to_headset::foveation_parameter, 2> foveation::foveate(
 
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline[alpha]);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *layout, 0, descriptor_set, {});
-	cmd.dispatch(utils::div_ceil<uint32_t>(foveated_size.width, 8),
-	             utils::div_ceil<uint32_t>(foveated_size.height, 8),
+	cmd.dispatch(utils::div_ceil<uint32_t>(foveated_size.width, 8u),
+	             utils::div_ceil<uint32_t>(foveated_size.height, 8u),
 	             2);
 
 	return params;
