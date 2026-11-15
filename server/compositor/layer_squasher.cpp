@@ -154,8 +154,8 @@ std::array<uint32_t, 2> calc_dispatch_dims_1_view(const render_viewport_data & v
 {
 	// Power of two divide and round up.
 	return {
-	        utils::div_ceil<uint32_t>(views.w, 8),
-	        utils::div_ceil<uint32_t>(views.h, 8),
+	        utils::div_ceil<uint32_t>(views.w, 8u),
+	        utils::div_ceil<uint32_t>(views.h, 8u),
 	};
 }
 
