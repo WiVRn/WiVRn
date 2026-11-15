@@ -36,6 +36,7 @@
 
 #include "driver/wivrn_hmd.h"
 #include "utils/wivrn_vk_bundle.h"
+#include "utils/division.h"
 #include "vk/specialization_constants.h"
 
 #include "main/comp_compositor.h"
@@ -149,18 +150,12 @@ get_layer_depth_image(const comp_layer & layer, uint32_t swapchain_index, uint32
 	return reinterpret_cast<struct comp_swapchain *>(comp_layer_get_depth_swapchain(&layer, swapchain_index))->images[image_index];
 }
 
-uint32_t
-uint_divide_and_round_up(uint32_t a, uint32_t b)
-{
-	return (a + (b - 1)) / b;
-}
-
 std::array<uint32_t, 2> calc_dispatch_dims_1_view(const render_viewport_data & views)
 {
 	// Power of two divide and round up.
 	return {
-	        uint_divide_and_round_up(views.w, 8),
-	        uint_divide_and_round_up(views.h, 8),
+	        utils::div_ceil<uint32_t>(views.w, 8),
+	        utils::div_ceil<uint32_t>(views.h, 8),
 	};
 }
 

@@ -20,6 +20,7 @@
 #include "foveation.h"
 
 #include "utils/wivrn_vk_bundle.h"
+#include "utils/division.h"
 #include "vk/specialization_constants.h"
 #include "wivrn_packets.h"
 
@@ -172,10 +173,6 @@ vk::raii::DescriptorPool make_ds_pool(wivrn::vk_bundle & vk)
 	};
 	vk.name(*res, "foveation descriptor pool");
 	return res;
-}
-uint32_t divide_and_round_up(uint32_t a, uint32_t b)
-{
-	return (a + (b - 1)) / b;
 }
 
 } // namespace
@@ -568,8 +565,8 @@ std::array<to_headset::foveation_parameter, 2> foveation::foveate(
 
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline[alpha]);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *layout, 0, descriptor_set, {});
-	cmd.dispatch(divide_and_round_up(foveated_size.width, 8),
-	             divide_and_round_up(foveated_size.height, 8),
+	cmd.dispatch(utils::div_ceil<uint32_t>(foveated_size.width, 8),
+	             utils::div_ceil<uint32_t>(foveated_size.height, 8),
 	             2);
 
 	return params;
