@@ -19,8 +19,8 @@
 
 #include "foveation.h"
 
-#include "utils/wivrn_vk_bundle.h"
 #include "utils/division.h"
+#include "utils/wivrn_vk_bundle.h"
 #include "vk/specialization_constants.h"
 #include "wivrn_packets.h"
 
@@ -363,7 +363,7 @@ foveation::foveation(wivrn::vk_bundle & bundle, vk::Extent3D foveated_size) :
                 .descriptorSetCount = 1,
                 .pSetLayouts = &*ds_layout,
         })[0]
-                               .release())
+	                       .release())
 {
 	bundle.name(descriptor_set, "foveation descriptor set");
 }
