@@ -35,8 +35,8 @@
 #include "layer_squasher.h"
 
 #include "driver/wivrn_hmd.h"
-#include "utils/wivrn_vk_bundle.h"
 #include "utils/division.h"
+#include "utils/wivrn_vk_bundle.h"
 #include "vk/specialization_constants.h"
 
 #include "main/comp_compositor.h"
@@ -316,7 +316,7 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
         partially_bound_desc{bool(std::get<vk::PhysicalDeviceVulkan12Features>(vk.feat).descriptorBindingPartiallyBound)},
         image_array_size{std::min<uint32_t>(vk.physical_device.getProperties().limits.maxPerStageDescriptorSampledImages, RENDER_MAX_IMAGES_SIZE)},
         clamp_to_border_black{vk.device,
-                              vk::SamplerCreateInfo{
+	                      vk::SamplerCreateInfo{
                                       .magFilter = vk::Filter::eLinear,
                                       .minFilter = vk::Filter::eLinear,
                                       .mipmapMode = vk::SamplerMipmapMode::eLinear,
@@ -326,7 +326,7 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
                                       .borderColor = vk::BorderColor::eFloatOpaqueBlack,
                               }},
         clamp_to_edge{vk.device,
-                      vk::SamplerCreateInfo{
+	              vk::SamplerCreateInfo{
                               .magFilter = vk::Filter::eLinear,
                               .minFilter = vk::Filter::eLinear,
                               .mipmapMode = vk::SamplerMipmapMode::eLinear,
@@ -337,7 +337,7 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
                       }},
         ubo{make_ubo(vk.device, 0), make_ubo(vk.device, 1)},
         render_target{vk.device,
-                      vk::StructureChain{
+	              vk::StructureChain{
                               vk::ImageCreateInfo{
                                       .flags = vk::ImageCreateFlagBits::eExtendedUsage | vk::ImageCreateFlagBits::eMutableFormat,
                                       .imageType = vk::ImageType::e2D,
@@ -353,11 +353,11 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
                               },
 
                       }
-                              .get(),
-                      VmaAllocationCreateInfo{
+	                      .get(),
+	              VmaAllocationCreateInfo{
                               .usage = VMA_MEMORY_USAGE_AUTO,
                       },
-                      "layer squasher target"},
+	              "layer squasher target"},
         render_view_srgb{make_view(vk, render_target, vk::ImageUsageFlagBits::eSampled, 0), make_view(vk, render_target, vk::ImageUsageFlagBits::eSampled, 1)},
         render_view_unorm{make_view(vk, render_target, vk::ImageUsageFlagBits::eStorage, 0), make_view(vk, render_target, vk::ImageUsageFlagBits::eStorage, 1)},
         ds_layout{make_ds_layout(vk, image_array_size, partially_bound_desc)},
