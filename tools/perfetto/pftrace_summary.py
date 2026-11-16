@@ -56,9 +56,20 @@ def parse_track_event(buf, off, end):
 
 
 def parse(path):
+    durations, _begins, span, size = parse_full(path)
+    return durations, span, size
+
+
+def parse_full(path):
+    """As parse(), plus begins: {name: [begin ts, ...]} parallel to durations.
+
+    A per-slice timestamp range gives a rate that survives one stray event elsewhere in the
+    trace; the global span does not.
+    """
     with open(path, "rb") as f:
         buf = f.read()
     durations = collections.defaultdict(list)
+    begins = collections.defaultdict(list)
     open_stack = collections.defaultdict(list)  # seq_id -> [(name, ts)]
     ts_min = ts_max = None
 
@@ -100,9 +111,28 @@ def parse(path):
             elif te_type == 2 and ts is not None and open_stack[seq]:
                 bname, bts = open_stack[seq].pop()
                 durations[bname].append(ts - bts)
+                begins[bname].append(bts)
 
     span = (ts_max - ts_min) if ts_min is not None else 0
-    return dict(durations), span, len(buf)
+    return dict(durations), dict(begins), span, len(buf)
+
+
+def warmup_cutoff(begins, warmup_s):
+    """Absolute timestamp marking the end of `warmup_s` seconds of wall time, measured from the
+    trace's earliest event — or 0 (nothing trimmed) when there is no warmup."""
+    if not warmup_s:
+        return 0
+    starts = [b[0] for b in begins.values() if b]
+    if not starts:
+        return 0
+    return min(starts) + int(warmup_s * 1e9)
+
+
+def trim_warmup(dur_list, begin_list, cutoff):
+    """Drop samples that began before `cutoff` (an absolute ts from warmup_cutoff())."""
+    if cutoff <= 0 or not begin_list:
+        return dur_list
+    return [d for d, b in zip(dur_list, begin_list) if b >= cutoff]
 
 
 def _is_instant(dur_list):
@@ -123,17 +153,24 @@ def _stats(dur_list, span):
     )
 
 
-def summarize(path):
-    durations, span, size = parse(path)
+def summarize(path, exclude=(), warmup=0):
+    durations, begins, span, size = parse_full(path)
+    if exclude:
+        durations = {n: d for n, d in durations.items() if n not in exclude}
+    cutoff = warmup_cutoff(begins, warmup)
+    eff_span = max(span - (cutoff and int(warmup * 1e9)), 0) if cutoff else span
     print(f"\n=== {path} ===")
     print(f"  file size:     {size:,} bytes")
     print(f"  trace span:    {span / 1e9:.3f} s")
+    if cutoff:
+        print(f"  warmup:        {warmup:.0f}s discarded per slice")
 
     rows = []
     for name, dur_list in durations.items():
+        dur_list = trim_warmup(dur_list, begins.get(name, []), cutoff)
         if not dur_list or _is_instant(dur_list):
             continue
-        rows.append((name,) + _stats(dur_list, span))
+        rows.append((name,) + _stats(dur_list, eff_span))
     rows.sort(key=lambda r: -r[1])
     print(
         f"  {'slice':<32} {'n':>6} {'mean ms':>9} {'p50 ms':>8} {'p99 ms':>8} {'max ms':>8} {'rate/s':>8}"
@@ -151,9 +188,17 @@ def summarize(path):
             print(f"  {name:<32} {st[0]:>6} {st[5]:>8.1f}")
 
 
-def compare(path_a, path_b):
-    dur_a, span_a, size_a = parse(path_a)
-    dur_b, span_b, size_b = parse(path_b)
+def compare(path_a, path_b, exclude=(), warmup=0):
+    dur_a, begins_a, span_a, size_a = parse_full(path_a)
+    dur_b, begins_b, span_b, size_b = parse_full(path_b)
+    if exclude:
+        dur_a = {n: d for n, d in dur_a.items() if n not in exclude}
+        dur_b = {n: d for n, d in dur_b.items() if n not in exclude}
+    cutoff_a = warmup_cutoff(begins_a, warmup)
+    cutoff_b = warmup_cutoff(begins_b, warmup)
+    if cutoff_a or cutoff_b:
+        dur_a = {n: trim_warmup(d, begins_a.get(n, []), cutoff_a) for n, d in dur_a.items()}
+        dur_b = {n: trim_warmup(d, begins_b.get(n, []), cutoff_b) for n, d in dur_b.items()}
 
     label_a = path_a.rsplit("/", 1)[-1]
     label_b = path_b.rsplit("/", 1)[-1]
@@ -224,12 +269,27 @@ def compare(path_a, path_b):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("usage: pftrace_summary.py <trace.pftrace> [second.pftrace]", file=sys.stderr)
+    argv = sys.argv[1:]
+    exclude = ()
+    warmup = 0
+    if "--exclude" in argv:  # --exclude name1,name2 : drop those slices from the report
+        i = argv.index("--exclude")
+        exclude = tuple(x for x in argv[i + 1].split(",") if x) if i + 1 < len(argv) else ()
+        del argv[i : i + 2]
+    if "--warmup" in argv:  # --warmup SECONDS : drop that much wall time from the start
+        i = argv.index("--warmup")
+        warmup = float(argv[i + 1]) if i + 1 < len(argv) else 0
+        del argv[i : i + 2]
+    if not argv:
+        print(
+            "usage: pftrace_summary.py [--exclude n1,n2] [--warmup SECONDS] "
+            "<trace.pftrace> [second.pftrace]",
+            file=sys.stderr,
+        )
         sys.exit(2)
-    if len(sys.argv) == 3:
-        compare(sys.argv[1], sys.argv[2])
+    if len(argv) == 2:
+        compare(argv[0], argv[1], exclude=exclude, warmup=warmup)
     else:
-        for p in sys.argv[1:]:
-            summarize(p)
+        for p in argv:
+            summarize(p, exclude=exclude, warmup=warmup)
     print("\n  open in https://ui.perfetto.dev for the visual timeline")

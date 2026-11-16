@@ -22,6 +22,7 @@
 #include "encoder/video_encoder.h"
 #include "encoder_settings.h"
 #include "util/u_logging.h"
+#include "utils/wivrn_trace.h"
 #include "utils/wivrn_vk_bundle.h"
 
 #include <stdexcept>
@@ -206,9 +207,14 @@ video_encoder_x264::video_encoder_x264(
 		pic.img.i_stride[1] = extent.width;
 		pic.img.plane[1] = (uint8_t *)i.chroma.map();
 	}
+
+	ts_pool = gpu_timestamp_pool(vk,
+	                             vk.transfer_queue ? vk.transfer_queue.family_index : vk.queue.family_index,
+	                             num_slots,
+	                             std::format("x264 encoder {} pixel copy", stream_idx));
 }
 
-void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo compositor_sem, uint8_t slot, uint64_t)
+void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo compositor_sem, uint8_t slot, uint64_t frame_index)
 {
 	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
 	{
@@ -218,6 +224,8 @@ void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo
 
 	auto & cmd = in[slot].cmd;
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+	ts_pool.cmd_begin(cmd, slot, frame_index, vk::PipelineStageFlagBits2::eTopOfPipe);
 
 	if (need_transfer)
 	{
@@ -271,6 +279,8 @@ void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo
 	                        .height = extent.height / 2,
 	                        .depth = 1,
 	                }});
+
+	ts_pool.cmd_end(cmd, slot, vk::PipelineStageFlagBits2::eAllTransfer);
 
 	cmd.end();
 
@@ -330,12 +340,32 @@ std::optional<video_encoder::data> video_encoder_x264::encode(uint8_t slot, uint
 	}
 	next_mb = 0;
 	assert(pending_nals.empty());
-	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
 	{
-		U_LOG_E("Timeout on stream %d", stream_idx);
-		return {};
+		wivrn::trace::scope trace_wait(wivrn::trace::cpu_track::encoder, stream_idx, frame_index, "wait_gpu");
+		if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+		{
+			U_LOG_E("Timeout on stream %d", stream_idx);
+			return {};
+		}
 	}
-	int size = x264_encoder_encode(enc, &nal, &num_nal, &pic, &pic_out);
+
+	if (auto s = ts_pool.collect(slot))
+	{
+		wivrn::trace::gpu_slice(wivrn::trace::gpu_track::x264_copy,
+		                        "vk_copy_luma_chroma",
+		                        s->begin_ns,
+		                        s->end_ns,
+		                        s->frame_index,
+		                        stream_idx);
+	}
+
+	int size;
+	{
+		// Also covers the NALs param.nalu_process sends inline (ProcessCb -> SendData):
+		// libx264 has no callback-free mode here, so the two cannot be timed apart.
+		wivrn::trace::scope trace_x264(wivrn::trace::cpu_track::encoder, stream_idx, frame_index, "x264_encoder_encode");
+		size = x264_encoder_encode(enc, &nal, &num_nal, &pic, &pic_out);
+	}
 	if (next_mb != num_mb)
 	{
 		U_LOG_W("unexpected macroblock count: %d", next_mb);

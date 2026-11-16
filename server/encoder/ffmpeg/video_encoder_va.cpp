@@ -557,10 +557,13 @@ void video_encoder_va::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, 
 	                       *in[slot].fence);
 }
 
-void video_encoder_va::push_frame(bool idr, uint8_t slot)
+void video_encoder_va::wait_input(uint8_t slot, uint64_t frame_index)
 {
-	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
-		throw std::runtime_error("timeout");
+	{
+		wivrn::trace::scope trace_wait(wivrn::trace::cpu_track::encoder, stream_idx, frame_index, "wait_gpu");
+		if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+			throw std::runtime_error("timeout");
+	}
 
 	if (auto s = ts_pool.collect(slot))
 	{
@@ -571,7 +574,10 @@ void video_encoder_va::push_frame(bool idr, uint8_t slot)
 		                        s->frame_index,
 		                        stream_idx);
 	}
+}
 
+void video_encoder_va::push_frame(bool idr, uint8_t slot)
+{
 	auto & va_frame = in[slot].va_frame;
 	va_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
 	int err = avcodec_send_frame(encoder_ctx.get(), va_frame.get());
