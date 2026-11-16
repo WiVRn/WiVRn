@@ -35,6 +35,7 @@
 #include "layer_squasher.h"
 
 #include "driver/wivrn_hmd.h"
+#include "utils/division.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "vk/specialization_constants.h"
 
@@ -149,18 +150,12 @@ get_layer_depth_image(const comp_layer & layer, uint32_t swapchain_index, uint32
 	return reinterpret_cast<struct comp_swapchain *>(comp_layer_get_depth_swapchain(&layer, swapchain_index))->images[image_index];
 }
 
-uint32_t
-uint_divide_and_round_up(uint32_t a, uint32_t b)
-{
-	return (a + (b - 1)) / b;
-}
-
 std::array<uint32_t, 2> calc_dispatch_dims_1_view(const render_viewport_data & views)
 {
 	// Power of two divide and round up.
 	return {
-	        uint_divide_and_round_up(views.w, 8),
-	        uint_divide_and_round_up(views.h, 8),
+	        utils::div_ceil<uint32_t>(views.w, 8u),
+	        utils::div_ceil<uint32_t>(views.h, 8u),
 	};
 }
 
@@ -321,7 +316,7 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
         partially_bound_desc{bool(std::get<vk::PhysicalDeviceVulkan12Features>(vk.feat).descriptorBindingPartiallyBound)},
         image_array_size{std::min<uint32_t>(vk.physical_device.getProperties().limits.maxPerStageDescriptorSampledImages, RENDER_MAX_IMAGES_SIZE)},
         clamp_to_border_black{vk.device,
-                              vk::SamplerCreateInfo{
+	                      vk::SamplerCreateInfo{
                                       .magFilter = vk::Filter::eLinear,
                                       .minFilter = vk::Filter::eLinear,
                                       .mipmapMode = vk::SamplerMipmapMode::eLinear,
@@ -331,7 +326,7 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
                                       .borderColor = vk::BorderColor::eFloatOpaqueBlack,
                               }},
         clamp_to_edge{vk.device,
-                      vk::SamplerCreateInfo{
+	              vk::SamplerCreateInfo{
                               .magFilter = vk::Filter::eLinear,
                               .minFilter = vk::Filter::eLinear,
                               .mipmapMode = vk::SamplerMipmapMode::eLinear,
@@ -342,7 +337,7 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
                       }},
         ubo{make_ubo(vk.device, 0), make_ubo(vk.device, 1)},
         render_target{vk.device,
-                      vk::StructureChain{
+	              vk::StructureChain{
                               vk::ImageCreateInfo{
                                       .flags = vk::ImageCreateFlagBits::eExtendedUsage | vk::ImageCreateFlagBits::eMutableFormat,
                                       .imageType = vk::ImageType::e2D,
@@ -358,11 +353,11 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
                               },
 
                       }
-                              .get(),
-                      VmaAllocationCreateInfo{
+	                      .get(),
+	              VmaAllocationCreateInfo{
                               .usage = VMA_MEMORY_USAGE_AUTO,
                       },
-                      "layer squasher target"},
+	              "layer squasher target"},
         render_view_srgb{make_view(vk, render_target, vk::ImageUsageFlagBits::eSampled, 0), make_view(vk, render_target, vk::ImageUsageFlagBits::eSampled, 1)},
         render_view_unorm{make_view(vk, render_target, vk::ImageUsageFlagBits::eStorage, 0), make_view(vk, render_target, vk::ImageUsageFlagBits::eStorage, 1)},
         ds_layout{make_ds_layout(vk, image_array_size, partially_bound_desc)},
