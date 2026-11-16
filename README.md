@@ -30,6 +30,7 @@ WiVRn support a wide range of VR devices:
 | Play for Dream | ✖ | https://github.com/WiVRn/WiVRn/issues/465 |
 | Non-Android VR | ✖ | Not Android |
 | Non-VR Android | ✖ | VR required |
+| Steam Frame | ✓ | Experimental setup |
 
 <sup>A Linux client does exist, only for debugging. It has no audio or hardware decoding.</sup>
 
@@ -67,7 +68,17 @@ It should either lead you to the [Meta Store](https://www.meta.com/experiences/7
 > [!TIP]
 > If the headset fails to connect to the computer, see [troubleshooting](#troubleshooting).
 
+### Frame specific, experimental, consider joining the Discord for more
 
+- Go [here](https://github.com/WiVRn/WiVRn/actions/workflows/Build.yml) and select the topmost item saying master marked with ✅.
+- Scroll down and download wivrn-frame-client.zip and wivrn-server-x86_64.flatpak (GitHub login needed)
+- Install Server on the PC:
+    - Flatpak users: flatpak install /path/to/wivrn-server-x86_64.flatpak
+    - AUR users: wivrn-full-git)
+- Unzip client on the HMD in your home folder somewhere.
+- Right click bin/wivrn → Add to Steam
+- Set WiVRn's Compatibility tool to Steam Runtime 4 for Arm64 (under show all)
+- Launch WiVRn from the HMD's Steam Library
 
 # Usage
 
