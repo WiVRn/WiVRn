@@ -20,14 +20,23 @@
 #pragma once
 
 #include "xrt/xrt_defines.h"
+#include <bit>
 #include <openxr/openxr.h>
 
-xrt_pose xrt_cast(const XrPosef &);
-xrt_vec3 xrt_cast(const XrVector3f &);
-xrt_quat xrt_cast(const XrQuaternionf &);
-xrt_fov xrt_cast(const XrFovf &);
+#define XRT_CAST(in_type, out_type)                              \
+	constexpr out_type xrt_cast(const in_type & in) noexcept \
+	{                                                        \
+		return std::bit_cast<out_type>(in);              \
+	}
 
-XrPosef xrt_cast(const xrt_pose &);
-XrFovf xrt_cast(const xrt_fov &);
+XRT_CAST(XrPosef, xrt_pose)
+XRT_CAST(XrVector3f, xrt_vec3)
+XRT_CAST(XrQuaternionf, xrt_quat)
+XRT_CAST(XrFovf, xrt_fov)
+
+XRT_CAST(xrt_pose, XrPosef)
+XRT_CAST(xrt_fov, XrFovf)
+
+#undef XRT_CAST
 
 xrt_space_relation_flags from_pose_flags(uint8_t in_flags);
