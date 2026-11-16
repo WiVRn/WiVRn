@@ -102,6 +102,20 @@ bool supports_format(int fd, v4l2_buf_type type, uint32_t pixel_format)
 	}
 }
 
+bool supports_p010_capture(int fd)
+{
+	if (!supports_format(fd, capture_type, V4L2_PIX_FMT_P010))
+		return false;
+
+	v4l2_format fmt{.type = capture_type};
+	if (xioctl(fd, VIDIOC_G_FMT, &fmt) < 0)
+		return false;
+	fmt.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_P010;
+	return xioctl(fd, VIDIOC_TRY_FMT, &fmt) == 0 &&
+	       fmt.fmt.pix_mp.pixelformat == V4L2_PIX_FMT_P010 &&
+	       fmt.fmt.pix_mp.num_planes == 1;
+}
+
 wivrn::fd_base find_device(wivrn::video_codec codec)
 {
 	const uint32_t pixel_format = v4l2_codec(codec);
@@ -594,6 +608,18 @@ void decoder::setup_capture_queue()
 	fmt.type = capture_type;
 	ioctl_or_throw(fd.get_fd(), VIDIOC_G_FMT, &fmt, "VIDIOC_G_FMT(CAPTURE)");
 
+	const uint32_t current = fmt.fmt.pix_mp.pixelformat;
+	const bool ten_bit = current == V4L2_PIX_FMT_P010 || current == V4L2_PIX_FMT_QC10C;
+	const uint32_t wanted = ten_bit && supports_p010_capture(fd.get_fd()) ? V4L2_PIX_FMT_P010 : V4L2_PIX_FMT_NV12;
+	if (current != wanted)
+	{
+		fmt.fmt.pix_mp.pixelformat = wanted;
+		fmt.fmt.pix_mp.plane_fmt[0] = {};
+		ioctl_or_throw(fd.get_fd(), VIDIOC_S_FMT, &fmt, "VIDIOC_S_FMT(CAPTURE)");
+		if (fmt.fmt.pix_mp.pixelformat != wanted)
+			throw std::runtime_error("iris rejected requested NV12/P010 CAPTURE format");
+	}
+
 	capture_width = fmt.fmt.pix_mp.width;
 	capture_height = fmt.fmt.pix_mp.height;
 	capture_pixelformat = fmt.fmt.pix_mp.pixelformat;
@@ -1033,7 +1059,24 @@ bool decoder::supports_10bit(wivrn::video_codec codec)
 	try
 	{
 		auto device = find_device(codec);
-		return supports_format(device.get_fd(), capture_type, V4L2_PIX_FMT_P010);
+		v4l2_format fmt{
+		        .type = output_type,
+		        .fmt = {
+		                .pix_mp = {
+		                        .width = 640,
+		                        .height = 640,
+		                        .pixelformat = v4l2_codec(codec),
+		                        .field = V4L2_FIELD_NONE,
+		                        .plane_fmt = {{
+		                                .sizeimage = 4 * 1024 * 1024,
+		                        }},
+		                        .num_planes = 1,
+		                }},
+		};
+		if (xioctl(device.get_fd(), VIDIOC_S_FMT, &fmt) < 0 ||
+		    fmt.fmt.pix_mp.pixelformat != v4l2_codec(codec))
+			return false;
+		return supports_p010_capture(device.get_fd());
 	}
 	catch (...)
 	{
