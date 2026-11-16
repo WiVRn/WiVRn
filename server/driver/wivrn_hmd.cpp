@@ -95,9 +95,9 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 {
 	const auto config = configuration();
 
-	int eye_width = info.render_eye_width;
+	uint32_t eye_width = info.render_eye_width;
 	eye_width = ((eye_width + 3) / 4) * 4;
-	int eye_height = info.render_eye_height;
+	uint32_t eye_height = info.render_eye_height;
 	eye_height = ((eye_height + 3) / 4) * 4;
 
 	inputs_array.emplace_back(true, 0, XRT_INPUT_GENERIC_HEAD_POSE);
