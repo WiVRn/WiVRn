@@ -1,3 +1,12 @@
+> [!WARNING]
+> **Unofficial fork.** This repository contains unofficial patches on top of WiVRn v26.9
+> (branch `tracked`), made with the help of an AI assistant. They are not reviewed or
+> endorsed by the WiVRn developers. Please do not report problems with this build to the
+> upstream project. The official WiVRn is at https://github.com/WiVRn/WiVRn.
+>
+> Patches: controllers keep their tracked flags; steadier frame pacing and frame sizes;
+> foveation without a brighter square in the middle; a frame timeline; haptics can be stopped.
+
 <h1 align="center"> WiVRn </h1>
 
 <div align="center">
