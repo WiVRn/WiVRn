@@ -149,7 +149,8 @@ void wivrn_uinput::handle_gamepad(const wivrn::from_headset::inputs & inputs)
 
 	bool dpad_left = false, dpad_right = false, dpad_up = false, dpad_down = false;
 	std::vector<input_event> events;
-	events.reserve(3); // Reserve for the syn report and dpad events.
+	// Make a estimated guess on how much dynamic memory we need to avoid a reallocation
+	events.reserve(3 + inputs.values.size());
 
 	for (const auto & value: inputs.values)
 	{
