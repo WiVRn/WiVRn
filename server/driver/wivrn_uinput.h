@@ -29,6 +29,10 @@ private:
 	void init_mouse();
 	void init_gamepad();
 
+	// Add more space if needed
+	// using ev_inplace_vector = beman::inplace_vector::inplace_vector<input_event, 3>;
+	// using hid_ev = std::pair<ev_inplace_vector, int>;
+
 	void send_key(uint16_t key, bool down);
 	void send_button(uint16_t mouse_button, bool down);
 	void mouse_move_relative(int16_t x, int16_t y);
