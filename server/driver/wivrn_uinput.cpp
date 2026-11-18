@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <inplace_vector.hpp>
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -17,6 +18,8 @@
 
 #include <linux/input-event-codes.h>
 #include <linux/uinput.h>
+
+using namespace beman::inplace_vector;
 
 namespace
 {
@@ -39,11 +42,11 @@ constexpr uinput_user_dev fill_ids(uint16_t product) noexcept
 
 constexpr input_event ev(uint16_t type, uint16_t code, int32_t value) noexcept
 {
-	input_event ev{};
-	ev.type = type;
-	ev.code = code;
-	ev.value = value;
-	return ev;
+	return {
+	        .type = type,
+	        .code = code,
+	        .value = value,
+	};
 }
 
 constexpr input_event syn() noexcept
@@ -109,29 +112,29 @@ void wivrn_uinput::handle_input(wivrn::from_headset::hid::input & e)
 		init_mouse();
 	}
 
-	const auto [events, fd] = std::visit(utils::overloaded{
-	                                             [this](const wivrn::from_headset::hid::key_down & e) {
-		                                             return key_ev(e.key, true);
-	                                             },
-	                                             [this](const wivrn::from_headset::hid::key_up & e) {
-		                                             return key_ev(e.key, false);
-	                                             },
-	                                             [this](const wivrn::from_headset::hid::button_down & e) {
-		                                             return button_ev(e.button, true);
-	                                             },
-	                                             [this](const wivrn::from_headset::hid::button_up & e) {
-		                                             return button_ev(e.button, false);
-	                                             },
-	                                             [this](const wivrn::from_headset::hid::mouse_scroll & e) {
-		                                             return mouse_scroll_ev(e.v, e.h);
-	                                             },
-	                                             [this](const wivrn::from_headset::hid::mouse_move & e) {
-		                                             return mouse_move_relative_ev(e.x, e.y);
-	                                             },
-	                                     },
-	                                     e.input_data);
+	std::visit(utils::overloaded{
+	                   [this](const wivrn::from_headset::hid::key_down & e) {
+		                   send_key(e.key, true);
+	                   },
+	                   [this](const wivrn::from_headset::hid::key_up & e) {
+		                   send_button(e.key, false);
+	                   },
+	                   [this](const wivrn::from_headset::hid::button_down & e) {
+		                   send_button(e.button, true);
+	                   },
+	                   [this](const wivrn::from_headset::hid::button_up & e) {
+		                   send_button(e.button, false);
+	                   },
+	                   [this](const wivrn::from_headset::hid::mouse_scroll & e) {
+		                   mouse_scroll(e.v, e.h);
+	                   },
+	                   [this](const wivrn::from_headset::hid::mouse_move & e) {
+		                   mouse_move_relative(e.x, e.y);
+	                   },
+	           },
+	           e.input_data);
 
-	write_or_throw(fd, events.data(), events.size() * sizeof(decltype(events)::value_type));
+	// write_or_throw(fd, events.data(), events.size() * sizeof(decltype(events)::value_type));
 }
 
 void wivrn_uinput::handle_gamepad(const wivrn::from_headset::inputs & inputs)
@@ -275,43 +278,43 @@ std::vector<wivrn::to_headset::haptics> wivrn_uinput::read_rumble()
 	return result;
 }
 
-wivrn_uinput::hid_ev wivrn_uinput::key_ev(uint16_t key, bool down)
+void wivrn_uinput::send_key(uint16_t key, bool down)
 {
-	ev_inplace_vector events = {
+	std::array<input_event, 2> events = {
 	        ev(EV_KEY, key, static_cast<int32_t>(down)),
 	        syn()};
-	return {events, kbd_fd.get_fd()};
+	write_or_throw(kbd_fd.get_fd(), events.data(), events.size() * sizeof(decltype(events)::value_type));
 }
 
 /// 0: left, 1: right, 2: middle
-wivrn_uinput::hid_ev wivrn_uinput::button_ev(uint16_t mouse_button, bool down)
+void wivrn_uinput::send_button(uint16_t mouse_button, bool down)
 {
-	ev_inplace_vector events = {
+	std::array<input_event, 2> events = {
 	        ev(EV_KEY, mouse_button + BTN_MOUSE, static_cast<int32_t>(down)),
 	        syn()};
-	return {events, mouse_fd.get_fd()};
+	write_or_throw(kbd_fd.get_fd(), events.data(), events.size() * sizeof(decltype(events)::value_type));
 }
 
-wivrn_uinput::hid_ev wivrn_uinput::mouse_move_relative_ev(int16_t x, int16_t y)
+void wivrn_uinput::mouse_move_relative(int16_t x, int16_t y)
 {
-	ev_inplace_vector events;
+	inplace_vector<input_event, 3> events;
 	if (x)
 		events.push_back(ev(EV_REL, REL_X, x));
 	if (y)
 		events.push_back(ev(EV_REL, REL_Y, y));
 	events.push_back(syn());
-	return {events, mouse_fd.get_fd()};
+	write_or_throw(mouse_fd.get_fd(), events.data(), events.size() * sizeof(decltype(events)::value_type));
 }
 
-wivrn_uinput::hid_ev wivrn_uinput::mouse_scroll_ev(int16_t vertical, int16_t horizontal)
+void wivrn_uinput::mouse_scroll(int16_t vertical, int16_t horizontal)
 {
-	ev_inplace_vector events;
+	inplace_vector<input_event, 3> events;
 	if (vertical)
 		events.push_back(ev(EV_REL, REL_WHEEL, vertical));
 	if (horizontal)
 		events.push_back(ev(EV_REL, REL_HWHEEL, horizontal));
 	events.push_back(syn());
-	return {events, mouse_fd.get_fd()};
+	write_or_throw(mouse_fd.get_fd(), events.data(), events.size() * sizeof(decltype(events)::value_type));
 }
 
 void wivrn_uinput::init_keyboard()
