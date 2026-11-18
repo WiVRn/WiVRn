@@ -133,8 +133,6 @@ void wivrn_uinput::handle_input(wivrn::from_headset::hid::input & e)
 	                   },
 	           },
 	           e.input_data);
-
-	// write_or_throw(fd, events.data(), events.size() * sizeof(decltype(events)::value_type));
 }
 
 void wivrn_uinput::handle_gamepad(const wivrn::from_headset::inputs & inputs)
