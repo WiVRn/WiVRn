@@ -2,6 +2,7 @@
 #include "wivrn_sockets.h"
 
 #include <cstdint>
+#include <inplace_vector.hpp>
 #include <map>
 #include <vector>
 
@@ -29,10 +30,14 @@ private:
 	void init_mouse();
 	void init_gamepad();
 
-	std::pair<std::vector<input_event>, wivrn::fd_base> send_key(uint16_t key, bool down);
-	std::pair<std::vector<input_event>, wivrn::fd_base> send_button(uint16_t mouse_button, bool down);
-	std::pair<std::vector<input_event>, wivrn::fd_base> mouse_move_relative(int16_t x, int16_t y);
-	std::pair<std::vector<input_event>, wivrn::fd_base> mouse_scroll(int16_t vertical, int16_t horizontal);
+	// Add more space if needed
+	using ev_inplace_vector = beman::inplace_vector::inplace_vector<input_event, 3>;
+	using hid_ev = std::pair<ev_inplace_vector, int>;
+
+	hid_ev key_ev(uint16_t key, bool down);
+	hid_ev button_ev(uint16_t mouse_button, bool down);
+	hid_ev mouse_move_relative_ev(int16_t x, int16_t y);
+	hid_ev mouse_scroll_ev(int16_t vertical, int16_t horizontal);
 
 	static constexpr int ff_effects_max = 16;
 
