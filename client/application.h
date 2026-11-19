@@ -23,6 +23,8 @@
 #ifdef __ANDROID__
 #include "android/hid.h"
 #include <android_native_app_glue.h>
+#else
+#include "linux/hid.h"
 #endif
 
 #include "configuration.h"
@@ -87,6 +89,8 @@ private:
 	bool resumed = false;
 
 	android_hid::input_handler input_handler{};
+#else
+	linux_hid::input_handler input_handler{};
 #endif
 
 	static inline const char engine_name[] = "No engine";

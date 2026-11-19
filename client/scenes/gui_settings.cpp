@@ -26,6 +26,9 @@
 #include "gui_settings.h"
 
 #include "application.h"
+#ifndef __ANDROID__
+#include "linux/hid.h"
+#endif
 #include "configuration.h"
 #include "decoder/decoder.h"
 #include "render/imgui_impl.h"
@@ -545,7 +548,6 @@ void settings_devices(const settings_context & ctx)
 	auto & default_config = ctx.default_config;
 	std::vector<setting> list;
 
-#ifdef __ANDROID__
 	list.push_back({
 	        .id = "##keyboard",
 	        .label = _C("setting name", "Keyboard"),
@@ -554,6 +556,10 @@ void settings_devices(const settings_context & ctx)
 	        .get_bool = [&config] { return config.forward_keyboard; },
 	        .set_bool = [&config](bool v) { config.forward_keyboard = v; config.save(); },
 	        .default_bool = default_config.forward_keyboard,
+#ifndef __ANDROID__
+	        .enabled = [&config] { return config.forward_keyboard or linux_hid::evdev_accessible(linux_hid::device_type::keyboard); },
+	        .disabled_tooltip = _("Cannot access keyboard evdev devices. Check permissions for /dev/input/event*."),
+#endif
 	});
 
 	list.push_back({
@@ -564,8 +570,11 @@ void settings_devices(const settings_context & ctx)
 	        .get_bool = [&config] { return config.forward_mouse; },
 	        .set_bool = [&config](bool v) { config.forward_mouse = v; config.save(); },
 	        .default_bool = default_config.forward_mouse,
-	});
+#ifndef __ANDROID__
+	        .enabled = [&config] { return config.forward_mouse or linux_hid::evdev_accessible(linux_hid::device_type::mouse); },
+	        .disabled_tooltip = _("Cannot access mouse evdev devices. Check permissions for /dev/input/event*."),
 #endif
+	});
 
 	list.push_back({
 	        .id = "##gamepad",

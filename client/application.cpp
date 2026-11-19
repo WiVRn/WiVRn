@@ -61,13 +61,14 @@
 
 #include "android/jnipp.h"
 #else
+#include "scenes/stream.h"
 #include "utils/xdg_base_directory.h"
 #include <signal.h>
 #endif
 
 using namespace std::chrono_literals;
 
-struct interaction_profile
+struct xr_interaction_profile
 {
 	std::string profile_name;
 	std::vector<const char *> required_extensions;
@@ -76,8 +77,8 @@ struct interaction_profile
 	bool available;
 };
 
-static std::vector<interaction_profile> interaction_profiles{
-        interaction_profile{
+static std::vector<xr_interaction_profile> interaction_profiles{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/khr/simple_controller",
                 .input_sources = {
                         "/user/hand/left/output/haptic",
@@ -97,7 +98,7 @@ static std::vector<interaction_profile> interaction_profiles{
 
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/oculus/touch_controller",
                 .input_sources = {
                         "/user/hand/left/output/haptic",
@@ -136,7 +137,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/thumbrest/touch",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/facebook/touch_controller_pro",
                 .required_extensions = {XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME},
                 .input_sources = {
@@ -192,7 +193,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/thumb_fb/proximity_fb",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/meta/touch_pro_controller",
                 .min_version = XR_MAKE_VERSION(1, 1, 0),
                 .input_sources = {
@@ -248,7 +249,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/stylus/force",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/meta/touch_controller_plus",
                 .required_extensions = {XR_META_TOUCH_CONTROLLER_PLUS_EXTENSION_NAME},
                 .input_sources = {
@@ -297,7 +298,7 @@ static std::vector<interaction_profile> interaction_profiles{
 
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/meta/touch_plus_controller",
                 .min_version = XR_MAKE_VERSION(1, 1, 0),
                 .input_sources = {
@@ -348,7 +349,7 @@ static std::vector<interaction_profile> interaction_profiles{
 
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/bytedance/pico_neo3_controller",
                 .required_extensions = {XR_BD_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
@@ -391,7 +392,7 @@ static std::vector<interaction_profile> interaction_profiles{
 
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/bytedance/pico4_controller",
                 .required_extensions = {XR_BD_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
@@ -434,7 +435,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/squeeze/value",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/bytedance/pico4s_controller",
                 .required_extensions = {XR_BD_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
@@ -477,7 +478,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/squeeze/value",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/valve/frame_controller_valve",
                 .required_extensions = {"XR_VALVE_frame_controller_interaction"},
                 .input_sources = {
@@ -539,7 +540,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/left/input/thumbstick",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/yvr/touch_controller_yvr",
                 .input_sources = {
                         "/user/hand/left/output/haptic",
@@ -580,7 +581,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/thumbrest/touch",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/htc/vive_focus3_controller",
                 .required_extensions = {XR_HTC_VIVE_FOCUS3_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
@@ -622,7 +623,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/thumbrest/touch",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/ext/hand_interaction_ext",
                 .required_extensions = {XR_EXT_HAND_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
@@ -651,21 +652,21 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/grasp_ext/ready_ext",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/htc/vive_xr_tracker",
                 .required_extensions = {
                         XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME,
                         XR_HTC_PATH_ENUMERATION_EXTENSION_NAME,
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/ext/eye_gaze_interaction",
                 .required_extensions = {XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
                         "/user/eyes_ext/input/gaze_ext/pose",
                 },
         },
-        interaction_profile{
+        xr_interaction_profile{
                 .profile_name = "/interaction_profiles/microsoft/xbox_controller",
                 .input_sources = {
                         "/user/gamepad/input/menu/click",
@@ -1806,6 +1807,11 @@ void application::loop()
 	battery_monitor->poll_batteries();
 
 	auto scene = current_scene();
+#ifndef __ANDROID__
+	auto stream_scene = dynamic_cast<scenes::stream *>(scene.get());
+	bool forward_hid = stream_scene and stream_scene->current_state() == scenes::stream::state::streaming and stream_scene->hid_forwarding_enabled();
+	input_handler.poll(forward_hid ? scene.get() : nullptr, get_config().forward_keyboard, get_config().forward_mouse);
+#endif
 	if (not is_session_running())
 	{
 		if (not timestamp_unsynchronized)
