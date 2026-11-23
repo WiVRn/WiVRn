@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.28)
 project(WiVRn VERSION 0.0.0 LANGUAGES C CXX)
 
+# Workaround for boost CMake error
+function(source_group)
+endfunction()
+
 # Set default for FetchContent projects
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
