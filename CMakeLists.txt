@@ -36,6 +36,7 @@ if (GIT_TAG AND (GIT_DESC OR GIT_COMMIT))
 	message(FATAL_ERROR "cannot use GIT_DESC or GIT_COMMIT when using GIT_TAG")
 endif()
 
+option(WIVRN_OVERWRITE_COMPILE_COMMANDS "Overwrite user configured compile_commands.json" OFF)
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" ON)
 option(WIVRN_USE_SYSTEM_OPENXR "Use system OpenXR headers" ON)
@@ -103,6 +104,23 @@ option(WIVRN_OPENXR_MANIFEST_ABI "Generate an ABI specific OpenXR manifest")
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
 
 set(WIVRN_ENVIRONMENTS_URL "https://github.com/WiVRn/WiVRn-environments/releases/latest/download/index.json" CACHE STRING "URL hosting the custom environments json file")
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS AND WIVRN_OVERWRITE_COMPILE_COMMANDS AND NOT CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
+    if(NOT DEFINED COMPILE_COMMANDS_SYMLINK)
+        set(COMPILE_COMMANDS_SYMLINK "${CMAKE_SOURCE_DIR}/compile_commands.json")
+    endif()
+
+    if(NOT DEFINED COMPILE_COMMANDS_SOURCE)
+        set(COMPILE_COMMANDS_SOURCE "${CMAKE_BINARY_DIR}/compile_commands.json")
+    endif()
+
+    file(REMOVE "${COMPILE_COMMANDS_SYMLINK}")
+    file(CREATE_LINK "${COMPILE_COMMANDS_SOURCE}" "${COMPILE_COMMANDS_SYMLINK}" SYMBOLIC RESULT create_link_result)
+
+    if(create_link_result)
+        message(FATAL_ERROR "Failed to create symbolic link for ${COMPILE_COMMANDS_SYMLINK}: ${create_link_result}")
+    endif()
+endif()
 
 if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_SERVER OR WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_DISSECTOR)
     set(NEED_COMMON TRUE)
