@@ -109,13 +109,9 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS AND WIVRN_OVERWRITE_COMPILE_COMMANDS AND NOT CM
     if(NOT DEFINED COMPILE_COMMANDS_SYMLINK)
         set(COMPILE_COMMANDS_SYMLINK "${CMAKE_SOURCE_DIR}/compile_commands.json")
     endif()
-
-    if(NOT DEFINED COMPILE_COMMANDS_SOURCE)
-        set(COMPILE_COMMANDS_SOURCE "${CMAKE_BINARY_DIR}/compile_commands.json")
-    endif()
-
+    
     file(REMOVE "${COMPILE_COMMANDS_SYMLINK}")
-    file(CREATE_LINK "${COMPILE_COMMANDS_SOURCE}" "${COMPILE_COMMANDS_SYMLINK}" SYMBOLIC RESULT create_link_result)
+    file(CREATE_LINK "${CMAKE_BINARY_DIR}/compile_commands.json" "${COMPILE_COMMANDS_SYMLINK}" SYMBOLIC RESULT create_link_result)
 
     if(create_link_result)
         message(FATAL_ERROR "Failed to create symbolic link for ${COMPILE_COMMANDS_SYMLINK}: ${create_link_result}")
