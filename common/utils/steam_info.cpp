@@ -65,6 +65,7 @@ public:
 	}
 
 	std::vector<std::string> string_table();
+	std::vector<std::string> string_table(uint32_t count);
 
 	auto tellg()
 	{
@@ -98,6 +99,15 @@ std::vector<std::string> binary_reader::string_table()
 	for (size_t i = 0; i < count; ++i)
 		res.emplace_back(read<std::string>());
 	in.seekg(pos);
+	return res;
+}
+
+std::vector<std::string> binary_reader::string_table(uint32_t count)
+{
+	std::vector<std::string> res;
+	res.reserve(count);
+	for (size_t i = 0; i < count; ++i)
+		res.emplace_back(read<std::string>());
 	return res;
 }
 
@@ -217,15 +227,113 @@ std::unordered_set<uint64_t> owned_appids(std::filesystem::path localconfig)
 	return res;
 }
 
-std::vector<wivrn::steam::application> read_appinfo(std::filesystem::path root, std::unordered_set<uint64_t> const & appids)
+struct app_data
+{
+	enum section
+	{
+		common,
+		other,
+	};
+
+	std::vector<enum section> section;
+	wivrn::steam::application current{};
+	std::string clienticon;
+	std::string linuxclienticon;
+	bool VR = false;
+
+	void clear()
+	{
+		section.clear();
+		current.icon.clear();
+		current.name.clear();
+		current.url.clear();
+		clienticon.clear();
+		linuxclienticon.clear();
+		VR = false;
+		section.push_back(section::other);
+	}
+
+	void begin_dict(const std::string & key)
+	{
+		if (key == "common")
+			section.push_back(section::common);
+		else
+			section.push_back(section::other);
+	}
+	void end_dict()
+	{
+		section.pop_back();
+	}
+	void on_string(const std::string & key, std::string && val)
+	{
+		switch (section.back())
+		{
+			case common:
+				if (strcasecmp(key.c_str(), "clienticon") == 0)
+					clienticon = std::move(val);
+				else if (strcasecmp(key.c_str(), "linuxclienticon") == 0)
+					linuxclienticon = std::move(val);
+				else if (strcasecmp(key.c_str(), "name") == 0)
+					current.name[""] = std::move(val);
+				break;
+			case other:
+				break;
+		}
+	}
+	void on_uint32_t(const std::string & key, uint32_t val)
+	{
+		switch (section.back())
+		{
+			case common:
+				if (key == "openvrsupport")
+					VR = val;
+				break;
+			case other:
+				break;
+		}
+	}
+};
+
+bool is_appid_magic(uint32_t magic)
+{
+	return (magic & 0xff'ff'ff'00) == 0x07'56'44'00;
+}
+
+void try_parse_application(std::vector<wivrn::steam::application> & out, std::filesystem::path root, uint32_t app_id, binary_reader & in, app_data & v, const std::vector<std::string> * string_table)
+{
+	try
+	{
+		v.clear();
+		read_dict(in, v, string_table);
+		if (v.VR)
+		{
+			auto & item = out.emplace_back(std::move(v.current));
+			item.appid = app_id;
+			item.url = std::format("steam://launch/{}/VR", app_id);
+
+			if (auto icon_path = root / "steam/games" / (v.clienticon + ".ico"); std::filesystem::exists(icon_path))
+				item.icon = icon_path;
+
+			else if (auto icon_path = root / "steam/games" / (v.linuxclienticon + ".zip"); std::filesystem::exists(icon_path))
+				item.icon = icon_path;
+		}
+	}
+	catch (...)
+	{
+		// Ignore errors
+	}
+}
+
+// TODO: Remove when v42 appinfo is used in stable Steam Client
+std::vector<wivrn::steam::application> read_appinfo_pre_v42(std::filesystem::path root, std::unordered_set<uint64_t> const & appids)
 {
 	binary_reader in{std::ifstream{root / "appcache/appinfo.vdf"}};
 
 	uint32_t magic = in.read<uint32_t>();
-	if ((magic & 0xff'ff'ff'00) != 0x07'56'44'00)
+	if (!is_appid_magic(magic))
 		throw std::runtime_error{"Wrong magic number"};
 
-	auto universe = in.read<uint32_t>();
+	in.discard(4); // universe
 
 	int version = magic & 0xff;
 
@@ -238,71 +346,7 @@ std::vector<wivrn::steam::application> read_appinfo(std::filesystem::path root, 
 	}
 	std::vector<wivrn::steam::application> res;
 
-	enum section
-	{
-		common,
-		other,
-	};
-	struct V
-	{
-		std::vector<enum section> section;
-		wivrn::steam::application current{};
-		std::string clienticon;
-		std::string linuxclienticon;
-		bool VR = false;
-
-		void clear()
-		{
-			section.clear();
-			current.icon.clear();
-			current.name.clear();
-			current.url.clear();
-			clienticon.clear();
-			linuxclienticon.clear();
-			VR = false;
-			section.push_back(section::other);
-		}
-
-		void begin_dict(const std::string & key)
-		{
-			if (key == "common")
-				section.push_back(section::common);
-			else
-				section.push_back(section::other);
-		}
-		void end_dict()
-		{
-			section.pop_back();
-		}
-		void on_string(const std::string & key, std::string && val)
-		{
-			switch (section.back())
-			{
-				case common:
-					if (strcasecmp(key.c_str(), "clienticon") == 0)
-						clienticon = std::move(val);
-					else if (strcasecmp(key.c_str(), "linuxclienticon") == 0)
-						linuxclienticon = std::move(val);
-					else if (strcasecmp(key.c_str(), "name") == 0)
-						current.name[""] = std::move(val);
-					break;
-				case other:
-					break;
-			}
-		}
-		void on_uint32_t(const std::string & key, uint32_t val)
-		{
-			switch (section.back())
-			{
-				case common:
-					if (key == "openvrsupport")
-						VR = val;
-					break;
-				case other:
-					break;
-			}
-		}
-	} v;
+	app_data v;
 
 	while (true)
 	{
@@ -325,31 +369,103 @@ std::vector<wivrn::steam::application> read_appinfo(std::filesystem::path root, 
 		);
 		if (appids.contains(app_id))
 		{
-			try
-			{
-				v.clear();
-				read_dict(in, v, string_table_ptr);
-				if (v.VR)
-				{
-					auto & item = res.emplace_back(std::move(v.current));
-					item.appid = app_id;
-					item.url = std::format("steam://launch/{}/VR", app_id);
-
-					if (auto icon_path = root / "steam/games" / (v.clienticon + ".ico"); std::filesystem::exists(icon_path))
-						item.icon = icon_path;
-
-					else if (auto icon_path = root / "steam/games" / (v.linuxclienticon + ".zip"); std::filesystem::exists(icon_path))
-						item.icon = icon_path;
-				}
-			}
-			catch (...)
-			{
-				// Ignore errors
-			}
+			try_parse_application(res, root, app_id, in, v, string_table_ptr);
 		}
 		in.seekg(pos + size_data);
 	}
 	return res;
+}
+
+std::vector<wivrn::steam::application> read_appinfo_v42(std::filesystem::path root, std::unordered_set<uint64_t> const & appids)
+{
+	std::vector<wivrn::steam::application> res;
+	for (auto const & entry: std::filesystem::directory_iterator(root / "appcache/appinfo"))
+	{
+		try
+		{
+			if (auto extension = entry.path().extension(); extension != ".vdf")
+				throw std::runtime_error{"Improper file extension"};
+
+			binary_reader in{std::ifstream{entry.path()}};
+
+			// https://github.com/xPaw/SteamAppInfo/blob/master/README.md#shard-header
+			uint32_t magic = in.read<uint32_t>();
+			if (!is_appid_magic(magic))
+				throw std::runtime_error{"Wrong magic number"};
+
+			int version = magic & 0xff;
+			if (version < 42)
+				throw std::runtime_error{std::format("Invalid version {}", version)};
+
+			in.discard(4   // universe
+			           + 4 // shard_index
+			           + 4 // shard_count
+			);
+
+			auto index_count = in.read<uint32_t>();
+			auto index_size = in.read<uint32_t>();
+			auto string_table_count = in.read<uint32_t>();
+			auto string_table_size = in.read<uint32_t>();
+
+			in.discard(4   // data_size
+			           + 4 // index_crc
+			           + 4 // header_crc
+			);
+
+			size_t index_data_pos = in.tellg();
+			size_t string_table_pos = index_data_pos + index_size;
+			size_t data_pos = string_table_pos + string_table_size;
+
+			in.seekg(string_table_pos);
+			std::vector<std::string> string_table = in.string_table(string_table_count);
+
+			// https://github.com/xPaw/SteamAppInfo/blob/master/README.md#index-entry-repeated
+			in.seekg(index_data_pos);
+			app_data v;
+			for (uint32_t i = 0; i < index_count; i++)
+			{
+				auto app_id = in.read<uint32_t>();
+				if (app_id == 0)
+					break;
+
+				auto data_offset = in.read<uint32_t>();
+				in.discard(4); // data_size
+				auto remaining = in.read<uint32_t>();
+				auto next = (size_t)in.tellg() + remaining;
+
+				if (appids.contains(app_id))
+				{
+					in.seekg(data_pos + data_offset);
+					in.discard(20); // SHA-1 of the bin data
+
+					try_parse_application(res, root, app_id, in, v, &string_table);
+				}
+
+				in.seekg(next);
+			}
+		}
+		catch (std::exception & e)
+		{
+			std::cerr << "Failed to read appinfo shard " << entry.path().filename() << ": " << e.what() << std::endl;
+		}
+	}
+
+	return res;
+}
+
+std::vector<wivrn::steam::application> read_appinfo(std::filesystem::path root, std::unordered_set<uint64_t> const & appids)
+{
+	std::error_code ec;
+	if (std::filesystem::exists(root / "appcache/appinfo.vdf", ec))
+	{
+		return read_appinfo_pre_v42(root, appids);
+	}
+	else if (std::filesystem::is_directory(root / "appcache/appinfo", ec))
+	{
+		return read_appinfo_v42(root, appids);
+	}
+
+	throw std::runtime_error("No appinfos found in appcache");
 }
 
 } // namespace
