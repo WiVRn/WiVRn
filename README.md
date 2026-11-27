@@ -62,7 +62,7 @@ Follow the wizard in the PC dashboard to install the client on your VR headset.
 It should either lead you to the [Meta Store](https://www.meta.com/experiences/7959676140827574/) (for Meta Quest headsets) or to download the correct APK (for other headsets).
 
 > [!WARNING]
-> The VR client and PC server need to be on the same version of WiVRn
+> The VR client and PC server must use the same WiVRn protocol. For official releases, install the matching release on both devices. For development or custom builds, build both from the same source revision: builds can display the same version number while using incompatible protocols.
 
 > [!TIP]
 > If the headset fails to connect to the computer, see [troubleshooting](#troubleshooting).
@@ -150,7 +150,7 @@ If the server list is empty in the headset app:
 <details><summary>My headset does not connect to my computer</summary>
   
 - If you have a firewall, check that port 9757 (UDP and TCP) is open
-- The server and client must be the same version.</details>
+- If the app reports an incompatible server protocol, verify that the client and server came from the same WiVRn release or source revision. If multiple builds are installed, make sure you start the intended server.</details>
 
 <details><summary>How do I use a wired connection manually?</summary>
 
