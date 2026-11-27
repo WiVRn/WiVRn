@@ -41,6 +41,9 @@ protected:
 	video_encoder_ffmpeg(vk_bundle & vk, uint8_t stream_idx, const encoder_settings & settings) :
 	        wivrn::video_encoder(vk, stream_idx, vk.queue.family_index, settings, std::make_unique<default_idr_handler>(), true) {}
 
+	// Wait for the frame to reach the input surface; called outside the avcodec_send+receive span.
+	virtual void wait_input(uint8_t /* slot */, uint64_t /* frame_index */) {}
+
 	virtual void push_frame(bool idr, uint8_t slot) = 0;
 
 	av_codec_context_ptr encoder_ctx;

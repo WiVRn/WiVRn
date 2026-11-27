@@ -483,10 +483,13 @@ void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInf
 
 std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uint64_t frame_index)
 {
-	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
 	{
-		U_LOG_E("Timeout on stream %d", stream_idx);
-		return {};
+		wivrn::trace::scope trace_wait(wivrn::trace::cpu_track::encoder, stream_idx, frame_index, "wait_gpu");
+		if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+		{
+			U_LOG_E("Timeout on stream %d", stream_idx);
+			return {};
+		}
 	}
 
 	if (auto s = ts_pool.collect(slot))
