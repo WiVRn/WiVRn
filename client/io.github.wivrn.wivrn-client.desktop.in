@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=WiVRn
+Comment=Play your PC VR games on a standalone headset
+GenericName=WiVRn client
+Exec=@CMAKE_INSTALL_PREFIX@/bin/wivrn
+Icon=io.github.wivrn.wivrn-client
+Type=Application
+Categories=Network;
+Keywords=VR;Virtual reality;OpenVR;OpenXR;

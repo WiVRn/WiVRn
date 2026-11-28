@@ -184,6 +184,8 @@ target_compile_definitions(wivrn PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 target_include_directories(wivrn PRIVATE .)
 
 if(NOT ANDROID)
+    configure_file(io.github.wivrn.wivrn-client.desktop.in io.github.wivrn.wivrn-client.desktop)
+
     install(TARGETS wivrn)
 endif()
 
@@ -351,4 +353,11 @@ if(NOT ANDROID)
     set_target_properties(wivrn PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
     install(DIRECTORY "${ASSETS_DIR}" DESTINATION ${CMAKE_INSTALL_DATADIR}/wivrn)
+    install(FILES ../images/wivrn.svg
+    	DESTINATION share/icons/hicolor/scalable/apps
+    	RENAME io.github.wivrn.wivrn-client.svg
+    )
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/io.github.wivrn.wivrn-client.desktop
+    	DESTINATION share/applications
+    )
 endif()
