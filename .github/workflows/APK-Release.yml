@@ -75,7 +75,7 @@ jobs:
     - name: Prepare before archiving artifacts
       run: |
         mkdir apk
-        mv build/_CPack_Packages/Android/APK/WiVRn-*.apk apk/WiVRn-${{ matrix.buildtype }}.apk
+        mv build/_CPack_Packages/Android/APK/wivrn.apk apk/WiVRn-${{ matrix.buildtype }}.apk
 
         mkdir debug
         mv build/_CPack_Packages/Android/APK/WiVRn-*/lib/arm64-v8a/*.so debug/
