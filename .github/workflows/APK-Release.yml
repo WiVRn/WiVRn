@@ -78,7 +78,7 @@ jobs:
         mv build/_CPack_Packages/Android/APK/wivrn.apk apk/WiVRn-${{ matrix.buildtype }}.apk
 
         mkdir debug
-        mv build/_CPack_Packages/Android/APK/WiVRn-*/lib/arm64-v8a/*.so debug/
+        mv build/_CPack_Packages/Android/APK/wivrn/lib/arm64-v8a/*.so debug/
 
         find debug -name libopenxr_loader.so -delete
 
