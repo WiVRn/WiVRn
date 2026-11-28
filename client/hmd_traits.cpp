@@ -125,6 +125,11 @@ void hmd_traits::init()
 		needs_srgb_conversion = false;
 	}
 
+	else if (manufacturer == "XREAL" and device == "axrpuck") // XREAL Aura
+	{
+		permissions[feature::hand_tracking] = "android.permission.HAND_TRACKING";
+	}
+
 	else if (manufacturer == "Play For Dream" and model == "PFDM MR")
 	{
 		blacklisted_extensions.insert(XR_META_FOVEATION_EYE_TRACKED_EXTENSION_NAME);
